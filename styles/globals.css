@@ -1,0 +1,451 @@
+/* ══════════════════════════════════════════════════
+   CryptoCheck AI — Global Styles
+   Bloomberg Terminal × Solana Neural Scanner
+══════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── CSS VARIABLES (mirrors Tailwind config) ── */
+:root {
+  --bg:        #030308;
+  --bg2:       #07070f;
+  --bg3:       #0c0c18;
+  --bg4:       #111120;
+  --card:      #0a0a16;
+  --border:    rgba(99,102,241,0.16);
+  --border2:   rgba(255,255,255,0.05);
+  --grid:      rgba(255,255,255,0.03);
+  --p1:        #6366f1;
+  --p2:        #4f46e5;
+  --p3:        #06b6d4;
+  --p4:        #8b5cf6;
+  --p5:        #a78bfa;
+  --ok:        #10b981;
+  --warn:      #f59e0b;
+  --danger:    #ef4444;
+  --info:      #38bdf8;
+  --text:      #e6edf3;
+  --muted:     #9ca3af;
+  --dim:       #6b7280;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-sans: 'IBM Plex Sans', sans-serif;
+}
+
+/* ── BASE RESET ── */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 14px;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ════════════════════════════════════════════════
+   SCANLINES EFFECT
+   Applied to body::after — CRT monitor look
+════════════════════════════════════════════════ */
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  overflow-x: hidden;
+  min-height: 100vh;
+  position: relative;
+
+  /* CRT Scanlines — subtle horizontal lines */
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.055) 2px,
+    rgba(0, 0, 0, 0.055) 4px
+  );
+}
+
+/* ── GRID OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.7;
+}
+
+/* ── NOISE GRAIN OVERLAY ── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+/* ════════════════════════════════════════════════
+   AMBIENT GLOW BLOBS
+   Fixed positioned colored blurs behind content
+════════════════════════════════════════════════ */
+.ambient-blob {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(160px);
+}
+
+.ambient-blob-1 {
+  width: 600px;
+  height: 600px;
+  background: var(--p1);
+  top: -200px;
+  left: -150px;
+  opacity: 0.055;
+}
+
+.ambient-blob-2 {
+  width: 400px;
+  height: 400px;
+  background: var(--p3);
+  bottom: -100px;
+  right: -100px;
+  opacity: 0.045;
+}
+
+.ambient-blob-3 {
+  width: 220px;
+  height: 220px;
+  background: var(--p4);
+  top: 40%;
+  left: 52%;
+  opacity: 0.04;
+}
+
+/* ════════════════════════════════════════════════
+   SCROLLBAR STYLING
+════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.22); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.4); }
+
+/* ════════════════════════════════════════════════
+   SPINNER RINGS (Neural scan loading)
+════════════════════════════════════════════════ */
+@keyframes spinCW  { to { transform: rotate(360deg);  } }
+@keyframes spinCCW { to { transform: rotate(-360deg); } }
+
+.spinner-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+}
+.spinner-ring-1 { border-top-color: var(--p1); animation: spinCW 1.1s linear infinite; }
+.spinner-ring-2 { inset: 9px; border-right-color: var(--p3); animation: spinCCW 1.7s linear infinite; }
+.spinner-ring-3 { inset: 18px; border-bottom-color: var(--p4); animation: spinCW 2.3s linear infinite; }
+
+/* ════════════════════════════════════════════════
+   LIVE BADGE PULSE
+════════════════════════════════════════════════ */
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+.live-badge { animation: livePulse 2s ease-in-out infinite; }
+
+/* ════════════════════════════════════════════════
+   LOG LINES (scan terminal output)
+════════════════════════════════════════════════ */
+@keyframes logFadeIn { to { opacity: 1; } }
+.log-line {
+  opacity: 0;
+  animation: logFadeIn 0.3s ease forwards;
+  color: var(--ok);
+  font-size: 0.64rem;
+  line-height: 1.5;
+  margin-bottom: 3px;
+}
+
+/* ════════════════════════════════════════════════
+   FLOAT ANIMATION (empty state icon)
+════════════════════════════════════════════════ */
+@keyframes floatY {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-6px); }
+}
+.float-anim { animation: floatY 4s ease-in-out infinite; }
+
+/* ════════════════════════════════════════════════
+   TICKER TAPE
+════════════════════════════════════════════════ */
+@keyframes tickerScroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.ticker-track { animation: tickerScroll 30s linear infinite; }
+
+/* ════════════════════════════════════════════════
+   SLIDE IN ANIMATION (feed entries, cards)
+════════════════════════════════════════════════ */
+@keyframes slideInX {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+.slide-in { animation: slideInX 0.22s ease; }
+
+/* ════════════════════════════════════════════════
+   CARD GLOW TOP LINE
+════════════════════════════════════════════════ */
+.card-top-safe   { background: linear-gradient(90deg, transparent, var(--ok), transparent); }
+.card-top-warn   { background: linear-gradient(90deg, transparent, var(--warn), transparent); }
+.card-top-danger { background: linear-gradient(90deg, transparent, var(--danger), transparent); }
+
+/* ════════════════════════════════════════════════
+   SKELETON SHIMMER
+════════════════════════════════════════════════ */
+@keyframes shimmerMove {
+  to { background-position: -200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--bg3) 25%, rgba(255,255,255,0.04) 50%, var(--bg3) 75%);
+  background-size: 200% 100%;
+  animation: shimmerMove 1.5s infinite;
+  border-radius: 3px;
+}
+
+/* ════════════════════════════════════════════════
+   MODAL ANIMATION
+════════════════════════════════════════════════ */
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal-enter { animation: modalPop 0.2s ease; }
+
+/* ════════════════════════════════════════════════
+   NEON DOT PULSE
+════════════════════════════════════════════════ */
+@keyframes dotPulse {
+  0%, 100% { box-shadow: 0 0 3px currentColor; }
+  50%       { box-shadow: 0 0 7px currentColor; }
+}
+.dot-pulse { animation: dotPulse 1.5s ease-in-out infinite; }
+
+/* ════════════════════════════════════════════════
+   COMPONENT LAYER UTILITIES
+════════════════════════════════════════════════ */
+@layer components {
+
+  /* Terminal button base */
+  .btn-terminal {
+    @apply font-mono text-xs font-bold tracking-wider uppercase
+           border transition-all duration-150 cursor-pointer;
+  }
+
+  /* Data source badge */
+  .ds-badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-sm
+           text-[0.52rem] font-semibold tracking-wider border;
+  }
+  .ds-badge-rpc   { @apply bg-cyan-950/40 border-cyan-800/30 text-cyan-400; }
+  .ds-badge-net   { @apply bg-emerald-950/40 border-emerald-800/30 text-emerald-400; }
+  .ds-badge-engine{ @apply bg-indigo-950/40 border-indigo-800/30 text-indigo-400; }
+
+  /* Score chip */
+  .score-chip {
+    @apply px-1.5 py-0.5 rounded-sm text-[0.53rem] font-bold tracking-wider border;
+  }
+  .chip-safe   { @apply bg-emerald-950/50 border-emerald-800/30 text-emerald-400; }
+  .chip-warn   { @apply bg-amber-950/50 border-amber-800/30 text-amber-400; }
+  .chip-danger { @apply bg-red-950/50 border-red-800/30 text-red-400; }
+
+  /* Alpha tag */
+  .alpha-tag {
+    @apply inline-block px-1.5 py-0.5 rounded-sm text-[0.52rem]
+           font-bold tracking-wider mr-1;
+  }
+
+  /* Panel label (section header) */
+  .panel-label {
+    @apply flex items-center gap-1.5 text-[0.58rem] font-bold
+           tracking-widest uppercase text-[#6b7280] mb-2;
+  }
+  .panel-label::before {
+    content: '';
+    display: inline-block;
+    width: 2px;
+    height: 8px;
+    background: linear-gradient(var(--p1), var(--p3));
+    border-radius: 1px;
+    flex-shrink: 0;
+  }
+
+  /* Card base */
+  .term-card {
+    @apply bg-[#0a0a16] border border-[rgba(99,102,241,0.16)]
+           rounded-[4px] relative overflow-hidden;
+  }
+
+  /* Section divider header */
+  .s-hdr {
+    @apply flex items-center gap-2 text-[0.58rem] font-bold
+           tracking-widest uppercase text-[#6b7280] mb-3;
+  }
+  .s-hdr::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(99, 102, 241, 0.16);
+  }
+
+  /* Mobile-safe full width */
+  .mobile-full { @apply w-full md:w-auto; }
+
+  /* Jupiter buy button */
+  .jup-btn {
+    @apply flex items-center justify-center gap-2 w-full py-3 rounded-[4px]
+           font-sans font-bold text-white transition-all duration-200
+           cursor-pointer border-none tracking-wide;
+    background: linear-gradient(135deg, #10b981, #059669);
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.3);
+  }
+  .jup-btn:hover {
+    box-shadow: 0 4px 24px rgba(16, 185, 129, 0.45);
+    transform: translateY(-2px);
+  }
+
+  /* Paywall unlock button */
+  .unlock-btn {
+    @apply w-full py-2.5 rounded-[4px] font-mono text-[0.68rem]
+           font-bold tracking-wider text-white border-none cursor-pointer
+           transition-all duration-200;
+    background: linear-gradient(135deg, var(--p1), var(--p3));
+    box-shadow: 0 0 14px rgba(99, 102, 241, 0.3);
+  }
+  .unlock-btn:hover {
+    box-shadow: 0 0 24px rgba(99, 102, 241, 0.5);
+    transform: translateY(-1px);
+  }
+}
+
+/* ════════════════════════════════════════════════
+   RESPONSIVE — MOBILE FIXES
+════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .jup-btn { font-size: 1rem; padding: 14px; border-radius: 6px; }
+  .unlock-btn { font-size: 0.75rem; padding: 13px; border-radius: 5px; }
+
+  /* Horizontal scroll tables */
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Stack chart on mobile */
+  .chart-layout { flex-direction: column; }
+  .chart-layout .chart-canvas { margin: 0 auto; }
+}
+
+/* ════════════════════════════════════════════════
+   DEXSCREENER IFRAME — RESPONSIVE
+════════════════════════════════════════════════ */
+
+/* Desktop: fill flex container */
+.dex-iframe-wrap {
+  flex: 1;
+  position: relative;
+  min-height: 480px;
+}
+.dex-iframe-wrap iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #030308;
+  display: block;
+}
+
+/* Mobile: 70vh so always usable without horizontal scroll */
+@media (max-width: 768px) {
+  .dex-iframe-wrap {
+    min-height: 70vh;
+    height: 70vh;
+  }
+  .dex-iframe-wrap iframe {
+    position: relative;
+    inset: unset;
+    height: 70vh;
+    width: 100%;
+  }
+}
+
+@media (max-width: 380px) {
+  .dex-iframe-wrap { min-height: 60vh; height: 60vh; }
+  .dex-iframe-wrap iframe { height: 60vh; }
+}
+
+/* ════════════════════════════════════════════════
+   JUPITER TERMINAL MODAL
+════════════════════════════════════════════════ */
+
+/* Override Jupiter Terminal's internal styles to match Bloomberg dark */
+#jupiter-terminal-container {
+  background: #0a0a16 !important;
+  font-family: 'IBM Plex Mono', monospace !important;
+  min-height: 520px;
+  width: 100%;
+}
+
+/* Jupiter injects an iframe — make it fill the container */
+#jupiter-terminal-container iframe {
+  width: 100% !important;
+  min-height: 520px !important;
+  border: 0 !important;
+  background: #0a0a16 !important;
+}
+
+/* Trade Now button — same style as jup-btn but with indigo accent */
+.trade-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 4px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  color: #fff;
+  transition: all 0.2s;
+  letter-spacing: 0.02em;
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.3);
+}
+.trade-btn:hover {
+  box-shadow: 0 4px 24px rgba(16, 185, 129, 0.45);
+  transform: translateY(-2px);
+}
+
+/* Mobile: make swap modal full screen */
+@media (max-width: 480px) {
+  #jupiter-terminal-container iframe {
+    min-height: 480px !important;
+  }
+}
