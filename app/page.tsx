@@ -2080,7 +2080,6 @@ export default function Page() {
       if (scanTab === 'holders')   return <HoldersTab data={scanData} />
       if (scanTab === 'liquidity') return <LiquidityTab data={scanData} />
       if (scanTab === 'transfers') return <TransfersTab data={scanData} />
-      if (scanTab === 'chart')     return <DexChartTab mint={scanData.mint} chartKey={chartKey} onConnectWallet={isConnected ? disconnect : connect} isConnected={isConnected} shortAddr={shortAddr} currentSymbol={scanData.meta?.onChainMetadata?.metadata?.data?.symbol ?? scanData.meta?.legacyMetadata?.symbol ?? '???'} neuralScore={computeRisk(scanData).score} />
       if (scanTab === 'edge')      return (
         <AlphaEdgeTab
           data={scanData}
