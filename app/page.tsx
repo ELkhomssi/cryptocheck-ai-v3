@@ -1002,18 +1002,18 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
                   fontSize:'0.56rem', fontFamily:'"IBM Plex Mono",monospace',
                   fontWeight:700, letterSpacing:'0.04em', transition:'all 0.15s',
                   background: rightTab === tab.id
-                    ? tab.vip ? 'linear-gradient(135deg,rgba(251,191,36,0.12),rgba(99,102,241,0.12))' : 'rgba(16,185,129,0.08)'
+                    ? ('vip' in tab && tab.vip) ? 'linear-gradient(135deg,rgba(251,191,36,0.12),rgba(99,102,241,0.12))' : 'rgba(16,185,129,0.08)'
                     : 'transparent',
                   color: rightTab === tab.id
-                    ? tab.vip ? '#fbbf24' : '#10b981'
+                    ? ('vip' in tab && tab.vip) ? '#fbbf24' : '#10b981'
                     : '#6b7280',
                   borderBottom: rightTab === tab.id
-                    ? `2px solid ${tab.vip ? '#f59e0b' : '#10b981'}`
+                    ? `2px solid ${'vip' in tab && tab.vip ? '#f59e0b' : '#10b981'}`
                     : '2px solid transparent',
                 }}
               >
                 {tab.label}
-                {tab.vip && (
+                {('vip' in tab && tab.vip) && (
                   <span style={{
                     marginLeft:4, fontSize:'0.42rem', padding:'1px 4px',
                     background:'linear-gradient(135deg,#f59e0b,#7c3aed)',
@@ -2341,7 +2341,6 @@ export default function Page() {
       if (scanTab === 'holders')   return <HoldersTab data={scanData} />
       if (scanTab === 'liquidity') return <LiquidityTab data={scanData} />
       if (scanTab === 'transfers') return <TransfersTab data={scanData} />
-      if (scanTab === 'chart')     return <DexChartTab mint={scanData.mint} chartKey={chartKey} onConnectWallet={isConnected ? disconnect : connect} isConnected={isConnected} shortAddr={shortAddr} currentSymbol={scanData.meta?.onChainMetadata?.metadata?.data?.symbol ?? scanData.meta?.legacyMetadata?.symbol ?? '???'} neuralScore={computeRisk(scanData).score} />
       if (scanTab === 'edge')      return (
         <AlphaEdgeTab
           data={scanData}
