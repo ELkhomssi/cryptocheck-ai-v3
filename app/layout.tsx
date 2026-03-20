@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google'
 import { SolanaProvider } from '@/components/SolanaProvider'
-import '@/styles/globals.css'
+import './globals.css'
 
 // ── Bloomberg-style monospace + companion sans ──
 const ibmMono = IBM_Plex_Mono({
@@ -25,13 +25,13 @@ export const metadata: Metadata = {
   keywords: ['Solana', 'token scanner', 'rug detection', 'DeFi', 'blockchain analytics', 'Helius'],
   authors: [{ name: 'CryptoCheck AI' }],
   themeColor: '#030308',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${ibmMono.variable} ${ibmSans.variable}`}>
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⬡</text></svg>" />
       </head>
       <body className="bg-bg-base font-mono antialiased">
