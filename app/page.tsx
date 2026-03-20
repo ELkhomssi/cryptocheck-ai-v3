@@ -934,47 +934,6 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
   const dexUrl = `https://dexscreener.com/solana/${mint}?embed=1&theme=dark&trades=0&info=0`
   const jupUrl = `https://jup.ag/swap/SOL-${mint}`
 
-  // Mobile: show tabs to switch between chart / trade / sniper
-  const [mobileTab, setMobileTab] = useState<'chart'|'trade'|'sniper'>('chart')
-  const isMobileView = typeof window !== 'undefined' && window.innerWidth < 768
-
-  const TabBar = ({ mobile = false }: { mobile?: boolean }) => (
-    <div style={{ display:'flex', flexShrink:0, borderBottom:'1px solid rgba(255,255,255,0.06)',
-      background:'#07070f' }}>
-      {([
-        { id:'chart',  label: mobile ? '📈 Chart' : null },
-        { id:'trade',  label:'⚡ Trade' },
-        { id:'sniper', label:'🎯 Sniper', vip:true },
-      ] as const).filter(t => !mobile || t.id !== 'chart' || mobile).map(tab => (
-        <button
-          key={tab.id}
-          onClick={() => mobile ? setMobileTab(tab.id as 'chart'|'trade'|'sniper') : setRightTab(tab.id === 'chart' ? 'trade' : tab.id as 'trade'|'sniper')}
-          style={{
-            flex:1, padding:'7px 4px', border:'none', cursor:'pointer',
-            fontSize:'0.54rem', fontFamily:'"IBM Plex Mono",monospace',
-            fontWeight:700, letterSpacing:'0.03em', transition:'all 0.15s',
-            background: (mobile ? mobileTab : rightTab) === tab.id
-              ? ('vip' in tab && tab.vip) ? 'linear-gradient(135deg,rgba(251,191,36,0.12),rgba(99,102,241,0.12))' : 'rgba(16,185,129,0.08)'
-              : 'transparent',
-            color: (mobile ? mobileTab : rightTab) === tab.id
-              ? ('vip' in tab && tab.vip) ? '#fbbf24' : '#10b981'
-              : '#6b7280',
-            borderBottom: (mobile ? mobileTab : rightTab) === tab.id
-              ? `2px solid ${('vip' in tab && tab.vip) ? '#f59e0b' : '#10b981'}`
-              : '2px solid transparent',
-          }}
-        >
-          {tab.label}
-          {('vip' in tab && tab.vip) && (
-            <span style={{ marginLeft:3, fontSize:'0.4rem', padding:'1px 3px',
-              background:'linear-gradient(135deg,#f59e0b,#7c3aed)',
-              borderRadius:2, color:'#fff', verticalAlign:'middle' }}>VIP</span>
-          )}
-        </button>
-      ))}
-    </div>
-  )
-
   return (
     <div className="flex flex-col h-full" style={{ minHeight: 0 }}>
 
@@ -986,7 +945,7 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
             <span className="w-1 h-1 rounded-full bg-cyan-400 inline-block dot-pulse" />
             DexScreener · Jupiter
           </span>
-          <span className="text-[0.52rem] text-[#374151] font-mono hidden md:block">{mint.slice(0,8)}…</span>
+          <span className="text-[0.52rem] text-[#374151] font-mono">{mint.slice(0,8)}…{mint.slice(-6)}</span>
         </div>
         <button
           onClick={onConnectWallet}
@@ -1002,61 +961,10 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
         </button>
       </div>
 
-      {/* ── MOBILE layout: stacked tabs (Chart / Trade / Sniper) ── */}
-      <div className="md:hidden flex flex-col flex-1 overflow-hidden pb-[60px]">
-        <TabBar mobile={true} />
-        <div style={{ flex:1, overflow:'hidden', position:'relative' }}>
+      {/* ── 60/40 split ── */}
+      <div style={{ display:'grid', gridTemplateColumns:'60% 40%', flex:1, minHeight:0, overflow:'hidden' }}>
 
-          {/* Mobile Chart */}
-          {mobileTab === 'chart' && (
-            <div style={{ position:'absolute', inset:0, overflow:'hidden' }}>
-              <div style={{ marginTop:'-52px', height:'calc(100% + 52px)' }}>
-                <iframe
-                  key={`dex-mob-${chartKey}-${mint}`}
-                  src={dexUrl}
-                  allow="clipboard-write"
-                  sandbox="allow-scripts allow-same-origin"
-                  title="Price chart"
-                  style={{ width:'100%', height:'100%', border:0, background:'#030308', display:'block' }}
-                />
-              </div>
-              <div style={{ position:'absolute', top:0, left:0, right:0, height:'6px',
-                background:'#07070f', zIndex:3, pointerEvents:'none' }} />
-            </div>
-          )}
-
-          {/* Mobile Trade */}
-          {mobileTab === 'trade' && (
-            <div style={{ position:'absolute', inset:0 }}>
-              <iframe
-                key={`jup-mob-${chartKey}-${mint}`}
-                src={jupUrl}
-                allow="clipboard-write"
-                sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"
-                style={{ width:'100%', height:'100%', border:0, background:'#0a0a16' }}
-                title="Jupiter Swap"
-              />
-            </div>
-          )}
-
-          {/* Mobile AI Sniper */}
-          {mobileTab === 'sniper' && (
-            <div style={{ position:'absolute', inset:0, overflow:'auto' }}>
-              <AiAutoSniper
-                currentMint={mint}
-                currentSymbol={currentSymbol}
-                neuralScore={neuralScore}
-                isActive={mobileTab === 'sniper'}
-              />
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── DESKTOP layout: 60/40 split ── */}
-      <div className="hidden md:grid flex-1" style={{ gridTemplateColumns:'60% 40%', minHeight:0, overflow:'hidden' }}>
-
-        {/* LEFT 60% — DexScreener */}
+        {/* LEFT 60% — DexScreener native chart (header hidden by negative margin) */}
         <div style={{ display:'flex', flexDirection:'column', borderRight:'1px solid rgba(99,102,241,0.12)', overflow:'hidden' }}>
           <div style={{ fontSize:'0.54rem', color:'#6b7280', padding:'4px 10px', background:'#07070f', flexShrink:0 }}>
             <span style={{ color:'#10b981' }}>●</span> Price Chart · {mint.slice(0,8)}…
@@ -1077,14 +985,18 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
           </div>
         </div>
 
-        {/* RIGHT 40% — Trade | Sniper tabs */}
+        {/* RIGHT 40% — Tab system: Manual Trade | AI Sniper */}
         <div style={{ display:'flex', flexDirection:'column', background:'#07070f', overflow:'hidden' }}>
+
+          {/* Tab bar */}
           <div style={{ display:'flex', flexShrink:0, borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
             {([
               { id:'trade',  label:'⚡ Manual Trade' },
-              { id:'sniper', label:'🎯 AI Sniper', vip:true },
+              { id:'sniper', label:'🎯 AI Sniper',   vip:true },
             ] as const).map(tab => (
-              <button key={tab.id} onClick={() => setRightTab(tab.id)}
+              <button
+                key={tab.id}
+                onClick={() => setRightTab(tab.id)}
                 style={{
                   flex:1, padding:'7px 6px', border:'none', cursor:'pointer',
                   fontSize:'0.56rem', fontFamily:'"IBM Plex Mono",monospace',
@@ -1098,17 +1010,24 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
                   borderBottom: rightTab === tab.id
                     ? `2px solid ${('vip' in tab && tab.vip) ? '#f59e0b' : '#10b981'}`
                     : '2px solid transparent',
-                }}>
+                }}
+              >
                 {tab.label}
                 {('vip' in tab && tab.vip) && (
-                  <span style={{ marginLeft:4, fontSize:'0.42rem', padding:'1px 4px',
+                  <span style={{
+                    marginLeft:4, fontSize:'0.42rem', padding:'1px 4px',
                     background:'linear-gradient(135deg,#f59e0b,#7c3aed)',
-                    borderRadius:2, color:'#fff', verticalAlign:'middle' }}>VIP</span>
+                    borderRadius:2, color:'#fff', verticalAlign:'middle',
+                  }}>VIP</span>
                 )}
               </button>
             ))}
           </div>
+
+          {/* Tab content */}
           <div style={{ flex:1, minHeight:0, overflow:'hidden', position:'relative' }}>
+
+            {/* Manual Trade — Jupiter iframe */}
             <div style={{ position:'absolute', inset:0, display: rightTab==='trade' ? 'flex' : 'none', flexDirection:'column' }}>
               <iframe
                 key={`jup-${chartKey}-${mint}`}
@@ -1119,6 +1038,8 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
                 title="Jupiter Swap"
               />
             </div>
+
+            {/* AI Sniper — VIP component */}
             <div style={{ position:'absolute', inset:0, display: rightTab==='sniper' ? 'flex' : 'none', flexDirection:'column' }}>
               <AiAutoSniper
                 currentMint={mint}
