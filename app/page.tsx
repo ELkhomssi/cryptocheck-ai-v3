@@ -2379,7 +2379,7 @@ export default function Page() {
       {/* ── HEADER ── */}
       <header className="sticky top-0 z-[300] h-12 flex items-center justify-between px-4 bg-[rgba(3,3,8,0.92)] backdrop-blur-xl border-b border-[rgba(99,102,241,0.16)]">
         <a href="/" className="flex items-center gap-2 font-mono text-[0.82rem] font-bold text-white tracking-wider uppercase no-underline">
-          <div className="w-6 h-6 rounded-[4px] flex items-center justify-center text-[0.7rem]" style={{ boxShadow:'0 0 10px rgba(99,102,241,0.5)' }}><img src="/logo.png" alt="logo" style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:4 }} /></div>
+          <div className="w-6 h-6 rounded-[4px] flex items-center justify-center text-[0.7rem]" style={{ background:'linear-gradient(135deg,#6366f1,#06b6d4)', boxShadow:'0 0 10px rgba(99,102,241,0.35)' }}>⬡</div>
           CryptoCheck<span className="text-indigo-400">AI</span>
           <span className="text-[0.5rem] text-[#6b7280] ml-0.5">v3</span>
         </a>
