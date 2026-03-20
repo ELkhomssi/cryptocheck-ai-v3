@@ -1034,7 +1034,7 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
                 src={jupUrl}
                 allow="clipboard-write"
                 sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"
-                style={{ flex:1, width:'100%', height:'100vh', minHeight:'500px', border:0, background:'#0a0a16' }}
+                style={{ flex:1, width:'100%', border:0, background:'#0a0a16', minHeight:'460px' }}
                 title="Jupiter Swap"
               />
             </div>
