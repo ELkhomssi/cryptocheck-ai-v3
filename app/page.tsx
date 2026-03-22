@@ -634,7 +634,7 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
                 mint={data.mint}
                 sym={sym}
                 onFullScreen={() => onTradeClick(data.mint, sym)}
-                enabled={risk.score >= 55}
+                enabled={true}
               />
             </div>
           </div>
