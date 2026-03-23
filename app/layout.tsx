@@ -3,6 +3,7 @@ import { IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google'
 import { SolanaProvider } from '@/components/SolanaProvider'
 import './globals.css'
 import { Analytics } from '@vercel/analytics/react'
+import { Analytics } from '@vercel/analytics/react'
 
 // ── Bloomberg-style monospace + companion sans ──
 const ibmMono = IBM_Plex_Mono({
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SolanaProvider>
           {children}
         </SolanaProvider>
+        <Analytics />
         <Analytics />
       </body>
     </html>
