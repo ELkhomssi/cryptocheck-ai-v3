@@ -1,11 +1,4 @@
 'use client'
-
-// ══════════════════════════════════════════════
-//  SolanaProvider — Phantom Wallet Connection
-//  No external wallet-adapter dependency needed:
-//  uses window.solana directly for simplicity.
-// ══════════════════════════════════════════════
-
 import {
   createContext,
   useContext,
@@ -14,8 +7,6 @@ import {
   useEffect,
   ReactNode,
 } from 'react'
-
-// ── Phantom window type ──
 
 declare global {
   interface Window {
@@ -28,10 +19,19 @@ declare global {
       publicKey?: { toString(): string } | null
       isConnected?: boolean
     }
+    phantom?: {
+      solana?: {
+        isPhantom: boolean
+        connect: (opts?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: { toString(): string } }>
+        disconnect: () => Promise<void>
+        on: (event: string, handler: (...args: unknown[]) => void) => void
+        off: (event: string, handler: (...args: unknown[]) => void) => void
+        publicKey?: { toString(): string } | null
+        isConnected?: boolean
+      }
+    }
   }
 }
-
-// ── Context ──
 
 interface SolanaContextValue {
   walletAddress: string | null
@@ -51,23 +51,23 @@ const SolanaContext = createContext<SolanaContextValue>({
   shortAddr:     '',
 })
 
-// ── Provider ──
+function getProvider() {
+  if (typeof window === 'undefined') return null
+  if (window.phantom?.solana?.isPhantom) return window.phantom.solana
+  if (window.solana?.isPhantom) return window.solana
+  return null
+}
 
 export function SolanaProvider({ children }: { children: ReactNode }) {
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [isConnecting,  setIsConnecting]  = useState(false)
 
-  // Auto-detect already-connected Phantom on load
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    if (!window.solana?.isPhantom) return
-
-    // Try silent re-connect (onlyIfTrusted)
-    window.solana.connect({ onlyIfTrusted: true })
+    const provider = getProvider()
+    if (!provider) return
+    provider.connect({ onlyIfTrusted: true })
       .then(r => setWalletAddress(r.publicKey.toString()))
-      .catch(() => {}) // not previously trusted — ignore
-
-    // Listen for account changes
+      .catch(() => {})
     const handleAccountChange = (pubkey: unknown) => {
       if (pubkey && typeof pubkey === 'object' && 'toString' in pubkey) {
         setWalletAddress((pubkey as { toString(): string }).toString())
@@ -75,21 +75,19 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
         setWalletAddress(null)
       }
     }
-    window.solana.on('accountChanged', handleAccountChange)
-    return () => { window.solana?.off('accountChanged', handleAccountChange) }
+    provider.on('accountChanged', handleAccountChange)
+    return () => { provider.off('accountChanged', handleAccountChange) }
   }, [])
 
   const connect = useCallback(async () => {
-    if (typeof window === 'undefined') return
-
-    if (!window.solana?.isPhantom) {
+    const provider = getProvider()
+    if (!provider) {
       window.open('https://phantom.app/', '_blank')
       return
     }
-
     setIsConnecting(true)
     try {
-      const resp = await window.solana.connect()
+      const resp = await provider.connect()
       setWalletAddress(resp.publicKey.toString())
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Unknown error'
@@ -100,7 +98,8 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const disconnect = useCallback(() => {
-    window.solana?.disconnect().catch(() => {})
+    const provider = getProvider()
+    provider?.disconnect().catch(() => {})
     setWalletAddress(null)
   }, [])
 
@@ -121,8 +120,6 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
     </SolanaContext.Provider>
   )
 }
-
-// ── Hook ──
 
 export function useSolana() {
   return useContext(SolanaContext)
