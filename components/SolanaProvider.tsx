@@ -1,123 +1,57 @@
 'use client'
-import {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useEffect,
-  ReactNode,
-} from 'react'
-
-declare global {
-  interface Window {
-    solana?: {
-      isPhantom: boolean
-      connect: (opts?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: { toString(): string } }>
-      disconnect: () => Promise<void>
-      on: (event: string, handler: (...args: unknown[]) => void) => void
-      off: (event: string, handler: (...args: unknown[]) => void) => void
-      publicKey?: { toString(): string } | null
-      isConnected?: boolean
-    }
-    phantom?: {
-      solana?: {
-        isPhantom: boolean
-        connect: (opts?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: { toString(): string } }>
-        disconnect: () => Promise<void>
-        on: (event: string, handler: (...args: unknown[]) => void) => void
-        off: (event: string, handler: (...args: unknown[]) => void) => void
-        publicKey?: { toString(): string } | null
-        isConnected?: boolean
-      }
-    }
-  }
-}
+import { ReactNode, useMemo } from 'react'
+import { ConnectionProvider, WalletProvider, useWallet } from '@solana/wallet-adapter-react'
+import { WalletModalProvider } from '@solana/wallet-adapter-react-ui'
+import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets'
+import { createContext, useContext } from 'react'
+import '@solana/wallet-adapter-react-ui/styles.css'
 
 interface SolanaContextValue {
   walletAddress: string | null
-  isConnected:   boolean
-  isConnecting:  boolean
-  connect:       () => Promise<void>
-  disconnect:    () => void
-  shortAddr:     string
+  isConnected: boolean
+  isConnecting: boolean
+  shortAddr: string
 }
 
 const SolanaContext = createContext<SolanaContextValue>({
   walletAddress: null,
-  isConnected:   false,
-  isConnecting:  false,
-  connect:       async () => {},
-  disconnect:    () => {},
-  shortAddr:     '',
+  isConnected: false,
+  isConnecting: false,
+  shortAddr: '',
 })
 
-function getProvider() {
-  if (typeof window === 'undefined') return null
-  if (window.phantom?.solana?.isPhantom) return window.phantom.solana
-  if (window.solana?.isPhantom) return window.solana
-  return null
-}
-
-export function SolanaProvider({ children }: { children: ReactNode }) {
-  const [walletAddress, setWalletAddress] = useState<string | null>(null)
-  const [isConnecting,  setIsConnecting]  = useState(false)
-
-  useEffect(() => {
-    const provider = getProvider()
-    if (!provider) return
-    provider.connect({ onlyIfTrusted: true })
-      .then(r => setWalletAddress(r.publicKey.toString()))
-      .catch(() => {})
-    const handleAccountChange = (pubkey: unknown) => {
-      if (pubkey && typeof pubkey === 'object' && 'toString' in pubkey) {
-        setWalletAddress((pubkey as { toString(): string }).toString())
-      } else {
-        setWalletAddress(null)
-      }
-    }
-    provider.on('accountChanged', handleAccountChange)
-    return () => { provider.off('accountChanged', handleAccountChange) }
-  }, [])
-
-  const connect = useCallback(async () => {
-    const provider = getProvider()
-    if (!provider) {
-      window.open('https://phantom.app/', '_blank')
-      return
-    }
-    setIsConnecting(true)
-    try {
-      const resp = await provider.connect()
-      setWalletAddress(resp.publicKey.toString())
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unknown error'
-      console.error('[SolanaProvider] connect failed:', msg)
-    } finally {
-      setIsConnecting(false)
-    }
-  }, [])
-
-  const disconnect = useCallback(() => {
-    const provider = getProvider()
-    provider?.disconnect().catch(() => {})
-    setWalletAddress(null)
-  }, [])
-
+function SolanaInner({ children }: { children: ReactNode }) {
+  const { publicKey, connecting } = useWallet()
+  const walletAddress = publicKey?.toString() ?? null
   const shortAddr = walletAddress
     ? `${walletAddress.slice(0, 4)}…${walletAddress.slice(-4)}`
     : ''
-
   return (
     <SolanaContext.Provider value={{
       walletAddress,
       isConnected: !!walletAddress,
-      isConnecting,
-      connect,
-      disconnect,
+      isConnecting: connecting,
       shortAddr,
     }}>
       {children}
     </SolanaContext.Provider>
+  )
+}
+
+export function SolanaProvider({ children }: { children: ReactNode }) {
+  const endpoint = 'https://api.mainnet-beta.solana.com'
+  const wallets = useMemo(() => [
+    new PhantomWalletAdapter(),
+    new SolflareWalletAdapter(),
+  ], [])
+  return (
+    <ConnectionProvider endpoint={endpoint}>
+      <WalletProvider wallets={wallets} autoConnect>
+        <WalletModalProvider>
+          <SolanaInner>{children}</SolanaInner>
+        </WalletModalProvider>
+      </WalletProvider>
+    </ConnectionProvider>
   )
 }
 
