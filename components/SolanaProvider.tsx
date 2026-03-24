@@ -1,36 +1,54 @@
 'use client'
-import { ReactNode, useMemo } from 'react'
+import { ReactNode, useMemo, useCallback } from 'react'
 import { ConnectionProvider, WalletProvider, useWallet } from '@solana/wallet-adapter-react'
-import { WalletModalProvider } from '@solana/wallet-adapter-react-ui'
+import { WalletModalProvider, useWalletModal } from '@solana/wallet-adapter-react-ui'
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets'
 import { createContext, useContext } from 'react'
 import '@solana/wallet-adapter-react-ui/styles.css'
 
 interface SolanaContextValue {
   walletAddress: string | null
-  isConnected: boolean
-  isConnecting: boolean
-  shortAddr: string
+  isConnected:   boolean
+  isConnecting:  boolean
+  connect:       () => Promise<void>
+  disconnect:    () => void
+  shortAddr:     string
 }
 
 const SolanaContext = createContext<SolanaContextValue>({
   walletAddress: null,
-  isConnected: false,
-  isConnecting: false,
-  shortAddr: '',
+  isConnected:   false,
+  isConnecting:  false,
+  connect:       async () => {},
+  disconnect:    () => {},
+  shortAddr:     '',
 })
 
 function SolanaInner({ children }: { children: ReactNode }) {
-  const { publicKey, connecting } = useWallet()
+  const { publicKey, connecting, disconnect: walletDisconnect } = useWallet()
+  const { setVisible } = useWalletModal()
+
   const walletAddress = publicKey?.toString() ?? null
+
+  const connect = useCallback(async () => {
+    setVisible(true)
+  }, [setVisible])
+
+  const disconnect = useCallback(() => {
+    walletDisconnect().catch(() => {})
+  }, [walletDisconnect])
+
   const shortAddr = walletAddress
     ? `${walletAddress.slice(0, 4)}…${walletAddress.slice(-4)}`
     : ''
+
   return (
     <SolanaContext.Provider value={{
       walletAddress,
-      isConnected: !!walletAddress,
+      isConnected:  !!walletAddress,
       isConnecting: connecting,
+      connect,
+      disconnect,
       shortAddr,
     }}>
       {children}
