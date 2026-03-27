@@ -1395,7 +1395,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan: planId, coin, signature, wallet: sender }),
-      }).then(r => r.json()).then(data => { if(data.success) { localStorage.setItem('cc_is_pro','true'); localStorage.setItem('cc_plan', data.plan); localStorage.setItem('cc_expires', data.expiresAt); setIsPro(true); } }).catch(console.warn)
+      }).then(r => r.json()).then(data => { if(data.success) { localStorage.setItem('cc_is_pro','true'); localStorage.setItem('cc_plan', data.plan); localStorage.setItem('cc_expires', data.expiresAt); window.location.reload(); } }).catch(console.warn)
 
       setTxSig(signature)
       setSuccessPlan(planId)
