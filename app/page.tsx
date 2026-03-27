@@ -6,6 +6,7 @@ import {
   getAiChatReply,
   getAiEdgeAnalysis,
 } from '@/app/actions/ai'
+import RugForensicsLab from '@/components/RugForensicsLab'
 import { AiAutoSniper } from '@/components/AiAutoSniper'
 import { Doughnut } from 'react-chartjs-2'
 import {
@@ -1944,7 +1945,7 @@ function AlphaEdgeTab({ data, onTradeClick, aiEdge, aiEdgeLoading, onAnalyzeEdge
 //  MAIN PAGE
 // ══════════════════════════════════════════════
 
-type View    = 'scanner' | 'portfolio' | 'whales' | 'alpha' | 'feed'
+type View    = 'scanner' | 'portfolio' | 'whales' | 'alpha' | 'feed' | 'forensics'
 type ScanTab = 'verdict' | 'holders' | 'liquidity' | 'transfers' | 'chart' | 'edge'
 type ScanState = 'idle' | 'loading' | 'done' | 'error'
 
@@ -2392,7 +2393,7 @@ export default function Page() {
 
         {/* Desktop nav */}
         <div className="hidden md:flex gap-0.5">
-          {(['scanner','portfolio','whales','alpha'] as View[]).map(v => (
+          {(['scanner','portfolio','whales','alpha','forensics'] as View[]).map(v => (
             <button key={v} onClick={() => setView(v)} className={`px-3 py-1 rounded-[4px] text-[0.62rem] font-bold tracking-wider uppercase font-mono transition-all border ${view === v ? 'bg-indigo-950/40 text-indigo-300 border-indigo-700/30' : 'bg-transparent text-[#6b7280] border-transparent hover:text-[#c9d1d9] hover:bg-white/[0.04]'}`}>
               {v === 'scanner' ? '⚡ Scanner' : v === 'portfolio' ? '📂 Portfolio' : v === 'whales' ? '🐋 Whales' : '📡 Alpha'}
             </button>
@@ -2646,6 +2647,11 @@ export default function Page() {
             </ProGate>
           )}
 
+          {view === 'forensics' && (
+            <ProGate feature="Rug Forensics Lab — Deep contract analysis, holder concentration, liquidity health and rug probability scoring." icon="🔐">
+              <RugForensicsLab />
+            </ProGate>
+          )}
           {/* Feed — Mobile fullscreen Alpha Feed */}
           {view === 'feed' && (
             <div className="flex flex-col flex-1 overflow-hidden pb-[60px]">
