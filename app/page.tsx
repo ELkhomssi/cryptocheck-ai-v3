@@ -589,28 +589,9 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
         </div>
       </div>
 
-      {/* Mobile shortcut — points to Price Chart tab */}
-      <div className="md:hidden mb-3 px-4 py-3 rounded-[4px] flex items-center justify-between"
-        style={{ background:'rgba(99,102,241,0.08)', border:'1px solid rgba(99,102,241,0.2)' }}>
-        <div>
-          <div className="text-[0.62rem] font-bold text-indigo-300">📈 Chart & Swap</div>
-          <div className="text-[0.54rem] text-[#6b7280] mt-0.5">Full chart + Jupiter available in Price Chart tab</div>
-        </div>
-        <button
-          onClick={() => {
-            const el = document.querySelector('[data-tab="chart"]') as HTMLElement
-            el?.click()
-          }}
-          className="px-3 py-1.5 rounded-[3px] text-[0.58rem] font-bold font-mono text-white border-none cursor-pointer"
-          style={{ background:'linear-gradient(135deg,#6366f1,#06b6d4)' }}>
-          Open →
-        </button>
-      </div>
-
       {/* ═══════════════════════════════════════════════
           INTEGRATED TRADING TERMINAL — two-column
           Left: DexScreener chart  |  Right: Jupiter swap
-          Hidden on mobile — use Price Chart tab instead
       ═══════════════════════════════════════════════ */}
       <div className="term-card mb-3 overflow-hidden">
         {/* Section header */}
@@ -648,19 +629,13 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
               <span className="text-[0.58rem] font-mono" style={{ color:'#10b981' }}>⚡ Swap {sym}</span>
               <span className="text-[#374151] text-[0.52rem]">via Jupiter · no redirect</span>
             </div>
-            <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
-              <iframe
-                key={data.mint}
-                src={`https://jup.ag/swap/SOL-${data.mint}`}
-                allow="clipboard-write"
-                style={{ flex:1, width:'100%', minHeight:'380px', border:0, background:'#0a0a16' }}
-                title="Jupiter Swap"
+            <div className="verdict-jupiter-mount" id={`jup-verdict-${data.mint.slice(0,8)}`}>
+              <JupiterInlinePanel
+                mint={data.mint}
+                sym={sym}
+                onFullScreen={() => onTradeClick(data.mint, sym)}
+                enabled={risk.score >= 55}
               />
-              <button onClick={() => onTradeClick(data.mint, sym)}
-                style={{ padding:'8px', textAlign:'center', fontSize:'0.58rem', color:'#6366f1',
-                  background:'transparent', border:'none', borderTop:'1px solid rgba(99,102,241,0.1)', cursor:'pointer' }}>
-                ⛶ Open Full Terminal
-              </button>
             </div>
           </div>
         </div>
@@ -710,13 +685,59 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
   )
 }
 
-// ── Jupiter Inline Panel — iframe version (100% reliable, no SDK) ──
+// ── Jupiter Inline Panel (inside Verdict two-column layout) ──
 function JupiterInlinePanel({ mint, sym, onFullScreen, enabled }: {
   mint: string
   sym: string
   onFullScreen: () => void
   enabled: boolean
 }) {
+  const panelId = `jup-inline-${mint.slice(0,8)}`
+
+  useEffect(() => {
+    if (!enabled) return
+    const scriptId = 'jupiter-terminal-script'
+    const init = () => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const w = window as any
+        if (!w.Jupiter) return
+        w.Jupiter.init({
+          displayMode: 'integrated',
+          integratedTargetId: panelId,
+          endpoint: 'https://mainnet.helius-rpc.com/?api-key=35530e51-dad1-480b-af8f-11c8af2ab3fd',
+          defaultExplorer: 'Solscan',
+          strictTokenList: false,
+          enableWalletPassthrough: !!(window as any).solana,
+          formProps: {
+            initialOutputMint: mint,
+            initialInputMint:  'So11111111111111111111111111111111111111112',
+          },
+          containerStyles: { background:'transparent', fontFamily:'IBM Plex Mono, monospace' },
+        })
+      } catch(e) { console.warn('Jupiter inline init:', e) }
+    }
+    if (!document.getElementById(scriptId)) {
+      const s = document.createElement('script')
+      s.id = scriptId
+      s.src = 'https://terminal.jup.ag/main-v2.js'
+      s.async = true
+      s.onload = init
+      document.head.appendChild(s)
+    } else {
+      // Slight delay — wait for previous terminal to unmount
+      setTimeout(init, 120)
+    }
+    return () => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const w = window as any
+        if (w.Jupiter) w.Jupiter.close()
+      } catch {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mint, enabled])
+
   if (!enabled) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-3 p-4 text-center">
@@ -727,21 +748,22 @@ function JupiterInlinePanel({ mint, sym, onFullScreen, enabled }: {
     )
   }
 
-  const jupUrl = `https://jup.ag/swap/SOL-${mint}`
-
   return (
     <div className="flex flex-col h-full">
-      <iframe
-        key={mint}
-        src={jupUrl}
-        allow="clipboard-write"
-        
-        style={{ flex:1, width:'100%', border:0, background:'#0a0a16', minHeight:'380px' }}
-        title={`Swap ${sym}`}
-      />
+      <div id={panelId} style={{ flex:1, minHeight:0 }}>
+        {/* Loading skeleton */}
+        <div className="flex flex-col items-center justify-center h-40 gap-2 p-4">
+          <div className="relative w-8 h-8">
+            <div className="spinner-ring spinner-ring-1" />
+            <div className="spinner-ring spinner-ring-2" />
+          </div>
+          <div className="text-[0.6rem] text-[#6b7280]">Loading Jupiter…</div>
+        </div>
+      </div>
+      {/* Full-screen button */}
       <button
         onClick={onFullScreen}
-        className="flex items-center justify-center gap-1.5 py-2 text-[0.58rem] text-indigo-400 font-mono cursor-pointer w-full"
+        className="flex items-center justify-center gap-1.5 py-2 border-t border-[rgba(99,102,241,0.1)] text-[0.58rem] text-indigo-400 font-mono hover:bg-indigo-950/20 transition-all cursor-pointer w-full"
         style={{ background:'transparent', border:'none', borderTop:'1px solid rgba(99,102,241,0.1)' }}
       >
         ⛶ Open Full Terminal
@@ -755,43 +777,9 @@ function JupiterInlinePanel({ mint, sym, onFullScreen, enabled }: {
 function HoldersTab({ data }: { data: ScanData }) {
   const { top10Pct, liqPct, restPct } = calcChartData(data)
   const tot = data.supply?.value?.amount ? BigInt(data.supply.value.amount) : 0n
-  const [retryCount, setRetryCount] = useState(0)
-  const [retrying,   setRetrying]   = useState(false)
 
   if (!data.holders?.value) {
-    return (
-      <div className="p-5 bg-[#0c0c18] border border-amber-800/25 rounded-[4px] text-center">
-        <div className="text-amber-400 text-base mb-2">⚠</div>
-        <div className="text-[0.68rem] font-bold text-amber-400 mb-1">Holder Data Unavailable</div>
-        <div className="text-[0.58rem] text-[#6b7280] mb-4 leading-relaxed">
-          The Helius RPC returned no holder data for this token.<br/>
-          This can happen during heavy network load or for very new tokens.
-        </div>
-        <div className="flex gap-2 justify-center">
-          <button
-            onClick={() => { setRetrying(true); setTimeout(() => { setRetryCount(c=>c+1); setRetrying(false) }, 1200) }}
-            disabled={retrying}
-            className="px-4 py-2 rounded-[4px] text-[0.62rem] font-bold font-mono text-white border-none cursor-pointer disabled:opacity-50"
-            style={{ background:'linear-gradient(135deg,#6366f1,#4f46e5)' }}
-          >
-            {retrying ? '⟳ Retrying…' : `↺ Retry${retryCount > 0 ? ` (${retryCount})` : ''}`}
-          </button>
-          <a
-            href={`https://solscan.io/token/${data.mint}#holders`}
-            target="_blank" rel="noopener noreferrer"
-            className="px-4 py-2 rounded-[4px] text-[0.62rem] font-bold font-mono text-indigo-300"
-            style={{ background:'rgba(99,102,241,0.1)', border:'1px solid rgba(99,102,241,0.2)' }}
-          >
-            View on Solscan ↗
-          </a>
-        </div>
-        {retryCount > 0 && (
-          <div className="mt-3 text-[0.54rem] text-[#374151]">
-            Retried {retryCount}x — data still unavailable. Try rescanning the token.
-          </div>
-        )}
-      </div>
-    )
+    return <div className="p-4 bg-red-950/20 border border-red-800/25 rounded-[4px] text-red-400 text-[0.7rem]">⚠ Holder data unavailable for this token.</div>
   }
 
   return (
@@ -931,8 +919,8 @@ function TransfersTab({ data }: { data: ScanData }) {
 }
 
 // ── DexScreener + Jupiter Price Chart Tab ──
-// Mobile: stacked tabs (Chart → Trade → Sniper)
-// Desktop: 60% DexScreener | 40% Trade/Sniper tabs
+// 60% native DexScreener chart | 40% Jupiter iframe swap
+// iframe approach = 100% reliable, no token list issues
 function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, currentSymbol, neuralScore }: {
   mint: string
   chartKey: number
@@ -942,124 +930,41 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
   currentSymbol: string
   neuralScore: number | null
 }) {
-  const [rightTab,  setRightTab]  = useState<'trade'|'sniper'>('trade')
-  const [mobileTab, setMobileTab] = useState<'chart'|'trade'|'sniper'>('chart')
-  const [isMobile,  setIsMobile]  = useState(false)
-
+  const [rightTab, setRightTab] = useState<'trade'|'sniper'>('trade')
   const dexUrl = `https://dexscreener.com/solana/${mint}?embed=1&theme=dark&trades=0&info=0`
   const jupUrl = `https://jup.ag/swap/SOL-${mint}`
 
-  // Detect mobile via JS — Tailwind CDN does not compile responsive variants
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
-
-  // ── TAB BUTTON shared style ──
-  const tabBtn = (active: boolean, color: string) => ({
-    flex:1, padding:'10px 6px', border:'none', cursor:'pointer', background:'transparent',
-    fontSize:'0.58rem', fontFamily:'"IBM Plex Mono",monospace', fontWeight:700 as const,
-    color: active ? color : '#6b7280',
-    borderBottom: active ? `2px solid ${color}` : '2px solid transparent',
-    transition:'all 0.15s',
-  })
-
-  // ── MOBILE LAYOUT ──
-  if (isMobile) return (
-    <div style={{ display:'flex', flexDirection:'column', height:'calc(100svh - 108px - 60px)', minHeight:400, background:'#07070f' }}>
-      {/* Mobile tab bar */}
-      <div style={{ display:'flex', background:'#07070f', borderBottom:'1px solid rgba(99,102,241,0.16)', flexShrink:0 }}>
-        <button onClick={() => setMobileTab('chart')} style={tabBtn(mobileTab==='chart', '#10b981')}>📈 Chart</button>
-        <button onClick={() => setMobileTab('trade')} style={tabBtn(mobileTab==='trade', '#06b6d4')}>⚡ Trade</button>
-        <button onClick={() => setMobileTab('sniper')} style={tabBtn(mobileTab==='sniper', '#f59e0b')}>
-          🎯 Sniper
-          <span style={{ marginLeft:3, fontSize:'0.38rem', padding:'1px 3px',
-            background:'linear-gradient(135deg,#f59e0b,#7c3aed)', borderRadius:2,
-            color:'#fff', verticalAlign:'middle' }}>VIP</span>
-        </button>
-      </div>
-
-      {/* Mobile tab content */}
-      <div style={{ flex:1, overflow:'hidden', position:'relative' }}>
-
-        {/* Chart tab */}
-        {mobileTab === 'chart' && (
-          <div style={{ position:'absolute', inset:0, overflow:'hidden' }}>
-            <div style={{ marginTop:'-52px', height:'calc(100% + 52px)' }}>
-              <iframe
-                key={`dex-mob-${chartKey}-${mint}`}
-                src={dexUrl}
-                allow="clipboard-write"
-                sandbox="allow-scripts allow-same-origin"
-                title="Price chart"
-                style={{ width:'100%', height:'100%', border:0, background:'#030308', display:'block' }}
-              />
-            </div>
-            <div style={{ position:'absolute', top:0, left:0, right:0, height:'6px', background:'#07070f', zIndex:3, pointerEvents:'none' }} />
-          </div>
-        )}
-
-        {/* Trade tab — Jupiter full page iframe, no sandbox restrictions */}
-        {mobileTab === 'trade' && (
-          <div style={{ position:'absolute', inset:0, background:'#0a0a16' }}>
-            <iframe
-              key={`jup-mob-${chartKey}-${mint}`}
-              src={jupUrl}
-              allow="clipboard-write; clipboard-read"
-              title="Jupiter Swap"
-              style={{ width:'100%', height:'100%', border:0, display:'block' }}
-            />
-          </div>
-        )}
-
-        {/* Sniper tab */}
-        {mobileTab === 'sniper' && (
-          <div style={{ position:'absolute', inset:0, overflow:'auto' }}>
-            <AiAutoSniper
-              currentMint={mint}
-              currentSymbol={currentSymbol}
-              neuralScore={neuralScore}
-              isActive={true}
-            />
-          </div>
-        )}
-      </div>
-    </div>
-  )
-
-  // ── DESKTOP LAYOUT: 60/40 split ──
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100%', minHeight:0 }}>
-      {/* Desktop top bar */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 12px',
-        background:'#07070f', borderBottom:'1px solid rgba(99,102,241,0.14)', flexShrink:0, flexWrap:'wrap', gap:8 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <span style={{ color:'#10b981', fontSize:'0.6rem', fontFamily:'"IBM Plex Mono"', fontWeight:700 }}>● Live Chart + Swap</span>
-          <span className="ds-badge ds-badge-rpc" style={{ fontSize:'0.5rem' }}>
-            <span style={{ width:6, height:6, borderRadius:'50%', background:'#06b6d4', display:'inline-block', marginRight:4 }} />
+    <div className="flex flex-col h-full" style={{ minHeight: 0 }}>
+
+      {/* ── Top bar ── */}
+      <div className="flex items-center justify-between px-3 py-2 bg-[#07070f] border-b border-[rgba(99,102,241,0.14)] flex-shrink-0 flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-emerald-400 text-[0.6rem] font-mono font-bold">● Live Chart + Swap</span>
+          <span className="ds-badge ds-badge-rpc text-[0.5rem]">
+            <span className="w-1 h-1 rounded-full bg-cyan-400 inline-block dot-pulse" />
             DexScreener · Jupiter
           </span>
-          <span style={{ fontSize:'0.52rem', color:'#374151', fontFamily:'monospace' }}>{mint.slice(0,8)}…</span>
+          <span className="text-[0.52rem] text-[#374151] font-mono">{mint.slice(0,8)}…{mint.slice(-6)}</span>
         </div>
-        <button onClick={onConnectWallet}
+        <button
+          onClick={onConnectWallet}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] text-[0.62rem] font-bold font-mono border-none cursor-pointer transition-all"
           style={{
-            display:'flex', alignItems:'center', gap:6, padding:'6px 12px',
-            borderRadius:4, fontSize:'0.62rem', fontWeight:700, fontFamily:'"IBM Plex Mono"',
-            border:'none', cursor:'pointer', transition:'all 0.2s',
             background: isConnected ? 'rgba(16,185,129,0.12)' : 'linear-gradient(135deg,#6366f1,#06b6d4)',
-            color: isConnected ? '#34d399' : '#fff',
-            outline: isConnected ? '1px solid rgba(16,185,129,0.3)' : 'none',
-          }}>
+            color:      isConnected ? '#34d399' : '#fff',
+            border:     isConnected ? '1px solid rgba(16,185,129,0.3)' : 'none',
+            boxShadow:  isConnected ? 'none' : '0 0 12px rgba(99,102,241,0.3)',
+          }}
+        >
           {isConnected ? `✓ ${shortAddr}` : '🔗 Connect Wallet'}
         </button>
       </div>
 
-      {/* Desktop 60/40 grid */}
+      {/* ── 60/40 split ── */}
       <div style={{ display:'grid', gridTemplateColumns:'60% 40%', flex:1, minHeight:0, overflow:'hidden' }}>
 
-        {/* LEFT — DexScreener */}
+        {/* LEFT 60% — DexScreener native chart (header hidden by negative margin) */}
         <div style={{ display:'flex', flexDirection:'column', borderRight:'1px solid rgba(99,102,241,0.12)', overflow:'hidden' }}>
           <div style={{ fontSize:'0.54rem', color:'#6b7280', padding:'4px 10px', background:'#07070f', flexShrink:0 }}>
             <span style={{ color:'#10b981' }}>●</span> Price Chart · {mint.slice(0,8)}…
@@ -1080,21 +985,40 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
           </div>
         </div>
 
-        {/* RIGHT — Trade | Sniper tabs */}
+        {/* RIGHT 40% — Tab system: Manual Trade | AI Sniper */}
         <div style={{ display:'flex', flexDirection:'column', background:'#07070f', overflow:'hidden' }}>
+
           {/* Tab bar */}
           <div style={{ display:'flex', flexShrink:0, borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
             {([
-              { id:'trade'  as const, label:'⚡ Manual Trade', color:'#10b981' },
-              { id:'sniper' as const, label:'🎯 AI Sniper',    color:'#f59e0b', vip:true },
-            ]).map(tab => (
-              <button key={tab.id} onClick={() => setRightTab(tab.id)}
-                style={tabBtn(rightTab === tab.id, tab.color)}>
+              { id:'trade',  label:'⚡ Manual Trade' },
+              { id:'sniper', label:'🎯 AI Sniper',   vip:true },
+            ] as const).map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setRightTab(tab.id)}
+                style={{
+                  flex:1, padding:'7px 6px', border:'none', cursor:'pointer',
+                  fontSize:'0.56rem', fontFamily:'"IBM Plex Mono",monospace',
+                  fontWeight:700, letterSpacing:'0.04em', transition:'all 0.15s',
+                  background: rightTab === tab.id
+                    ? ('vip' in tab && tab.vip) ? 'linear-gradient(135deg,rgba(251,191,36,0.12),rgba(99,102,241,0.12))' : 'rgba(16,185,129,0.08)'
+                    : 'transparent',
+                  color: rightTab === tab.id
+                    ? ('vip' in tab && tab.vip) ? '#fbbf24' : '#10b981'
+                    : '#6b7280',
+                  borderBottom: rightTab === tab.id
+                    ? `2px solid ${('vip' in tab && tab.vip) ? '#f59e0b' : '#10b981'}`
+                    : '2px solid transparent',
+                }}
+              >
                 {tab.label}
                 {('vip' in tab && tab.vip) && (
-                  <span style={{ marginLeft:4, fontSize:'0.42rem', padding:'1px 4px',
+                  <span style={{
+                    marginLeft:4, fontSize:'0.42rem', padding:'1px 4px',
                     background:'linear-gradient(135deg,#f59e0b,#7c3aed)',
-                    borderRadius:2, color:'#fff', verticalAlign:'middle' }}>VIP</span>
+                    borderRadius:2, color:'#fff', verticalAlign:'middle',
+                  }}>VIP</span>
                 )}
               </button>
             ))}
@@ -1102,17 +1026,20 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
 
           {/* Tab content */}
           <div style={{ flex:1, minHeight:0, overflow:'hidden', position:'relative' }}>
-            {/* Jupiter */}
+
+            {/* Manual Trade — Jupiter iframe */}
             <div style={{ position:'absolute', inset:0, display: rightTab==='trade' ? 'flex' : 'none', flexDirection:'column' }}>
               <iframe
                 key={`jup-${chartKey}-${mint}`}
                 src={jupUrl}
-                allow="clipboard-write; clipboard-read"
-                title="Jupiter Swap"
+                allow="clipboard-write"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"
                 style={{ flex:1, width:'100%', border:0, background:'#0a0a16', minHeight:'460px' }}
+                title="Jupiter Swap"
               />
             </div>
-            {/* AI Sniper */}
+
+            {/* AI Sniper — VIP component */}
             <div style={{ position:'absolute', inset:0, display: rightTab==='sniper' ? 'flex' : 'none', flexDirection:'column' }}>
               <AiAutoSniper
                 currentMint={mint}
@@ -1261,7 +1188,7 @@ function JupiterSwapModal({ mint, sym, onClose }: {
             key={mint}
             src={jupUrl}
             allow="clipboard-write"
-            
+            sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"
             style={{ width: '100%', height: '100%', border: 0, background: '#0a0a16' }}
             title={`Swap ${sym}`}
           />
@@ -1468,11 +1395,12 @@ function ProModal({ onClose }: { onClose: () => void }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan: planId, coin, signature, wallet: sender }),
-      }).catch(console.warn)
+      }).then(r => r.json()).then(data => { if(data.success) { localStorage.setItem('cc_is_pro','true'); localStorage.setItem('cc_plan', data.plan); localStorage.setItem('cc_expires', data.expiresAt); setIsPro(true); } }).catch(console.warn)
 
       setTxSig(signature)
       setSuccessPlan(planId)
       setCryptoStep('success')
+setTimeout(()=>window.location.reload(),2500)
 
     } catch(e: unknown) {
       const msg = e instanceof Error ? e.message : 'Transaction failed'
@@ -2038,6 +1966,7 @@ export default function Page() {
   const [slot,        setSlot]        = useState('')
   const [timeStr,     setTimeStr]     = useState('')
   const [showModal,   setShowModal]   = useState(false)
+  const [isPro,setIsPro] = useState(typeof window!=='undefined' && localStorage.getItem('cc_is_pro')==='true')
   const [showSwap,    setShowSwap]    = useState(false)     // Jupiter swap modal
   const [swapMint,    setSwapMint]    = useState('')        // token to swap
   const [swapSym,     setSwapSym]     = useState('???')     // symbol for swap modal
@@ -2428,7 +2357,9 @@ export default function Page() {
   }
 
   // ── PRO paywall overlay ──
-  const ProGate = ({ children, feature, icon }: { children: React.ReactNode; feature: string; icon: string }) => (
+  const ProGate = ({ children, feature, icon }: { children: React.ReactNode; feature: string; icon: string }) => {
+    if (isPro) return <>{children}</>
+    return (
     <div className="relative flex-1 overflow-hidden" style={{ flex: 1 }}>
       <div style={{ filter: 'blur(3px)', pointerEvents: 'none' }}>{children}</div>
       <div className="absolute inset-0 flex items-center justify-center backdrop-blur-[12px] bg-[rgba(3,3,8,0.65)]" style={{ zIndex: 50 }}>
@@ -2440,7 +2371,8 @@ export default function Page() {
         </div>
       </div>
     </div>
-  )
+    )
+  }
 
   return (
     <>
@@ -2452,9 +2384,7 @@ export default function Page() {
       {/* ── HEADER ── */}
       <header className="sticky top-0 z-[300] h-12 flex items-center justify-between px-4 bg-[rgba(3,3,8,0.92)] backdrop-blur-xl border-b border-[rgba(99,102,241,0.16)]">
         <a href="/" className="flex items-center gap-2 font-mono text-[0.82rem] font-bold text-white tracking-wider uppercase no-underline">
-          <div style={{ width:28, height:28, borderRadius:4, flexShrink:0, background:'linear-gradient(135deg,#1a0533,#0a0a1e)', boxShadow:'0 0 10px rgba(99,102,241,0.5)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <svg width="22" height="22" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="hg1" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#9945ff"/><stop offset="100%" stopColor="#06b6d4"/></radialGradient></defs><circle cx="50" cy="50" r="38" fill="none" stroke="url(#hg1)" strokeWidth="6" opacity="0.9"/><circle cx="50" cy="50" r="25" fill="none" stroke="#6366f1" strokeWidth="3" opacity="0.5"/><circle cx="50" cy="50" r="6" fill="#fff"/></svg>
-          </div>
+          <div className="w-6 h-6 rounded-[4px] flex items-center justify-center text-[0.7rem]" style={{ background:'linear-gradient(135deg,#6366f1,#06b6d4)', boxShadow:'0 0 10px rgba(99,102,241,0.35)' }}>⬡</div>
           CryptoCheck<span className="text-indigo-400">AI</span>
           <span className="text-[0.5rem] text-[#6b7280] ml-0.5">v3</span>
         </a>
@@ -2683,63 +2613,16 @@ export default function Page() {
                   </button>
                 )}
               </div>
-              {/* ── PRIMARY TABS: Scanner | Chart | Trading | AI Sniper ── */}
-              <div className="flex border-b border-[rgba(99,102,241,0.2)] bg-[#07070f] flex-shrink-0">
-                {([
-                  { id:'verdict', label:'⚡ Scanner',     color:'#6366f1' },
-                  { id:'chart',   label:'📈 Chart',       color:'#10b981' },
-                  { id:'__trade', label:'💱 Trading',     color:'#06b6d4' },
-                  { id:'__sniper',label:'🎯 AI Sniper',   color:'#f59e0b', vip:true },
-                ] as const).map(tab => {
-                  const isActive = tab.id === '__trade'
-                    ? scanTab === 'chart' && false  // handled below
-                    : tab.id === '__sniper'
-                      ? false
-                      : scanTab === tab.id || (tab.id === 'verdict' && ['verdict','holders','liquidity','transfers','edge'].includes(scanTab))
-                  // Clean active detection
-                  const active =
-                    tab.id === 'verdict'  ? ['verdict','holders','liquidity','transfers','edge'].includes(scanTab) :
-                    tab.id === 'chart'    ? scanTab === 'chart' && true :
-                    false
-                  return (
-                    <button key={tab.id}
-                      data-tab={tab.id}
-                      onClick={() => {
-                        if (tab.id === 'verdict')  setScanTab('verdict')
-                        if (tab.id === 'chart')    setScanTab('chart')
-                        if (tab.id === '__trade')  setScanTab('chart')  // handled in DexChartTab
-                        if (tab.id === '__sniper') setScanTab('chart')  // handled in DexChartTab
-                      }}
-                      style={{
-                        flex:1, padding:'10px 8px', border:'none', cursor:'pointer', background:'transparent',
-                        fontSize:'0.58rem', fontFamily:'"IBM Plex Mono",monospace', fontWeight:700,
-                        color: active ? tab.color : '#6b7280',
-                        borderBottom: active ? `2px solid ${tab.color}` : '2px solid transparent',
-                        transition:'all 0.15s', marginBottom:'-1px', whiteSpace:'nowrap',
-                      }}>
-                      {tab.label}
-                      {('vip' in tab && tab.vip) && (
-                        <span style={{ marginLeft:3, fontSize:'0.38rem', padding:'1px 3px',
-                          background:'linear-gradient(135deg,#f59e0b,#7c3aed)', borderRadius:2,
-                          color:'#fff', verticalAlign:'middle' }}>VIP</span>
-                      )}
-                    </button>
-                  )
-                })}
+              <div className="flex overflow-x-auto border-b border-[rgba(99,102,241,0.14)] bg-[#07070f] flex-shrink-0 scrollbar-none">
+                {(['verdict','holders','liquidity','transfers','chart','edge'] as ScanTab[]).map(t => (
+                  <button key={t} onClick={() => { setScanTab(t) }}
+                    className={`px-4 py-2.5 text-[0.6rem] font-bold tracking-wider uppercase font-mono border-b-2 whitespace-nowrap transition-all ${scanTab === t ? 'text-indigo-300 border-indigo-500 bg-indigo-950/20' : 'text-[#6b7280] border-transparent hover:text-[#c9d1d9]'}`}
+                    style={{ marginBottom: '-1px' }}>
+                    {t === 'verdict' ? '🔍 Verdict' : t === 'holders' ? '👥 Holders' : t === 'liquidity' ? '💧 Liquidity' : t === 'transfers' ? '🔄 Transfers' : t === 'chart' ? '📈 Price Chart' : '⚡ Alpha Edge'}
+                  </button>
+                ))}
               </div>
-              {/* Scanner sub-tabs — only visible when Scanner tab active */}
-              {['verdict','holders','liquidity','transfers','edge'].includes(scanTab) && (
-                <div className="flex overflow-x-auto border-b border-[rgba(99,102,241,0.08)] bg-[#07070f] flex-shrink-0 scrollbar-none">
-                  {(['verdict','holders','liquidity','transfers','edge'] as ScanTab[]).map(t => (
-                    <button key={t} onClick={() => setScanTab(t)}
-                      className={`px-3 py-2 text-[0.55rem] font-bold tracking-wider uppercase font-mono border-b-2 whitespace-nowrap transition-all ${scanTab === t ? 'text-indigo-300 border-indigo-500 bg-indigo-950/10' : 'text-[#374151] border-transparent hover:text-[#6b7280]'}`}
-                      style={{ marginBottom:'-1px' }}>
-                      {t === 'verdict' ? '🔍 Verdict' : t === 'holders' ? '👥 Holders' : t === 'liquidity' ? '💧 Liquidity' : t === 'transfers' ? '🔄 Transfers' : '⚡ Alpha Edge'}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <div className={`flex-1 overflow-y-auto ${scanTab === 'chart' ? 'p-0' : 'p-4'}`}>{renderScanContent()}</div>
+              <div className={`flex-1 overflow-y-auto ${(scanTab === 'chart') ? 'p-0' : 'p-4'}`}>{renderScanContent()}</div>
             </>
           )}
 
@@ -2836,65 +2719,55 @@ export default function Page() {
         </div>
       </footer>
 
-      {/* ── MOBILE BOTTOM NAV — 5 tabs: Scan | Chart | Trade | Feed | Pro ── */}
+      {/* ── MOBILE BOTTOM NAV ── */}
+      {/* Order: Scan → Chart → Trade → Portfolio → Pro */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[400] h-[60px] flex bg-[rgba(3,3,8,0.96)] backdrop-blur-xl border-t border-[rgba(99,102,241,0.16)]">
-        {([
-          {
-            label: 'Scan',
-            icon: '⚡',
-            color: 'rgba(99,102,241,0.8)',
-            active: view === 'scanner' && ['verdict','holders','liquidity','transfers','edge'].includes(scanTab),
-            action: () => { setView('scanner'); setScanTab('verdict') },
-          },
-          {
-            label: 'Chart',
-            icon: '📈',
-            color: 'rgba(16,185,129,0.8)',
-            active: view === 'scanner' && scanTab === 'chart',
-            action: () => { setView('scanner'); setScanTab('chart') },
-          },
-          {
-            label: 'Trade',
-            icon: '💱',
-            color: 'rgba(6,182,212,0.8)',
-            active: false,
-            action: () => {
-              const mint = scanData?.mint ?? ''
-              const s = scanData?.meta?.onChainMetadata?.metadata?.data?.symbol ?? scanData?.meta?.legacyMetadata?.symbol ?? '???'
-              if (mint) { setSwapMint(mint); setSwapSym(s); setShowSwap(true) }
-              else { setView('scanner'); setScanTab('chart') }
-            },
-          },
-          {
-            label: 'Feed',
-            icon: '📡',
-            color: 'rgba(6,182,212,0.8)',
-            active: view === 'feed',
-            action: () => setView('feed'),
-          },
-          {
-            label: 'Pro',
-            icon: '⭐',
-            color: 'rgba(251,191,36,0.8)',
-            active: false,
-            action: () => setShowModal(true),
-            gold: true,
-          },
-        ] as const).map(tab => (
-          <button key={tab.label}
-            onClick={tab.action}
-            className="flex-1 flex flex-col items-center justify-center gap-0.5 border-none font-mono text-[0.44rem] tracking-wider uppercase transition-all h-full"
-            style={{
-              background: 'transparent',
-              color: tab.active ? 'white' : ('gold' in tab && tab.gold) ? '#fbbf24' : '#6b7280',
-            }}>
-            <span className="text-base"
-              style={{ filter: tab.active ? `drop-shadow(0 0 4px ${tab.color})` : 'none' }}>
-              {tab.icon}
-            </span>
-            {tab.label}
-          </button>
-        ))}
+        {/* Scan */}
+        <button
+          onClick={() => { setView('scanner'); setScanTab('verdict') }}
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 border-none font-mono text-[0.44rem] tracking-wider uppercase transition-all h-full ${view === 'scanner' && scanTab === 'verdict' ? 'text-indigo-300' : 'text-[#6b7280]'}`}
+          style={{ background:'transparent' }}>
+          <span className="text-base" style={{ filter: view==='scanner'&&scanTab==='verdict' ? 'drop-shadow(0 0 4px rgba(99,102,241,0.8))' : 'none' }}>⚡</span>
+          Scan
+        </button>
+        {/* Chart — switches to DexScreener tab */}
+        <button
+          onClick={() => { setView('scanner'); setScanTab('chart') }}
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 border-none font-mono text-[0.44rem] tracking-wider uppercase transition-all h-full ${view==='scanner'&&scanTab==='chart' ? 'text-emerald-400' : 'text-[#6b7280]'}`}
+          style={{ background:'transparent' }}>
+          <span className="text-base" style={{ filter: view==='scanner'&&scanTab==='chart' ? 'drop-shadow(0 0 4px rgba(16,185,129,0.8))' : 'none' }}>📈</span>
+          Chart
+        </button>
+        {/* Trade — opens Jupiter Modal directly, no redirect */}
+        <button
+          onClick={() => {
+            const mint = scanData?.mint ?? ''
+            const s    = scanData?.meta?.onChainMetadata?.metadata?.data?.symbol
+                      ?? scanData?.meta?.legacyMetadata?.symbol ?? '???'
+            if (mint) { setSwapMint(mint); setSwapSym(s); setShowSwap(true) }
+            else       { setView('scanner') }
+          }}
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 border-none font-mono text-[0.44rem] tracking-wider uppercase transition-all h-full text-emerald-400"
+          style={{ background:'transparent' }}>
+          <span className="text-base" style={{ filter:'drop-shadow(0 0 4px rgba(16,185,129,0.6))' }}>💱</span>
+          Trade
+        </button>
+        {/* Alpha Feed — fullscreen on mobile */}
+        <button
+          onClick={() => setView('feed')}
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 border-none font-mono text-[0.44rem] tracking-wider uppercase transition-all h-full ${view==='feed' ? 'text-cyan-400' : 'text-[#6b7280]'}`}
+          style={{ background:'transparent' }}>
+          <span className="text-base" style={{ filter: view==='feed' ? 'drop-shadow(0 0 4px rgba(6,182,212,0.8))' : 'none' }}>📡</span>
+          Feed
+        </button>
+        {/* Pro */}
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 border-none font-mono text-[0.44rem] tracking-wider uppercase transition-all h-full"
+          style={{ background:'transparent', color:'#fbbf24' }}>
+          <span className="text-base">⭐</span>
+          Pro
+        </button>
       </nav>
 
       {/* ── PRO MODAL ── */}

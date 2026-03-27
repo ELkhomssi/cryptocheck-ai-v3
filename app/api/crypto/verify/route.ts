@@ -1,96 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// ── Price IDs from your Stripe dashboard ──────────────────────
-// weekly → $5/week   → price_1T7JMPAkjKVFT4LeDqPZOdMe
-// yearly → $200/year → price_1T9vdDAkjKVFT4LeAb9952Gt
-// vip    → $30/month → set STRIPE_PRICE_VIP in .env.local
-const PRICES: Record<string, string> = {
-  weekly: process.env.STRIPE_PRICE_WEEKLY  ?? 'price_1T7JMPAkjKVFT4LeDqPZOdMe',
-  yearly: process.env.STRIPE_PRICE_YEARLY  ?? 'price_1T9vdDAkjKVFT4LeAb9952Gt',
-  vip:    process.env.STRIPE_PRICE_VIP     ?? 'price_1T9vdDAkjKVFT4LeAb9952Gt', // ← replace with your $30/mo price ID
-}
+const DEST_WALLET = '5jbWsijUWqXLyuaNtzkiu2JM1C5jNPUP9oRjKmmJx15i'
+const PLAN_DAYS: Record<string, number> = { weekly: 7, yearly: 365, vip: 30 }
 
 export async function POST(req: NextRequest) {
-  console.log('[Stripe] Checkout route hit')
+  const { plan, coin, signature, wallet } = await req.json()
+  if (!plan || !signature || !wallet) return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
 
-  // 1. Read secret key
-  const secretKey = process.env.STRIPE_SECRET_KEY
-  if (!secretKey) {
-    console.error('[Stripe] ERROR: STRIPE_SECRET_KEY is not set in .env.local')
-    return NextResponse.json(
-      { error: 'Stripe secret key not configured' },
-      { status: 500 }
-    )
-  }
-  console.log('[Stripe] Key found:', secretKey.slice(0, 12) + '...')
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !serviceKey) return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
 
-  // 2. Parse request body
-  let plan: string
-  try {
-    const body = await req.json()
-    plan = body.plan
-    console.log('[Stripe] Plan requested:', plan)
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  const expiresAt = new Date()
+  expiresAt.setDate(expiresAt.getDate() + (PLAN_DAYS[plan] ?? 7))
+
+  const headers = {
+    'apikey': serviceKey,
+    'Authorization': `Bearer ${serviceKey}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'resolution=merge-duplicates',
   }
 
-  // 3. Resolve price ID
-  const priceId = PRICES[plan]
-  if (!priceId) {
-    console.error('[Stripe] ERROR: Unknown plan:', plan)
-    return NextResponse.json({ error: `Unknown plan: ${plan}` }, { status: 400 })
-  }
-  console.log('[Stripe] Using price ID:', priceId)
+  const [r1, r2] = await Promise.all([
+    fetch(`${supabaseUrl}/rest/v1/users`, {
+      method: 'POST', headers,
+      body: JSON.stringify({ wallet_address: wallet, is_pro: true, plan, subscription_expires_at: expiresAt.toISOString(), last_payment_coin: coin ?? 'SOL', last_payment_tx: signature, updated_at: new Date().toISOString() }),
+    }),
+    fetch(`${supabaseUrl}/rest/v1/crypto_payments`, {
+      method: 'POST', headers,
+      body: JSON.stringify({ wallet_address: wallet, plan, coin: coin ?? 'SOL', tx_signature: signature, expires_at: expiresAt.toISOString(), created_at: new Date().toISOString() }),
+    }),
+  ])
 
-  // 4. Get site URL for redirect
-  const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    process.env.NEXT_PUBLIC_APP_URL ??
-    'http://localhost:3000'
+  const t1 = await r1.text()
+  const t2 = await r2.text()
+  console.log('[Verify] users:', r1.status, t1)
+  console.log('[Verify] payments:', r2.status, t2)
 
-  // 5. Create Stripe Checkout Session via REST API
-  //    (no Stripe SDK needed — pure fetch)
-  try {
-    const body = new URLSearchParams({
-      'mode':                       'subscription',
-      'line_items[0][price]':       priceId,
-      'line_items[0][quantity]':    '1',
-      'success_url':                `${siteUrl}/?checkout=success&plan=${plan}`,
-      'cancel_url':                 `${siteUrl}/?checkout=cancel`,
-      'allow_promotion_codes':      'true',
-      'billing_address_collection': 'auto',
-    })
-
-    console.log('[Stripe] Creating session with price:', priceId)
-
-    const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-      method: 'POST',
-      headers: {
-        'Authorization':  `Bearer ${secretKey}`,
-        'Content-Type':   'application/x-www-form-urlencoded',
-        'Stripe-Version': '2024-04-10',
-      },
-      body: body.toString(),
-    })
-
-    const session = await response.json()
-
-    if (!response.ok) {
-      console.error('[Stripe] API error:', session.error?.message ?? session)
-      return NextResponse.json(
-        { error: session.error?.message ?? 'Stripe API error' },
-        { status: response.status }
-      )
-    }
-
-    console.log('[Stripe] Session created:', session.id)
-    console.log('[Stripe] Redirect URL:', session.url)
-
-    return NextResponse.json({ url: session.url, sessionId: session.id })
-
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown error'
-    console.error('[Stripe] Fetch error:', msg)
-    return NextResponse.json({ error: msg }, { status: 500 })
-  }
+  return NextResponse.json({ success: r1.ok, plan, expiresAt: expiresAt.toISOString() })
 }
