@@ -7,6 +7,7 @@ import {
   getAiEdgeAnalysis,
 } from '@/app/actions/ai'
 import RugForensicsLab from '@/components/RugForensicsLab'
+import NeuralScanV4 from '@/components/NeuralScanV4'
 import { AiAutoSniper } from '@/components/AiAutoSniper'
 import { Doughnut } from 'react-chartjs-2'
 import {
@@ -1945,7 +1946,7 @@ function AlphaEdgeTab({ data, onTradeClick, aiEdge, aiEdgeLoading, onAnalyzeEdge
 //  MAIN PAGE
 // ══════════════════════════════════════════════
 
-type View    = 'scanner' | 'portfolio' | 'whales' | 'alpha' | 'feed' | 'forensics'
+type View    = 'scanner' | 'portfolio' | 'whales' | 'alpha' | 'feed' | 'forensics' | 'neuralv4'
 type ScanTab = 'verdict' | 'holders' | 'liquidity' | 'transfers' | 'chart' | 'edge'
 type ScanState = 'idle' | 'loading' | 'done' | 'error'
 
@@ -2384,7 +2385,7 @@ export default function Page() {
       <div className="ambient-blob ambient-blob-3" />
 
       {/* ── HEADER ── */}
-      <header className="sticky top-0 z-[300] h-12 flex items-center justify-between px-4 bg-[rgba(3,3,8,0.92)] backdrop-blur-xl border-b border-[rgba(99,102,241,0.16)]">
+      <header className="sticky top-0 z-[300] h-12 flex items-center justify-between px-4 bg-[rgba(5,5,16,0.95)] backdrop-blur-xl border-b border-[rgba(99,102,241,0.16)]">
         <a href="/" className="flex items-center gap-2 font-mono text-[0.82rem] font-bold text-white tracking-wider uppercase no-underline">
           <div className="w-6 h-6 rounded-[4px] flex items-center justify-center text-[0.7rem]" style={{ background:'linear-gradient(135deg,#6366f1,#06b6d4)', boxShadow:'0 0 10px rgba(99,102,241,0.35)' }}>⬡</div>
           CryptoCheck<span className="text-indigo-400">AI</span>
@@ -2393,9 +2394,9 @@ export default function Page() {
 
         {/* Desktop nav */}
         <div className="hidden md:flex gap-0.5">
-          {(['scanner','portfolio','whales','alpha','forensics'] as View[]).map(v => (
+          {(['scanner','portfolio','whales','alpha','forensics','neuralv4'] as View[]).map(v => (
             <button key={v} onClick={() => setView(v)} className={`px-3 py-1 rounded-[4px] text-[0.62rem] font-bold tracking-wider uppercase font-mono transition-all border ${view === v ? 'bg-indigo-950/40 text-indigo-300 border-indigo-700/30' : 'bg-transparent text-[#6b7280] border-transparent hover:text-[#c9d1d9] hover:bg-white/[0.04]'}`}>
-              {v === 'scanner' ? '⚡ Scanner' : v === 'portfolio' ? '📂 Portfolio' : v === 'whales' ? '🐋 Whales' : '📡 Alpha'}
+              {v === 'scanner' ? '⚡ Scanner' : v === 'portfolio' ? '📂 Portfolio' : v === 'whales' ? '🐋 Whales' : v === 'alpha' ? '📡 Alpha' : v === 'forensics' ? '🔐 Forensics' : v === 'neuralv4' ? '🧠 Neural V4' : v}
             </button>
           ))}
         </div>
@@ -2652,6 +2653,11 @@ export default function Page() {
               <RugForensicsLab />
             </ProGate>
           )}
+          {view === 'neuralv4' && (
+            <ProGate feature="Neural Scan V4 — Nansen-grade token intelligence." icon="🧠">
+              <NeuralScanV4 />
+            </ProGate>
+          )}
           {/* Feed — Mobile fullscreen Alpha Feed */}
           {view === 'feed' && (
             <div className="flex flex-col flex-1 overflow-hidden pb-[60px]">
@@ -2728,7 +2734,7 @@ export default function Page() {
 
       {/* ── MOBILE BOTTOM NAV ── */}
       {/* Order: Scan → Chart → Trade → Portfolio → Pro */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[400] h-[60px] flex bg-[rgba(3,3,8,0.96)] backdrop-blur-xl border-t border-[rgba(99,102,241,0.16)]">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[400] h-[60px] flex bg-[rgba(5,5,16,0.98)] backdrop-blur-xl border-t border-[rgba(99,102,241,0.16)]">
         {/* Scan */}
         <button
           onClick={() => { setView('scanner'); setScanTab('verdict') }}
