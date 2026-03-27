@@ -1966,7 +1966,8 @@ export default function Page() {
   const [slot,        setSlot]        = useState('')
   const [timeStr,     setTimeStr]     = useState('')
   const [showModal,   setShowModal]   = useState(false)
-  const [isPro,setIsPro] = useState(typeof window!=='undefined' && localStorage.getItem('cc_is_pro')==='true')
+  const [isPro,setIsPro] = useState(false)
+  useEffect(() => { if (typeof window !== 'undefined') setIsPro(localStorage.getItem('cc_is_pro') === 'true') }, [])
   const [showSwap,    setShowSwap]    = useState(false)     // Jupiter swap modal
   const [swapMint,    setSwapMint]    = useState('')        // token to swap
   const [swapSym,     setSwapSym]     = useState('???')     // symbol for swap modal
