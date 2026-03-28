@@ -139,7 +139,7 @@ export default function RugForensicsLab() {
         <div style={{ padding: '24px 20px' }}>
           <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: '6px', padding: '20px' }}>
             <div style={{ fontSize: '10px', color: '#ef4444', marginBottom: '12px', letterSpacing: '0.1em' }}>FORENSICS SCAN IN PROGRESS</div>
-            {steps.map((s, i) => (
+            {['📋 Fetching metadata…','🐋 Analyzing holders…','💧 Checking liquidity…','📊 Scanning transactions…','🧠 Neural Forensics v4…','⚖️ Computing score…'].map((s, i) => (
               <div key={i} style={{ fontSize: '10px', color: step === s ? '#ef4444' : 'rgba(255,255,255,0.2)', padding: '3px 0', transition: 'color 0.3s' }}>
                 {step === s ? '▶ ' : '  '}{s}
               </div>
