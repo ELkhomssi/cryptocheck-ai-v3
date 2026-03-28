@@ -2440,17 +2440,15 @@ export default function Page() {
             <div className="panel-label">Neural Scan</div>
             <input
               id="sidebar-mint-input"
-              defaultValue={mintInput}
-              onBlur={e => setMintInput(e.target.value)}
-              onChange={e => setMintInput(e.target.value)}
-              onKeyDown={e => { if(e.key === 'Enter') { setMintInput((e.target as HTMLInputElement).value); doScan((e.target as HTMLInputElement).value) } }}
+              defaultValue=""
+              onKeyDown={e => { if(e.key === 'Enter') { const v=(e.target as HTMLInputElement).value.trim(); if(v.length>=20){setMintInput(v);doScan(v)} } }}
               placeholder="Enter mint address…"
               className="w-full bg-[#111120] border border-[rgba(99,102,241,0.16)] rounded-[4px] px-2.5 py-2 font-mono text-[0.65rem] text-[#c9d1d9] outline-none transition-all focus:border-indigo-500 focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] placeholder:text-[#374151] mb-2"
               autoComplete="off" spellCheck={false}
               style={{ caretColor: '#a78bfa' }}
             />
             <button
-              onClick={() => { const v = (document.getElementById('sidebar-mint-input') as HTMLInputElement)?.value || mintInput; if(v.trim().length >= 20) { setMintInput(v); doScan(v) } else setScanError('Paste a valid Solana address first') }}
+              onClick={() => { const v=(document.getElementById('sidebar-mint-input') as HTMLInputElement)?.value?.trim()||''; if(v.length>=20){setMintInput(v);doScan(v)} else setScanError('Paste a valid Solana address first') }}
               disabled={scanState === 'loading'}
               className="w-full py-2 rounded-[4px] font-mono text-[0.65rem] font-bold tracking-wider text-white flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               style={{ background:'linear-gradient(135deg,#6366f1,#4f46e5)', boxShadow:'0 0 14px rgba(99,102,241,0.3)' }}
