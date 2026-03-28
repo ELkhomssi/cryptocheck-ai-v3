@@ -153,7 +153,7 @@ export default function RugForensicsLab() {
       )}
 
       {/* Results */}
-      {result && !loading && (
+      {result {result && !loading && ({result && !loading && ( (
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
           {/* Verdict */}
