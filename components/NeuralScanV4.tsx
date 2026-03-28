@@ -116,8 +116,8 @@ export default function NeuralScanV4() {
 
   const scan = useCallback(async () => {
     const m = mint.trim()
-    if (!m || m.length < 20) { setError('Please paste a token address'); return }
-    setLoading(true); setError(''); setResult(null); setActiveTab('verdict')
+    if (!m || m.length < 32 || m.length > 44) { setError(''); return }
+    setLoading(true); setError(''); setActiveTab('verdict')
 
     let i = 0
     const iv = setInterval(() => { if (i < SCAN_STEPS.length) { setStep(SCAN_STEPS[i]); i++ } }, 350)

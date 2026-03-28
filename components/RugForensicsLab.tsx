@@ -80,7 +80,7 @@ export default function RugForensicsLab() {
 
   const runForensics = useCallback(async () => {
     if (!mint.trim() || mint.trim().length < 32) { setError('Please enter a valid Solana token address'); return }
-    setLoading(true); setError(''); setResult(null)
+    setLoading(true); setError('')
 
     const steps = [
       '📋 Fetching on-chain metadata…',
