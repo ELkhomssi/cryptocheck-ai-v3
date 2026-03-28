@@ -125,13 +125,13 @@ export default function NeuralScanV4() {
     finally  { clearInterval(iv); setLoading(false); setStep('') }
   }, [mint])
 
+  const tabStyle = (active: boolean): React.CSSProperties => ({ padding: '6px 14px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em', cursor: 'pointer', border: 'none', fontFamily: '"IBM Plex Mono", monospace', transition: 'all 0.2s', background: active ? 'rgba(99,102,241,0.25)' : 'transparent', color: active ? '#a78bfa' : 'rgba(255,255,255,0.4)' })
   const S: Record<string, React.CSSProperties> = {
     wrap:    { color: '#e6edf3', fontFamily: '"IBM Plex Mono", monospace', minHeight: '100%' },
     hdr:     { borderBottom: '1px solid rgba(99,102,241,0.15)', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(99,102,241,0.04)' },
     section: { background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '6px', padding: '14px 16px', marginBottom: '10px' },
     label:   { fontSize: '9px', color: 'rgba(255,255,255,0.35)', letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: '6px' },
     val:     { fontSize: '14px', fontWeight: 700, color: '#e6edf3' },
-    tab:     (active: boolean): React.CSSProperties => ({ padding: '6px 14px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em', cursor: 'pointer', border: 'none', fontFamily: '"IBM Plex Mono", monospace', transition: 'all 0.2s', background: active ? 'rgba(99,102,241,0.25)' : 'transparent', color: active ? '#a78bfa' : 'rgba(255,255,255,0.4)' }),
   }
 
   return (
@@ -210,7 +210,7 @@ export default function NeuralScanV4() {
           {/* Tabs */}
           <div style={{ display: 'flex', gap: '4px', marginBottom: '10px', background: 'rgba(255,255,255,0.03)', borderRadius: '6px', padding: '4px' }}>
             {(['verdict','holders','market','txs'] as const).map(t => (
-              <button key={t} onClick={() => setActiveTab(t)} style={S.tab(activeTab === t)}>
+              <button key={t} onClick={() => setActiveTab(t)} style={tabStyle(activeTab === t)}>
                 {t === 'verdict' ? '⚖️ Signals' : t === 'holders' ? '🐋 Holders' : t === 'market' ? '📊 Market' : '🔄 Txs'}
               </button>
             ))}
