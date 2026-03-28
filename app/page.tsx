@@ -2571,7 +2571,7 @@ export default function Page() {
         </aside>
 
         {/* MAIN */}
-        <main className="flex flex-col flex-1 overflow-hidden">
+        <main className="flex flex-col flex-1 overflow-y-auto">
           {/* Scanner view */}
           {view === 'scanner' && (
             <>
@@ -2685,14 +2685,14 @@ export default function Page() {
           )}
 
           {view === 'forensics' && (
-            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
               <ProGate feature="Rug Forensics Lab — Deep contract analysis, holder concentration, liquidity health and rug probability scoring." icon="🔐">
                 <RugForensicsLab />
               </ProGate>
             </div>
           )}
           {view === 'neuralv4' && (
-            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
               <ProGate feature="Neural Scan V4 — Nansen-grade token intelligence." icon="🧠">
                 <NeuralScanV4 />
               </ProGate>
