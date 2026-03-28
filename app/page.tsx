@@ -2625,6 +2625,44 @@ export default function Page() {
                 )}
               </div>
               <ValueProtectedWidget />
+              {/* PERSISTENT SCAN INPUT — outside renderScanContent to prevent re-mount */}
+              <div className="flex items-center gap-2 px-3 py-2 bg-[#07070f] border-b border-[rgba(99,102,241,0.2)] flex-shrink-0">
+                <input
+                  id="main-scan-input"
+                  value={mintInput}
+                  onChange={e => setMintInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') doScan() }}
+                  placeholder="Paste Solana token address to scan…"
+                  autoComplete="off"
+                  spellCheck={false}
+                  style={{
+                    flex: 1,
+                    background: 'rgba(99,102,241,0.06)',
+                    border: '1px solid rgba(99,102,241,0.2)',
+                    borderRadius: '6px',
+                    padding: '8px 12px',
+                    color: '#e6edf3',
+                    fontFamily: 'IBM Plex Mono, monospace',
+                    fontSize: '11px',
+                    outline: 'none',
+                  }}
+                />
+                <button
+                  onClick={() => doScan()}
+                  disabled={scanState === 'loading'}
+                  style={{
+                    background: scanState === 'loading' ? 'rgba(99,102,241,0.3)' : 'linear-gradient(135deg,#6366f1,#4f46e5)',
+                    border: 'none', borderRadius: '6px',
+                    padding: '8px 16px', color: '#fff',
+                    fontFamily: 'IBM Plex Mono, monospace',
+                    fontSize: '11px', fontWeight: 700,
+                    cursor: scanState === 'loading' ? 'not-allowed' : 'pointer',
+                    letterSpacing: '0.05em', whiteSpace: 'nowrap',
+                  }}
+                >
+                  {scanState === 'loading' ? '⟳ SCANNING…' : '⚡ NEURAL SCAN'}
+                </button>
+              </div>
               <div className="flex overflow-x-auto border-b border-[rgba(99,102,241,0.14)] bg-[#07070f] flex-shrink-0 scrollbar-none">
                 {(['verdict','holders','liquidity','transfers','chart','edge'] as ScanTab[]).map(t => (
                   <button key={t} onClick={() => { setScanTab(t) }}
