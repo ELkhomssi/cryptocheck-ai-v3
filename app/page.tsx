@@ -2624,6 +2624,7 @@ export default function Page() {
                   </button>
                 )}
               </div>
+              <ValueProtectedWidget />
               <div className="flex overflow-x-auto border-b border-[rgba(99,102,241,0.14)] bg-[#07070f] flex-shrink-0 scrollbar-none">
                 {(['verdict','holders','liquidity','transfers','chart','edge'] as ScanTab[]).map(t => (
                   <button key={t} onClick={() => { setScanTab(t) }}
@@ -2645,7 +2646,9 @@ export default function Page() {
           {/* Whales — PRO gated */}
           {view === 'whales' && (
             <ProGate feature="Smart Money & Whale Tracking is available on the Pro plan. Follow top Solana traders in real-time." icon="🐋">
-              {renderWhalePage()}
+              <div className="flex-1 overflow-y-auto p-4">
+                <InsiderWhaleIntel />
+              </div>
             </ProGate>
           )}
 
