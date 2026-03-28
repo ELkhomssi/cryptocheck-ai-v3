@@ -2371,7 +2371,7 @@ export default function Page() {
 
   // ── PRO paywall overlay ──
   const ProGate = ({ children, feature, icon }: { children: React.ReactNode; feature: string; icon: string }) => {
-    if (isPro) return <>{children}</>
+    if (isPro || true) return <>{children}</> // DEMO: always show
     return (
     <div className="relative flex-1 overflow-hidden" style={{ flex: 1 }}>
       <div style={{ filter: 'blur(3px)', pointerEvents: 'none' }}>{children}</div>
