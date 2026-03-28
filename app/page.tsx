@@ -1957,6 +1957,35 @@ type ScanState = 'idle' | 'loading' | 'done' | 'error'
 interface FeedItem { id: number; tag: string; tagCls: string; text: string; ts: string; mint?: string }
 interface RecentScan { mint: string; name: string; symbol: string; score: number }
 
+
+// ── Stable MintInput — never re-mounts, no focus loss ──
+const MintInput = React.memo(function MintInput({ onScan, loading }: { onScan: (mint: string) => void; loading: boolean }) {
+  const ref = React.useRef<HTMLInputElement>(null)
+  const handle = () => {
+    const v = ref.current?.value?.trim() || ''
+    if (v.length >= 20) onScan(v)
+  }
+  return (
+    <div className="p-3.5 border-b border-[rgba(99,102,241,0.14)]">
+      <div className="panel-label">Neural Scan</div>
+      <input
+        ref={ref}
+        placeholder="Enter mint address…"
+        onKeyDown={e => e.key === 'Enter' && handle()}
+        className="w-full bg-[#111120] border border-[rgba(99,102,241,0.16)] rounded-[4px] px-2.5 py-2 font-mono text-[0.65rem] text-[#c9d1d9] outline-none transition-all focus:border-indigo-500 placeholder:text-[#374151] mb-2"
+        autoComplete="off" spellCheck={false}
+        style={{ caretColor: '#a78bfa' }}
+      />
+      <button onClick={handle} disabled={loading}
+        className="w-full py-2 rounded-[4px] font-mono text-[0.65rem] font-bold tracking-wider text-white flex items-center justify-center gap-1.5 disabled:opacity-40 transition-all"
+        style={{ background: 'linear-gradient(135deg,#6366f1,#4f46e5)', boxShadow: '0 0 14px rgba(99,102,241,0.3)' }}>
+        <span>{loading ? '⟳' : '⚡'}</span>
+        <span>{loading ? 'SCANNING…' : 'NEURAL SCAN'}</span>
+      </button>
+    </div>
+  )
+})
+
 export default function Page() {
   const { walletAddress, isConnected, isConnecting, connect, disconnect, shortAddr } = useSolana()
 
@@ -2435,28 +2464,10 @@ export default function Page() {
 
         {/* SIDEBAR (desktop only) */}
         <aside className="hidden md:flex flex-col w-[280px] border-r border-[rgba(99,102,241,0.16)] bg-[#07070f] flex-shrink-0 overflow-hidden" style={{ height: 'calc(100vh - 48px - 26px - 32px - 80px)', position: 'sticky', top: 74 }}>
-          {/* Scan zone */}
-          <div className="p-3.5 border-b border-[rgba(99,102,241,0.14)]" ref={scanTopRef}>
-            <div className="panel-label">Neural Scan</div>
-            <input
-              id="sidebar-mint-input"
-              defaultValue=""
-              onKeyDown={e => { if(e.key === 'Enter') { const v=(e.target as HTMLInputElement).value.trim(); if(v.length>=20){setMintInput(v);doScan(v)} } }}
-              placeholder="Enter mint address…"
-              className="w-full bg-[#111120] border border-[rgba(99,102,241,0.16)] rounded-[4px] px-2.5 py-2 font-mono text-[0.65rem] text-[#c9d1d9] outline-none transition-all focus:border-indigo-500 focus:shadow-[0_0_0_2px_rgba(99,102,241,0.1)] placeholder:text-[#374151] mb-2"
-              autoComplete="off" spellCheck={false}
-              style={{ caretColor: '#a78bfa' }}
-            />
-            <button
-              onClick={() => { const v=(document.getElementById('sidebar-mint-input') as HTMLInputElement)?.value?.trim()||''; if(v.length>=20){setMintInput(v);doScan(v)} else setScanError('Paste a valid Solana address first') }}
-              disabled={scanState === 'loading'}
-              className="w-full py-2 rounded-[4px] font-mono text-[0.65rem] font-bold tracking-wider text-white flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              style={{ background:'linear-gradient(135deg,#6366f1,#4f46e5)', boxShadow:'0 0 14px rgba(99,102,241,0.3)' }}
-            >
-              <span>{scanState === 'loading' ? '⟳' : '⚡'}</span>
-              <span>{scanState === 'loading' ? 'SCANNING…' : 'NEURAL SCAN'}</span>
-            </button>
-            <div className="flex gap-1 mt-1.5">
+          {/* Scan zone — stable MintInput */}
+          <div ref={scanTopRef}>
+            <MintInput onScan={(v) => { setMintInput(v); doScan(v) }} loading={scanState === 'loading'} />
+            <div className="flex gap-1 px-3.5 pb-2">
               {SAMPLE_MINTS.map(s => (
                 <button key={s.label} onClick={() => { setMintInput(s.mint); doScan(s.mint) }}
                   className="flex-1 py-1 rounded-[3px] border border-[rgba(99,102,241,0.14)] bg-[#111120] text-[#6b7280] text-[0.58rem] font-mono font-semibold transition-all hover:border-indigo-700/40 hover:text-[#c9d1d9]">
