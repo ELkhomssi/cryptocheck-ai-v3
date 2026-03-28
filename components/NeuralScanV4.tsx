@@ -84,6 +84,17 @@ function MiniBar({ pct, color }: { pct: number; color: string }) {
   )
 }
 
+const DRAMATIC_LOGS = [
+  '[V4] ESTABLISHING NEURAL LINK TO SOLANA MAINNET...',
+  '[FORENSICS] TRACING DEVELOPER WALLET CLUSTERS...',
+  '[V4] SIMULATING 1000x TRANSACTION SCENARIOS...',
+  '[FORENSICS] SCANNING RUG-PULL DATABASE...',
+  '[V4] ANALYZING LIQUIDITY DEPTH & LOCK STATUS...',
+  '[V4] CALCULATING RUG-PROBABILITY SCORE...',
+  '[NEURAL] CROSS-REFERENCING SMART MONEY POSITIONS...',
+  '[V4] COMPUTING FINAL NEURAL SCORE...',
+]
+
 const SCAN_STEPS = [
   '🔗 Connecting to Helius RPC…',
   '📋 Fetching token metadata…',
@@ -105,13 +116,18 @@ export default function NeuralScanV4() {
 
   const scan = useCallback(async () => {
     const m = mint.trim()
-    if (!m || m.length < 32) { setError('Enter a valid Solana token address (32-44 chars)'); return }
+    if (!m || m.length < 20) { setError('Please paste a token address'); return }
     setLoading(true); setError(''); setResult(null); setActiveTab('verdict')
 
     let i = 0
     const iv = setInterval(() => { if (i < SCAN_STEPS.length) { setStep(SCAN_STEPS[i]); i++ } }, 350)
 
     try {
+      // Dramatic audit log sequence
+      for (let i = 0; i < DRAMATIC_LOGS.length; i++) {
+        setStep(DRAMATIC_LOGS[i])
+        await new Promise(r => setTimeout(r, 600))
+      }
       const res  = await fetch('/api/neural-v4', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
