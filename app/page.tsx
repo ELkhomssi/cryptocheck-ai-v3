@@ -2684,16 +2684,16 @@ export default function Page() {
             </ProGate>
           )}
 
-          {view === 'forensics' && (
+          <div style={{ display: view === 'forensics' ? 'flex' : 'none', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
             <ProGate feature="Rug Forensics Lab — Deep contract analysis, holder concentration, liquidity health and rug probability scoring." icon="🔐">
               <RugForensicsLab />
             </ProGate>
-          )}
-          {view === 'neuralv4' && (
+          </div>
+          <div style={{ display: view === 'neuralv4' ? 'flex' : 'none', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
             <ProGate feature="Neural Scan V4 — Nansen-grade token intelligence." icon="🧠">
               <NeuralScanV4 />
             </ProGate>
-          )}
+          </div>
           {/* Feed — Mobile fullscreen Alpha Feed */}
           {view === 'feed' && (
             <div className="flex flex-col flex-1 overflow-hidden pb-[60px]">
