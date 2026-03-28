@@ -8,6 +8,10 @@ import {
 } from '@/app/actions/ai'
 import RugForensicsLab from '@/components/RugForensicsLab'
 import NeuralScanV4 from '@/components/NeuralScanV4'
+import ValueProtectedWidget from '@/components/ValueProtectedWidget'
+import NeuralAuditLog from '@/components/NeuralAuditLog'
+import InsiderWhaleIntel from '@/components/InsiderWhaleIntel'
+import { TrialBanner, TrialWall, useTrialStatus } from '@/components/TrialSystem'
 import { AiAutoSniper } from '@/components/AiAutoSniper'
 import { Doughnut } from 'react-chartjs-2'
 import {
@@ -1969,6 +1973,8 @@ export default function Page() {
   const [timeStr,     setTimeStr]     = useState('')
   const [showModal,   setShowModal]   = useState(false)
   const [isPro,setIsPro] = useState(false)
+  const { trial } = useTrialStatus(walletAddress)
+  const isTrialExpired = trial?.expired ?? false
   useEffect(() => { if (typeof window !== 'undefined') setIsPro(localStorage.getItem('cc_is_pro') === 'true') }, [])
   const [showSwap,    setShowSwap]    = useState(false)     // Jupiter swap modal
   const [swapMint,    setSwapMint]    = useState('')        // token to swap
@@ -2385,11 +2391,13 @@ export default function Page() {
       <div className="ambient-blob ambient-blob-3" />
 
       {/* ── HEADER ── */}
+      {isTrialExpired && !isPro && <TrialWall onUpgrade={() => setShowModal(true)} daysUsed={4} />}
       <header className="sticky top-0 z-[300] h-12 flex items-center justify-between px-4 bg-[rgba(5,5,16,0.95)] backdrop-blur-xl border-b border-[rgba(99,102,241,0.16)]">
         <a href="/" className="flex items-center gap-2 font-mono text-[0.82rem] font-bold text-white tracking-wider uppercase no-underline">
           <div className="w-6 h-6 rounded-[4px] flex items-center justify-center text-[0.7rem]" style={{ background:'linear-gradient(135deg,#6366f1,#06b6d4)', boxShadow:'0 0 10px rgba(99,102,241,0.35)' }}>⬡</div>
           CryptoCheck<span className="text-indigo-400">AI</span>
           <span className="text-[0.5rem] text-[#6b7280] ml-0.5">v3</span>
+          <TrialBanner walletAddress={walletAddress} />
         </a>
 
         {/* Desktop nav */}
