@@ -2125,7 +2125,7 @@ export default function Page() {
   // ── Scan ──
   const doScan = useCallback(async (mintAddr?: string) => {
     const mint = (mintAddr ?? mintInput).trim()
-    if (!mint || mint.length < 32) { setScanError('Enter a valid Solana mint address (32–44 chars).'); setScanState('error'); return }
+    if (!mint || mint.length < 20) { setScanError('Please paste a valid Solana token address.'); setScanState('error'); return }
     setScanState('loading')
     setScanError('')
     setScanData(null)
@@ -2447,7 +2447,7 @@ export default function Page() {
               autoComplete="off" spellCheck={false}
             />
             <button
-              onClick={() => doScan()}
+              onClick={() => { if(mintInput.trim().length >= 20) doScan(); else setScanError('Paste a valid Solana address first') }}
               disabled={scanState === 'loading'}
               className="w-full py-2 rounded-[4px] font-mono text-[0.65rem] font-bold tracking-wider text-white flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               style={{ background:'linear-gradient(135deg,#6366f1,#4f46e5)', boxShadow:'0 0 14px rgba(99,102,241,0.3)' }}
