@@ -21,17 +21,8 @@ interface ForensicsResult {
   verdict: string
   verdictColor: string
   evidence: EvidenceItem[]
-  marketData: {
-    price: string
-    liquidity: number
-    volume24h: number
-    priceChange24h: number
-    dexUrl: string
-  } | null
-  holderStats: {
-    topHolders: Array<{ address: string; uiAmount: number }>
-    totalSupply: string
-  } | null
+  marketData: { price: string; liquidity: number; volume24h: number; priceChange24h: number; dexUrl: string } | null
+  holderStats: { topHolders: Array<{ address: string; uiAmount: number }>; totalSupply: string } | null
   scannedAt: string
   engine: string
 }
@@ -39,19 +30,19 @@ interface ForensicsResult {
 function severityColor(s: string) {
   switch (s) {
     case 'CRITICAL': return '#ef4444'
-    case 'HIGH':     return '#f59e0b'
-    case 'MEDIUM':   return '#38bdf8'
-    case 'CLEAN':    return '#22c55e'
-    default:         return '#6b7280'
+    case 'HIGH': return '#f59e0b'
+    case 'MEDIUM': return '#38bdf8'
+    case 'CLEAN': return '#22c55e'
+    default: return '#6b7280'
   }
 }
 
 function typeIcon(t: string) {
   switch (t) {
     case 'RUG_SIGNAL': return '🚨'
-    case 'WARNING':    return '⚠️'
-    case 'CLEAN':      return '✅'
-    default:           return 'ℹ️'
+    case 'WARNING': return '⚠️'
+    case 'CLEAN': return '✅'
+    default: return 'ℹ️'
   }
 }
 
@@ -63,8 +54,7 @@ function RadialGauge({ value, color }: { value: number; color: string }) {
       <circle cx="70" cy="70" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="12" />
       <circle cx="70" cy="70" r={r} fill="none" stroke={color} strokeWidth="12"
         strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
-        transform="rotate(-90 70 70)"
-        style={{ transition: 'stroke-dashoffset 1s ease' }} />
+        transform="rotate(-90 70 70)" style={{ transition: 'stroke-dashoffset 1s ease' }} />
       <text x="70" y="65" textAnchor="middle" fill={color} fontSize="24" fontWeight="700" fontFamily="monospace">{value}</text>
       <text x="70" y="82" textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize="9" fontFamily="monospace">RUG PROB %</text>
     </svg>
@@ -72,16 +62,17 @@ function RadialGauge({ value, color }: { value: number; color: string }) {
 }
 
 export default function RugForensicsLab() {
-  const [mint, setMint]       = useState('')
+  const [mint, setMint] = useState('')
   const [loading, setLoading] = useState(false)
-  const [result, setResult]   = useState<ForensicsResult | null>(null)
-  const [error, setError]     = useState('')
-  const [step, setStep]       = useState('')
+  const [result, setResult] = useState<ForensicsResult | null>(null)
+  const [error, setError] = useState('')
+  const [step, setStep] = useState('')
 
   const runForensics = useCallback(async () => {
-    if (!mint.trim() || mint.trim().length < 32) { setError('Please enter a valid Solana token address'); return }
-    setLoading(true); setError('')
-
+    const m = mint.trim()
+    if (m.length < 32) { setError('Enter a valid Solana address (32+ chars)'); return }
+    setLoading(true)
+    setError('')
     const steps = [
       '📋 Fetching on-chain metadata…',
       '🐋 Analyzing holder distribution…',
@@ -92,25 +83,28 @@ export default function RugForensicsLab() {
     ]
     let i = 0
     const iv = setInterval(() => { if (i < steps.length) { setStep(steps[i]); i++ } }, 500)
-
     try {
-      const res  = await fetch('/api/forensics', {
+      const res = await fetch('/api/forensics', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mint: mint.trim() }),
+        body: JSON.stringify({ mint: m }),
       })
       const data = await res.json()
       clearInterval(iv)
-      if (data.error) { setError(data.error); setLoading(false); return }
+      if (data.error) { setError(data.error); setLoading(false); setStep(''); return }
       setResult(data)
-    } catch { setError('Forensics scan failed. Check connection.') }
-    finally  { clearInterval(iv); setLoading(false); setStep('') }
+    } catch {
+      setError('Forensics scan failed. Check connection.')
+    } finally {
+      clearInterval(iv)
+      setLoading(false)
+      setStep('')
+    }
   }, [mint])
 
   return (
     <div style={{ color: '#e6edf3', fontFamily: '"IBM Plex Mono", monospace', minHeight: '100%' }}>
 
-      {/* Header */}
       <div style={{ borderBottom: '1px solid rgba(239,68,68,0.2)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(239,68,68,0.04)' }}>
         <div style={{ fontSize: '20px' }}>🔐</div>
         <div>
@@ -123,27 +117,29 @@ export default function RugForensicsLab() {
         </div>
       </div>
 
-      {/* Input */}
       <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', marginBottom: '8px', letterSpacing: '0.1em' }}>TOKEN ADDRESS TO INVESTIGATE</div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <input value={mint} onChange={e => setMint(e.target.value)} onKeyDown={e => e.key === 'Enter' && runForensics()}
+          <input
+            value={mint}
+            onChange={e => setMint(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && runForensics()}
             placeholder="Paste Solana mint address…"
-            style={{ flex: 1, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '4px', padding: '10px 12px', color: '#e6edf3', fontFamily: '"IBM Plex Mono", monospace', fontSize: '11px', outline: 'none' }} />
+            style={{ flex: 1, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '4px', padding: '10px 12px', color: '#e6edf3', fontFamily: '"IBM Plex Mono", monospace', fontSize: '11px', outline: 'none', caretColor: '#ef4444' }}
+          />
           <button onClick={runForensics} disabled={loading}
-            style={{ background: loading ? 'rgba(239,68,68,0.2)' : '#ef4444', border: 'none', borderRadius: '4px', padding: '10px 20px', color: '#fff', fontFamily: '"IBM Plex Mono", monospace', fontSize: '11px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', letterSpacing: '0.05em' }}>
+            style={{ background: loading ? 'rgba(239,68,68,0.2)' : '#ef4444', border: 'none', borderRadius: '4px', padding: '10px 20px', color: '#fff', fontFamily: '"IBM Plex Mono", monospace', fontSize: '11px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer' }}>
             {loading ? '⟳ SCANNING…' : '🔍 INVESTIGATE'}
           </button>
         </div>
         {error && <div style={{ marginTop: '8px', fontSize: '10px', color: '#ef4444' }}>❌ {error}</div>}
       </div>
 
-      {/* Loading */}
-      {loading && (
+      {loading && !result && (
         <div style={{ padding: '24px 20px' }}>
           <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: '6px', padding: '20px' }}>
             <div style={{ fontSize: '10px', color: '#ef4444', marginBottom: '12px', letterSpacing: '0.1em' }}>FORENSICS SCAN IN PROGRESS</div>
-            {['📋 Fetching on-chain metadata…','🐋 Analyzing holder distribution…','💧 Checking liquidity pools…','📊 Scanning transaction history…','🧠 Running Neural Forensics Engine v4…','⚖️ Computing rug probability…'].map((s, i) => (
+            {steps.map((s, i) => (
               <div key={i} style={{ fontSize: '10px', color: step === s ? '#ef4444' : 'rgba(255,255,255,0.2)', padding: '3px 0', transition: 'color 0.3s' }}>
                 {step === s ? '▶ ' : '  '}{s}
               </div>
@@ -152,11 +148,8 @@ export default function RugForensicsLab() {
         </div>
       )}
 
-      {/* Results */}
-      {result {result && !loading && ({result && !loading && ( (
+      {result && (
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-
-          {/* Verdict */}
           <div style={{ background: `${result.verdictColor}15`, border: `1px solid ${result.verdictColor}40`, borderRadius: '6px', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '20px' }}>
             <RadialGauge value={result.rugProbability} color={result.verdictColor} />
             <div style={{ flex: 1 }}>
@@ -167,7 +160,6 @@ export default function RugForensicsLab() {
             </div>
           </div>
 
-          {/* Evidence */}
           <div>
             <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', marginBottom: '8px' }}>EVIDENCE LOG — {result.evidence.length} ITEMS</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -184,10 +176,9 @@ export default function RugForensicsLab() {
             </div>
           </div>
 
-          {/* Market Data */}
           {result.marketData && (
             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '14px' }}>
-              <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', marginBottom: '10px' }}>MARKET FORENSICS DATA</div>
+              <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', marginBottom: '10px' }}>MARKET DATA</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 {[
                   { label: 'Price', value: `$${Number(result.marketData.price||0).toFixed(8)}` },
@@ -207,42 +198,18 @@ export default function RugForensicsLab() {
             </div>
           )}
 
-          {/* Top Holders */}
-          {result.holderStats && (
-            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '14px' }}>
-              <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', marginBottom: '10px' }}>TOP HOLDERS — FORENSICS BREAKDOWN</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {result.holderStats.topHolders.slice(0, 5).map((h, i) => {
-                  const total = result.holderStats!.topHolders.reduce((a, b) => a + b.uiAmount, 0)
-                  const pct = total > 0 ? ((h.uiAmount / total) * 100).toFixed(1) : '0'
-                  return (
-                    <div key={h.address} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)', width: '14px' }}>#{i+1}</span>
-                      <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.5)', flex: 1 }}>{h.address.slice(0,8)}…{h.address.slice(-6)}</span>
-                      <div style={{ width: '80px', height: '4px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px', overflow: 'hidden' }}>
-                        <div style={{ width: `${Math.min(100, Number(pct))}%`, height: '100%', background: Number(pct) > 30 ? '#ef4444' : '#22c55e', borderRadius: '2px' }} />
-                      </div>
-                      <span style={{ fontSize: '9px', color: Number(pct) > 30 ? '#ef4444' : '#22c55e', width: '36px', textAlign: 'right' }}>{pct}%</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
           <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.2)', textAlign: 'center', padding: '8px 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
             {result.engine} · Not financial advice · Always DYOR
           </div>
         </div>
       )}
 
-      {/* Empty State */}
       {!result && !loading && (
         <div style={{ padding: '40px 20px', textAlign: 'center' }}>
           <div style={{ fontSize: '32px', marginBottom: '12px' }}>🔐</div>
           <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '6px' }}>Rug Forensics Lab Ready</div>
           <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)', maxWidth: '280px', margin: '0 auto', lineHeight: 1.6 }}>
-            Paste any Solana token address to run deep forensics — mint authority, holder concentration, liquidity health, and rug probability.
+            Paste any Solana token address to run deep forensics analysis.
           </div>
         </div>
       )}
