@@ -2012,12 +2012,12 @@ export default function Page() {
       try { const s = await getSlot(); if (!cancelled) setSlot(s.toLocaleString()) } catch {}
     }
     tick()
-    const iv = setInterval(tick, 4000)
+    const iv = setInterval(tick, 30000)
     return () => { cancelled = true; clearInterval(iv) }
   }, [])
 
   useEffect(() => {
-    const iv = setInterval(() => setTimeStr(new Date().toUTCString().slice(0, 25) + ' UTC'), 1000)
+    const iv = setInterval(() => { const el = document.getElementById("cc-time"); if(el) el.textContent = new Date().toUTCString().slice(0, 25) + " UTC" }, 1000)
     setTimeStr(new Date().toUTCString().slice(0, 25) + ' UTC')
     return () => clearInterval(iv)
   }, [])
