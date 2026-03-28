@@ -2129,9 +2129,9 @@ export default function Page() {
   // ── Scan ──
   const doScan = useCallback(async (mintAddr?: string) => {
     const mint = (mintAddr ?? mintInput).trim()
-    if (!mint || mint.length < 20) { setScanError('Please paste a valid Solana token address.'); setScanState('error'); return }
-    setScanState('loading')
     setScanError('')
+    if (!mint || mint.length < 32 || mint.length > 44) { setScanError('Please paste a valid Solana token address (32-44 chars).'); setScanState('error'); return }
+    setScanState('loading')
     setScanData(null)
     try {
       const data = await scanToken(mint)
@@ -2684,16 +2684,20 @@ export default function Page() {
             </ProGate>
           )}
 
-          <div style={{ display: view === 'forensics' ? 'flex' : 'none', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-            <ProGate feature="Rug Forensics Lab — Deep contract analysis, holder concentration, liquidity health and rug probability scoring." icon="🔐">
-              <RugForensicsLab />
-            </ProGate>
-          </div>
-          <div style={{ display: view === 'neuralv4' ? 'flex' : 'none', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-            <ProGate feature="Neural Scan V4 — Nansen-grade token intelligence." icon="🧠">
-              <NeuralScanV4 />
-            </ProGate>
-          </div>
+          {view === 'forensics' && (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+              <ProGate feature="Rug Forensics Lab — Deep contract analysis, holder concentration, liquidity health and rug probability scoring." icon="🔐">
+                <RugForensicsLab />
+              </ProGate>
+            </div>
+          )}
+          {view === 'neuralv4' && (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+              <ProGate feature="Neural Scan V4 — Nansen-grade token intelligence." icon="🧠">
+                <NeuralScanV4 />
+              </ProGate>
+            </div>
+          )}
           {/* Feed — Mobile fullscreen Alpha Feed */}
           {view === 'feed' && (
             <div className="flex flex-col flex-1 overflow-hidden pb-[60px]">

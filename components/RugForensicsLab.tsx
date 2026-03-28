@@ -65,11 +65,12 @@ export default function RugForensicsLab() {
 
   async function runScan() {
     const mint = inputRef.current?.value?.trim() || ''
-    if (mint.length < 32) {
-      setError('Please paste a valid Solana address (32+ chars)')
+    setError('')
+    if (!mint || mint.length < 32 || mint.length > 44) {
+      setError('Please paste a valid Solana address (32-44 chars)')
       return
     }
-    setError('')
+    setResult(null)
     setLoading(true)
     setStep(SCAN_STEPS[0])
 
