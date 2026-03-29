@@ -31,7 +31,7 @@ export default function ChartSwapModal({ mint, symbol, onClose, initialTab }: Ch
       w.Jupiter.init({
         displayMode: 'integrated',
         integratedTargetId: 'csm-jup-terminal',
-        endpoint: 'https://mainnet.helius-rpc.com/?api-key=',
+        endpoint: 'https://mainnet.helius-rpc.com/?api-key=35530e51-dad1-480b-af8f-11c8af2ab3fd',
         defaultExplorer: 'Solscan',
         formProps: { initialInputMint: 'So11111111111111111111111111111111111111112', initialOutputMint: mint },
       })
