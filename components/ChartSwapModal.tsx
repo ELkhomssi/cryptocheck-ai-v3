@@ -37,11 +37,15 @@ export default function ChartSwapModal({ mint, symbol, onClose, initialTab }: Ch
       })
     }
     if (w.Jupiter) { initJup(); return }
-    const s = document.createElement('script')
-    s.src = 'https://terminal.jup.ag/main-v3.js'
-    s.async = true
-    s.onload = initJup
-    document.head.appendChild(s)
+    if (!document.querySelector('script[src*="terminal.jup.ag"]')) {
+      const s = document.createElement('script')
+      s.src = 'https://terminal.jup.ag/main-v3.js'
+      s.async = true
+      s.onload = initJup
+      document.head.appendChild(s)
+    } else {
+      setTimeout(initJup, 300)
+    }
     return () => { try { if (w.Jupiter) w.Jupiter.close() } catch {} }
   }, [tab, mint])
 
