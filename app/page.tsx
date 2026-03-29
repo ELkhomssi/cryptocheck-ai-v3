@@ -2389,7 +2389,20 @@ export default function Page() {
 
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
-  if (!mounted) return null
+
+  if (!mounted) return (
+    <>
+      {showSignup && !trialActivated && !isPro && (
+        <SignupTrialModal
+          walletAddress={walletAddress}
+          isConnected={isConnected}
+          isConnecting={isConnecting}
+          onConnect={connect}
+          onSuccess={() => { setTrialActivated(true); setShowSignup(false) }}
+        />
+      )}
+    </>
+  )
 
   return (
     <>
