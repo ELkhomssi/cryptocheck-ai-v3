@@ -83,7 +83,12 @@ export default function InsiderWhaleIntel({onScanToken}:Props) {
 
   useEffect(()=>{const iv=setInterval(()=>setPulse(p=>!p),1500);return()=>clearInterval(iv)},[])
 
-  const toggleFollow=useCallback((e:React.MouseEvent,addr:string)=>{e.stopPropagation();setFollowing(p=>{const n=new Set(p);n.has(addr)?n.delete(addr):n.add(addr);return n})},[])
+  const toggleFollow=useCallback((e:React.MouseEvent,addr:string)=>{
+    e.stopPropagation()
+    e.preventDefault()
+    setFollowing(p=>{const n=new Set(p);n.has(addr)?n.delete(addr):n.add(addr);return n})
+    console.log('Follow toggled:', addr)
+  },[])
   const toggleWatch=useCallback((e:React.MouseEvent,addr:string)=>{e.stopPropagation();setWatchlist(p=>{const n=new Set(p);n.has(addr)?n.delete(addr):n.add(addr);return n})},[])
   const openSwap=useCallback((e:React.MouseEvent,token:string,mint:string)=>{e.stopPropagation();setSwap({token,mint})},[])
   const scanBefore=useCallback((e:React.MouseEvent,mint:string)=>{e.stopPropagation();if(onScanToken){onScanToken(mint)}else{navigator.clipboard.writeText(mint);setToast('Mint copied — paste in Neural V4');setTimeout(()=>setToast(''),2500)}},[onScanToken])
@@ -210,7 +215,7 @@ export default function InsiderWhaleIntel({onScanToken}:Props) {
                 </div>
 
                 {/* Row 4 — action buttons */}
-                <div style={{display:'flex',gap:5}} onClick={e=>e.stopPropagation()}>
+                <div style={{display:'flex',gap:5,position:'relative',zIndex:10}} onClick={e=>{e.stopPropagation();e.preventDefault()}}>
                   <button onClick={e=>toggleFollow(e,w.address)} style={{...N.btn(isF?'#22c55e':'#6b7280'),flex:1,padding:'5px 0',textAlign:'center'}}>
                     {isF?'✓ COPYING TRADES':'⟳ FOLLOW & COPY'}
                   </button>

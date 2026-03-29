@@ -2048,14 +2048,11 @@ export default function Page() {
     ]
     setFeedItems(init)
     const iv = setInterval(() => {
+      if (document.hidden) return
       const tok = DEMO_TOKS[Math.floor(Math.random() * DEMO_TOKS.length)]
       const tpl = FEED_TEMPLATES[Math.floor(Math.random() * FEED_TEMPLATES.length)](tok)
       feedIdRef.current++
-      setFeedItems(prev => [{
-        id: feedIdRef.current,
-        tag: tpl.tag, tagCls: tpl.cls, text: tpl.text,
-        ts: new Date().toLocaleTimeString()
-      }, ...prev].slice(0, 20))
+      setFeedItems(prev => [{ id: feedIdRef.current, tag: tpl.tag, tagCls: tpl.cls, text: tpl.text, ts: new Date().toLocaleTimeString() }, ...prev].slice(0, 20))
     }, 30000)
     return () => clearInterval(iv)
   }, [])

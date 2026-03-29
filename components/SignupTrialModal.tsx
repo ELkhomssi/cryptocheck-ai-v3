@@ -62,7 +62,7 @@ export default function SignupTrialModal({ walletAddress, isConnected, isConnect
   }
 
   return (
-    <div style={{position:'fixed',inset:0,zIndex:9000,background:'rgba(2,4,14,0.97)',backdropFilter:'blur(20px)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'IBM Plex Mono,monospace',pointerEvents:'all'}}>
+    <div style={{position:'fixed',inset:0,zIndex:100,background:'rgba(2,4,14,0.97)',backdropFilter:'blur(20px)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'IBM Plex Mono,monospace',pointerEvents:'all'}}>
       <div style={{position:'absolute',top:'15%',left:'50%',transform:'translateX(-50%)',width:500,height:500,background:'radial-gradient(circle,rgba(91,95,239,0.1) 0%,transparent 70%)',pointerEvents:'none'}}/>
       <div style={S.box}>
         <div style={S.topLine}/>
