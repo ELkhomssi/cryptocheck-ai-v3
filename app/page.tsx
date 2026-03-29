@@ -625,7 +625,7 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
               <iframe
                 src={dexUrl}
                 allow="clipboard-write"
-                sandbox="allow-scripts allow-same-origin"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
                 title={`${sym} price chart`}
                 style={{ width:'100%', height:'100%', border:0, background:'#030308', display:'block' }}
               />
@@ -1988,8 +1988,11 @@ export default function Page() {
   const isTrialExpired = trial?.expired ?? false
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setIsPro(localStorage.getItem('cc_is_pro') === 'true')
-      setTrialActivated(localStorage.getItem('cc_trial_activated') === '1')
+      const pro = localStorage.getItem('cc_is_pro') === 'true'
+      const activated = localStorage.getItem('cc_trial_activated') === '1'
+      setIsPro(pro)
+      setTrialActivated(activated)
+      if (!activated && !pro) setShowSignup(true)
     }
   }, [])
   const [showSwap,    setShowSwap]    = useState(false)     // Jupiter swap modal
@@ -2796,53 +2799,34 @@ export default function Page() {
 
       {/* ── MOBILE BOTTOM NAV ── */}
       {/* Order: Scan → Chart → Trade → Portfolio → Pro */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[400] h-[60px] flex bg-[rgba(5,5,16,0.98)] backdrop-blur-xl border-t border-[rgba(99,102,241,0.16)]">
-        {/* Scan */}
-        <button
-          onClick={() => { setView('scanner'); setScanTab('verdict') }}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 border-none font-mono text-[0.44rem] tracking-wider uppercase transition-all h-full ${view === 'scanner' && scanTab === 'verdict' ? 'text-indigo-300' : 'text-[#6b7280]'}`}
-          style={{ background:'transparent' }}>
-          <span className="text-base" style={{ filter: view==='scanner'&&scanTab==='verdict' ? 'drop-shadow(0 0 4px rgba(99,102,241,0.8))' : 'none' }}>⚡</span>
-          Scan
-        </button>
-        {/* Chart — switches to DexScreener tab */}
-        <button
-          onClick={() => { setView('scanner'); setScanTab('chart') }}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 border-none font-mono text-[0.44rem] tracking-wider uppercase transition-all h-full ${view==='scanner'&&scanTab==='chart' ? 'text-emerald-400' : 'text-[#6b7280]'}`}
-          style={{ background:'transparent' }}>
-          <span className="text-base" style={{ filter: view==='scanner'&&scanTab==='chart' ? 'drop-shadow(0 0 4px rgba(16,185,129,0.8))' : 'none' }}>📈</span>
-          Chart
-        </button>
-        {/* Trade — opens Jupiter Modal directly, no redirect */}
-        <button
-          onClick={() => {
-            const mint = scanData?.mint ?? ''
-            const s    = scanData?.meta?.onChainMetadata?.metadata?.data?.symbol
-                      ?? scanData?.meta?.legacyMetadata?.symbol ?? '???'
-            if (mint) { setSwapMint(mint); setSwapSym(s); setShowSwap(true) }
-            else       { setView('scanner') }
-          }}
-          className="flex-1 flex flex-col items-center justify-center gap-0.5 border-none font-mono text-[0.44rem] tracking-wider uppercase transition-all h-full text-emerald-400"
-          style={{ background:'transparent' }}>
-          <span className="text-base" style={{ filter:'drop-shadow(0 0 4px rgba(16,185,129,0.6))' }}>💱</span>
-          Trade
-        </button>
-        {/* Alpha Feed — fullscreen on mobile */}
-        <button
-          onClick={() => setView('feed')}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 border-none font-mono text-[0.44rem] tracking-wider uppercase transition-all h-full ${view==='feed' ? 'text-cyan-400' : 'text-[#6b7280]'}`}
-          style={{ background:'transparent' }}>
-          <span className="text-base" style={{ filter: view==='feed' ? 'drop-shadow(0 0 4px rgba(6,182,212,0.8))' : 'none' }}>📡</span>
-          Feed
-        </button>
-        {/* Pro */}
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex-1 flex flex-col items-center justify-center gap-0.5 border-none font-mono text-[0.44rem] tracking-wider uppercase transition-all h-full"
-          style={{ background:'transparent', color:'#fbbf24' }}>
-          <span className="text-base">⭐</span>
-          Pro
-        </button>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[400] bg-[rgba(2,4,14,0.98)] backdrop-blur-xl border-t border-[rgba(91,95,239,0.12)]" style={{height:60}}>
+        {/* Row 1 — main tabs */}
+        <div style={{display:'flex',height:'100%'}}>
+          <button onClick={() => { setView('scanner'); setScanTab('verdict') }} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'transparent',border:'none',cursor:'pointer',color:view==='scanner'&&scanTab==='verdict'?'#8b85f8':'#5a6478',fontFamily:'IBM Plex Mono,monospace',fontSize:'0.42rem',letterSpacing:'0.08em',textTransform:'uppercase'}}>
+            <span style={{fontSize:16,filter:view==='scanner'&&scanTab==='verdict'?'drop-shadow(0 0 5px rgba(139,133,248,0.8))':'none'}}>⚡</span>SCAN
+          </button>
+          <button onClick={() => { setView('scanner'); setScanTab('chart') }} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'transparent',border:'none',cursor:'pointer',color:view==='scanner'&&scanTab==='chart'?'#10b981':'#5a6478',fontFamily:'IBM Plex Mono,monospace',fontSize:'0.42rem',letterSpacing:'0.08em',textTransform:'uppercase'}}>
+            <span style={{fontSize:16,filter:view==='scanner'&&scanTab==='chart'?'drop-shadow(0 0 5px rgba(16,185,129,0.8))':'none'}}>📈</span>CHART
+          </button>
+          <button onClick={() => { const mint=scanData?.mint??''; const s=scanData?.meta?.onChainMetadata?.metadata?.data?.symbol??scanData?.meta?.legacyMetadata?.symbol??'???'; if(mint){setSwapMint(mint);setSwapSym(s);setShowSwap(true)}else{setView('scanner')} }} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'transparent',border:'none',cursor:'pointer',color:'#10b981',fontFamily:'IBM Plex Mono,monospace',fontSize:'0.42rem',letterSpacing:'0.08em',textTransform:'uppercase'}}>
+            <span style={{fontSize:16,filter:'drop-shadow(0 0 4px rgba(16,185,129,0.6))'}}>💱</span>TRADE
+          </button>
+          <button onClick={() => setView('whales')} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'transparent',border:'none',cursor:'pointer',color:view==='whales'?'#fbbf24':'#5a6478',fontFamily:'IBM Plex Mono,monospace',fontSize:'0.42rem',letterSpacing:'0.08em',textTransform:'uppercase'}}>
+            <span style={{fontSize:16,filter:view==='whales'?'drop-shadow(0 0 5px rgba(251,191,36,0.8))':'none'}}>🐋</span>WHALES
+          </button>
+          <button onClick={() => setView('forensics')} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'transparent',border:'none',cursor:'pointer',color:view==='forensics'?'#ef4444':'#5a6478',fontFamily:'IBM Plex Mono,monospace',fontSize:'0.42rem',letterSpacing:'0.08em',textTransform:'uppercase'}}>
+            <span style={{fontSize:16,filter:view==='forensics'?'drop-shadow(0 0 5px rgba(239,68,68,0.8))':'none'}}>🔐</span>RUG
+          </button>
+          <button onClick={() => setView('neuralv4')} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'transparent',border:'none',cursor:'pointer',color:view==='neuralv4'?'#a78bfa':'#5a6478',fontFamily:'IBM Plex Mono,monospace',fontSize:'0.42rem',letterSpacing:'0.08em',textTransform:'uppercase'}}>
+            <span style={{fontSize:16,filter:view==='neuralv4'?'drop-shadow(0 0 5px rgba(167,139,250,0.8))':'none'}}>🧠</span>NEURAL
+          </button>
+          <button onClick={() => setView('feed')} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'transparent',border:'none',cursor:'pointer',color:view==='feed'?'#38bdf8':'#5a6478',fontFamily:'IBM Plex Mono,monospace',fontSize:'0.42rem',letterSpacing:'0.08em',textTransform:'uppercase'}}>
+            <span style={{fontSize:16,filter:view==='feed'?'drop-shadow(0 0 5px rgba(56,189,248,0.8))':'none'}}>📡</span>FEED
+          </button>
+          <button onClick={() => setShowModal(true)} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'transparent',border:'none',cursor:'pointer',color:'#fbbf24',fontFamily:'IBM Plex Mono,monospace',fontSize:'0.42rem',letterSpacing:'0.08em',textTransform:'uppercase'}}>
+            <span style={{fontSize:16,filter:'drop-shadow(0 0 4px rgba(251,191,36,0.6))'}}>⭐</span>PRO
+          </button>
+        </div>
       </nav>
 
       {/* ── PRO MODAL ── */}
