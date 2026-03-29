@@ -33,13 +33,13 @@ export default function SignupTrialModal({ walletAddress, isConnected, isConnect
     setError('')
     if (!email.trim()) { setError('Please enter your email address.'); return }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError('Please enter a valid email.'); return }
-    if (!walletAddress) { setError('Please connect your wallet first.'); return }
+    // wallet optional for activation
     setLoading(true); setActivating(true)
     try {
       const res = await fetch('/api/signup-trial', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ walletAddress, email: email.trim().toLowerCase(), deviceId: getDeviceId() }),
+        body: JSON.stringify({ walletAddress: walletAddress || 'email_only_' + Date.now(), email: email.trim().toLowerCase(), deviceId: getDeviceId() }),
       })
       const data = await res.json()
       if (!res.ok || data.error) throw new Error(data.error || 'Activation failed')
@@ -124,7 +124,7 @@ export default function SignupTrialModal({ walletAddress, isConnected, isConnect
         </div>
 
         {/* Activate */}
-        <button onClick={handleActivate} disabled={!isConnected||loading||!email.trim()} style={{width:'100%',padding:'12px 0',borderRadius:7,background:(!isConnected||!email.trim())?'rgba(255,255,255,0.04)':'linear-gradient(135deg,#10b981,#059669)',border:`1px solid ${(isConnected&&email.trim())?'rgba(16,185,129,0.4)':'rgba(255,255,255,0.07)'}`,color:(!isConnected||!email.trim())?'#5a6478':'#fff',fontSize:11,fontWeight:700,letterSpacing:'0.08em',cursor:(!isConnected||loading||!email.trim())?'not-allowed':'pointer',fontFamily:'IBM Plex Mono,monospace',boxShadow:(isConnected&&email.trim()&&!loading)?'0 4px 20px rgba(16,185,129,0.25)':'none',transition:'all 0.2s'}}>
+        <button onClick={handleActivate} disabled={loading||!email.trim()} style={{width:'100%',padding:'12px 0',borderRadius:7,background:!email.trim()?'rgba(255,255,255,0.04)':'linear-gradient(135deg,#10b981,#059669)',border:`1px solid ${(isConnected&&email.trim())?'rgba(16,185,129,0.4)':'rgba(255,255,255,0.07)'}`,color:!email.trim()?'#5a6478':'#fff',fontSize:11,fontWeight:700,letterSpacing:'0.08em',cursor:(!isConnected||loading||!email.trim())?'not-allowed':'pointer',fontFamily:'IBM Plex Mono,monospace',boxShadow:(email.trim()&&!loading)?'0 4px 20px rgba(16,185,129,0.25)':'none',transition:'all 0.2s'}}>
           {activating?'⟳ ACTIVATING…':'🚀 ACTIVATE 4-DAY FREE TRIAL'}
         </button>
 
