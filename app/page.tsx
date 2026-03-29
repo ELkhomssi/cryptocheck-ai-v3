@@ -10,6 +10,7 @@ import {
 } from '@/app/actions/ai'
 import RugForensicsLab from '@/components/RugForensicsLab'
 import SignupTrialModal from '@/components/SignupTrialModal'
+import ChartSwapModal from '@/components/ChartSwapModal'
 import NeuralScanV4 from '@/components/NeuralScanV4'
 import ValueProtectedWidget from '@/components/ValueProtectedWidget'
 import NeuralAuditLog from '@/components/NeuralAuditLog'
@@ -1984,6 +1985,7 @@ export default function Page() {
   const [isPro,setIsPro] = useState(false)
   const [trialActivated, setTrialActivated] = useState(false)
   const [showSignup, setShowSignup] = useState(false)
+  const [chartSwapModal, setChartSwapModal] = useState<{mint:string;symbol:string}|null>(null)
   const { trial } = useTrialStatus(walletAddress)
   const isTrialExpired = trial?.expired ?? false
   useEffect(() => {
@@ -2418,6 +2420,7 @@ export default function Page() {
           onSuccess={() => { setTrialActivated(true); setShowSignup(false) }}
         />
       )}
+      {chartSwapModal && <ChartSwapModal mint={chartSwapModal.mint} symbol={chartSwapModal.symbol} onClose={() => setChartSwapModal(null)} />}
       {isTrialExpired && !isPro && <TrialWall onUpgrade={() => setShowModal(true)} daysUsed={4} />}
       <header className="sticky top-0 z-[300] h-12 flex items-center justify-between px-4 bg-[rgba(5,5,16,0.95)] backdrop-blur-xl border-b border-[rgba(99,102,241,0.16)]">
         <a href="/" className="flex items-center gap-2 font-mono text-[0.82rem] font-bold text-white tracking-wider uppercase no-underline">
