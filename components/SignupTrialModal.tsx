@@ -55,15 +55,15 @@ export default function SignupTrialModal({ walletAddress, isConnected, isConnect
   }
 
   const S = {
-    overlay: { position:'fixed' as const, inset:0, zIndex:10000, background:'rgba(2,4,14,0.97)', backdropFilter:'blur(20px)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'IBM Plex Mono,monospace' },
+    overlay: { position:'fixed' as const, inset:0, zIndex:10000, background:'rgba(2,4,14,0.97)', backdropFilter:'blur(20px)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'IBM Plex Mono,monospace', pointerEvents:'all' as const },
     glow: { position:'absolute' as const, top:'15%', left:'50%', transform:'translateX(-50%)', width:500, height:500, background:'radial-gradient(circle,rgba(91,95,239,0.1) 0%,transparent 70%)', pointerEvents:'none' as const },
     box: { background:'linear-gradient(160deg,#060919 0%,#09102a 100%)', border:'1px solid rgba(91,95,239,0.2)', borderRadius:14, padding:'32px 28px', maxWidth:420, width:'90%', position:'relative' as const, overflow:'hidden', boxShadow:'0 32px 80px rgba(0,0,0,0.7)' },
     topLine: { position:'absolute' as const, top:0, left:0, right:0, height:1, background:'linear-gradient(90deg,transparent,#5b5fef,#0ea5e9,transparent)' },
   }
 
   return (
-    <div style={S.overlay}>
-      <div style={S.glow}/>
+    <div style={{position:'fixed',inset:0,zIndex:99999,background:'rgba(2,4,14,0.97)',backdropFilter:'blur(20px)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'IBM Plex Mono,monospace',pointerEvents:'all'}}>
+      <div style={{position:'absolute',top:'15%',left:'50%',transform:'translateX(-50%)',width:500,height:500,background:'radial-gradient(circle,rgba(91,95,239,0.1) 0%,transparent 70%)',pointerEvents:'none'}}/>
       <div style={S.box}>
         <div style={S.topLine}/>
 
