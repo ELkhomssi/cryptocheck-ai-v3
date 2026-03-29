@@ -216,7 +216,7 @@ export default function InsiderWhaleIntel({onScanToken}:Props) {
 
                 {/* Row 4 — action buttons */}
                 <div style={{display:'flex',gap:5,position:'relative',zIndex:10}} onClick={e=>{e.stopPropagation();e.preventDefault()}}>
-                  <button onClick={e=>toggleFollow(e,w.address)} style={{...N.btn(isF?'#22c55e':'#6b7280'),flex:1,padding:'5px 0',textAlign:'center'}}>
+                  <button onMouseDown={e=>{e.stopPropagation();e.preventDefault();setFollowing(p=>{const n=new Set(p);n.has(w.address)?n.delete(w.address):n.add(w.address);return n})}} style={{...N.btn(isF?'#22c55e':'#6b7280'),flex:1,padding:'5px 0',textAlign:'center'}}>
                     {isF?'✓ COPYING TRADES':'⟳ FOLLOW & COPY'}
                   </button>
                   <button onClick={e=>toggleWatch(e,w.address)} style={{...N.btn(isW?'#38bdf8':'#6b7280'),padding:'5px 10px'}} title={isW?'Remove from radar':'Add to radar'}>
