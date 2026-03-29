@@ -1961,6 +1961,10 @@ interface RecentScan { mint: string; name: string; symbol: string; score: number
 
 
 
+function ProGate({ children }: { children: React.ReactNode; feature?: string; icon?: string }) {
+  return <>{children}</>
+}
+
 export default function Page() {
   const { walletAddress, isConnected, isConnecting, connect, disconnect, shortAddr } = useSolana()
 
@@ -2370,22 +2374,7 @@ export default function Page() {
   }
 
   // ── PRO paywall overlay ──
-  const ProGate = ({ children, feature, icon }: { children: React.ReactNode; feature: string; icon: string }) => {
-    if (isPro || true) return <>{children}</> // DEMO: always show
-    return (
-    <div className="relative flex-1 overflow-hidden" style={{ flex: 1 }}>
-      <div style={{ filter: 'blur(3px)', pointerEvents: 'none' }}>{children}</div>
-      <div className="absolute inset-0 flex items-center justify-center backdrop-blur-[12px] bg-[rgba(3,3,8,0.65)]" style={{ zIndex: 50 }}>
-        <div className="bg-[#0e0e1e] border border-[rgba(99,102,241,0.16)] rounded-[6px] p-7 text-center max-w-xs w-full">
-          <div className="text-3xl mb-2">{icon}</div>
-          <div className="text-base font-bold text-[#e6edf3] font-sans mb-1.5">PRO Feature</div>
-          <div className="text-[0.68rem] text-[#6b7280] leading-relaxed mb-4">{feature}</div>
-          <button className="unlock-btn" onClick={() => setShowModal(true)}>Upgrade to PRO →</button>
-        </div>
-      </div>
-    </div>
-    )
-  }
+// ProGate moved outside Page
 
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
