@@ -21,38 +21,7 @@ export default function ChartSwapModal({ mint, symbol, onClose, initialTab }: Ch
     if (ok) { setCopied(true); setTimeout(() => setCopied(false), 2000) }
   }
 
-  // Init Jupiter Terminal when swap tab active
-  useEffect(() => {
-    if (tab !== 'swap' || jupInited.current) return
-    const w = window as any
-    function initJup() {
-      if (!w.Jupiter) return
-      jupInited.current = true
-      w.Jupiter.init({
-        displayMode: 'integrated',
-        integratedTargetId: 'csm-jup-terminal',
-        endpoint: 'https://mainnet.helius-rpc.com/?api-key=35530e51-dad1-480b-af8f-11c8af2ab3fd',
-        defaultExplorer: 'Solscan',
-        formProps: {
-          initialInputMint: 'So11111111111111111111111111111111111111112',
-          initialOutputMint: mint,
-          fixedOutputMint: false,
-        },
-        strictTokenList: false,
-      })
-    }
-    if (w.Jupiter) { initJup(); return }
-    if (!document.querySelector('script[src*="terminal.jup.ag"]')) {
-      const s = document.createElement('script')
-      s.src = 'https://terminal.jup.ag/main-v3.js'
-      s.async = true
-      s.onload = initJup
-      document.head.appendChild(s)
-    } else {
-      setTimeout(initJup, 300)
-    }
-    return () => { try { if (w.Jupiter) w.Jupiter.close() } catch {} }
-  }, [tab, mint])
+  // No Jupiter SDK needed — use iframe
 
   const dexUrl = `https://dexscreener.com/solana/${mint}?embed=1&theme=dark&trades=0&info=0`
 
@@ -105,8 +74,13 @@ export default function ChartSwapModal({ mint, symbol, onClose, initialTab }: Ch
             />
           </div>
           {/* Swap */}
-          <div style={{position:'absolute',inset:0,display:tab==='swap'?'flex':'none',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
-            <div id="csm-jup-terminal" style={{width:'100%',height:'100%'}}/>
+          <div style={{position:'absolute',inset:0,display:tab==='swap'?'block':'none'}}>
+            <iframe
+              src={`https://jup.ag/swap/SOL-${mint}`}
+              style={{width:'100%',height:'100%',border:0,background:'#0d0f1a',display:'block'}}
+              allow="clipboard-write"
+              sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"
+            />
           </div>
         </div>
       </div>
