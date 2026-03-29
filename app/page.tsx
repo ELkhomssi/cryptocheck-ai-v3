@@ -2027,7 +2027,7 @@ export default function Page() {
       try { const s = await getSlot(); if (!cancelled) setSlot(s.toLocaleString()) } catch {}
     }
     tick()
-    const iv = setInterval(tick, 30000)
+    const iv = setInterval(tick, 60000)
     return () => { cancelled = true; clearInterval(iv) }
   }, [])
 
@@ -2056,7 +2056,7 @@ export default function Page() {
         tag: tpl.tag, tagCls: tpl.cls, text: tpl.text,
         ts: new Date().toLocaleTimeString()
       }, ...prev].slice(0, 20))
-    }, 9000)
+    }, 30000)
     return () => clearInterval(iv)
   }, [])
 
