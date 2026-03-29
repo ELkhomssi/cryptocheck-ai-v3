@@ -9,6 +9,7 @@ import {
   getAiEdgeAnalysis,
 } from '@/app/actions/ai'
 import RugForensicsLab from '@/components/RugForensicsLab'
+import SignupTrialModal from '@/components/SignupTrialModal'
 import NeuralScanV4 from '@/components/NeuralScanV4'
 import ValueProtectedWidget from '@/components/ValueProtectedWidget'
 import NeuralAuditLog from '@/components/NeuralAuditLog'
@@ -1981,9 +1982,16 @@ export default function Page() {
   const [timeStr,     setTimeStr]     = useState('')
   const [showModal,   setShowModal]   = useState(false)
   const [isPro,setIsPro] = useState(false)
+  const [trialActivated, setTrialActivated] = useState(false)
+  const [showSignup, setShowSignup] = useState(false)
   const { trial } = useTrialStatus(walletAddress)
   const isTrialExpired = trial?.expired ?? false
-  useEffect(() => { if (typeof window !== 'undefined') setIsPro(localStorage.getItem('cc_is_pro') === 'true') }, [])
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsPro(localStorage.getItem('cc_is_pro') === 'true')
+      setTrialActivated(localStorage.getItem('cc_trial_activated') === '1')
+    }
+  }, [])
   const [showSwap,    setShowSwap]    = useState(false)     // Jupiter swap modal
   const [swapMint,    setSwapMint]    = useState('')        // token to swap
   const [swapSym,     setSwapSym]     = useState('???')     // symbol for swap modal
@@ -2388,10 +2396,31 @@ export default function Page() {
       <div className="ambient-blob ambient-blob-3" />
 
       {/* ── HEADER ── */}
+      {showSignup && !trialActivated && !isPro && (
+        <SignupTrialModal
+          walletAddress={walletAddress}
+          isConnected={isConnected}
+          isConnecting={isConnecting}
+          onConnect={connect}
+          onSuccess={() => { setTrialActivated(true); setShowSignup(false) }}
+        />
+      )}
       {isTrialExpired && !isPro && <TrialWall onUpgrade={() => setShowModal(true)} daysUsed={4} />}
       <header className="sticky top-0 z-[300] h-12 flex items-center justify-between px-4 bg-[rgba(5,5,16,0.95)] backdrop-blur-xl border-b border-[rgba(99,102,241,0.16)]">
         <a href="/" className="flex items-center gap-2 font-mono text-[0.82rem] font-bold text-white tracking-wider uppercase no-underline">
-          <div className="w-6 h-6 rounded-[4px] flex items-center justify-center text-[0.7rem]" style={{ background:'linear-gradient(135deg,#6366f1,#06b6d4)', boxShadow:'0 0 10px rgba(99,102,241,0.35)' }}>⬡</div>
+          <div style={{width:30,height:26,flexShrink:0}}>
+            <svg width="30" height="26" viewBox="0 0 140 120" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="ccS" x1="20%" y1="0%" x2="80%" y2="100%"><stop offset="0%" stopColor="#c8d8ea"/><stop offset="45%" stopColor="#8aaac4"/><stop offset="100%" stopColor="#4a6e8f"/></linearGradient>
+                <linearGradient id="ccC" x1="0%" y1="0%" x2="100%" y2="80%"><stop offset="0%" stopColor="#00c8ff"/><stop offset="100%" stopColor="#0090d8"/></linearGradient>
+                <linearGradient id="ccN" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#0070bb"/><stop offset="100%" stopColor="#08306e"/></linearGradient>
+              </defs>
+              <path d="M 76 22 A 36 36 0 1 0 76 98" fill="none" stroke="url(#ccS)" strokeWidth="16" strokeLinecap="round"/>
+              <path d="M 64 28 A 25 25 0 0 1 90 50" fill="none" stroke="url(#ccC)" strokeWidth="13" strokeLinecap="round"/>
+              <path d="M 90 70 A 25 25 0 0 1 64 92" fill="none" stroke="url(#ccN)" strokeWidth="13" strokeLinecap="round"/>
+              <text x="100" y="65" fontFamily="Inter,sans-serif" fontSize="14" fontWeight="700" fill="#ffffff" letterSpacing="0.5">AI</text>
+            </svg>
+          </div>
           CryptoCheck<span className="text-indigo-400">AI</span>
           <span className="text-[0.5rem] text-[#6b7280] ml-0.5">v3</span>
           <TrialBanner walletAddress={walletAddress} />
