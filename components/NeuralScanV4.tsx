@@ -316,10 +316,8 @@ export default function NeuralScanV4() {
                 </div>
               ))}
               <div style={{display:'flex',gap:8,marginTop:'12px'}}>
-                {result.marketIntel.dexUrl && (
-                  <a href={result.marketIntel.dexUrl} target="_blank" rel="noopener noreferrer" style={{flex:1,display:'block',textAlign:'center',padding:'8px 0',background:'rgba(56,189,248,0.08)',border:'1px solid rgba(56,189,248,0.2)',borderRadius:6,fontSize:'9px',color:'#38bdf8',textDecoration:'none',fontWeight:700,letterSpacing:'0.06em'}}>📈 VIEW CHART</a>
-                )}
-                <a href={`https://jup.ag/swap/SOL-${result.mint}`} target="_blank" rel="noopener noreferrer" style={{flex:1,display:'block',textAlign:'center',padding:'8px 0',background:'rgba(16,185,129,0.1)',border:'1px solid rgba(16,185,129,0.25)',borderRadius:6,fontSize:'9px',color:'#10b981',textDecoration:'none',fontWeight:700,letterSpacing:'0.06em'}}>⚡ SWAP ON JUPITER</a>
+                <button onClick={()=>window.open(`https://dexscreener.com/solana/${result.mint}?embed=1&theme=dark`,'_blank')} style={{flex:1,padding:'8px 0',background:'rgba(56,189,248,0.08)',border:'1px solid rgba(56,189,248,0.2)',borderRadius:6,fontSize:'9px',color:'#38bdf8',cursor:'pointer',fontFamily:'IBM Plex Mono,monospace',fontWeight:700,letterSpacing:'0.06em'}}>📈 VIEW CHART</button>
+                <button onClick={()=>window.open(`https://jup.ag/swap/SOL-${result.mint}`,'_blank')} style={{flex:1,padding:'8px 0',background:'rgba(16,185,129,0.1)',border:'1px solid rgba(16,185,129,0.25)',borderRadius:6,fontSize:'9px',color:'#10b981',cursor:'pointer',fontFamily:'IBM Plex Mono,monospace',fontWeight:700,letterSpacing:'0.06em'}}>⚡ SWAP ON JUPITER</button>
               </div>
             </div>
           )}

@@ -117,3 +117,6 @@ body::before { content:''; position:fixed; inset:0; background-image:linear-grad
 .nansen-pct-up { color:#10b981; background:rgba(16,185,129,0.08); padding:1px 5px; border-radius:3px; font-size:0.58rem; font-weight:700; }
 .nansen-pct-down { color:#ef4444; background:rgba(239,68,68,0.08); padding:1px 5px; border-radius:3px; font-size:0.58rem; font-weight:700; }
 @media (max-width:768px) { html { font-size:13px; } .term-card { border-radius:6px; } }
+/* ── Text selection — always enabled ── */
+* { user-select: text !important; -webkit-user-select: text !important; }
+button, [role="button"] { user-select: none !important; -webkit-user-select: none !important; }

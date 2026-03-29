@@ -984,7 +984,7 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
                 key={`dex-${chartKey}-${mint}`}
                 src={dexUrl}
                 allow="clipboard-write"
-                sandbox="allow-scripts allow-same-origin"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"
                 title="Live price chart"
                 style={{ width:'100%', height:'100%', border:0, background:'#030308', display:'block' }}
               />
