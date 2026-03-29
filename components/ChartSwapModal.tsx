@@ -6,10 +6,11 @@ interface ChartSwapModalProps {
   mint: string
   symbol: string
   onClose: () => void
+  initialTab?: 'chart' | 'swap'
 }
 
-export default function ChartSwapModal({ mint, symbol, onClose }: ChartSwapModalProps) {
-  const [tab, setTab] = useState<'chart'|'swap'>('chart')
+export default function ChartSwapModal({ mint, symbol, onClose, initialTab }: ChartSwapModalProps) {
+  const [tab, setTab] = useState<'chart'|'swap'>(initialTab || 'chart')
   const [copied, setCopied] = useState(false)
   const jupRef = useRef<HTMLDivElement>(null)
   const jupInited = useRef(false)

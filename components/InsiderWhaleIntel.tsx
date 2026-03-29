@@ -86,8 +86,11 @@ export default function InsiderWhaleIntel({onScanToken}:Props) {
   const toggleFollow=useCallback((e:React.MouseEvent,addr:string)=>{
     e.stopPropagation()
     e.preventDefault()
-    setFollowing(p=>{const n=new Set(p);n.has(addr)?n.delete(addr):n.add(addr);return n})
-    console.log('Follow toggled:', addr)
+    setFollowing(prev => {
+      const next = new Set(prev)
+      if (next.has(addr)) { next.delete(addr) } else { next.add(addr) }
+      return next
+    })
   },[])
   const toggleWatch=useCallback((e:React.MouseEvent,addr:string)=>{e.stopPropagation();setWatchlist(p=>{const n=new Set(p);n.has(addr)?n.delete(addr):n.add(addr);return n})},[])
   const openSwap=useCallback((e:React.MouseEvent,token:string,mint:string)=>{e.stopPropagation();setSwap({token,mint})},[])
