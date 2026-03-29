@@ -62,7 +62,7 @@ export default function SignupTrialModal({ walletAddress, isConnected, isConnect
   }
 
   return (
-    <div style={{position:'fixed',inset:0,zIndex:99999,background:'rgba(2,4,14,0.97)',backdropFilter:'blur(20px)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'IBM Plex Mono,monospace',pointerEvents:'all'}}>
+    <div style={{position:'fixed',inset:0,zIndex:9000,background:'rgba(2,4,14,0.97)',backdropFilter:'blur(20px)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'IBM Plex Mono,monospace',pointerEvents:'all'}}>
       <div style={{position:'absolute',top:'15%',left:'50%',transform:'translateX(-50%)',width:500,height:500,background:'radial-gradient(circle,rgba(91,95,239,0.1) 0%,transparent 70%)',pointerEvents:'none'}}/>
       <div style={S.box}>
         <div style={S.topLine}/>
@@ -114,12 +114,12 @@ export default function SignupTrialModal({ walletAddress, isConnected, isConnect
         </div>
 
         {/* Step 2 */}
-        <div style={{marginBottom:14,opacity:isConnected?1:0.4,transition:'opacity 0.3s'}}>
+        <div style={{marginBottom:14,opacity:1,transition:'opacity 0.3s'}}>
           <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:7}}>
             <div style={{width:18,height:18,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(91,95,239,0.15)',border:'1px solid rgba(91,95,239,0.35)',fontSize:8,fontWeight:700,color:'#8b85f8',flexShrink:0}}>2</div>
             <span style={{fontSize:9,fontWeight:700,color:'#eef2f8',letterSpacing:'0.06em'}}>ENTER EMAIL</span>
           </div>
-          <input ref={emailRef} type="email" value={email} onChange={e=>{setEmail(e.target.value);setError('')}} onKeyDown={e=>e.key==='Enter'&&isConnected&&handleActivate()} placeholder="your@email.com" disabled={!isConnected||loading} style={{width:'100%',background:'rgba(255,255,255,0.03)',border:`1px solid ${error?'rgba(239,68,68,0.5)':'rgba(91,95,239,0.18)'}`,borderRadius:6,padding:'9px 13px',color:'#eef2f8',fontFamily:'IBM Plex Mono,monospace',fontSize:11,outline:'none'}}/>
+          <input ref={emailRef} type="email" value={email} onChange={e=>{setEmail(e.target.value);setError('')}} onKeyDown={e=>e.key==='Enter'&&isConnected&&handleActivate()} placeholder="your@email.com" disabled={loading} style={{width:'100%',background:'rgba(255,255,255,0.03)',border:`1px solid ${error?'rgba(239,68,68,0.5)':'rgba(91,95,239,0.18)'}`,borderRadius:6,padding:'9px 13px',color:'#eef2f8',fontFamily:'IBM Plex Mono,monospace',fontSize:11,outline:'none'}}/>
           {error&&<div style={{marginTop:5,fontSize:9,color:'#ef4444'}}>❌ {error}</div>}
         </div>
 
