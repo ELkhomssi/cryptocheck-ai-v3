@@ -120,3 +120,87 @@ body::before { content:''; position:fixed; inset:0; background-image:linear-grad
 /* ── Text selection — always enabled ── */
 * { user-select: text !important; -webkit-user-select: text !important; }
 button, [role="button"] { user-select: none !important; -webkit-user-select: none !important; }
+
+/* ══════════════════════════════════════
+   BIRDEYE-STYLE COMPACT SYSTEM
+══════════════════════════════════════ */
+
+/* Compact data tables */
+.compact-table { width:100%; border-collapse:collapse; font-size:0.6rem; font-family:var(--font-mono); }
+.compact-table th { font-size:0.52rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); padding:5px 8px; border-bottom:1px solid rgba(255,255,255,0.06); text-align:left; background:rgba(255,255,255,0.015); white-space:nowrap; }
+.compact-table td { padding:4px 8px; border-bottom:1px solid rgba(255,255,255,0.03); color:var(--text); transition:background 0.1s; white-space:nowrap; }
+.compact-table tr:hover td { background:rgba(255,255,255,0.02); }
+.compact-table .num-up { color:#10b981; font-weight:600; }
+.compact-table .num-dn { color:#ef4444; font-weight:600; }
+
+/* Stats bar — Birdeye top bar style */
+.stats-bar { display:flex; align-items:center; gap:0; height:26px; background:rgba(2,4,14,0.98); border-bottom:1px solid rgba(91,95,239,0.08); overflow:hidden; }
+.stats-bar-item { display:flex; align-items:center; gap:5px; padding:0 12px; border-right:1px solid rgba(255,255,255,0.04); font-size:0.58rem; font-family:var(--font-mono); white-space:nowrap; height:100%; }
+.stats-bar-label { color:var(--muted); font-weight:500; }
+.stats-bar-val { color:var(--text); font-weight:700; }
+.stats-bar-up { color:#10b981; font-weight:700; }
+.stats-bar-dn { color:#ef4444; font-weight:700; }
+
+/* Modular cards — Birdeye panel style */
+.bd-card { background:rgba(5,7,22,0.9); border:1px solid rgba(255,255,255,0.06); border-radius:6px; overflow:hidden; }
+.bd-card-hdr { display:flex; align-items:center; justify-content:space-between; padding:6px 12px; border-bottom:1px solid rgba(255,255,255,0.05); background:rgba(255,255,255,0.015); }
+.bd-card-title { font-size:0.56rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); }
+.bd-card-body { padding:8px 12px; }
+
+/* Activity log — clean ticker */
+.activity-log { display:flex; flex-direction:column; gap:0; }
+.activity-log-item { display:flex; align-items:center; gap:6px; padding:4px 8px; border-bottom:1px solid rgba(255,255,255,0.03); font-size:0.58rem; font-family:var(--font-mono); transition:background 0.1s; cursor:pointer; }
+.activity-log-item:hover { background:rgba(255,255,255,0.02); }
+.activity-log-icon { width:14px; height:14px; border-radius:3px; display:flex; align-items:center; justify-content:center; font-size:8px; flex-shrink:0; }
+.activity-log-text { flex:1; color:var(--text2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.activity-log-time { color:var(--dim); font-size:0.5rem; flex-shrink:0; }
+.activity-log-badge { padding:1px 5px; border-radius:2px; font-size:0.48rem; font-weight:700; letter-spacing:0.06em; flex-shrink:0; }
+
+/* Typography hierarchy */
+.bd-h1 { font-size:0.6rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); font-family:var(--font-mono); }
+.bd-val { font-size:1rem; font-weight:700; color:var(--text); font-family:var(--font-mono); letter-spacing:-0.01em; line-height:1.1; }
+.bd-val-sm { font-size:0.75rem; font-weight:700; color:var(--text); font-family:var(--font-mono); }
+.bd-sub { font-size:0.55rem; color:var(--muted); font-family:var(--font-mono); }
+
+/* Sidebar nav — Birdeye left panel */
+.bd-sidebar { width:48px; background:rgba(2,4,14,0.98); border-right:1px solid rgba(255,255,255,0.05); display:flex; flex-direction:column; align-items:center; padding:8px 0; gap:2px; flex-shrink:0; }
+.bd-sidebar-btn { width:36px; height:36px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer; border:none; background:transparent; transition:all 0.15s; position:relative; }
+.bd-sidebar-btn:hover { background:rgba(255,255,255,0.05); }
+.bd-sidebar-btn.active { background:rgba(91,95,239,0.15); box-shadow:0 0 0 1px rgba(91,95,239,0.3); }
+.bd-sidebar-btn.active::after { content:''; position:absolute; left:0; top:50%; transform:translateY(-50%); width:2px; height:18px; background:#5b5fef; border-radius:0 2px 2px 0; }
+
+/* Multi-panel grid */
+.bd-grid { display:grid; grid-template-columns:1fr; gap:6px; padding:8px; }
+.bd-grid-2 { grid-template-columns:1fr 1fr; }
+.bd-grid-3 { grid-template-columns:1fr 1fr 1fr; }
+@media (max-width:768px) { .bd-grid-2,.bd-grid-3 { grid-template-columns:1fr; } }
+
+/* Scan result compact row */
+.scan-row { display:flex; align-items:center; gap:8px; padding:5px 8px; border-bottom:1px solid rgba(255,255,255,0.03); font-size:0.6rem; font-family:var(--font-mono); cursor:pointer; transition:background 0.1s; }
+.scan-row:hover { background:rgba(255,255,255,0.02); }
+.scan-row-sym { font-weight:700; color:var(--text); width:48px; flex-shrink:0; }
+.scan-row-score { font-weight:700; width:28px; text-align:right; flex-shrink:0; }
+.scan-row-bar { flex:1; height:3px; background:rgba(255,255,255,0.05); border-radius:2px; overflow:hidden; }
+.scan-row-fill { height:100%; border-radius:2px; }
+.scan-row-verdict { font-size:0.5rem; font-weight:700; padding:1px 5px; border-radius:2px; flex-shrink:0; }
+
+/* Score color system */
+.score-90 { color:#10b981; } .score-70 { color:#22c55e; } .score-50 { color:#f59e0b; } .score-30 { color:#ef4444; } .score-0 { color:#dc2626; }
+.bg-score-90 { background:rgba(16,185,129,0.12); color:#10b981; }
+.bg-score-70 { background:rgba(34,197,94,0.12); color:#22c55e; }
+.bg-score-50 { background:rgba(245,158,11,0.12); color:#f59e0b; }
+.bg-score-30 { background:rgba(239,68,68,0.12); color:#ef4444; }
+
+/* Pulse animation for live data */
+@keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.live-dot { width:5px; height:5px; border-radius:50%; background:#10b981; animation:livePulse 1.5s ease-in-out infinite; display:inline-block; }
+.live-dot-red { background:#ef4444; }
+.live-dot-amber { background:#f59e0b; }
+
+/* Birdeye-style tag pills */
+.bd-pill { display:inline-flex; align-items:center; padding:1px 6px; border-radius:3px; font-size:0.48rem; font-weight:700; letter-spacing:0.07em; font-family:var(--font-mono); }
+.bd-pill-green { background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2); color:#10b981; }
+.bd-pill-red { background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); color:#ef4444; }
+.bd-pill-amber { background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.2); color:#f59e0b; }
+.bd-pill-blue { background:rgba(91,95,239,0.1); border:1px solid rgba(91,95,239,0.2); color:#8b85f8; }
+.bd-pill-gray { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--muted); }
