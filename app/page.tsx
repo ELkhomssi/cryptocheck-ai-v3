@@ -179,7 +179,7 @@ function DistChart({ top10Pct, liqPct, restPct }: { top10Pct: number; liqPct: nu
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: 'rgba(7,7,15,0.95)',
+        backgroundColor: 'rgba(13,17,23,0.97)',
         borderColor: 'rgba(99,102,241,0.2)',
         borderWidth: 1,
         titleFont: { family: 'IBM Plex Mono', size: 10 },
@@ -976,7 +976,7 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
 
         {/* LEFT 60% — DexScreener native chart (header hidden by negative margin) */}
         <div style={{ display:'flex', flexDirection:'column', borderRight:'1px solid rgba(99,102,241,0.12)', overflow:'hidden' }}>
-          <div style={{ fontSize:'0.54rem', color:'#6b7280', padding:'4px 10px', background:'#07070f', flexShrink:0 }}>
+          <div style={{ fontSize:'0.54rem', color:'#6b7280', padding:'4px 10px', background:'#161b22', flexShrink:0 }}>
             <span style={{ color:'#10b981' }}>●</span> Price Chart · {mint.slice(0,8)}…
           </div>
           <div style={{ overflow:'hidden', flex:1, position:'relative', minHeight:'460px' }}>
@@ -991,12 +991,12 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
               />
             </div>
             <div style={{ position:'absolute', top:0, left:0, right:0, height:'6px',
-              background:'#07070f', zIndex:3, pointerEvents:'none' }} />
+              background:'#161b22', zIndex:3, pointerEvents:'none' }} />
           </div>
         </div>
 
         {/* RIGHT 40% — Tab system: Manual Trade | AI Sniper */}
-        <div style={{ display:'flex', flexDirection:'column', background:'#07070f', overflow:'hidden' }}>
+        <div style={{ display:'flex', flexDirection:'column', background:'#161b22', overflow:'hidden' }}>
 
           {/* Tab bar */}
           <div style={{ display:'flex', flexShrink:0, borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
