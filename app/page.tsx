@@ -54,7 +54,7 @@ const SAMPLE_MINTS = [
 
 const TICKER_ITEMS = [
   { label: 'SOL',         val: '▲ +4.21%',   cls: 'text-emerald-400' },
-  { label: 'Neural Scan', val: 'ACTIVE',      cls: 'text-indigo-400'  },
+  { label: 'Neural Scan', val: 'ACTIVE',      cls: 'text-[#00d4aa]'  },
   { label: 'Last Rug',    val: '2m ago',      cls: 'text-amber-400'   },
   { label: 'Scans Today', val: '14,902',      cls: 'text-emerald-400' },
   { label: 'Smart Money', val: 'Tracked',     cls: 'text-cyan-400'    },
@@ -62,7 +62,7 @@ const TICKER_ITEMS = [
   { label: 'WIF',         val: '▼ -2.1%',    cls: 'text-red-400'     },
   { label: 'JUP',         val: '▲ +6.7%',    cls: 'text-emerald-400' },
   { label: 'Network',     val: 'Mainnet-Beta',cls: 'text-cyan-400'    },
-  { label: 'Engine',      val: 'v2 ONLINE',   cls: 'text-indigo-400'  },
+  { label: 'Engine',      val: 'v2 ONLINE',   cls: 'text-[#00d4aa]'  },
 ]
 
 // Token symbol → mint address map for clickable feed
@@ -78,7 +78,7 @@ const DEMO_TOK_MINTS: Record<string, string> = {
 }
 const FEED_TEMPLATES = [
   (t: string) => ({ tag: 'RUG',   cls: 'bg-red-950/40 text-red-400 border-red-800/25',           text: `🚨 Top holder moving supply — ${t}`,                              mint: DEMO_TOK_MINTS[t] }),
-  (t: string) => ({ tag: 'WHALE', cls: 'bg-indigo-950/40 text-indigo-400 border-indigo-800/25',   text: `🐋 Smart wallet bought ${t} — ${(Math.random()*400+100).toFixed(0)} SOL`, mint: DEMO_TOK_MINTS[t] }),
+  (t: string) => ({ tag: 'WHALE', cls: 'bg-indigo-950/40 text-[#00d4aa] border-[rgba(0,212,130,0.15)]',   text: `🐋 Smart wallet bought ${t} — ${(Math.random()*400+100).toFixed(0)} SOL`, mint: DEMO_TOK_MINTS[t] }),
   (t: string) => ({ tag: 'LIQ',   cls: 'bg-cyan-950/40 text-cyan-400 border-cyan-800/25',        text: `💧 Liquidity added to ${t}: +${(Math.random()*80+20).toFixed(0)} SOL`,     mint: DEMO_TOK_MINTS[t] }),
   (t: string) => ({ tag: 'ALPHA', cls: 'bg-emerald-950/40 text-emerald-400 border-emerald-800/25', text: `⚡ Volume spike on ${t}: ${(Math.random()*900+200).toFixed(0)} txs/5m`,   mint: DEMO_TOK_MINTS[t] }),
   (t: string) => ({ tag: 'MINT',  cls: 'bg-amber-950/40 text-amber-400 border-amber-800/25',     text: `⚠ Mint event on ${t} — exercise caution`,                        mint: DEMO_TOK_MINTS[t] }),
@@ -150,7 +150,7 @@ function ScoreChip({ score }: { score: number }) {
 function AlphaTag({ tag }: { tag: string }) {
   const MAP: Record<string, string> = {
     RUG:   'bg-red-950/50 text-red-400 border border-red-800/25',
-    WHALE: 'bg-indigo-950/50 text-indigo-400 border border-indigo-800/25',
+    WHALE: 'bg-indigo-950/50 text-[#00d4aa] border border-[rgba(0,212,130,0.15)]',
     LIQ:   'bg-cyan-950/50 text-cyan-400 border border-cyan-800/25',
     ALPHA: 'bg-emerald-950/50 text-emerald-400 border border-emerald-800/25',
     MINT:  'bg-amber-950/50 text-amber-400 border border-amber-800/25',
@@ -199,15 +199,15 @@ function DistChart({ top10Pct, liqPct, restPct }: { top10Pct: number; liqPct: nu
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center gap-3 p-10">
-      <div className="w-16 h-16 rounded-full bg-indigo-950/40 border border-[rgba(99,102,241,0.16)] flex items-center justify-center text-3xl float-anim">⬡</div>
-      <h3 className="text-base font-bold text-[#e6edf3] font-sans">Neural Scanner Ready</h3>
-      <p className="text-[0.68rem] text-[#6b7280] max-w-xs leading-relaxed">
+      <div className="w-16 h-16 rounded-full bg-indigo-950/40 border border-[rgba(0,212,130,0.15)] flex items-center justify-center text-3xl float-anim">⬡</div>
+      <h3 className="text-base font-bold text-[#e2e8f0] font-sans">Neural Scanner Ready</h3>
+      <p className="text-[0.68rem] text-[#8b949e] max-w-xs leading-relaxed">
         Paste any Solana mint address for institutional-grade analysis: rug detection, distribution chart, authority checks, and Jupiter integration.
       </p>
       <div className="flex flex-wrap gap-1.5 justify-center mt-1">
         <span className="e-pill bg-emerald-950/50 border border-emerald-800/25 text-emerald-400">✓ Rug Detection</span>
         <span className="e-pill bg-cyan-950/50 border border-cyan-800/25 text-cyan-400">✓ Distribution Chart</span>
-        <span className="e-pill bg-indigo-950/50 border border-indigo-800/25 text-indigo-400">✓ Jupiter Buy</span>
+        <span className="e-pill bg-indigo-950/50 border border-[rgba(0,212,130,0.15)] text-[#00d4aa]">✓ Jupiter Buy</span>
       </div>
     </div>
   )
@@ -248,7 +248,7 @@ function AiSummaryCard({ loading, summary }: { loading: boolean; summary: string
         </div>
         <div>
           <div className="text-[0.65rem] font-bold text-white tracking-wider">AI NEURAL ANALYST</div>
-          <div className="text-[0.52rem] text-[#6b7280]">GPT-4o · Senior On-chain Analyst · {new Date().toLocaleTimeString()}</div>
+          <div className="text-[0.52rem] text-[#8b949e]">GPT-4o · Senior On-chain Analyst · {new Date().toLocaleTimeString()}</div>
         </div>
         {loading && (
           <div className="ml-auto flex gap-1 items-center">
@@ -256,7 +256,7 @@ function AiSummaryCard({ loading, summary }: { loading: boolean; summary: string
               <div key={i} className="w-1 h-1 rounded-full bg-indigo-400"
                 style={{ animation:`bounce 0.8s ease-in-out ${i*0.15}s infinite` }} />
             ))}
-            <span className="text-[0.52rem] text-[#6b7280] ml-1">Analyzing…</span>
+            <span className="text-[0.52rem] text-[#8b949e] ml-1">Analyzing…</span>
           </div>
         )}
         {!loading && summary && (
@@ -311,12 +311,12 @@ function AiChatWindow({
   return (
     <div className="term-card overflow-hidden mb-3">
       {/* Chat header */}
-      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[rgba(99,102,241,0.12)] bg-[#07070f]">
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[rgba(0,212,130,0.15)] bg-[#161b22]">
         <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs flex-shrink-0"
           style={{ background:'linear-gradient(135deg,#6366f1,#06b6d4)' }}>🤖</div>
         <div>
-          <div className="text-[0.62rem] font-bold text-[#e6edf3]">AI Analyst Chat</div>
-          <div className="text-[0.5rem] text-[#6b7280]">Ask anything about {sym}</div>
+          <div className="text-[0.62rem] font-bold text-[#e2e8f0]">AI Analyst Chat</div>
+          <div className="text-[0.5rem] text-[#8b949e]">Ask anything about {sym}</div>
         </div>
         <div className="ml-auto flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 dot-pulse" />
@@ -329,7 +329,7 @@ function AiChatWindow({
         {messages.length === 0 && (
           <div className="text-center mt-6">
             <div className="text-2xl mb-2">🧠</div>
-            <div className="text-[0.62rem] text-[#6b7280]">Ask me anything about {sym}</div>
+            <div className="text-[0.62rem] text-[#8b949e]">Ask me anything about {sym}</div>
             <div className="text-[0.54rem] text-[#374151] mt-1">I have full access to the scan data</div>
           </div>
         )}
@@ -341,7 +341,7 @@ function AiChatWindow({
               <div
                 className={`max-w-[85%] px-3 py-2 rounded-[6px] text-[0.65rem] leading-relaxed ${
                   m.role === 'user'
-                    ? 'bg-indigo-950/60 border border-indigo-800/30 text-indigo-100'
+                    ? 'bg-indigo-950/60 border border-[rgba(0,212,130,0.15)] text-[#00d4aa]'
                     : 'bg-[#0c0c1e] border border-[rgba(255,255,255,0.06)] text-[#c9d1d9]'
                 }`}
               >
@@ -371,7 +371,7 @@ function AiChatWindow({
         <div className="flex flex-wrap gap-1.5 px-3 py-2 border-t border-[rgba(255,255,255,0.04)]">
           {QUICK_Q.map(q => (
             <button key={q} onClick={() => { onInput(q); setTimeout(onSend, 0) }}
-              className="px-2 py-1 rounded-[3px] text-[0.54rem] text-indigo-300 border border-indigo-800/25 bg-indigo-950/20 cursor-pointer hover:bg-indigo-950/40 transition-all font-mono"
+              className="px-2 py-1 rounded-[3px] text-[0.54rem] text-[#00d4aa] border border-[rgba(0,212,130,0.15)] bg-indigo-950/20 cursor-pointer hover:bg-indigo-950/40 transition-all font-mono"
               style={{ border:'1px solid rgba(99,102,241,0.2)' }}>
               {q}
             </button>
@@ -380,7 +380,7 @@ function AiChatWindow({
       )}
 
       {/* Input bar */}
-      <div className="flex items-center gap-2 px-3 py-2 border-t border-[rgba(99,102,241,0.12)] bg-[#07070f]">
+      <div className="flex items-center gap-2 px-3 py-2 border-t border-[rgba(0,212,130,0.15)] bg-[#161b22]">
         <input
           value={input}
           onChange={e => onInput(e.target.value)}
@@ -419,10 +419,10 @@ function AiEdgeCard({ loading, text }: { loading: boolean; text: string }) {
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <span className="text-base">🤖</span>
-          <div className="text-[0.62rem] font-bold text-[#e6edf3]">AI Arbitrage Analysis</div>
+          <div className="text-[0.62rem] font-bold text-[#e2e8f0]">AI Arbitrage Analysis</div>
         </div>
         {!loading && text && <span className={`text-[0.56rem] font-bold font-mono tracking-wider ${labelColor}`}>{label}</span>}
-        {loading && <span className="text-[0.52rem] text-[#6b7280]">GPT-4o analyzing…</span>}
+        {loading && <span className="text-[0.52rem] text-[#8b949e]">GPT-4o analyzing…</span>}
       </div>
       <div className="text-[0.7rem] leading-relaxed text-[#c9d1d9] font-sans min-h-[2rem]">
         {loading && !typed && <span className="text-[#374151] italic">Sending DEX data to GPT-4o…</span>}
@@ -521,17 +521,17 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
 
         <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
           <div>
-            <div className="text-base font-bold text-[#e6edf3] font-sans">
-              {name} <span className="text-[0.7rem] text-[#6b7280]">({sym})</span>
+            <div className="text-base font-bold text-[#e2e8f0] font-sans">
+              {name} <span className="text-[0.7rem] text-[#8b949e]">({sym})</span>
             </div>
-            <div className="text-[0.56rem] text-[#6b7280] mt-0.5 break-all">{data.mint}</div>
+            <div className="text-[0.56rem] text-[#8b949e] mt-0.5 break-all">{data.mint}</div>
           </div>
 
           {/* Score + Edge Alert badge */}
           <div className="text-right flex-shrink-0">
             <div className={`text-4xl font-bold font-mono leading-none ${scoreColor}`}>{risk.score}</div>
             <div className={`text-[0.58rem] font-bold tracking-widest uppercase mt-0.5 ${scoreColor}`}>{risk.verdict}</div>
-            <div className="text-[0.53rem] text-[#6b7280] mt-0.5">Conf: {risk.conf}%</div>
+            <div className="text-[0.53rem] text-[#8b949e] mt-0.5">Conf: {risk.conf}%</div>
             {/* ── EDGE ALERT BADGE ── */}
             {hasEdge && (
               <div
@@ -553,9 +553,9 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
         <div className="table-scroll mb-3">
           <table className="w-full border-collapse text-[0.62rem] min-w-[360px]">
             <thead>
-              <tr className="border-b border-[rgba(99,102,241,0.14)]">
+              <tr className="border-b border-[rgba(0,212,130,0.15)]">
                 {['Metric','Value','Status','Source'].map(h => (
-                  <th key={h} className="text-left py-1.5 px-2 text-[0.53rem] font-bold tracking-widest uppercase text-[#6b7280]">{h}</th>
+                  <th key={h} className="text-left py-1.5 px-2 text-[0.53rem] font-bold tracking-widest uppercase text-[#8b949e]">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -563,7 +563,7 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
               {tableRows.map(row => (
                 <tr key={row.metric} className="border-b border-[rgba(255,255,255,0.04)] hover:bg-white/[0.02]">
                   <td className="py-1.5 px-2 text-[#9ca3af]">{row.metric}</td>
-                  <td className="py-1.5 px-2 font-semibold text-[#e6edf3]">{row.value}</td>
+                  <td className="py-1.5 px-2 font-semibold text-[#e2e8f0]">{row.value}</td>
                   <td className="py-1.5 px-2">
                     <span className={`score-chip ${row.ok ? 'chip-safe' : row.warn ? 'chip-warn' : 'chip-danger'}`}>{row.status}</span>
                   </td>
@@ -580,8 +580,8 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
         </div>
 
         {/* Neural summary */}
-        <div className="p-2.5 rounded-[3px] bg-indigo-950/15 border border-indigo-800/20 text-[0.62rem] leading-relaxed text-[#9ca3af] mb-3">
-          <strong className="text-indigo-300">Neural Analysis:</strong> {risk.summary}
+        <div className="p-2.5 rounded-[3px] bg-indigo-950/15 border border-[rgba(0,212,130,0.15)] text-[0.62rem] leading-relaxed text-[#9ca3af] mb-3">
+          <strong className="text-[#00d4aa]">Neural Analysis:</strong> {risk.summary}
         </div>
 
         {/* Authority checks — compact grid */}
@@ -589,7 +589,7 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
         <div className="grid grid-cols-2 gap-1 max-sm:grid-cols-1">
           {checks.map(c => (
             <div key={c.label} className="flex items-center justify-between bg-[#0c0c18] border border-[rgba(255,255,255,0.04)] rounded-[3px] px-2 py-1.5 text-[0.6rem]">
-              <span className="text-[#6b7280]">{c.label}</span>
+              <span className="text-[#8b949e]">{c.label}</span>
               <span className="flex items-center gap-1 font-semibold">
                 <span className={`w-1.5 h-1.5 rounded-full ${c.ok ? 'bg-emerald-400' : c.warn ? 'bg-amber-400' : 'bg-red-400'}`} />
                 <span className={c.ok ? 'text-emerald-400' : c.warn ? 'text-amber-400' : 'text-red-400'}>{c.val}</span>
@@ -605,7 +605,7 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
       ═══════════════════════════════════════════════ */}
       <div className="term-card mb-3 overflow-hidden">
         {/* Section header */}
-        <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-[rgba(99,102,241,0.1)]">
+        <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-[rgba(0,212,130,0.15)]">
           <div className="s-hdr mb-0" style={{ fontSize:'0.6rem' }}>Integrated Trading Terminal</div>
           <div className="flex gap-1.5">
             <span className="ds-badge ds-badge-rpc text-[0.5rem]"><span className="w-1 h-1 rounded-full bg-cyan-400 inline-block dot-pulse" />DexScreener</span>
@@ -677,7 +677,7 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
               <div key={row.label} className="flex items-center gap-2 text-[0.6rem]">
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: row.color }} />
                 <span className="text-[#9ca3af] flex-1">{row.label}</span>
-                <span className="font-mono font-bold text-[#e6edf3]">{row.pct.toFixed(1)}%</span>
+                <span className="font-mono font-bold text-[#e2e8f0]">{row.pct.toFixed(1)}%</span>
                 <span className="text-[0.52rem] font-bold" style={{ color: row.bc }}>{row.badge}</span>
               </div>
             ))}
@@ -753,7 +753,7 @@ function JupiterInlinePanel({ mint, sym, onFullScreen, enabled }: {
       <div className="flex flex-col items-center justify-center h-full gap-3 p-4 text-center">
         <div className="text-2xl">🔒</div>
         <div className="text-[0.62rem] font-bold text-red-400">Trading Disabled</div>
-        <div className="text-[0.56rem] text-[#6b7280] leading-relaxed">High Risk token — neural engine blocked trading for your protection.</div>
+        <div className="text-[0.56rem] text-[#8b949e] leading-relaxed">High Risk token — neural engine blocked trading for your protection.</div>
       </div>
     )
   }
@@ -767,13 +767,13 @@ function JupiterInlinePanel({ mint, sym, onFullScreen, enabled }: {
             <div className="spinner-ring spinner-ring-1" />
             <div className="spinner-ring spinner-ring-2" />
           </div>
-          <div className="text-[0.6rem] text-[#6b7280]">Loading Jupiter…</div>
+          <div className="text-[0.6rem] text-[#8b949e]">Loading Jupiter…</div>
         </div>
       </div>
       {/* Full-screen button */}
       <button
         onClick={onFullScreen}
-        className="flex items-center justify-center gap-1.5 py-2 border-t border-[rgba(99,102,241,0.1)] text-[0.58rem] text-indigo-400 font-mono hover:bg-indigo-950/20 transition-all cursor-pointer w-full"
+        className="flex items-center justify-center gap-1.5 py-2 border-t border-[rgba(0,212,130,0.15)] text-[0.58rem] text-[#00d4aa] font-mono hover:bg-indigo-950/20 transition-all cursor-pointer w-full"
         style={{ background:'transparent', border:'none', borderTop:'1px solid rgba(99,102,241,0.1)' }}
       >
         ⛶ Open Full Terminal
@@ -806,7 +806,7 @@ function HoldersTab({ data }: { data: ScanData }) {
               <div key={l as string} className="flex items-center gap-2 text-[0.63rem]">
                 <div className="w-2 h-2 rounded-full" style={{ background: c as string }} />
                 <span className="text-[#9ca3af] flex-1">{l as string}</span>
-                <span className="font-bold text-[#e6edf3] font-mono">{(p as number).toFixed(1)}%</span>
+                <span className="font-bold text-[#e2e8f0] font-mono">{(p as number).toFixed(1)}%</span>
               </div>
             ))}
           </div>
@@ -818,9 +818,9 @@ function HoldersTab({ data }: { data: ScanData }) {
         <div className="table-scroll">
           <table className="w-full border-collapse text-[0.62rem] min-w-[480px]">
             <thead>
-              <tr className="border-b border-[rgba(99,102,241,0.14)]">
+              <tr className="border-b border-[rgba(0,212,130,0.15)]">
                 {['#','Address','Amount','%','Bar','Risk'].map(h => (
-                  <th key={h} className="text-left py-1.5 px-2 text-[0.53rem] font-bold tracking-widest uppercase text-[#6b7280] whitespace-nowrap">{h}</th>
+                  <th key={h} className="text-left py-1.5 px-2 text-[0.53rem] font-bold tracking-widest uppercase text-[#8b949e] whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -830,9 +830,9 @@ function HoldersTab({ data }: { data: ScanData }) {
                 if (tot > 0n) pct = Number((BigInt(h.amount ?? 0) * 10000n) / tot) / 100
                 return (
                   <tr key={i} className="border-b border-[rgba(255,255,255,0.04)] hover:bg-white/[0.02]">
-                    <td className="py-1.5 px-2 text-[#6b7280]">#{i+1}</td>
+                    <td className="py-1.5 px-2 text-[#8b949e]">#{i+1}</td>
                     <td className="py-1.5 px-2 text-cyan-400">{truncate(h.address)}</td>
-                    <td className="py-1.5 px-2 text-[#e6edf3] font-semibold">{formatSupply(h.amount, data.supply?.value?.decimals ?? 9)}</td>
+                    <td className="py-1.5 px-2 text-[#e2e8f0] font-semibold">{formatSupply(h.amount, data.supply?.value?.decimals ?? 9)}</td>
                     <td className={`py-1.5 px-2 font-bold font-mono ${pct > 30 ? 'text-red-400' : pct > 10 ? 'text-amber-400' : 'text-emerald-400'}`}>{pct.toFixed(2)}%</td>
                     <td className="py-1.5 px-2">
                       <div className="w-16 h-1 bg-white/5 rounded-full overflow-hidden inline-block">
@@ -865,12 +865,12 @@ function LiquidityTab({ data }: { data: ScanData }) {
         <div className="flex justify-between items-start mb-3">
           <div>
             <div className={`text-3xl font-bold font-mono leading-none ${lsColor}`}>
-              {ls}<span className="text-[0.7rem] text-[#6b7280]">/100</span>
+              {ls}<span className="text-[0.7rem] text-[#8b949e]">/100</span>
             </div>
-            <div className="text-[0.56rem] text-[#6b7280] mt-1">Liquidity Score</div>
+            <div className="text-[0.56rem] text-[#8b949e] mt-1">Liquidity Score</div>
           </div>
           <div className="text-right">
-            <div className="text-[0.58rem] text-[#6b7280]">Total Supply</div>
+            <div className="text-[0.58rem] text-[#8b949e]">Total Supply</div>
             <div className="font-bold font-mono">{total}</div>
           </div>
         </div>
@@ -885,13 +885,13 @@ function LiquidityTab({ data }: { data: ScanData }) {
           ].map(s => (
             <div key={s.label} className="bg-[#0c0c18] border border-[rgba(255,255,255,0.05)] rounded-[3px] p-2.5 text-center">
               <div className={`text-sm font-bold font-mono ${s.color}`}>{s.val}</div>
-              <div className="text-[0.54rem] text-[#6b7280] mt-1">{s.label}</div>
+              <div className="text-[0.54rem] text-[#8b949e] mt-1">{s.label}</div>
             </div>
           ))}
         </div>
       </div>
-      <div className="p-3 rounded-[3px] bg-indigo-950/20 border border-indigo-800/20 text-[0.66rem] leading-relaxed text-[#9ca3af]">
-        <strong className="text-indigo-300">Liquidity Assessment:</strong> On-chain depth analysis via Helius RPC. For real-time AMM pool data, integrate Jupiter Price API and Raydium SDK. Current scoring uses holder concentration + supply distribution as proxy signals. Source: Helius Real-Time RPC · {NETWORK_LABEL} · {ENGINE_LABEL}.
+      <div className="p-3 rounded-[3px] bg-indigo-950/20 border border-[rgba(0,212,130,0.15)] text-[0.66rem] leading-relaxed text-[#9ca3af]">
+        <strong className="text-[#00d4aa]">Liquidity Assessment:</strong> On-chain depth analysis via Helius RPC. For real-time AMM pool data, integrate Jupiter Price API and Raydium SDK. Current scoring uses holder concentration + supply distribution as proxy signals. Source: Helius Real-Time RPC · {NETWORK_LABEL} · {ENGINE_LABEL}.
       </div>
     </div>
   )
@@ -917,7 +917,7 @@ function TransfersTab({ data }: { data: ScanData }) {
               <span className={`w-11 font-bold flex-shrink-0 ${isSwap ? 'text-cyan-400' : 'text-[#9ca3af]'}`}>{isSwap ? 'SWAP' : 'TX'}</span>
               <div className="flex-1 min-w-0">
                 <div className="text-cyan-400 text-[0.58rem]">{sig.slice(0,12)}…{sig.slice(-8)}</div>
-                <div className="text-[#6b7280] text-[0.57rem] mt-0.5">{type} · {tx.source ?? 'Unknown'}</div>
+                <div className="text-[#8b949e] text-[0.57rem] mt-0.5">{type} · {tx.source ?? 'Unknown'}</div>
               </div>
               <span className="text-[#374151] text-[0.55rem] flex-shrink-0">{ts}</span>
             </div>
@@ -948,7 +948,7 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
     <div className="flex flex-col h-full" style={{ minHeight: 0 }}>
 
       {/* ── Top bar ── */}
-      <div className="flex items-center justify-between px-3 py-2 bg-[#07070f] border-b border-[rgba(99,102,241,0.14)] flex-shrink-0 flex-wrap gap-2">
+      <div className="flex items-center justify-between px-3 py-2 bg-[#161b22] border-b border-[rgba(0,212,130,0.15)] flex-shrink-0 flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <span className="text-emerald-400 text-[0.6rem] font-mono font-bold">● Live Chart + Swap</span>
           <span className="ds-badge ds-badge-rpc text-[0.5rem]">
@@ -1084,9 +1084,9 @@ function PortfolioResults({ holdings, wallet }: { holdings: PortfolioHolding[]; 
         <div className="flex items-start gap-4 flex-wrap">
           <div className={`text-6xl font-bold font-mono leading-none ${scoreColor}`}>{globalScore}</div>
           <div className="flex-1">
-            <div className="text-[0.58rem] text-[#6b7280] uppercase tracking-wider">Portfolio Risk Score / 100</div>
+            <div className="text-[0.58rem] text-[#8b949e] uppercase tracking-wider">Portfolio Risk Score / 100</div>
             <div className={`text-base font-bold font-sans mt-0.5 ${scoreColor}`}>{verdict}</div>
-            <div className="text-[0.6rem] text-[#6b7280] mt-0.5">{holdings.length} positions · Wallet: {truncate(wallet)}</div>
+            <div className="text-[0.6rem] text-[#8b949e] mt-0.5">{holdings.length} positions · Wallet: {truncate(wallet)}</div>
           </div>
           <div className="text-right text-sm">
             <div className="font-bold text-emerald-400">{safeAssets.length} Safe</div>
@@ -1097,13 +1097,13 @@ function PortfolioResults({ holdings, wallet }: { holdings: PortfolioHolding[]; 
         <div className="grid grid-cols-2 gap-2 mt-4 max-sm:grid-cols-1">
           <div className="p-3 rounded-[3px] bg-emerald-950/20 border border-emerald-800/20">
             <div className="text-[0.55rem] font-bold uppercase tracking-wider text-emerald-400 mb-1">✓ Safe Assets</div>
-            <div className="text-2xl font-bold font-mono text-[#e6edf3]">{safeAssets.length}</div>
-            <div className="text-[0.58rem] text-[#6b7280]">Score ≥ 60 · Low insider/rug risk</div>
+            <div className="text-2xl font-bold font-mono text-[#e2e8f0]">{safeAssets.length}</div>
+            <div className="text-[0.58rem] text-[#8b949e]">Score ≥ 60 · Low insider/rug risk</div>
           </div>
           <div className="p-3 rounded-[3px] bg-red-950/20 border border-red-800/20">
             <div className="text-[0.55rem] font-bold uppercase tracking-wider text-red-400 mb-1">⚠ High-Risk / Insider-Heavy</div>
-            <div className="text-2xl font-bold font-mono text-[#e6edf3]">{riskAssets.length}</div>
-            <div className="text-[0.58rem] text-[#6b7280]">Score &lt; 60 · Review immediately</div>
+            <div className="text-2xl font-bold font-mono text-[#e2e8f0]">{riskAssets.length}</div>
+            <div className="text-[0.58rem] text-[#8b949e]">Score &lt; 60 · Review immediately</div>
           </div>
         </div>
       </div>
@@ -1113,18 +1113,18 @@ function PortfolioResults({ holdings, wallet }: { holdings: PortfolioHolding[]; 
         <div className="table-scroll">
           <table className="w-full border-collapse text-[0.62rem] min-w-[540px]">
             <thead>
-              <tr className="border-b border-[rgba(99,102,241,0.14)] bg-[#0c0c18]">
+              <tr className="border-b border-[rgba(0,212,130,0.15)] bg-[#0c0c18]">
                 {['#','Token','Symbol','Balance','Risk Score','Mint Auth','Status','Action'].map(h => (
-                  <th key={h} className="text-left py-1.5 px-2 text-[0.53rem] font-bold tracking-widest uppercase text-[#6b7280] whitespace-nowrap">{h}</th>
+                  <th key={h} className="text-left py-1.5 px-2 text-[0.53rem] font-bold tracking-widest uppercase text-[#8b949e] whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {holdings.map((h, i) => (
                 <tr key={i} className="border-b border-[rgba(255,255,255,0.04)] hover:bg-white/[0.02]">
-                  <td className="py-2 px-2 text-[#6b7280]">{i+1}</td>
-                  <td className="py-2 px-2 font-semibold text-[#e6edf3] max-w-[90px] truncate">{h.name}</td>
-                  <td className="py-2 px-2 text-indigo-400">{h.symbol}</td>
+                  <td className="py-2 px-2 text-[#8b949e]">{i+1}</td>
+                  <td className="py-2 px-2 font-semibold text-[#e2e8f0] max-w-[90px] truncate">{h.name}</td>
+                  <td className="py-2 px-2 text-[#00d4aa]">{h.symbol}</td>
                   <td className="py-2 px-2 font-mono">{h.amount.toLocaleString(undefined, { maximumFractionDigits:4 })}</td>
                   <td className="py-2 px-2">
                     <span className={`font-bold font-mono ${h.score>=70?'text-emerald-400':h.score>=40?'text-amber-400':'text-red-400'}`}>{h.score}</span>
@@ -1141,8 +1141,8 @@ function PortfolioResults({ holdings, wallet }: { holdings: PortfolioHolding[]; 
         </div>
       </div>
 
-      <div className="p-3 rounded-[3px] bg-indigo-950/20 border border-indigo-800/20 text-[0.66rem] leading-relaxed text-[#9ca3af]">
-        <strong className="text-indigo-300">Portfolio Neural Analysis:</strong>{' '}
+      <div className="p-3 rounded-[3px] bg-indigo-950/20 border border-[rgba(0,212,130,0.15)] text-[0.66rem] leading-relaxed text-[#9ca3af]">
+        <strong className="text-[#00d4aa]">Portfolio Neural Analysis:</strong>{' '}
         Global risk score computed by averaging neural scores across all {holdings.length} positions.{' '}
         {riskAssets.length > 0
           ? `${riskAssets.length} holdings show elevated risk: ${riskAssets.map(r=>r.symbol).join(', ')}. Review immediately.`
@@ -1172,23 +1172,23 @@ function JupiterSwapModal({ mint, sym, onClose }: {
       onClick={onClose}
     >
       <div
-        className="relative bg-[#0a0a16] border border-[rgba(99,102,241,0.2)] rounded-[6px] overflow-hidden"
+        className="relative bg-[#0a0a16] border border-[rgba(0,212,130,0.15)] rounded-[6px] overflow-hidden"
         style={{ width: '100%', maxWidth: '460px', height: '620px' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(99,102,241,0.14)] bg-[#07070f]">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(0,212,130,0.15)] bg-[#161b22]">
           <div className="flex items-center gap-2">
             <div className="w-5 h-5 rounded-full flex items-center justify-center text-[0.6rem]"
               style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}>⚡</div>
-            <span className="text-[0.72rem] font-bold text-[#e6edf3] font-mono tracking-wider">
+            <span className="text-[0.72rem] font-bold text-[#e2e8f0] font-mono tracking-wider">
               TRADE {sym}
             </span>
             <span className="ds-badge ds-badge-net text-[0.5rem]">Jupiter</span>
           </div>
           <button
             onClick={onClose}
-            className="w-6 h-6 rounded-[3px] border border-[rgba(99,102,241,0.16)] bg-[#111120] flex items-center justify-center text-[#6b7280] text-xs hover:border-red-700 hover:text-red-400 transition-all"
+            className="w-6 h-6 rounded-[3px] border border-[rgba(0,212,130,0.15)] bg-[#1c2128] flex items-center justify-center text-[#8b949e] text-xs hover:border-red-700 hover:text-red-400 transition-all"
           >✕</button>
         </div>
 
@@ -1205,7 +1205,7 @@ function JupiterSwapModal({ mint, sym, onClose }: {
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-2 border-t border-[rgba(99,102,241,0.1)] bg-[#07070f] flex items-center justify-between">
+        <div className="px-4 py-2 border-t border-[rgba(0,212,130,0.15)] bg-[#161b22] flex items-center justify-between">
           <span className="text-[0.52rem] text-[#374151]">Swaps execute on-chain via Jupiter Aggregator</span>
           <span className="ds-badge ds-badge-rpc text-[0.5rem]">
             <span className="w-1 h-1 rounded-full bg-cyan-400 inline-block dot-pulse" />
@@ -1436,7 +1436,7 @@ setTimeout(()=>window.location.reload(),2500)
           {isVip ? '🎯 VIP Sniper Unlocked' : `✓ ${plan.label} Plan Active`}
         </div>
         <a href={`https://solscan.io/tx/${txSig}`} target="_blank" rel="noopener noreferrer"
-          className="text-[0.48rem] text-[#6b7280] underline font-mono block mt-1 break-all">
+          className="text-[0.48rem] text-[#8b949e] underline font-mono block mt-1 break-all">
           {txSig.slice(0,16)}…{txSig.slice(-8)} ↗
         </a>
       </div>
@@ -1448,7 +1448,7 @@ setTimeout(()=>window.location.reload(),2500)
         {cryptoStep === 'confirm'    && (
           <>
             <div className="text-[0.62rem] text-amber-400 font-bold">Confirm in wallet</div>
-            <div className="text-[0.52rem] text-[#6b7280] mt-0.5">Check Phantom / Solflare</div>
+            <div className="text-[0.52rem] text-[#8b949e] mt-0.5">Check Phantom / Solflare</div>
           </>
         )}
         {cryptoStep === 'sending' && (
@@ -1506,15 +1506,15 @@ setTimeout(()=>window.location.reload(),2500)
 
   return (
     <div className="fixed inset-0 z-[999] bg-black/80 backdrop-blur-[10px] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#07070f] border border-[rgba(99,102,241,0.16)] rounded-[6px] max-w-[680px] w-full max-h-[90vh] overflow-y-auto p-6 relative modal-enter" onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-3 right-3 w-7 h-7 rounded-[3px] border border-[rgba(99,102,241,0.16)] bg-[#111120] flex items-center justify-center text-[#6b7280] text-xs hover:border-red-700 hover:text-red-400 transition-all">✕</button>
+      <div className="bg-[#161b22] border border-[rgba(0,212,130,0.15)] rounded-[6px] max-w-[680px] w-full max-h-[90vh] overflow-y-auto p-6 relative modal-enter" onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute top-3 right-3 w-7 h-7 rounded-[3px] border border-[rgba(0,212,130,0.15)] bg-[#1c2128] flex items-center justify-center text-[#8b949e] text-xs hover:border-red-700 hover:text-red-400 transition-all">✕</button>
 
         <div className="text-center mb-5">
-          <div className="inline-flex items-center gap-1.5 bg-indigo-950/40 border border-indigo-800/25 rounded-full px-3 py-1 text-[0.6rem] text-indigo-400 mb-3 tracking-wider uppercase">⚡ Institutional Access</div>
-          <h2 className="text-xl font-bold text-[#e6edf3] font-sans mb-1">
+          <div className="inline-flex items-center gap-1.5 bg-indigo-950/40 border border-[rgba(0,212,130,0.15)] rounded-full px-3 py-1 text-[0.6rem] text-[#00d4aa] mb-3 tracking-wider uppercase">⚡ Institutional Access</div>
+          <h2 className="text-xl font-bold text-[#e2e8f0] font-sans mb-1">
             Upgrade to <span className="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">PRO</span>
           </h2>
-          <p className="text-[0.65rem] text-[#6b7280]">Pay with card or crypto on Solana — instant access.</p>
+          <p className="text-[0.65rem] text-[#8b949e]">Pay with card or crypto on Solana — instant access.</p>
         </div>
 
         {/* Plans grid */}
@@ -1546,7 +1546,7 @@ setTimeout(()=>window.location.reload(),2500)
                     style={{ color: isVip ? '#fbbf24' : '#e6edf3' }}>
                     <sup className="text-sm">{plan.price.charAt(0)}</sup>
                     {plan.price.slice(1)}
-                    <sub className="text-[0.58rem] font-normal text-[#6b7280]">{plan.period}</sub>
+                    <sub className="text-[0.58rem] font-normal text-[#8b949e]">{plan.period}</sub>
                   </div>
                   <div className="text-[0.5rem] text-[#374151] mt-0.5 font-mono">
                     ≈ {plan.solAmt} SOL · {plan.usdcAmt} USDC
@@ -1587,16 +1587,16 @@ setTimeout(()=>window.location.reload(),2500)
         )}
 
         {/* Features perks */}
-        <div className="grid grid-cols-3 gap-2 pt-4 border-t border-[rgba(99,102,241,0.1)] max-sm:grid-cols-1">
+        <div className="grid grid-cols-3 gap-2 pt-4 border-t border-[rgba(0,212,130,0.15)] max-sm:grid-cols-1">
           {[
             { icon:'🐋', t:'Whale Tracker',  d:'Follow top wallets with +$50K PnL live' },
             { icon:'📡', t:'Alpha Feed',      d:'Rug alerts, accumulation signals, mint events' },
             { icon:'🎯', t:'AI Auto-Sniper', d:'Neural-powered auto-trade execution on Jupiter' },
           ].map(p => (
-            <div key={p.t} className="bg-[#111120] border border-[rgba(255,255,255,0.05)] rounded-[3px] p-3 text-center">
+            <div key={p.t} className="bg-[#1c2128] border border-[rgba(255,255,255,0.05)] rounded-[3px] p-3 text-center">
               <div className="text-xl mb-1">{p.icon}</div>
-              <div className="text-[0.62rem] font-bold text-[#e6edf3] mb-0.5">{p.t}</div>
-              <div className="text-[0.55rem] text-[#6b7280] leading-relaxed">{p.d}</div>
+              <div className="text-[0.62rem] font-bold text-[#e2e8f0] mb-0.5">{p.t}</div>
+              <div className="text-[0.55rem] text-[#8b949e] leading-relaxed">{p.d}</div>
             </div>
           ))}
         </div>
@@ -1739,40 +1739,40 @@ function AlphaEdgeTab({ data, onTradeClick, aiEdge, aiEdgeLoading, onAnalyzeEdge
 
         <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
           <div>
-            <div className="text-[0.58rem] text-[#6b7280] uppercase tracking-wider mb-1">Net Edge After Fees</div>
+            <div className="text-[0.58rem] text-[#8b949e] uppercase tracking-wider mb-1">Net Edge After Fees</div>
             <div className="font-mono font-bold leading-none" style={{ fontSize:'2.8rem', color: edge.edgeColor }}>
               {edge.edgePct.toFixed(2)}<span className="text-xl">%</span>
             </div>
             <div className="text-[0.58rem] font-bold tracking-widest uppercase mt-1" style={{ color: edge.edgeColor }}>
               {edge.edgeLabel}
             </div>
-            <div className="text-[0.54rem] text-[#6b7280] mt-0.5">Confidence: {edge.confidence}% · Neural v2</div>
+            <div className="text-[0.54rem] text-[#8b949e] mt-0.5">Confidence: {edge.confidence}% · Neural v2</div>
           </div>
 
           {/* Edge breakdown */}
           <div className="flex flex-col gap-1.5 text-[0.62rem] min-w-[160px]">
             <div className="flex justify-between gap-3">
-              <span className="text-[#6b7280]">Best Buy DEX</span>
+              <span className="text-[#8b949e]">Best Buy DEX</span>
               <span className="font-bold text-emerald-400">{edge.bestBuy.dex}</span>
             </div>
             <div className="flex justify-between gap-3">
-              <span className="text-[#6b7280]">Best Sell DEX</span>
-              <span className="font-bold text-indigo-400">{edge.bestSell.dex}</span>
+              <span className="text-[#8b949e]">Best Sell DEX</span>
+              <span className="font-bold text-[#00d4aa]">{edge.bestSell.dex}</span>
             </div>
             <div className="flex justify-between gap-3">
-              <span className="text-[#6b7280]">Raw Spread</span>
-              <span className="font-bold text-[#e6edf3]">{(((edge.bestSell.price - edge.bestBuy.price) / edge.bestBuy.price) * 100).toFixed(3)}%</span>
+              <span className="text-[#8b949e]">Raw Spread</span>
+              <span className="font-bold text-[#e2e8f0]">{(((edge.bestSell.price - edge.bestBuy.price) / edge.bestBuy.price) * 100).toFixed(3)}%</span>
             </div>
             <div className="flex justify-between gap-3">
-              <span className="text-[#6b7280]">Round-trip Fees</span>
+              <span className="text-[#8b949e]">Round-trip Fees</span>
               <span className="font-bold text-amber-400">{(edge.bestBuy.fee + edge.bestSell.fee).toFixed(2)}%</span>
             </div>
             <div className="flex justify-between gap-3">
-              <span className="text-[#6b7280]">Risk Multiplier</span>
+              <span className="text-[#8b949e]">Risk Multiplier</span>
               <span className="font-bold" style={{ color: edge.edgeColor }}>{risk.score >= 70 ? '1.4×' : risk.score >= 50 ? '1.0×' : '0.5×'}</span>
             </div>
             <div className="flex justify-between gap-3">
-              <span className="text-[#6b7280]">Neural Risk Score</span>
+              <span className="text-[#8b949e]">Neural Risk Score</span>
               <span className="font-bold" style={{ color: risk.score >= 70 ? 'var(--ok)' : risk.score >= 40 ? 'var(--warn)' : 'var(--danger)' }}>{risk.score}/100</span>
             </div>
           </div>
@@ -1780,11 +1780,11 @@ function AlphaEdgeTab({ data, onTradeClick, aiEdge, aiEdgeLoading, onAnalyzeEdge
 
         {/* Edge formula visual */}
         <div className="flex items-center gap-1.5 flex-wrap text-[0.58rem] font-mono mb-4">
-          <span className="px-2 py-1 rounded-[3px] bg-[#0c0c18] border border-[rgba(255,255,255,0.05)] text-[#e6edf3]">Spread: {(((edge.bestSell.price - edge.bestBuy.price)/edge.bestBuy.price)*100).toFixed(3)}%</span>
+          <span className="px-2 py-1 rounded-[3px] bg-[#0c0c18] border border-[rgba(255,255,255,0.05)] text-[#e2e8f0]">Spread: {(((edge.bestSell.price - edge.bestBuy.price)/edge.bestBuy.price)*100).toFixed(3)}%</span>
           <span className="text-[#374151]">−</span>
           <span className="px-2 py-1 rounded-[3px] bg-[#0c0c18] border border-[rgba(255,255,255,0.05)] text-amber-400">Fees: {(edge.bestBuy.fee + edge.bestSell.fee).toFixed(2)}%</span>
           <span className="text-[#374151]">×</span>
-          <span className="px-2 py-1 rounded-[3px] bg-[#0c0c18] border border-[rgba(255,255,255,0.05)] text-indigo-400">Risk×: {risk.score >= 70 ? '1.4' : risk.score >= 50 ? '1.0' : '0.5'}</span>
+          <span className="px-2 py-1 rounded-[3px] bg-[#0c0c18] border border-[rgba(255,255,255,0.05)] text-[#00d4aa]">Risk×: {risk.score >= 70 ? '1.4' : risk.score >= 50 ? '1.0' : '0.5'}</span>
           <span className="text-[#374151]">=</span>
           <span className="px-2 py-1 rounded-[3px] border font-bold" style={{ background: edge.edgeColor + '18', borderColor: edge.edgeColor + '40', color: edge.edgeColor }}>Edge: {edge.edgePct.toFixed(2)}%</span>
         </div>
@@ -1805,9 +1805,9 @@ function AlphaEdgeTab({ data, onTradeClick, aiEdge, aiEdgeLoading, onAnalyzeEdge
         <div className="table-scroll">
           <table className="w-full border-collapse text-[0.62rem] min-w-[480px]">
             <thead>
-              <tr className="border-b border-[rgba(99,102,241,0.14)]">
+              <tr className="border-b border-[rgba(0,212,130,0.15)]">
                 {['DEX','Price (USD)','vs Best','Liquidity','24h Volume','Fee','Action'].map(h => (
-                  <th key={h} className="text-left py-1.5 px-2 text-[0.53rem] font-bold tracking-widest uppercase text-[#6b7280] whitespace-nowrap">{h}</th>
+                  <th key={h} className="text-left py-1.5 px-2 text-[0.53rem] font-bold tracking-widest uppercase text-[#8b949e] whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -1822,10 +1822,10 @@ function AlphaEdgeTab({ data, onTradeClick, aiEdge, aiEdgeLoading, onAnalyzeEdge
                         <span>{q.icon}</span>
                         <span className="font-bold" style={{ color: q.color }}>{q.dex}</span>
                         {isBest && <span className="px-1 py-0.5 rounded-[2px] text-[0.48rem] font-bold bg-emerald-950/50 border border-emerald-800/30 text-emerald-400">BEST BUY</span>}
-                        {q.dex === edge.bestSell.dex && !isBest && <span className="px-1 py-0.5 rounded-[2px] text-[0.48rem] font-bold bg-indigo-950/50 border border-indigo-800/30 text-indigo-400">BEST SELL</span>}
+                        {q.dex === edge.bestSell.dex && !isBest && <span className="px-1 py-0.5 rounded-[2px] text-[0.48rem] font-bold bg-indigo-950/50 border border-[rgba(0,212,130,0.15)] text-[#00d4aa]">BEST SELL</span>}
                       </div>
                     </td>
-                    <td className="py-2 px-2 font-mono font-semibold text-[#e6edf3]">${fmtPrice(q.price)}</td>
+                    <td className="py-2 px-2 font-mono font-semibold text-[#e2e8f0]">${fmtPrice(q.price)}</td>
                     <td className="py-2 px-2 font-mono font-bold" style={{ color: vsBase === 0 ? '#10b981' : vsBase > 0 ? '#ef4444' : '#10b981' }}>
                       {vsBase === 0 ? '—' : `${vsBase > 0 ? '+' : ''}${vsBase.toFixed(3)}%`}
                     </td>
@@ -1848,8 +1848,8 @@ function AlphaEdgeTab({ data, onTradeClick, aiEdge, aiEdgeLoading, onAnalyzeEdge
           </table>
         </div>
 
-        <div className="mt-3 p-2.5 rounded-[3px] bg-indigo-950/15 border border-indigo-800/20 text-[0.6rem] text-[#9ca3af] leading-relaxed">
-          <strong className="text-indigo-300">⚡ Edge Logic:</strong> Low risk tokens (score ≥70) get a 1.4× risk multiplier boosting the edge signal. High risk tokens (score &lt;40) are penalized to 0.5× — protecting you from fake arbitrage on rugged tokens. Always verify on-chain before executing large positions.
+        <div className="mt-3 p-2.5 rounded-[3px] bg-indigo-950/15 border border-[rgba(0,212,130,0.15)] text-[0.6rem] text-[#9ca3af] leading-relaxed">
+          <strong className="text-[#00d4aa]">⚡ Edge Logic:</strong> Low risk tokens (score ≥70) get a 1.4× risk multiplier boosting the edge signal. High risk tokens (score &lt;40) are penalized to 0.5× — protecting you from fake arbitrage on rugged tokens. Always verify on-chain before executing large positions.
         </div>
       </div>
 
@@ -1858,8 +1858,8 @@ function AlphaEdgeTab({ data, onTradeClick, aiEdge, aiEdgeLoading, onAnalyzeEdge
       {!aiEdge && !aiEdgeLoading && (
         <div className="term-card p-4 mb-3 flex items-center gap-3">
           <div className="flex-1">
-            <div className="text-[0.65rem] font-bold text-[#e6edf3] mb-0.5">AI Arbitrage Verdict</div>
-            <div className="text-[0.58rem] text-[#6b7280]">Let GPT-4o determine if this price gap is a real opportunity or a liquidity trap</div>
+            <div className="text-[0.65rem] font-bold text-[#e2e8f0] mb-0.5">AI Arbitrage Verdict</div>
+            <div className="text-[0.58rem] text-[#8b949e]">Let GPT-4o determine if this price gap is a real opportunity or a liquidity trap</div>
           </div>
           <button
             onClick={() => onAnalyzeEdge(edge.edgePct, edge.bestBuy.dex, edge.bestSell.dex)}
@@ -1874,20 +1874,20 @@ function AlphaEdgeTab({ data, onTradeClick, aiEdge, aiEdgeLoading, onAnalyzeEdge
       {/* ── LIMIT ORDER SECTION ── */}
       <div className="term-card p-4 mb-3">
         <div className="s-hdr">Limit Order — Jupiter Terminal</div>
-        <div className="p-3 rounded-[3px] bg-[#0c0c18] border border-[rgba(99,102,241,0.1)] mb-3">
+        <div className="p-3 rounded-[3px] bg-[#0c0c18] border border-[rgba(0,212,130,0.15)] mb-3">
           <div className="grid grid-cols-2 gap-2 mb-3 max-sm:grid-cols-1">
             <div>
-              <div className="text-[0.54rem] text-[#6b7280] uppercase tracking-wider mb-1">Suggested Entry (Best Buy)</div>
+              <div className="text-[0.54rem] text-[#8b949e] uppercase tracking-wider mb-1">Suggested Entry (Best Buy)</div>
               <div className="text-sm font-bold font-mono text-emerald-400">${fmtPrice(edge.bestBuy.price)}</div>
-              <div className="text-[0.54rem] text-[#6b7280] mt-0.5">via {edge.bestBuy.dex}</div>
+              <div className="text-[0.54rem] text-[#8b949e] mt-0.5">via {edge.bestBuy.dex}</div>
             </div>
             <div>
-              <div className="text-[0.54rem] text-[#6b7280] uppercase tracking-wider mb-1">Suggested Exit (Best Sell)</div>
-              <div className="text-sm font-bold font-mono text-indigo-400">${fmtPrice(edge.bestSell.price)}</div>
-              <div className="text-[0.54rem] text-[#6b7280] mt-0.5">via {edge.bestSell.dex}</div>
+              <div className="text-[0.54rem] text-[#8b949e] uppercase tracking-wider mb-1">Suggested Exit (Best Sell)</div>
+              <div className="text-sm font-bold font-mono text-[#00d4aa]">${fmtPrice(edge.bestSell.price)}</div>
+              <div className="text-[0.54rem] text-[#8b949e] mt-0.5">via {edge.bestSell.dex}</div>
             </div>
           </div>
-          <div className="text-[0.58rem] text-[#6b7280] mb-2">
+          <div className="text-[0.58rem] text-[#8b949e] mb-2">
             Limit orders execute only when price reaches your target. Jupiter aggregates across all Solana AMMs for best execution.
           </div>
           <button
@@ -1908,7 +1908,7 @@ function AlphaEdgeTab({ data, onTradeClick, aiEdge, aiEdgeLoading, onAnalyzeEdge
         <div className="s-hdr">Traction Dashboard — Your Edge Today</div>
         <div className="grid grid-cols-3 gap-2 mb-4 max-sm:grid-cols-2">
           {[
-            { label:'Scans Today',       val: traction.scansToday.toLocaleString(), color:'text-indigo-400',  icon:'🔍' },
+            { label:'Scans Today',       val: traction.scansToday.toLocaleString(), color:'text-[#00d4aa]',  icon:'🔍' },
             { label:'Edges Detected',    val: String(traction.edgesTaken),          color:'text-emerald-400', icon:'⚡' },
             { label:'Avg Edge %',        val: traction.avgGain + '%',               color:'text-amber-400',   icon:'📊' },
             { label:'Best Trade Today',  val: '+' + traction.bestTrade + '%',       color:'text-emerald-400', icon:'🏆' },
@@ -1918,7 +1918,7 @@ function AlphaEdgeTab({ data, onTradeClick, aiEdge, aiEdgeLoading, onAnalyzeEdge
             <div key={s.label} className="bg-[#0c0c18] border border-[rgba(255,255,255,0.05)] rounded-[3px] p-3 text-center">
               <div className="text-base mb-1">{s.icon}</div>
               <div className={`text-base font-bold font-mono ${s.color}`}>{s.val}</div>
-              <div className="text-[0.52rem] text-[#6b7280] mt-0.5">{s.label}</div>
+              <div className="text-[0.52rem] text-[#8b949e] mt-0.5">{s.label}</div>
             </div>
           ))}
         </div>
@@ -1926,7 +1926,7 @@ function AlphaEdgeTab({ data, onTradeClick, aiEdge, aiEdgeLoading, onAnalyzeEdge
         {/* Motivational progress bar */}
         <div className="p-3 rounded-[3px] bg-[#0c0c18] border border-[rgba(255,255,255,0.05)] mb-3">
           <div className="flex justify-between items-center mb-1.5">
-            <span className="text-[0.58rem] font-bold text-[#e6edf3]">Daily Edge Target</span>
+            <span className="text-[0.58rem] font-bold text-[#e2e8f0]">Daily Edge Target</span>
             <span className="text-[0.58rem] text-emerald-400 font-mono font-bold">{traction.edgesTaken} / 50 trades</span>
           </div>
           <div className="h-1.5 bg-[rgba(255,255,255,0.05)] rounded-full overflow-hidden">
@@ -2042,7 +2042,7 @@ export default function Page() {
   // Initial feed items
   useEffect(() => {
     const init: FeedItem[] = [
-      { id:1, tag:'WHALE', tagCls:'bg-indigo-950/50 text-indigo-400 border border-indigo-800/25', text:'🐋 Smart wallet 7xKP… bought 250 SOL of BONK 3m ago', ts: new Date().toLocaleTimeString(), mint: DEMO_TOK_MINTS['BONK'] },
+      { id:1, tag:'WHALE', tagCls:'bg-indigo-950/50 text-[#00d4aa] border border-[rgba(0,212,130,0.15)]', text:'🐋 Smart wallet 7xKP… bought 250 SOL of BONK 3m ago', ts: new Date().toLocaleTimeString(), mint: DEMO_TOK_MINTS['BONK'] },
       { id:2, tag:'LIQ',   tagCls:'bg-cyan-950/50 text-cyan-400 border border-cyan-800/25',   text:'💧 New Raydium pool: WIF/SOL — 85 SOL locked', ts: new Date().toLocaleTimeString(), mint: DEMO_TOK_MINTS['WIF'] },
       { id:3, tag:'RUG',   tagCls:'bg-red-950/50 text-red-400 border border-red-800/25',     text:'🚨 Large holder moving MEW supply — alert', ts: new Date().toLocaleTimeString(), mint: DEMO_TOK_MINTS['MEW'] },
       { id:4, tag:'ALPHA', tagCls:'bg-emerald-950/50 text-emerald-400 border border-emerald-800/25', text:'⚡ POPCAT volume spike +340% in 10 min', ts: new Date().toLocaleTimeString(), mint: DEMO_TOK_MINTS['POPCAT'] },
@@ -2225,10 +2225,10 @@ export default function Page() {
       <div className="panel-label mb-4">Smart Money Wallets — Live</div>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-2.5 mb-4">
         {WHALES.map(w => (
-          <div key={w.addr} className="term-card p-3.5 hover:border-indigo-700/40 transition-colors cursor-default">
+          <div key={w.addr} className="term-card p-3.5 hover:border-[rgba(0,212,130,0.15)] transition-colors cursor-default">
             <div className="text-[0.62rem] text-cyan-400 mb-1.5">📍 {w.addr}</div>
             <div className={`text-base font-bold font-mono ${w.positive ? 'text-emerald-400' : 'text-red-400'}`}>{w.pnl}</div>
-            <div className="text-[0.58rem] text-[#6b7280] mt-0.5">{w.pct} · {w.trades.toLocaleString()} trades · {w.label}</div>
+            <div className="text-[0.58rem] text-[#8b949e] mt-0.5">{w.pct} · {w.trades.toLocaleString()} trades · {w.label}</div>
             <div className="flex gap-1 mt-2 flex-wrap">
               {w.tags.map(t => <AlphaTag key={t} tag={t} />)}
             </div>
@@ -2241,7 +2241,7 @@ export default function Page() {
           <div key={i} className="flex items-center gap-2 py-2 border-b border-[rgba(255,255,255,0.04)] last:border-0 text-[0.63rem]">
             <span className={`w-11 font-bold flex-shrink-0 ${a.dir==='BUY'?'text-emerald-400':'text-red-400'}`}>{a.dir}</span>
             <div className="flex-1">
-              <div className="text-[#6b7280] text-[0.58rem]">{a.wallet}</div>
+              <div className="text-[#8b949e] text-[0.58rem]">{a.wallet}</div>
               <div className="text-[#9ca3af] text-[0.58rem] mt-0.5">{a.token} — {a.amount}</div>
             </div>
             <span className="text-[#374151] text-[0.55rem]">{a.time}</span>
@@ -2258,11 +2258,11 @@ export default function Page() {
         <div key={i} className="term-card p-3.5 mb-2.5 slide-in">
           <div className="flex items-center justify-between mb-2">
             <span className="alpha-tag text-[0.52rem] font-bold tracking-wider border" style={{ background: `${a.color}1a`, color: a.color, borderColor: `${a.color}28` }}>{a.type}</span>
-            <span className="text-[0.58rem] text-[#6b7280]">{a.time}</span>
+            <span className="text-[0.58rem] text-[#8b949e]">{a.time}</span>
           </div>
-          <div className="text-sm font-bold text-[#e6edf3] font-sans mb-1.5">{a.title}</div>
+          <div className="text-sm font-bold text-[#e2e8f0] font-sans mb-1.5">{a.title}</div>
           <div className="text-[0.68rem] text-[#9ca3af] leading-relaxed">{a.body}</div>
-          <div className="flex gap-2 mt-2 text-[0.58rem] text-[#6b7280] items-center">
+          <div className="flex gap-2 mt-2 text-[0.58rem] text-[#8b949e] items-center">
             <span>Confidence: {a.conf}</span>
             <span>Impact: {a.impact}</span>
             <span className="ds-badge ds-badge-engine ml-auto">Neural v2</span>
@@ -2277,8 +2277,8 @@ export default function Page() {
     if (pfState === 'idle') return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center gap-4 p-10">
         <div className="text-5xl">📂</div>
-        <div className="text-base font-bold text-[#e6edf3] font-sans">Portfolio Risk Scanner</div>
-        <div className="text-[0.7rem] text-[#6b7280] max-w-xs leading-relaxed">Connect your Phantom wallet to scan all token holdings. The AI generates a Global Portfolio Risk Score by analyzing every position via Helius DAS API.</div>
+        <div className="text-base font-bold text-[#e2e8f0] font-sans">Portfolio Risk Scanner</div>
+        <div className="text-[0.7rem] text-[#8b949e] max-w-xs leading-relaxed">Connect your Phantom wallet to scan all token holdings. The AI generates a Global Portfolio Risk Score by analyzing every position via Helius DAS API.</div>
         <button onClick={doPortfolioScan} disabled={isConnecting} className="unlock-btn max-w-xs">{isConnecting ? 'Connecting…' : isConnected ? '🔍 Scan My Portfolio' : '🔗 Connect & Scan Portfolio'}</button>
         <div className="flex flex-wrap gap-1.5 justify-center">
           <span className="ds-badge ds-badge-rpc"><span className="w-1.5 h-1.5 rounded-full bg-cyan-400 inline-block dot-pulse" />Helius DAS API</span>
@@ -2292,10 +2292,10 @@ export default function Page() {
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 p-10">
         <NeuralSpinner />
         <div className="text-center">
-          <div className="text-sm font-bold text-[#e6edf3] font-sans mb-1">Portfolio Risk Scan</div>
-          <div className="text-[0.62rem] text-[#6b7280]">Fetching holdings via Helius DAS API…</div>
+          <div className="text-sm font-bold text-[#e2e8f0] font-sans mb-1">Portfolio Risk Scan</div>
+          <div className="text-[0.62rem] text-[#8b949e]">Fetching holdings via Helius DAS API…</div>
         </div>
-        <div className="w-full max-w-xs bg-[#0c0c18] border border-[rgba(99,102,241,0.16)] rounded-[4px] p-3">
+        <div className="w-full max-w-xs bg-[#0c0c18] border border-[rgba(0,212,130,0.15)] rounded-[4px] p-3">
           {['$ portfolio_scan --wallet helius-das', '⚡ Querying token accounts…', '📋 Analyzing balances…', '🧠 Running neural risk scoring…', '📊 Generating Global Risk Score…'].map((l,i) => (
             <div key={i} className="log-line" style={{ animationDelay: `${i*0.18}s` }}>{l}</div>
           ))}
@@ -2323,8 +2323,8 @@ export default function Page() {
       return (
         <div className="flex flex-col items-center justify-center h-full gap-3 text-center p-10">
           <div className="text-4xl">📈</div>
-          <div className="text-sm font-bold text-[#e6edf3] font-sans">No Token Selected</div>
-          <div className="text-[0.68rem] text-[#6b7280] max-w-xs leading-relaxed">
+          <div className="text-sm font-bold text-[#e2e8f0] font-sans">No Token Selected</div>
+          <div className="text-[0.68rem] text-[#8b949e] max-w-xs leading-relaxed">
             Scan a token or paste a mint address into the DexScreener search bar in the sidebar to load the live price chart.
           </div>
         </div>
@@ -2335,10 +2335,10 @@ export default function Page() {
       <div className="flex flex-col items-center justify-center h-full gap-4 p-10">
         <NeuralSpinner />
         <div className="text-center">
-          <div className="text-sm font-bold text-[#e6edf3] font-sans mb-1">Neural Scan Active</div>
-          <div className="text-[0.62rem] text-[#6b7280]">Querying Helius {NETWORK_LABEL}…</div>
+          <div className="text-sm font-bold text-[#e2e8f0] font-sans mb-1">Neural Scan Active</div>
+          <div className="text-[0.62rem] text-[#8b949e]">Querying Helius {NETWORK_LABEL}…</div>
         </div>
-        <div className="w-full max-w-sm bg-[#0c0c18] border border-[rgba(99,102,241,0.16)] rounded-[4px] p-3">
+        <div className="w-full max-w-sm bg-[#0c0c18] border border-[rgba(0,212,130,0.15)] rounded-[4px] p-3">
           {[`$ init_scan --mint ${mintInput.slice(0,8)}... --rpc helius`,'⚡ Connecting Helius RPC...','📋 Fetching DAS metadata...','🔍 Analyzing authority structure...','👥 Loading top holders...','🧠 Running neural recognition...','📊 Building distribution chart...','✓ Neural Engine v2 verdict ready'].map((l,i) => (
             <div key={i} className="log-line" style={{ animationDelay: `${i*0.17}s` }}>{l}</div>
           ))}
@@ -2432,7 +2432,7 @@ export default function Page() {
       )}
       {chartSwapModal && <ChartSwapModal mint={chartSwapModal.mint} symbol={chartSwapModal.symbol} initialTab={chartSwapModal.tab as any} onClose={() => setChartSwapModal(null)} />}
       {isTrialExpired && !isPro && <TrialWall onUpgrade={() => setShowModal(true)} daysUsed={4} />}
-      <header className="sticky top-0 z-[300] h-12 flex items-center justify-between px-4 bg-[rgba(5,5,16,0.95)] backdrop-blur-xl border-b border-[rgba(99,102,241,0.16)]">
+      <header className="sticky top-0 z-[300] h-12 flex items-center justify-between px-4 bg-[rgba(13,17,23,0.97)] backdrop-blur-xl border-b border-[rgba(0,212,130,0.15)]">
         <a href="/" className="flex items-center gap-2 font-mono text-[0.82rem] font-bold text-white tracking-wider uppercase no-underline">
           <div style={{width:30,height:26,flexShrink:0}}>
             <svg width="30" height="26" viewBox="0 0 140 120" xmlns="http://www.w3.org/2000/svg">
@@ -2447,15 +2447,15 @@ export default function Page() {
               <text x="100" y="65" fontFamily="Inter,sans-serif" fontSize="14" fontWeight="700" fill="#ffffff" letterSpacing="0.5">AI</text>
             </svg>
           </div>
-          CryptoCheck<span className="text-indigo-400">AI</span>
-          <span className="text-[0.5rem] text-[#6b7280] ml-0.5">v3</span>
+          CryptoCheck<span className="text-[#00d4aa]">AI</span>
+          <span className="text-[0.5rem] text-[#8b949e] ml-0.5">v3</span>
           <TrialBanner walletAddress={walletAddress} />
         </a>
 
         {/* Desktop nav */}
         <div className="hidden md:flex gap-0.5">
           {(['scanner','portfolio','whales','alpha','forensics','neuralv4'] as View[]).map(v => (
-            <button key={v} onClick={() => setView(v)} className={`px-3 py-1 rounded-[4px] text-[0.62rem] font-bold tracking-wider uppercase font-mono transition-all border ${view === v ? 'bg-indigo-950/40 text-indigo-300 border-indigo-700/30' : 'bg-transparent text-[#6b7280] border-transparent hover:text-[#c9d1d9] hover:bg-white/[0.04]'}`}>
+            <button key={v} onClick={() => setView(v)} className={`px-3 py-1 rounded-[4px] text-[0.62rem] font-bold tracking-wider uppercase font-mono transition-all border ${view === v ? 'bg-indigo-950/40 text-[#00d4aa] border-[rgba(0,212,130,0.15)]' : 'bg-transparent text-[#8b949e] border-transparent hover:text-[#c9d1d9] hover:bg-white/[0.04]'}`}>
               {v === 'scanner' ? '⚡ Scanner' : v === 'portfolio' ? '📂 Portfolio' : v === 'whales' ? '🐋 Whales' : v === 'alpha' ? '📡 Alpha' : v === 'forensics' ? '🔐 Forensics' : v === 'neuralv4' ? '🧠 Neural V4' : v}
             </button>
           ))}
@@ -2464,17 +2464,17 @@ export default function Page() {
         <div className="flex items-center gap-1.5">
           <div className="live-badge bg-emerald-950/30 border border-emerald-800/25 text-emerald-400 px-2 py-0.5 rounded-[3px] text-[0.58rem] font-bold tracking-wider hidden sm:block">● MAINNET-BETA</div>
           <button onClick={() => setShowModal(true)} className="btn-terminal px-3 py-1 text-white border-none rounded-[4px] text-[0.62rem]" style={{ background:'linear-gradient(135deg,#6366f1,#06b6d4)', boxShadow:'0 0 12px rgba(99,102,241,0.3)' }}>⚡ PRO</button>
-          <button onClick={isConnected ? disconnect : connect} disabled={isConnecting} className={`btn-terminal px-3 py-1 rounded-[4px] text-[0.62rem] ${isConnected ? 'bg-emerald-950/30 border-emerald-800/25 text-emerald-400' : 'bg-indigo-950/30 border-indigo-800/25 text-indigo-300'}`}>
+          <button onClick={isConnected ? disconnect : connect} disabled={isConnecting} className={`btn-terminal px-3 py-1 rounded-[4px] text-[0.62rem] ${isConnected ? 'bg-emerald-950/30 border-emerald-800/25 text-emerald-400' : 'bg-indigo-950/30 border-[rgba(0,212,130,0.15)] text-[#00d4aa]'}`}>
             {isConnecting ? 'Connecting…' : isConnected ? `✓ ${shortAddr}` : 'Connect Wallet'}
           </button>
         </div>
       </header>
 
       {/* ── TICKER TAPE ── */}
-      <div className="h-[26px] bg-[#07070f] border-b border-[rgba(99,102,241,0.14)] overflow-hidden relative z-10 hidden sm:block">
+      <div className="h-[26px] bg-[#161b22] border-b border-[rgba(0,212,130,0.15)] overflow-hidden relative z-10 hidden sm:block">
         <div className="ticker-track flex gap-0 whitespace-nowrap">
           {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, i) => (
-            <span key={i} className="inline-flex items-center gap-1.5 px-5 text-[0.6rem] text-[#6b7280] border-r border-[rgba(255,255,255,0.05)]">
+            <span key={i} className="inline-flex items-center gap-1.5 px-5 text-[0.6rem] text-[#8b949e] border-r border-[rgba(255,255,255,0.05)]">
               <strong className="text-[#c9d1d9]">{item.label}</strong>
               <span className={item.cls}>{item.val}</span>
             </span>
@@ -2486,14 +2486,14 @@ export default function Page() {
       <div className="flex" style={{ minHeight: 'calc(100vh - 48px - 26px - 32px - 80px)', position: 'relative', zIndex: 1 }}>
 
         {/* SIDEBAR (desktop only) */}
-        <aside className="hidden md:flex flex-col w-[280px] border-r border-[rgba(99,102,241,0.16)] bg-[#07070f] flex-shrink-0 overflow-hidden" style={{ height: 'calc(100vh - 48px - 26px - 32px - 80px)', position: 'sticky', top: 74 }}>
+        <aside className="hidden md:flex flex-col w-[280px] border-r border-[rgba(0,212,130,0.15)] bg-[#161b22] flex-shrink-0 overflow-hidden" style={{ height: 'calc(100vh - 48px - 26px - 32px - 80px)', position: 'sticky', top: 74 }}>
           {/* Scan zone — stable external MintInput */}
           <div ref={scanTopRef}>
             <MintInput onScan={(v) => { setMintInput(v); doScan(v) }} loading={scanState === 'loading'} />
             <div className="flex gap-1 px-3.5 pb-2">
               {SAMPLE_MINTS.map(s => (
                 <button key={s.label} onClick={() => { setMintInput(s.mint); doScan(s.mint) }}
-                  className="flex-1 py-1 rounded-[3px] border border-[rgba(99,102,241,0.14)] bg-[#111120] text-[#6b7280] text-[0.58rem] font-mono font-semibold transition-all hover:border-indigo-700/40 hover:text-[#c9d1d9]">
+                  className="flex-1 py-1 rounded-[3px] border border-[rgba(0,212,130,0.15)] bg-[#1c2128] text-[#8b949e] text-[0.58rem] font-mono font-semibold transition-all hover:border-[rgba(0,212,130,0.15)] hover:text-[#c9d1d9]">
                   {s.label}
                 </button>
               ))}
@@ -2505,7 +2505,7 @@ export default function Page() {
           </div>
 
           {/* Recent scans */}
-          <div className="p-3.5 border-b border-[rgba(99,102,241,0.14)]">
+          <div className="p-3.5 border-b border-[rgba(0,212,130,0.15)]">
             <div className="panel-label">Recent Scans</div>
             {recentScans.length === 0
               ? <div className="text-[0.62rem] text-[#374151] text-center py-2">No recent scans</div>
@@ -2513,10 +2513,10 @@ export default function Page() {
                 <div key={s.mint} onClick={() => { setMintInput(s.mint); doScan(s.mint) }}
                   className="flex items-center justify-between px-2 py-1.5 rounded-[3px] cursor-pointer hover:bg-white/[0.03] transition-colors text-[0.63rem]">
                   <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full border border-[rgba(99,102,241,0.2)] flex items-center justify-center text-[0.55rem] font-bold" style={{ background:'linear-gradient(135deg,rgba(99,102,241,0.2),rgba(6,182,212,0.15))' }}>{s.symbol.slice(0,2)}</div>
+                    <div className="w-5 h-5 rounded-full border border-[rgba(0,212,130,0.15)] flex items-center justify-center text-[0.55rem] font-bold" style={{ background:'linear-gradient(135deg,rgba(99,102,241,0.2),rgba(6,182,212,0.15))' }}>{s.symbol.slice(0,2)}</div>
                     <div>
                       <div className="font-semibold text-[#c9d1d9]">{s.name.slice(0, 16)}</div>
-                      <div className="text-[#6b7280] text-[0.55rem]">{s.mint.slice(0,6)}…{s.mint.slice(-4)}</div>
+                      <div className="text-[#8b949e] text-[0.55rem]">{s.mint.slice(0,6)}…{s.mint.slice(-4)}</div>
                     </div>
                   </div>
                   <ScoreChip score={s.score} />
@@ -2526,7 +2526,7 @@ export default function Page() {
           </div>
 
           {/* DexScreener search */}
-          <div className="p-3.5 border-b border-[rgba(99,102,241,0.14)] flex-shrink-0">
+          <div className="p-3.5 border-b border-[rgba(0,212,130,0.15)] flex-shrink-0">
             <div className="panel-label" style={{ color: '#10b981' }}>
               <span style={{ background: 'linear-gradient(#10b981, #059669)', width: 2, height: 8, borderRadius: 1, display: 'inline-block', flexShrink: 0, marginRight: 5 }} />
               DexScreener Chart
@@ -2543,7 +2543,7 @@ export default function Page() {
                   }
                 }}
                 placeholder="Token address…"
-                className="flex-1 min-w-0 bg-[#111120] border border-emerald-900/40 rounded-[4px] px-2 py-1.5 font-mono text-[0.62rem] text-[#c9d1d9] outline-none transition-all focus:border-emerald-600/60 placeholder:text-[#374151]"
+                className="flex-1 min-w-0 bg-[#1c2128] border border-emerald-900/40 rounded-[4px] px-2 py-1.5 font-mono text-[0.62rem] text-[#c9d1d9] outline-none transition-all focus:border-emerald-600/60 placeholder:text-[#374151]"
                 autoComplete="off" spellCheck={false}
               />
               <button
@@ -2573,7 +2573,7 @@ export default function Page() {
                 </button>
                 <button
                   onClick={() => { setScanTab('chart'); setView('scanner') }}
-                  className="flex-1 flex items-center justify-center gap-1 py-1 rounded-[3px] border border-indigo-800/25 bg-indigo-950/20 text-indigo-300 text-[0.55rem] font-bold font-mono cursor-pointer hover:bg-indigo-950/40 transition-all border-none"
+                  className="flex-1 flex items-center justify-center gap-1 py-1 rounded-[3px] border border-[rgba(0,212,130,0.15)] bg-indigo-950/20 text-[#00d4aa] text-[0.55rem] font-bold font-mono cursor-pointer hover:bg-indigo-950/40 transition-all border-none"
                   style={{ border: '1px solid rgba(99,102,241,0.2)' }}
                 >
                   📈 View Chart
@@ -2600,7 +2600,7 @@ export default function Page() {
                   <div className="flex items-center justify-between mb-0.5">
                     <span className="text-[0.52rem] text-[#374151]">{f.ts}</span>
                     {clickable && (
-                      <span className="text-[0.5rem] text-indigo-500 font-mono font-bold">⚡ scan</span>
+                      <span className="text-[0.5rem] text-[#00d4aa] font-mono font-bold">⚡ scan</span>
                     )}
                   </div>
                   <div className="text-[0.63rem] leading-relaxed text-[#9ca3af]">
@@ -2624,7 +2624,7 @@ export default function Page() {
           {view === 'scanner' && (
             <>
               {/* Mobile-only: DexScreener quick search */}
-              <div className="md:hidden flex items-center gap-1.5 px-3 py-2 bg-[#07070f] border-b border-[rgba(16,185,129,0.2)]">
+              <div className="md:hidden flex items-center gap-1.5 px-3 py-2 bg-[#161b22] border-b border-[rgba(16,185,129,0.2)]">
                 <span className="text-emerald-400 text-sm flex-shrink-0">📈</span>
                 <input
                   value={dexInput}
@@ -2661,7 +2661,7 @@ export default function Page() {
               </div>
               <ValueProtectedWidget />
               {/* PERSISTENT SCAN INPUT — outside renderScanContent to prevent re-mount */}
-              <div className="flex items-center gap-2 px-3 py-2 bg-[#07070f] border-b border-[rgba(99,102,241,0.2)] flex-shrink-0">
+              <div className="flex items-center gap-2 px-3 py-2 bg-[#161b22] border-b border-[rgba(0,212,130,0.15)] flex-shrink-0">
                 <input
                   id="main-scan-input"
                   value={mintInput}
@@ -2698,10 +2698,10 @@ export default function Page() {
                   {scanState === 'loading' ? '⟳ SCANNING…' : '⚡ NEURAL SCAN'}
                 </button>
               </div>
-              <div className="flex overflow-x-auto border-b border-[rgba(99,102,241,0.14)] bg-[#07070f] flex-shrink-0 scrollbar-none">
+              <div className="flex overflow-x-auto border-b border-[rgba(0,212,130,0.15)] bg-[#161b22] flex-shrink-0 scrollbar-none">
                 {(['verdict','holders','liquidity','transfers','chart','edge'] as ScanTab[]).map(t => (
                   <button key={t} onClick={() => { setScanTab(t) }}
-                    className={`px-4 py-2.5 text-[0.6rem] font-bold tracking-wider uppercase font-mono border-b-2 whitespace-nowrap transition-all ${scanTab === t ? 'text-indigo-300 border-indigo-500 bg-indigo-950/20' : 'text-[#6b7280] border-transparent hover:text-[#c9d1d9]'}`}
+                    className={`px-4 py-2.5 text-[0.6rem] font-bold tracking-wider uppercase font-mono border-b-2 whitespace-nowrap transition-all ${scanTab === t ? 'text-[#00d4aa] border-indigo-500 bg-indigo-950/20' : 'text-[#8b949e] border-transparent hover:text-[#c9d1d9]'}`}
                     style={{ marginBottom: '-1px' }}>
                     {t === 'verdict' ? '🔍 Verdict' : t === 'holders' ? '👥 Holders' : t === 'liquidity' ? '💧 Liquidity' : t === 'transfers' ? '🔄 Transfers' : t === 'chart' ? '📈 Price Chart' : '⚡ Alpha Edge'}
                   </button>
@@ -2750,7 +2750,7 @@ export default function Page() {
           {view === 'feed' && (
             <div className="flex flex-col flex-1 overflow-hidden pb-[60px]">
               {/* Header */}
-              <div className="flex items-center justify-between px-4 py-2.5 bg-[#07070f] border-b border-[rgba(6,182,212,0.2)] flex-shrink-0">
+              <div className="flex items-center justify-between px-4 py-2.5 bg-[#161b22] border-b border-[rgba(6,182,212,0.2)] flex-shrink-0">
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 dot-pulse" />
                   <span className="text-[0.65rem] font-bold text-cyan-400 font-mono tracking-wider">LIVE ALPHA FEED</span>
@@ -2776,7 +2776,7 @@ export default function Page() {
                       <div className="flex items-center justify-between mb-1">
                         <span className={`alpha-tag ${f.tagCls} text-[0.52rem]`}>{f.tag}</span>
                         <div className="flex items-center gap-2">
-                          {clickable && <span className="text-[0.5rem] text-indigo-400 font-mono">⚡ tap to scan</span>}
+                          {clickable && <span className="text-[0.5rem] text-[#00d4aa] font-mono">⚡ tap to scan</span>}
                           <span className="text-[0.5rem] text-[#374151]">{f.ts}</span>
                         </div>
                       </div>
@@ -2796,7 +2796,7 @@ export default function Page() {
       </div>
 
       {/* ── STATUS BAR ── */}
-      <div className="h-8 border-t border-[rgba(99,102,241,0.14)] flex items-center gap-4 px-3.5 text-[0.56rem] text-[#6b7280] bg-[#07070f] relative z-10 flex-wrap">
+      <div className="h-8 border-t border-[rgba(0,212,130,0.15)] flex items-center gap-4 px-3.5 text-[0.56rem] text-[#8b949e] bg-[#161b22] relative z-10 flex-wrap">
         <span className="flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-emerald-400 dot-pulse" />Helius RPC</span>
         <span className="flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-cyan-400" />Slot: {slot || '—'}</span>
         <span className="flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-indigo-400" />Scans: {scanCount}</span>
@@ -2806,16 +2806,16 @@ export default function Page() {
       </div>
 
       {/* ── DISCLAIMER FOOTER ── */}
-      <footer className="bg-[#07070f] border-t border-[rgba(99,102,241,0.14)] px-5 py-3.5 relative z-10 flex items-start gap-2.5 flex-wrap">
+      <footer className="bg-[#161b22] border-t border-[rgba(0,212,130,0.15)] px-5 py-3.5 relative z-10 flex items-start gap-2.5 flex-wrap">
         <span className="text-[0.82rem] opacity-40 flex-shrink-0 mt-0.5">⚠</span>
         <p className="text-[0.57rem] text-[#374151] leading-relaxed flex-1 min-w-[200px]">
-          <strong className="text-[#6b7280]">DISCLAIMER — NOT FINANCIAL ADVICE.</strong>{' '}
+          <strong className="text-[#8b949e]">DISCLAIMER — NOT FINANCIAL ADVICE.</strong>{' '}
           CryptoCheck AI is a data analysis tool only. Trading cryptocurrencies involves significant risk of loss. Token scan results are algorithmic assessments, not investment advice. Past performance does not predict future results. Always conduct your own research (DYOR). CryptoCheck AI is not responsible for any trading losses.
           <span className="text-[#4b5563]"> · Powered by Helius Real-Time RPC · {NETWORK_LABEL} · {ENGINE_LABEL}</span>
         </p>
         <div className="flex gap-3 items-center text-[0.55rem] flex-shrink-0 flex-wrap">
           {['Privacy','Terms','Docs','Contact'].map(l => (
-            <a key={l} href="#" className="text-[#6b7280] hover:text-indigo-400 transition-colors no-underline">{l}</a>
+            <a key={l} href="#" className="text-[#8b949e] hover:text-[#00d4aa] transition-colors no-underline">{l}</a>
           ))}
         </div>
       </footer>
