@@ -78,7 +78,7 @@ const DEMO_TOK_MINTS: Record<string, string> = {
 }
 const FEED_TEMPLATES = [
   (t: string) => ({ tag: 'RUG',   cls: 'bg-red-950/40 text-red-400 border-red-800/25',           text: `🚨 Top holder moving supply — ${t}`,                              mint: DEMO_TOK_MINTS[t] }),
-  (t: string) => ({ tag: 'WHALE', cls: 'bg-indigo-950/40 text-[#00d4aa] border-[rgba(0,212,130,0.15)]',   text: `🐋 Smart wallet bought ${t} — ${(Math.random()*400+100).toFixed(0)} SOL`, mint: DEMO_TOK_MINTS[t] }),
+  (t: string) => ({ tag: 'WHALE', cls: 'bg-[rgba(0,212,130,0.1)] text-[#00d4aa] border-[rgba(0,212,130,0.15)]',   text: `🐋 Smart wallet bought ${t} — ${(Math.random()*400+100).toFixed(0)} SOL`, mint: DEMO_TOK_MINTS[t] }),
   (t: string) => ({ tag: 'LIQ',   cls: 'bg-cyan-950/40 text-cyan-400 border-cyan-800/25',        text: `💧 Liquidity added to ${t}: +${(Math.random()*80+20).toFixed(0)} SOL`,     mint: DEMO_TOK_MINTS[t] }),
   (t: string) => ({ tag: 'ALPHA', cls: 'bg-emerald-950/40 text-emerald-400 border-emerald-800/25', text: `⚡ Volume spike on ${t}: ${(Math.random()*900+200).toFixed(0)} txs/5m`,   mint: DEMO_TOK_MINTS[t] }),
   (t: string) => ({ tag: 'MINT',  cls: 'bg-amber-950/40 text-amber-400 border-amber-800/25',     text: `⚠ Mint event on ${t} — exercise caution`,                        mint: DEMO_TOK_MINTS[t] }),
@@ -106,7 +106,7 @@ const ALPHA_CARDS = [
   { type:'RUG',   color:'#ef4444', title:'Top holder dumping 45% of SLERF',       body:'Neural scan flagged unusual sell pressure. Wallet moved 45% of supply to exchanges in 15 min. Exit immediately if holding.', conf:'97%', time:'2m ago',  impact:'HIGH' },
   { type:'ALPHA', color:'#10b981', title:'Smart money accumulating MEW quietly',   body:'Three wallets with historical 10x plays accumulating MEW. Combined ~890 SOL. Pattern matches pre-pump behavior from BONK/WIF.',    conf:'82%', time:'7m ago',  impact:'HIGH' },
   { type:'LIQ',   color:'#38bdf8', title:'New Raydium pool: MYRO/SOL — 200 SOL',  body:'Fresh pool launched. 200 SOL initial depth. Lock: unverified. Mint authority revoked. Neural scan: 71/100.',                         conf:'89%', time:'12m ago', impact:'MEDIUM' },
-  { type:'WHALE', color:'#818cf8', title:'Major wallet reducing BOME position',    body:'Wallet 7xKP… (+$284K PnL) reducing BOME. 40% sold. Historically precedes 20-30% corrections.',                                       conf:'91%', time:'18m ago', impact:'MEDIUM' },
+  { type:'WHALE', color:'#58a6ff', title:'Major wallet reducing BOME position',    body:'Wallet 7xKP… (+$284K PnL) reducing BOME. 40% sold. Historically precedes 20-30% corrections.',                                       conf:'91%', time:'18m ago', impact:'MEDIUM' },
   { type:'MINT',  color:'#f59e0b', title:'Mint authority called — 50M tokens minted', body:'New mint event detected. 50M tokens minted to deployer. Neural Engine flags suspicious inflation event — avoid entry.',            conf:'94%', time:'25m ago', impact:'HIGH' },
 ]
 
@@ -167,7 +167,7 @@ function DistChart({ top10Pct, liqPct, restPct }: { top10Pct: number; liqPct: nu
     datasets: [{
       data: [top10Pct, liqPct, restPct],
       backgroundColor: ['rgba(99,102,241,0.85)', 'rgba(6,182,212,0.85)', 'rgba(30,41,59,0.95)'],
-      borderColor: ['#6366f1', '#06b6d4', '#1e293b'],
+      borderColor: ['#00d4aa', '#06b6d4', '#1e293b'],
       borderWidth: 2,
       hoverOffset: 5,
     }],
@@ -180,7 +180,7 @@ function DistChart({ top10Pct, liqPct, restPct }: { top10Pct: number; liqPct: nu
       legend: { display: false },
       tooltip: {
         backgroundColor: 'rgba(13,17,23,0.97)',
-        borderColor: 'rgba(99,102,241,0.2)',
+        borderColor: 'rgba(48,54,61,1)',
         borderWidth: 1,
         titleFont: { family: 'IBM Plex Mono', size: 10 },
         bodyFont: { family: 'IBM Plex Mono', size: 10 },
@@ -199,7 +199,7 @@ function DistChart({ top10Pct, liqPct, restPct }: { top10Pct: number; liqPct: nu
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center gap-3 p-10">
-      <div className="w-16 h-16 rounded-full bg-indigo-950/40 border border-[rgba(0,212,130,0.15)] flex items-center justify-center text-3xl float-anim">⬡</div>
+      <div className="w-16 h-16 rounded-full bg-[rgba(0,212,130,0.1)] border border-[rgba(0,212,130,0.15)] flex items-center justify-center text-3xl float-anim">⬡</div>
       <h3 className="text-base font-bold text-[#e2e8f0] font-sans">Neural Scanner Ready</h3>
       <p className="text-[0.68rem] text-[#8b949e] max-w-xs leading-relaxed">
         Paste any Solana mint address for institutional-grade analysis: rug detection, distribution chart, authority checks, and Jupiter integration.
@@ -238,12 +238,12 @@ function AiSummaryCard({ loading, summary }: { loading: boolean; summary: string
   if (!loading && !summary) return null
 
   return (
-    <div className="term-card p-4 mb-3" style={{ borderColor:'rgba(99,102,241,0.3)', background:'rgba(6,6,20,0.9)' }}>
-      <div className="absolute top-0 left-0 right-0 h-px" style={{ background:'linear-gradient(90deg,transparent,#6366f1,#06b6d4,transparent)' }} />
+    <div className="term-card p-4 mb-3" style={{ borderColor:'rgba(48,54,61,1)', background:'rgba(6,6,20,0.9)' }}>
+      <div className="absolute top-0 left-0 right-0 h-px" style={{ background:'linear-gradient(90deg,transparent,#00d4aa,#06b6d4,transparent)' }} />
 
       <div className="flex items-center gap-2 mb-3">
         <div className="w-6 h-6 rounded-full flex items-center justify-center text-sm flex-shrink-0"
-          style={{ background:'linear-gradient(135deg,#6366f1,#06b6d4)', boxShadow:'0 0 10px rgba(99,102,241,0.4)' }}>
+          style={{ background:'linear-gradient(135deg,#00d4aa,#06b6d4)', boxShadow:'0 0 10px rgba(0,212,130,0.3)' }}>
           🧠
         </div>
         <div>
@@ -266,7 +266,7 @@ function AiSummaryCard({ loading, summary }: { loading: boolean; summary: string
 
       <div className="text-[0.72rem] leading-relaxed text-[#c9d1d9] font-sans min-h-[2.5rem]">
         {loading && !typed && (
-          <span className="text-[#374151] italic">Sending scan data to GPT-4o…</span>
+          <span className="text-[#484f58] italic">Sending scan data to GPT-4o…</span>
         )}
         {typed}
         {!loading && typed === summary && summary && (
@@ -313,7 +313,7 @@ function AiChatWindow({
       {/* Chat header */}
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[rgba(0,212,130,0.15)] bg-[#161b22]">
         <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs flex-shrink-0"
-          style={{ background:'linear-gradient(135deg,#6366f1,#06b6d4)' }}>🤖</div>
+          style={{ background:'linear-gradient(135deg,#00d4aa,#06b6d4)' }}>🤖</div>
         <div>
           <div className="text-[0.62rem] font-bold text-[#e2e8f0]">AI Analyst Chat</div>
           <div className="text-[0.5rem] text-[#8b949e]">Ask anything about {sym}</div>
@@ -325,12 +325,12 @@ function AiChatWindow({
       </div>
 
       {/* Messages */}
-      <div className="h-52 overflow-y-auto p-3 flex flex-col gap-2 bg-[#060610]">
+      <div className="h-52 overflow-y-auto p-3 flex flex-col gap-2 bg-[#0d1117]">
         {messages.length === 0 && (
           <div className="text-center mt-6">
             <div className="text-2xl mb-2">🧠</div>
             <div className="text-[0.62rem] text-[#8b949e]">Ask me anything about {sym}</div>
-            <div className="text-[0.54rem] text-[#374151] mt-1">I have full access to the scan data</div>
+            <div className="text-[0.54rem] text-[#484f58] mt-1">I have full access to the scan data</div>
           </div>
         )}
         {messages.map((m, i) => {
@@ -342,7 +342,7 @@ function AiChatWindow({
                 className={`max-w-[85%] px-3 py-2 rounded-[6px] text-[0.65rem] leading-relaxed ${
                   m.role === 'user'
                     ? 'bg-indigo-950/60 border border-[rgba(0,212,130,0.15)] text-[#00d4aa]'
-                    : 'bg-[#0c0c1e] border border-[rgba(255,255,255,0.06)] text-[#c9d1d9]'
+                    : 'bg-[#0c0c1e] border border-[rgba(33,38,45,0.8)] text-[#c9d1d9]'
                 }`}
               >
                 {isLastAi ? typedLast || m.text : m.text}
@@ -355,7 +355,7 @@ function AiChatWindow({
         })}
         {loading && (
           <div className="flex justify-start">
-            <div className="px-3 py-2 rounded-[6px] bg-[#0c0c1e] border border-[rgba(255,255,255,0.06)] flex gap-1 items-center">
+            <div className="px-3 py-2 rounded-[6px] bg-[#0c0c1e] border border-[rgba(33,38,45,0.8)] flex gap-1 items-center">
               {[0,1,2].map(i => (
                 <div key={i} className="w-1.5 h-1.5 rounded-full bg-indigo-400"
                   style={{ animation:`bounce 0.7s ease-in-out ${i*0.15}s infinite` }} />
@@ -368,11 +368,11 @@ function AiChatWindow({
 
       {/* Quick question chips */}
       {messages.length === 0 && !loading && (
-        <div className="flex flex-wrap gap-1.5 px-3 py-2 border-t border-[rgba(255,255,255,0.04)]">
+        <div className="flex flex-wrap gap-1.5 px-3 py-2 border-t border-[rgba(33,38,45,0.5)]">
           {QUICK_Q.map(q => (
             <button key={q} onClick={() => { onInput(q); setTimeout(onSend, 0) }}
-              className="px-2 py-1 rounded-[3px] text-[0.54rem] text-[#00d4aa] border border-[rgba(0,212,130,0.15)] bg-indigo-950/20 cursor-pointer hover:bg-indigo-950/40 transition-all font-mono"
-              style={{ border:'1px solid rgba(99,102,241,0.2)' }}>
+              className="px-2 py-1 rounded-[3px] text-[0.54rem] text-[#00d4aa] border border-[rgba(0,212,130,0.15)] bg-indigo-950/20 cursor-pointer hover:bg-[rgba(0,212,130,0.1)] transition-all font-mono"
+              style={{ border:'1px solid rgba(48,54,61,1)' }}>
               {q}
             </button>
           ))}
@@ -386,14 +386,14 @@ function AiChatWindow({
           onChange={e => onInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && !loading && onSend()}
           placeholder={`Ask about ${sym}…`}
-          className="flex-1 bg-transparent border-none outline-none text-[0.65rem] text-[#c9d1d9] placeholder:text-[#374151] font-mono"
+          className="flex-1 bg-transparent border-none outline-none text-[0.65rem] text-[#c9d1d9] placeholder:text-[#484f58] font-mono"
           disabled={loading}
         />
         <button
           onClick={onSend}
           disabled={loading || !input.trim()}
           className="px-3 py-1.5 rounded-[3px] text-[0.6rem] font-bold font-mono text-white border-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-          style={{ background:'linear-gradient(135deg,#6366f1,#4f46e5)' }}
+          style={{ background:'linear-gradient(135deg,#00d4aa,#00b894)' }}
         >
           {loading ? '⟳' : '→'}
         </button>
@@ -425,7 +425,7 @@ function AiEdgeCard({ loading, text }: { loading: boolean; text: string }) {
         {loading && <span className="text-[0.52rem] text-[#8b949e]">GPT-4o analyzing…</span>}
       </div>
       <div className="text-[0.7rem] leading-relaxed text-[#c9d1d9] font-sans min-h-[2rem]">
-        {loading && !typed && <span className="text-[#374151] italic">Sending DEX data to GPT-4o…</span>}
+        {loading && !typed && <span className="text-[#484f58] italic">Sending DEX data to GPT-4o…</span>}
         {typed}
         {!loading && typed === text && text && (
           <span className="inline-block w-0.5 h-3.5 bg-amber-400 ml-0.5 align-text-bottom" />
@@ -475,7 +475,7 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
   const edgePct     = Math.max(0, (baseSpread * 100 - fees * 100) * riskMult)
   const hasEdge     = risk.score >= 60 && edgePct >= 0.8
   const edgeLabel   = edgePct >= 2.5 ? '🔥 HIGH EDGE' : edgePct >= 0.8 ? '⚡ EDGE DETECTED' : '— LOW SIGNAL'
-  const edgeColor   = edgePct >= 2.5 ? '#10b981' : edgePct >= 0.8 ? '#f59e0b' : '#6b7280'
+  const edgeColor   = edgePct >= 2.5 ? '#10b981' : edgePct >= 0.8 ? '#f59e0b' : '#6e7681'
 
   const scoreColor  = risk.score >= 70 ? 'text-emerald-400' : risk.score >= 40 ? 'text-amber-400' : 'text-red-400'
   const topLineCls  = risk.cardClass === 'safe' ? 'card-top-safe' : risk.cardClass === 'warn' ? 'card-top-warn' : 'card-top-danger'
@@ -542,7 +542,7 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
               </div>
             )}
             {hasEdge && (
-              <div className="text-[0.5rem] text-[#374151] mt-0.5">
+              <div className="text-[0.5rem] text-[#484f58] mt-0.5">
                 Raydium vs Meteora spread
               </div>
             )}
@@ -561,8 +561,8 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
             </thead>
             <tbody>
               {tableRows.map(row => (
-                <tr key={row.metric} className="border-b border-[rgba(255,255,255,0.04)] hover:bg-white/[0.02]">
-                  <td className="py-1.5 px-2 text-[#9ca3af]">{row.metric}</td>
+                <tr key={row.metric} className="border-b border-[rgba(33,38,45,0.5)] hover:bg-white/[0.02]">
+                  <td className="py-1.5 px-2 text-[#8b949e]">{row.metric}</td>
                   <td className="py-1.5 px-2 font-semibold text-[#e2e8f0]">{row.value}</td>
                   <td className="py-1.5 px-2">
                     <span className={`score-chip ${row.ok ? 'chip-safe' : row.warn ? 'chip-warn' : 'chip-danger'}`}>{row.status}</span>
@@ -580,7 +580,7 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
         </div>
 
         {/* Neural summary */}
-        <div className="p-2.5 rounded-[3px] bg-indigo-950/15 border border-[rgba(0,212,130,0.15)] text-[0.62rem] leading-relaxed text-[#9ca3af] mb-3">
+        <div className="p-2.5 rounded-[3px] bg-indigo-950/15 border border-[rgba(0,212,130,0.15)] text-[0.62rem] leading-relaxed text-[#8b949e] mb-3">
           <strong className="text-[#00d4aa]">Neural Analysis:</strong> {risk.summary}
         </div>
 
@@ -588,7 +588,7 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
         <div className="s-hdr">Authority & Safety Checks</div>
         <div className="grid grid-cols-2 gap-1 max-sm:grid-cols-1">
           {checks.map(c => (
-            <div key={c.label} className="flex items-center justify-between bg-[#0c0c18] border border-[rgba(255,255,255,0.04)] rounded-[3px] px-2 py-1.5 text-[0.6rem]">
+            <div key={c.label} className="flex items-center justify-between bg-[#0c0c18] border border-[rgba(33,38,45,0.5)] rounded-[3px] px-2 py-1.5 text-[0.6rem]">
               <span className="text-[#8b949e]">{c.label}</span>
               <span className="flex items-center gap-1 font-semibold">
                 <span className={`w-1.5 h-1.5 rounded-full ${c.ok ? 'bg-emerald-400' : c.warn ? 'bg-amber-400' : 'bg-red-400'}`} />
@@ -618,9 +618,9 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
 
           {/* LEFT — DexScreener Iframe */}
           <div className="verdict-chart-col">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-[rgba(255,255,255,0.04)]">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-[rgba(33,38,45,0.5)]">
               <span className="text-emerald-400 text-[0.58rem] font-mono">● Live Chart</span>
-              <span className="text-[#374151] text-[0.52rem]">{sym}/SOL · Solana Mainnet</span>
+              <span className="text-[#484f58] text-[0.52rem]">{sym}/SOL · Solana Mainnet</span>
             </div>
             <div className="dex-iframe-verdict">
               <iframe
@@ -628,16 +628,16 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
                 allow="clipboard-write"
                 sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
                 title={`${sym} price chart`}
-                style={{ width:'100%', height:'100%', border:0, background:'#030308', display:'block' }}
+                style={{ width:'100%', height:'100%', border:0, background:'#0d1117', display:'block' }}
               />
             </div>
           </div>
 
           {/* RIGHT — Jupiter Terminal embed */}
           <div className="verdict-swap-col">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-[rgba(255,255,255,0.04)]">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-[rgba(33,38,45,0.5)]">
               <span className="text-[0.58rem] font-mono" style={{ color:'#10b981' }}>⚡ Swap {sym}</span>
-              <span className="text-[#374151] text-[0.52rem]">via Jupiter · no redirect</span>
+              <span className="text-[#484f58] text-[0.52rem]">via Jupiter · no redirect</span>
             </div>
             <div className="verdict-jupiter-mount" id={`jup-verdict-${data.mint.slice(0,8)}`}>
               <JupiterInlinePanel
@@ -670,13 +670,13 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
           </div>
           <div className="flex flex-col gap-1.5 flex-1 min-w-[140px]">
             {[
-              { label:'Top 10 Holders',    pct: top10Pct, color:'#6366f1', badge: top10Pct > 80 ? '⚠ BUNDLED' : top10Pct > 60 ? 'HIGH' : '✓ OK', bc: top10Pct > 80 ? '#ef4444' : top10Pct > 60 ? '#f59e0b' : '#10b981' },
+              { label:'Top 10 Holders',    pct: top10Pct, color:'#00d4aa', badge: top10Pct > 80 ? '⚠ BUNDLED' : top10Pct > 60 ? 'HIGH' : '✓ OK', bc: top10Pct > 80 ? '#ef4444' : top10Pct > 60 ? '#f59e0b' : '#10b981' },
               { label:'Liquidity Pools',   pct: liqPct,   color:'#06b6d4', badge:'DEX', bc:'#06b6d4' },
-              { label:'Rest of Supply',    pct: restPct,  color:'#1e293b', badge:'RETAIL', bc:'#6b7280' },
+              { label:'Rest of Supply',    pct: restPct,  color:'#1e293b', badge:'RETAIL', bc:'#6e7681' },
             ].map(row => (
               <div key={row.label} className="flex items-center gap-2 text-[0.6rem]">
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: row.color }} />
-                <span className="text-[#9ca3af] flex-1">{row.label}</span>
+                <span className="text-[#8b949e] flex-1">{row.label}</span>
                 <span className="font-mono font-bold text-[#e2e8f0]">{row.pct.toFixed(1)}%</span>
                 <span className="text-[0.52rem] font-bold" style={{ color: row.bc }}>{row.badge}</span>
               </div>
@@ -774,7 +774,7 @@ function JupiterInlinePanel({ mint, sym, onFullScreen, enabled }: {
       <button
         onClick={onFullScreen}
         className="flex items-center justify-center gap-1.5 py-2 border-t border-[rgba(0,212,130,0.15)] text-[0.58rem] text-[#00d4aa] font-mono hover:bg-indigo-950/20 transition-all cursor-pointer w-full"
-        style={{ background:'transparent', border:'none', borderTop:'1px solid rgba(99,102,241,0.1)' }}
+        style={{ background:'transparent', border:'none', borderTop:'1px solid rgba(0,212,130,0.1)' }}
       >
         ⛶ Open Full Terminal
       </button>
@@ -802,10 +802,10 @@ function HoldersTab({ data }: { data: ScanData }) {
             <DistChart top10Pct={top10Pct} liqPct={liqPct} restPct={restPct} />
           </div>
           <div className="flex flex-col gap-2 flex-1 min-w-[160px]">
-            {[['Top 10 Holders','#6366f1',top10Pct],['Liquidity (est.)','#06b6d4',liqPct],['Rest','#1e293b',restPct]].map(([l,c,p]) => (
+            {[['Top 10 Holders','#00d4aa',top10Pct],['Liquidity (est.)','#06b6d4',liqPct],['Rest','#1e293b',restPct]].map(([l,c,p]) => (
               <div key={l as string} className="flex items-center gap-2 text-[0.63rem]">
                 <div className="w-2 h-2 rounded-full" style={{ background: c as string }} />
-                <span className="text-[#9ca3af] flex-1">{l as string}</span>
+                <span className="text-[#8b949e] flex-1">{l as string}</span>
                 <span className="font-bold text-[#e2e8f0] font-mono">{(p as number).toFixed(1)}%</span>
               </div>
             ))}
@@ -829,14 +829,14 @@ function HoldersTab({ data }: { data: ScanData }) {
                 let pct = 0
                 if (tot > 0n) pct = Number((BigInt(h.amount ?? 0) * 10000n) / tot) / 100
                 return (
-                  <tr key={i} className="border-b border-[rgba(255,255,255,0.04)] hover:bg-white/[0.02]">
+                  <tr key={i} className="border-b border-[rgba(33,38,45,0.5)] hover:bg-white/[0.02]">
                     <td className="py-1.5 px-2 text-[#8b949e]">#{i+1}</td>
                     <td className="py-1.5 px-2 text-cyan-400">{truncate(h.address)}</td>
                     <td className="py-1.5 px-2 text-[#e2e8f0] font-semibold">{formatSupply(h.amount, data.supply?.value?.decimals ?? 9)}</td>
                     <td className={`py-1.5 px-2 font-bold font-mono ${pct > 30 ? 'text-red-400' : pct > 10 ? 'text-amber-400' : 'text-emerald-400'}`}>{pct.toFixed(2)}%</td>
                     <td className="py-1.5 px-2">
                       <div className="w-16 h-1 bg-white/5 rounded-full overflow-hidden inline-block">
-                        <div className="h-full rounded-full" style={{ width: `${Math.min(pct*2,100)}%`, background:'linear-gradient(90deg,#6366f1,#06b6d4)' }} />
+                        <div className="h-full rounded-full" style={{ width: `${Math.min(pct*2,100)}%`, background:'linear-gradient(90deg,#00d4aa,#06b6d4)' }} />
                       </div>
                     </td>
                     <td className="py-1.5 px-2"><span className={`score-chip ${pct>30?'chip-danger':pct>10?'chip-warn':'chip-safe'}`}>{pct>30?'HIGH':pct>10?'WATCH':'OK'}</span></td>
@@ -875,7 +875,7 @@ function LiquidityTab({ data }: { data: ScanData }) {
           </div>
         </div>
         <div className="h-1.5 bg-white/5 rounded-full overflow-hidden mb-3">
-          <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${ls}%`, background: 'linear-gradient(90deg,#6366f1,#06b6d4)' }} />
+          <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${ls}%`, background: 'linear-gradient(90deg,#00d4aa,#06b6d4)' }} />
         </div>
         <div className="grid grid-cols-3 gap-1.5">
           {[
@@ -883,14 +883,14 @@ function LiquidityTab({ data }: { data: ScanData }) {
             { val: ls > 60 ? 'DEEP' : ls > 30 ? 'LOW' : 'THIN', label: 'Depth', color: lsColor },
             { val: 'UNVERIFIED', label: 'Pool Lock', color: 'text-amber-400' },
           ].map(s => (
-            <div key={s.label} className="bg-[#0c0c18] border border-[rgba(255,255,255,0.05)] rounded-[3px] p-2.5 text-center">
+            <div key={s.label} className="bg-[#0c0c18] border border-[rgba(33,38,45,0.6)] rounded-[3px] p-2.5 text-center">
               <div className={`text-sm font-bold font-mono ${s.color}`}>{s.val}</div>
               <div className="text-[0.54rem] text-[#8b949e] mt-1">{s.label}</div>
             </div>
           ))}
         </div>
       </div>
-      <div className="p-3 rounded-[3px] bg-indigo-950/20 border border-[rgba(0,212,130,0.15)] text-[0.66rem] leading-relaxed text-[#9ca3af]">
+      <div className="p-3 rounded-[3px] bg-indigo-950/20 border border-[rgba(0,212,130,0.15)] text-[0.66rem] leading-relaxed text-[#8b949e]">
         <strong className="text-[#00d4aa]">Liquidity Assessment:</strong> On-chain depth analysis via Helius RPC. For real-time AMM pool data, integrate Jupiter Price API and Raydium SDK. Current scoring uses holder concentration + supply distribution as proxy signals. Source: Helius Real-Time RPC · {NETWORK_LABEL} · {ENGINE_LABEL}.
       </div>
     </div>
@@ -913,13 +913,13 @@ function TransfersTab({ data }: { data: ScanData }) {
           const sig = tx.signature ?? ''
           const isSwap = type.includes('SWAP')
           return (
-            <div key={i} className="flex items-center gap-2 py-2 border-b border-[rgba(255,255,255,0.04)] last:border-0 text-[0.62rem]">
-              <span className={`w-11 font-bold flex-shrink-0 ${isSwap ? 'text-cyan-400' : 'text-[#9ca3af]'}`}>{isSwap ? 'SWAP' : 'TX'}</span>
+            <div key={i} className="flex items-center gap-2 py-2 border-b border-[rgba(33,38,45,0.5)] last:border-0 text-[0.62rem]">
+              <span className={`w-11 font-bold flex-shrink-0 ${isSwap ? 'text-cyan-400' : 'text-[#8b949e]'}`}>{isSwap ? 'SWAP' : 'TX'}</span>
               <div className="flex-1 min-w-0">
                 <div className="text-cyan-400 text-[0.58rem]">{sig.slice(0,12)}…{sig.slice(-8)}</div>
                 <div className="text-[#8b949e] text-[0.57rem] mt-0.5">{type} · {tx.source ?? 'Unknown'}</div>
               </div>
-              <span className="text-[#374151] text-[0.55rem] flex-shrink-0">{ts}</span>
+              <span className="text-[#484f58] text-[0.55rem] flex-shrink-0">{ts}</span>
             </div>
           )
         })}
@@ -955,16 +955,16 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
             <span className="w-1 h-1 rounded-full bg-cyan-400 inline-block dot-pulse" />
             DexScreener · Jupiter
           </span>
-          <span className="text-[0.52rem] text-[#374151] font-mono">{mint.slice(0,8)}…{mint.slice(-6)}</span>
+          <span className="text-[0.52rem] text-[#484f58] font-mono">{mint.slice(0,8)}…{mint.slice(-6)}</span>
         </div>
         <button
           onClick={onConnectWallet}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] text-[0.62rem] font-bold font-mono border-none cursor-pointer transition-all"
           style={{
-            background: isConnected ? 'rgba(16,185,129,0.12)' : 'linear-gradient(135deg,#6366f1,#06b6d4)',
+            background: isConnected ? 'rgba(16,185,129,0.12)' : 'linear-gradient(135deg,#00d4aa,#06b6d4)',
             color:      isConnected ? '#34d399' : '#fff',
             border:     isConnected ? '1px solid rgba(16,185,129,0.3)' : 'none',
-            boxShadow:  isConnected ? 'none' : '0 0 12px rgba(99,102,241,0.3)',
+            boxShadow:  isConnected ? 'none' : '0 0 12px rgba(48,54,61,1)',
           }}
         >
           {isConnected ? `✓ ${shortAddr}` : '🔗 Connect Wallet'}
@@ -975,8 +975,8 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
       <div style={{ display:'grid', gridTemplateColumns:'60% 40%', flex:1, minHeight:0, overflow:'hidden' }}>
 
         {/* LEFT 60% — DexScreener native chart (header hidden by negative margin) */}
-        <div style={{ display:'flex', flexDirection:'column', borderRight:'1px solid rgba(99,102,241,0.12)', overflow:'hidden' }}>
-          <div style={{ fontSize:'0.54rem', color:'#6b7280', padding:'4px 10px', background:'#161b22', flexShrink:0 }}>
+        <div style={{ display:'flex', flexDirection:'column', borderRight:'1px solid rgba(33,38,45,0.8)', overflow:'hidden' }}>
+          <div style={{ fontSize:'0.54rem', color:'#6e7681', padding:'4px 10px', background:'#161b22', flexShrink:0 }}>
             <span style={{ color:'#10b981' }}>●</span> Price Chart · {mint.slice(0,8)}…
           </div>
           <div style={{ overflow:'hidden', flex:1, position:'relative', minHeight:'460px' }}>
@@ -987,7 +987,7 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
                 allow="clipboard-write"
                 sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"
                 title="Live price chart"
-                style={{ width:'100%', height:'100%', border:0, background:'#030308', display:'block' }}
+                style={{ width:'100%', height:'100%', border:0, background:'#0d1117', display:'block' }}
               />
             </div>
             <div style={{ position:'absolute', top:0, left:0, right:0, height:'6px',
@@ -999,7 +999,7 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
         <div style={{ display:'flex', flexDirection:'column', background:'#161b22', overflow:'hidden' }}>
 
           {/* Tab bar */}
-          <div style={{ display:'flex', flexShrink:0, borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ display:'flex', flexShrink:0, borderBottom:'1px solid rgba(33,38,45,0.8)' }}>
             {([
               { id:'trade',  label:'⚡ Manual Trade' },
               { id:'sniper', label:'🎯 AI Sniper',   vip:true },
@@ -1012,11 +1012,11 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
                   fontSize:'0.56rem', fontFamily:'"IBM Plex Mono",monospace',
                   fontWeight:700, letterSpacing:'0.04em', transition:'all 0.15s',
                   background: rightTab === tab.id
-                    ? ('vip' in tab && tab.vip) ? 'linear-gradient(135deg,rgba(251,191,36,0.12),rgba(99,102,241,0.12))' : 'rgba(16,185,129,0.08)'
+                    ? ('vip' in tab && tab.vip) ? 'linear-gradient(135deg,rgba(251,191,36,0.12),rgba(33,38,45,0.8))' : 'rgba(16,185,129,0.08)'
                     : 'transparent',
                   color: rightTab === tab.id
                     ? ('vip' in tab && tab.vip) ? '#fbbf24' : '#10b981'
-                    : '#6b7280',
+                    : '#6e7681',
                   borderBottom: rightTab === tab.id
                     ? `2px solid ${('vip' in tab && tab.vip) ? '#f59e0b' : '#10b981'}`
                     : '2px solid transparent',
@@ -1121,7 +1121,7 @@ function PortfolioResults({ holdings, wallet }: { holdings: PortfolioHolding[]; 
             </thead>
             <tbody>
               {holdings.map((h, i) => (
-                <tr key={i} className="border-b border-[rgba(255,255,255,0.04)] hover:bg-white/[0.02]">
+                <tr key={i} className="border-b border-[rgba(33,38,45,0.5)] hover:bg-white/[0.02]">
                   <td className="py-2 px-2 text-[#8b949e]">{i+1}</td>
                   <td className="py-2 px-2 font-semibold text-[#e2e8f0] max-w-[90px] truncate">{h.name}</td>
                   <td className="py-2 px-2 text-[#00d4aa]">{h.symbol}</td>
@@ -1141,7 +1141,7 @@ function PortfolioResults({ holdings, wallet }: { holdings: PortfolioHolding[]; 
         </div>
       </div>
 
-      <div className="p-3 rounded-[3px] bg-indigo-950/20 border border-[rgba(0,212,130,0.15)] text-[0.66rem] leading-relaxed text-[#9ca3af]">
+      <div className="p-3 rounded-[3px] bg-indigo-950/20 border border-[rgba(0,212,130,0.15)] text-[0.66rem] leading-relaxed text-[#8b949e]">
         <strong className="text-[#00d4aa]">Portfolio Neural Analysis:</strong>{' '}
         Global risk score computed by averaging neural scores across all {holdings.length} positions.{' '}
         {riskAssets.length > 0
@@ -1206,7 +1206,7 @@ function JupiterSwapModal({ mint, sym, onClose }: {
 
         {/* Footer */}
         <div className="px-4 py-2 border-t border-[rgba(0,212,130,0.15)] bg-[#161b22] flex items-center justify-between">
-          <span className="text-[0.52rem] text-[#374151]">Swaps execute on-chain via Jupiter Aggregator</span>
+          <span className="text-[0.52rem] text-[#484f58]">Swaps execute on-chain via Jupiter Aggregator</span>
           <span className="ds-badge ds-badge-rpc text-[0.5rem]">
             <span className="w-1 h-1 rounded-full bg-cyan-400 inline-block dot-pulse" />
             Helius RPC
@@ -1241,10 +1241,10 @@ const PLANS = [
     period:   '/week',
     solAmt:   0.03,
     usdcAmt:  5,
-    accentColor: '#6366f1',
+    accentColor: '#00d4aa',
     badge:    null,
     features: ['Unlimited Neural Scans','Portfolio Risk Scanner','Whale Tracker','Alpha Feed','Priority Support'],
-    btnStyle: { background:'transparent', border:'1px solid rgba(99,102,241,0.3)', color:'#9ca3af' },
+    btnStyle: { background:'transparent', border:'1px solid rgba(48,54,61,1)', color:'#8b949e' },
   },
   {
     id:       'yearly'  as const,
@@ -1253,11 +1253,11 @@ const PLANS = [
     period:   '/year',
     solAmt:   1.2,
     usdcAmt:  200,
-    accentColor: '#6366f1',
+    accentColor: '#00d4aa',
     badge:    '⭐ BEST VALUE — SAVE 77%',
-    badgeStyle: { background:'linear-gradient(135deg,#6366f1,#06b6d4)' },
+    badgeStyle: { background:'linear-gradient(135deg,#00d4aa,#06b6d4)' },
     features: ['Everything in Weekly','Institutional Analytics','API Access (1M calls/mo)','Telegram Alerts Bot','Early Feature Access'],
-    btnStyle: { background:'linear-gradient(135deg,#6366f1,#4f46e5)', boxShadow:'0 0 12px rgba(99,102,241,0.3)', color:'#fff', border:'none' },
+    btnStyle: { background:'linear-gradient(135deg,#00d4aa,#00b894)', boxShadow:'0 0 12px rgba(48,54,61,1)', color:'#fff', border:'none' },
   },
   {
     id:       'vip'     as const,
@@ -1444,7 +1444,7 @@ setTimeout(()=>window.location.reload(),2500)
 
     if (busy) return (
       <div className="mt-2 p-2.5 rounded-[4px] bg-[rgba(153,69,255,0.06)] border border-[rgba(153,69,255,0.2)] text-center">
-        {cryptoStep === 'connecting' && <div className="text-[0.62rem] text-[#a78bfa] animate-pulse">Connecting wallet…</div>}
+        {cryptoStep === 'connecting' && <div className="text-[0.62rem] text-[#00d4aa] animate-pulse">Connecting wallet…</div>}
         {cryptoStep === 'confirm'    && (
           <>
             <div className="text-[0.62rem] text-amber-400 font-bold">Confirm in wallet</div>
@@ -1467,9 +1467,9 @@ setTimeout(()=>window.location.reload(),2500)
       <div className="mt-2">
         {/* OR divider */}
         <div className="flex items-center gap-2 my-2">
-          <div className="flex-1 h-px bg-[rgba(255,255,255,0.06)]" />
-          <span className="text-[0.48rem] text-[#374151]">OR PAY WITH CRYPTO</span>
-          <div className="flex-1 h-px bg-[rgba(255,255,255,0.06)]" />
+          <div className="flex-1 h-px bg-[rgba(33,38,45,0.8)]" />
+          <span className="text-[0.48rem] text-[#484f58]">OR PAY WITH CRYPTO</span>
+          <div className="flex-1 h-px bg-[rgba(33,38,45,0.8)]" />
         </div>
 
         {/* Coin toggle */}
@@ -1478,9 +1478,9 @@ setTimeout(()=>window.location.reload(),2500)
             <button key={c} onClick={() => setCoin(planId, c)}
               className="flex-1 py-1 rounded-[3px] text-[0.55rem] font-bold font-mono cursor-pointer transition-all border-none"
               style={{
-                background: coin === c ? 'rgba(153,69,255,0.15)' : 'rgba(255,255,255,0.04)',
-                color:      coin === c ? '#a78bfa' : '#6b7280',
-                outline:    coin === c ? '1px solid rgba(153,69,255,0.35)' : '1px solid rgba(255,255,255,0.05)',
+                background: coin === c ? 'rgba(153,69,255,0.15)' : 'rgba(33,38,45,0.5)',
+                color:      coin === c ? '#00d4aa' : '#6e7681',
+                outline:    coin === c ? '1px solid rgba(153,69,255,0.35)' : '1px solid rgba(33,38,45,0.6)',
               }}>
               {c === 'SOL' ? '◎' : '$'} {c}
             </button>
@@ -1510,7 +1510,7 @@ setTimeout(()=>window.location.reload(),2500)
         <button onClick={onClose} className="absolute top-3 right-3 w-7 h-7 rounded-[3px] border border-[rgba(0,212,130,0.15)] bg-[#1c2128] flex items-center justify-center text-[#8b949e] text-xs hover:border-red-700 hover:text-red-400 transition-all">✕</button>
 
         <div className="text-center mb-5">
-          <div className="inline-flex items-center gap-1.5 bg-indigo-950/40 border border-[rgba(0,212,130,0.15)] rounded-full px-3 py-1 text-[0.6rem] text-[#00d4aa] mb-3 tracking-wider uppercase">⚡ Institutional Access</div>
+          <div className="inline-flex items-center gap-1.5 bg-[rgba(0,212,130,0.1)] border border-[rgba(0,212,130,0.15)] rounded-full px-3 py-1 text-[0.6rem] text-[#00d4aa] mb-3 tracking-wider uppercase">⚡ Institutional Access</div>
           <h2 className="text-xl font-bold text-[#e2e8f0] font-sans mb-1">
             Upgrade to <span className="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">PRO</span>
           </h2>
@@ -1526,8 +1526,8 @@ setTimeout(()=>window.location.reload(),2500)
                 style={isVip
                   ? { background:'linear-gradient(135deg,rgba(251,191,36,0.06),rgba(124,58,237,0.08))', border:'1px solid rgba(251,191,36,0.3)' }
                   : plan.id === 'yearly'
-                    ? { background:'rgba(99,102,241,0.06)', border:'1px solid rgba(99,102,241,0.3)' }
-                    : { background:'#0c0c18', border:'1px solid rgba(99,102,241,0.14)' }
+                    ? { background:'rgba(0,212,130,0.06)', border:'1px solid rgba(48,54,61,1)' }
+                    : { background:'#0c0c18', border:'1px solid rgba(33,38,45,1)' }
                 }
               >
                 {/* Badge */}
@@ -1541,14 +1541,14 @@ setTimeout(()=>window.location.reload(),2500)
                 {/* Label + price */}
                 <div className="text-center mb-2 mt-1">
                   <div className="text-[0.55rem] uppercase tracking-widest mb-1"
-                    style={{ color: isVip ? '#fbbf24' : '#6b7280' }}>{plan.label}</div>
+                    style={{ color: isVip ? '#fbbf24' : '#6e7681' }}>{plan.label}</div>
                   <div className="text-2xl font-bold font-mono leading-none"
-                    style={{ color: isVip ? '#fbbf24' : '#e6edf3' }}>
+                    style={{ color: isVip ? '#fbbf24' : '#e2e8f0' }}>
                     <sup className="text-sm">{plan.price.charAt(0)}</sup>
                     {plan.price.slice(1)}
                     <sub className="text-[0.58rem] font-normal text-[#8b949e]">{plan.period}</sub>
                   </div>
-                  <div className="text-[0.5rem] text-[#374151] mt-0.5 font-mono">
+                  <div className="text-[0.5rem] text-[#484f58] mt-0.5 font-mono">
                     ≈ {plan.solAmt} SOL · {plan.usdcAmt} USDC
                   </div>
                 </div>
@@ -1593,7 +1593,7 @@ setTimeout(()=>window.location.reload(),2500)
             { icon:'📡', t:'Alpha Feed',      d:'Rug alerts, accumulation signals, mint events' },
             { icon:'🎯', t:'AI Auto-Sniper', d:'Neural-powered auto-trade execution on Jupiter' },
           ].map(p => (
-            <div key={p.t} className="bg-[#1c2128] border border-[rgba(255,255,255,0.05)] rounded-[3px] p-3 text-center">
+            <div key={p.t} className="bg-[#1c2128] border border-[rgba(33,38,45,0.6)] rounded-[3px] p-3 text-center">
               <div className="text-xl mb-1">{p.icon}</div>
               <div className="text-[0.62rem] font-bold text-[#e2e8f0] mb-0.5">{p.t}</div>
               <div className="text-[0.55rem] text-[#8b949e] leading-relaxed">{p.d}</div>
@@ -1601,7 +1601,7 @@ setTimeout(()=>window.location.reload(),2500)
           ))}
         </div>
 
-        <div className="mt-3 text-center text-[0.5rem] text-[#374151]">
+        <div className="mt-3 text-center text-[0.5rem] text-[#484f58]">
           Crypto payments settle on Solana Mainnet · Card payments via Stripe · No refunds on digital access
         </div>
       </div>
@@ -1780,12 +1780,12 @@ function AlphaEdgeTab({ data, onTradeClick, aiEdge, aiEdgeLoading, onAnalyzeEdge
 
         {/* Edge formula visual */}
         <div className="flex items-center gap-1.5 flex-wrap text-[0.58rem] font-mono mb-4">
-          <span className="px-2 py-1 rounded-[3px] bg-[#0c0c18] border border-[rgba(255,255,255,0.05)] text-[#e2e8f0]">Spread: {(((edge.bestSell.price - edge.bestBuy.price)/edge.bestBuy.price)*100).toFixed(3)}%</span>
-          <span className="text-[#374151]">−</span>
-          <span className="px-2 py-1 rounded-[3px] bg-[#0c0c18] border border-[rgba(255,255,255,0.05)] text-amber-400">Fees: {(edge.bestBuy.fee + edge.bestSell.fee).toFixed(2)}%</span>
-          <span className="text-[#374151]">×</span>
-          <span className="px-2 py-1 rounded-[3px] bg-[#0c0c18] border border-[rgba(255,255,255,0.05)] text-[#00d4aa]">Risk×: {risk.score >= 70 ? '1.4' : risk.score >= 50 ? '1.0' : '0.5'}</span>
-          <span className="text-[#374151]">=</span>
+          <span className="px-2 py-1 rounded-[3px] bg-[#0c0c18] border border-[rgba(33,38,45,0.6)] text-[#e2e8f0]">Spread: {(((edge.bestSell.price - edge.bestBuy.price)/edge.bestBuy.price)*100).toFixed(3)}%</span>
+          <span className="text-[#484f58]">−</span>
+          <span className="px-2 py-1 rounded-[3px] bg-[#0c0c18] border border-[rgba(33,38,45,0.6)] text-amber-400">Fees: {(edge.bestBuy.fee + edge.bestSell.fee).toFixed(2)}%</span>
+          <span className="text-[#484f58]">×</span>
+          <span className="px-2 py-1 rounded-[3px] bg-[#0c0c18] border border-[rgba(33,38,45,0.6)] text-[#00d4aa]">Risk×: {risk.score >= 70 ? '1.4' : risk.score >= 50 ? '1.0' : '0.5'}</span>
+          <span className="text-[#484f58]">=</span>
           <span className="px-2 py-1 rounded-[3px] border font-bold" style={{ background: edge.edgeColor + '18', borderColor: edge.edgeColor + '40', color: edge.edgeColor }}>Edge: {edge.edgePct.toFixed(2)}%</span>
         </div>
 
@@ -1816,7 +1816,7 @@ function AlphaEdgeTab({ data, onTradeClick, aiEdge, aiEdgeLoading, onAnalyzeEdge
                 const isBest  = q.dex === edge.bestBuy.dex
                 const vsBase  = ((q.price - bestPrice) / bestPrice) * 100
                 return (
-                  <tr key={q.dex} className={`border-b border-[rgba(255,255,255,0.04)] ${isBest ? 'bg-emerald-950/10' : 'hover:bg-white/[0.02]'}`}>
+                  <tr key={q.dex} className={`border-b border-[rgba(33,38,45,0.5)] ${isBest ? 'bg-emerald-950/10' : 'hover:bg-white/[0.02]'}`}>
                     <td className="py-2 px-2">
                       <div className="flex items-center gap-1.5">
                         <span>{q.icon}</span>
@@ -1829,8 +1829,8 @@ function AlphaEdgeTab({ data, onTradeClick, aiEdge, aiEdgeLoading, onAnalyzeEdge
                     <td className="py-2 px-2 font-mono font-bold" style={{ color: vsBase === 0 ? '#10b981' : vsBase > 0 ? '#ef4444' : '#10b981' }}>
                       {vsBase === 0 ? '—' : `${vsBase > 0 ? '+' : ''}${vsBase.toFixed(3)}%`}
                     </td>
-                    <td className="py-2 px-2 font-mono text-[#9ca3af]">{fmtUsd(q.liquidity)}</td>
-                    <td className="py-2 px-2 font-mono text-[#9ca3af]">{fmtUsd(q.volume24h)}</td>
+                    <td className="py-2 px-2 font-mono text-[#8b949e]">{fmtUsd(q.liquidity)}</td>
+                    <td className="py-2 px-2 font-mono text-[#8b949e]">{fmtUsd(q.volume24h)}</td>
                     <td className="py-2 px-2 font-mono text-amber-400">{q.fee.toFixed(2)}%</td>
                     <td className="py-2 px-2">
                       <button
@@ -1848,7 +1848,7 @@ function AlphaEdgeTab({ data, onTradeClick, aiEdge, aiEdgeLoading, onAnalyzeEdge
           </table>
         </div>
 
-        <div className="mt-3 p-2.5 rounded-[3px] bg-indigo-950/15 border border-[rgba(0,212,130,0.15)] text-[0.6rem] text-[#9ca3af] leading-relaxed">
+        <div className="mt-3 p-2.5 rounded-[3px] bg-indigo-950/15 border border-[rgba(0,212,130,0.15)] text-[0.6rem] text-[#8b949e] leading-relaxed">
           <strong className="text-[#00d4aa]">⚡ Edge Logic:</strong> Low risk tokens (score ≥70) get a 1.4× risk multiplier boosting the edge signal. High risk tokens (score &lt;40) are penalized to 0.5× — protecting you from fake arbitrage on rugged tokens. Always verify on-chain before executing large positions.
         </div>
       </div>
@@ -1864,7 +1864,7 @@ function AlphaEdgeTab({ data, onTradeClick, aiEdge, aiEdgeLoading, onAnalyzeEdge
           <button
             onClick={() => onAnalyzeEdge(edge.edgePct, edge.bestBuy.dex, edge.bestSell.dex)}
             className="flex-shrink-0 px-3 py-2 rounded-[4px] text-[0.65rem] font-bold font-mono text-white border-none cursor-pointer transition-all"
-            style={{ background:'linear-gradient(135deg,#6366f1,#06b6d4)', boxShadow:'0 0 12px rgba(99,102,241,0.3)' }}
+            style={{ background:'linear-gradient(135deg,#00d4aa,#06b6d4)', boxShadow:'0 0 12px rgba(48,54,61,1)' }}
           >
             🤖 Analyze with AI
           </button>
@@ -1893,12 +1893,12 @@ function AlphaEdgeTab({ data, onTradeClick, aiEdge, aiEdgeLoading, onAnalyzeEdge
           <button
             onClick={() => onTradeClick(data.mint, sym)}
             className="w-full py-2.5 rounded-[4px] font-mono text-[0.68rem] font-bold tracking-wider text-white border-none cursor-pointer transition-all flex items-center justify-center gap-2"
-            style={{ background: 'linear-gradient(135deg,#6366f1,#06b6d4)', boxShadow: '0 0 14px rgba(99,102,241,0.3)' }}
+            style={{ background: 'linear-gradient(135deg,#00d4aa,#06b6d4)', boxShadow: '0 0 14px rgba(48,54,61,1)' }}
           >
             <span>📋</span> Open Limit Order in Jupiter Terminal
           </button>
         </div>
-        <div className="text-[0.56rem] text-[#374151] text-center">
+        <div className="text-[0.56rem] text-[#484f58] text-center">
           Limit orders powered by Jupiter Aggregator · Execution on Solana Mainnet-Beta
         </div>
       </div>
@@ -1915,7 +1915,7 @@ function AlphaEdgeTab({ data, onTradeClick, aiEdge, aiEdgeLoading, onAnalyzeEdge
             { label:'Win Rate',          val: traction.winRate + '%',               color:'text-cyan-400',    icon:'🎯' },
             { label:'Sim. Daily P&L',    val: '$' + Number(traction.totalSimulated).toLocaleString(), color:'text-emerald-400', icon:'💰' },
           ].map(s => (
-            <div key={s.label} className="bg-[#0c0c18] border border-[rgba(255,255,255,0.05)] rounded-[3px] p-3 text-center">
+            <div key={s.label} className="bg-[#0c0c18] border border-[rgba(33,38,45,0.6)] rounded-[3px] p-3 text-center">
               <div className="text-base mb-1">{s.icon}</div>
               <div className={`text-base font-bold font-mono ${s.color}`}>{s.val}</div>
               <div className="text-[0.52rem] text-[#8b949e] mt-0.5">{s.label}</div>
@@ -1924,20 +1924,20 @@ function AlphaEdgeTab({ data, onTradeClick, aiEdge, aiEdgeLoading, onAnalyzeEdge
         </div>
 
         {/* Motivational progress bar */}
-        <div className="p-3 rounded-[3px] bg-[#0c0c18] border border-[rgba(255,255,255,0.05)] mb-3">
+        <div className="p-3 rounded-[3px] bg-[#0c0c18] border border-[rgba(33,38,45,0.6)] mb-3">
           <div className="flex justify-between items-center mb-1.5">
             <span className="text-[0.58rem] font-bold text-[#e2e8f0]">Daily Edge Target</span>
             <span className="text-[0.58rem] text-emerald-400 font-mono font-bold">{traction.edgesTaken} / 50 trades</span>
           </div>
-          <div className="h-1.5 bg-[rgba(255,255,255,0.05)] rounded-full overflow-hidden">
+          <div className="h-1.5 bg-[rgba(33,38,45,0.6)] rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-1000"
-              style={{ width: `${Math.min((traction.edgesTaken / 50) * 100, 100)}%`, background: 'linear-gradient(90deg,#6366f1,#10b981)' }}
+              style={{ width: `${Math.min((traction.edgesTaken / 50) * 100, 100)}%`, background: 'linear-gradient(90deg,#00d4aa,#10b981)' }}
             />
           </div>
           <div className="flex justify-between mt-1">
-            <span className="text-[0.52rem] text-[#374151]">0</span>
-            <span className="text-[0.52rem] text-[#374151]">50 daily target</span>
+            <span className="text-[0.52rem] text-[#484f58]">0</span>
+            <span className="text-[0.52rem] text-[#484f58]">50 daily target</span>
           </div>
         </div>
 
@@ -2238,13 +2238,13 @@ export default function Page() {
       <div className="term-card p-4">
         <div className="s-hdr">Recent Smart Money Activity</div>
         {WHALE_ACTIVITY.map((a, i) => (
-          <div key={i} className="flex items-center gap-2 py-2 border-b border-[rgba(255,255,255,0.04)] last:border-0 text-[0.63rem]">
+          <div key={i} className="flex items-center gap-2 py-2 border-b border-[rgba(33,38,45,0.5)] last:border-0 text-[0.63rem]">
             <span className={`w-11 font-bold flex-shrink-0 ${a.dir==='BUY'?'text-emerald-400':'text-red-400'}`}>{a.dir}</span>
             <div className="flex-1">
               <div className="text-[#8b949e] text-[0.58rem]">{a.wallet}</div>
-              <div className="text-[#9ca3af] text-[0.58rem] mt-0.5">{a.token} — {a.amount}</div>
+              <div className="text-[#8b949e] text-[0.58rem] mt-0.5">{a.token} — {a.amount}</div>
             </div>
-            <span className="text-[#374151] text-[0.55rem]">{a.time}</span>
+            <span className="text-[#484f58] text-[0.55rem]">{a.time}</span>
           </div>
         ))}
       </div>
@@ -2261,7 +2261,7 @@ export default function Page() {
             <span className="text-[0.58rem] text-[#8b949e]">{a.time}</span>
           </div>
           <div className="text-sm font-bold text-[#e2e8f0] font-sans mb-1.5">{a.title}</div>
-          <div className="text-[0.68rem] text-[#9ca3af] leading-relaxed">{a.body}</div>
+          <div className="text-[0.68rem] text-[#8b949e] leading-relaxed">{a.body}</div>
           <div className="flex gap-2 mt-2 text-[0.58rem] text-[#8b949e] items-center">
             <span>Confidence: {a.conf}</span>
             <span>Impact: {a.impact}</span>
@@ -2455,7 +2455,7 @@ export default function Page() {
         {/* Desktop nav */}
         <div className="hidden md:flex gap-0.5">
           {(['scanner','portfolio','whales','alpha','forensics','neuralv4'] as View[]).map(v => (
-            <button key={v} onClick={() => setView(v)} className={`px-3 py-1 rounded-[4px] text-[0.62rem] font-bold tracking-wider uppercase font-mono transition-all border ${view === v ? 'bg-indigo-950/40 text-[#00d4aa] border-[rgba(0,212,130,0.15)]' : 'bg-transparent text-[#8b949e] border-transparent hover:text-[#c9d1d9] hover:bg-white/[0.04]'}`}>
+            <button key={v} onClick={() => setView(v)} className={`px-3 py-1 rounded-[4px] text-[0.62rem] font-bold tracking-wider uppercase font-mono transition-all border ${view === v ? 'bg-[rgba(0,212,130,0.1)] text-[#00d4aa] border-[rgba(0,212,130,0.15)]' : 'bg-transparent text-[#8b949e] border-transparent hover:text-[#c9d1d9] hover:bg-white/[0.04]'}`}>
               {v === 'scanner' ? '⚡ Scanner' : v === 'portfolio' ? '📂 Portfolio' : v === 'whales' ? '🐋 Whales' : v === 'alpha' ? '📡 Alpha' : v === 'forensics' ? '🔐 Forensics' : v === 'neuralv4' ? '🧠 Neural V4' : v}
             </button>
           ))}
@@ -2463,8 +2463,8 @@ export default function Page() {
 
         <div className="flex items-center gap-1.5">
           <div className="live-badge bg-emerald-950/30 border border-emerald-800/25 text-emerald-400 px-2 py-0.5 rounded-[3px] text-[0.58rem] font-bold tracking-wider hidden sm:block">● MAINNET-BETA</div>
-          <button onClick={() => setShowModal(true)} className="btn-terminal px-3 py-1 text-white border-none rounded-[4px] text-[0.62rem]" style={{ background:'linear-gradient(135deg,#6366f1,#06b6d4)', boxShadow:'0 0 12px rgba(99,102,241,0.3)' }}>⚡ PRO</button>
-          <button onClick={isConnected ? disconnect : connect} disabled={isConnecting} className={`btn-terminal px-3 py-1 rounded-[4px] text-[0.62rem] ${isConnected ? 'bg-emerald-950/30 border-emerald-800/25 text-emerald-400' : 'bg-indigo-950/30 border-[rgba(0,212,130,0.15)] text-[#00d4aa]'}`}>
+          <button onClick={() => setShowModal(true)} className="btn-terminal px-3 py-1 text-white border-none rounded-[4px] text-[0.62rem]" style={{ background:'linear-gradient(135deg,#00d4aa,#06b6d4)', boxShadow:'0 0 12px rgba(48,54,61,1)' }}>⚡ PRO</button>
+          <button onClick={isConnected ? disconnect : connect} disabled={isConnecting} className={`btn-terminal px-3 py-1 rounded-[4px] text-[0.62rem] ${isConnected ? 'bg-emerald-950/30 border-emerald-800/25 text-emerald-400' : 'bg-[rgba(0,212,130,0.08)] border-[rgba(0,212,130,0.15)] text-[#00d4aa]'}`}>
             {isConnecting ? 'Connecting…' : isConnected ? `✓ ${shortAddr}` : 'Connect Wallet'}
           </button>
         </div>
@@ -2474,7 +2474,7 @@ export default function Page() {
       <div className="h-[26px] bg-[#161b22] border-b border-[rgba(0,212,130,0.15)] overflow-hidden relative z-10 hidden sm:block">
         <div className="ticker-track flex gap-0 whitespace-nowrap">
           {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, i) => (
-            <span key={i} className="inline-flex items-center gap-1.5 px-5 text-[0.6rem] text-[#8b949e] border-r border-[rgba(255,255,255,0.05)]">
+            <span key={i} className="inline-flex items-center gap-1.5 px-5 text-[0.6rem] text-[#8b949e] border-r border-[rgba(33,38,45,0.6)]">
               <strong className="text-[#c9d1d9]">{item.label}</strong>
               <span className={item.cls}>{item.val}</span>
             </span>
@@ -2508,12 +2508,12 @@ export default function Page() {
           <div className="p-3.5 border-b border-[rgba(0,212,130,0.15)]">
             <div className="panel-label">Recent Scans</div>
             {recentScans.length === 0
-              ? <div className="text-[0.62rem] text-[#374151] text-center py-2">No recent scans</div>
+              ? <div className="text-[0.62rem] text-[#484f58] text-center py-2">No recent scans</div>
               : recentScans.map(s => (
                 <div key={s.mint} onClick={() => { setMintInput(s.mint); doScan(s.mint) }}
                   className="flex items-center justify-between px-2 py-1.5 rounded-[3px] cursor-pointer hover:bg-white/[0.03] transition-colors text-[0.63rem]">
                   <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full border border-[rgba(0,212,130,0.15)] flex items-center justify-center text-[0.55rem] font-bold" style={{ background:'linear-gradient(135deg,rgba(99,102,241,0.2),rgba(6,182,212,0.15))' }}>{s.symbol.slice(0,2)}</div>
+                    <div className="w-5 h-5 rounded-full border border-[rgba(0,212,130,0.15)] flex items-center justify-center text-[0.55rem] font-bold" style={{ background:'linear-gradient(135deg,rgba(48,54,61,1),rgba(6,182,212,0.15))' }}>{s.symbol.slice(0,2)}</div>
                     <div>
                       <div className="font-semibold text-[#c9d1d9]">{s.name.slice(0, 16)}</div>
                       <div className="text-[#8b949e] text-[0.55rem]">{s.mint.slice(0,6)}…{s.mint.slice(-4)}</div>
@@ -2543,7 +2543,7 @@ export default function Page() {
                   }
                 }}
                 placeholder="Token address…"
-                className="flex-1 min-w-0 bg-[#1c2128] border border-emerald-900/40 rounded-[4px] px-2 py-1.5 font-mono text-[0.62rem] text-[#c9d1d9] outline-none transition-all focus:border-emerald-600/60 placeholder:text-[#374151]"
+                className="flex-1 min-w-0 bg-[#1c2128] border border-emerald-900/40 rounded-[4px] px-2 py-1.5 font-mono text-[0.62rem] text-[#c9d1d9] outline-none transition-all focus:border-emerald-600/60 placeholder:text-[#484f58]"
                 autoComplete="off" spellCheck={false}
               />
               <button
@@ -2558,7 +2558,7 @@ export default function Page() {
                 📈
               </button>
             </div>
-            <div className="mt-1.5 text-[0.52rem] text-[#374151] leading-relaxed">
+            <div className="mt-1.5 text-[0.52rem] text-[#484f58] leading-relaxed">
               Paste a Solana mint to embed the live DexScreener chart.
             </div>
             {/* Quick links for current scan */}
@@ -2573,8 +2573,8 @@ export default function Page() {
                 </button>
                 <button
                   onClick={() => { setScanTab('chart'); setView('scanner') }}
-                  className="flex-1 flex items-center justify-center gap-1 py-1 rounded-[3px] border border-[rgba(0,212,130,0.15)] bg-indigo-950/20 text-[#00d4aa] text-[0.55rem] font-bold font-mono cursor-pointer hover:bg-indigo-950/40 transition-all border-none"
-                  style={{ border: '1px solid rgba(99,102,241,0.2)' }}
+                  className="flex-1 flex items-center justify-center gap-1 py-1 rounded-[3px] border border-[rgba(0,212,130,0.15)] bg-indigo-950/20 text-[#00d4aa] text-[0.55rem] font-bold font-mono cursor-pointer hover:bg-[rgba(0,212,130,0.1)] transition-all border-none"
+                  style={{ border: '1px solid rgba(48,54,61,1)' }}
                 >
                   📈 View Chart
                 </button>
@@ -2593,22 +2593,22 @@ export default function Page() {
                   onClick={() => clickable && handleFeedClick(f.mint!)}
                   title={clickable ? `Click to scan ${f.mint}` : undefined}
                   style={{ cursor: clickable ? 'pointer' : 'default' }}
-                  className="py-2 border-b border-[rgba(255,255,255,0.04)] last:border-0 slide-in rounded-[3px] px-1 -mx-1"
-                  onMouseEnter={e => { if (clickable) (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.06)' }}
+                  className="py-2 border-b border-[rgba(33,38,45,0.5)] last:border-0 slide-in rounded-[3px] px-1 -mx-1"
+                  onMouseEnter={e => { if (clickable) (e.currentTarget as HTMLElement).style.background = 'rgba(0,212,130,0.06)' }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
                 >
                   <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-[0.52rem] text-[#374151]">{f.ts}</span>
+                    <span className="text-[0.52rem] text-[#484f58]">{f.ts}</span>
                     {clickable && (
                       <span className="text-[0.5rem] text-[#00d4aa] font-mono font-bold">⚡ scan</span>
                     )}
                   </div>
-                  <div className="text-[0.63rem] leading-relaxed text-[#9ca3af]">
+                  <div className="text-[0.63rem] leading-relaxed text-[#8b949e]">
                     <span className={`alpha-tag ${f.tagCls} text-[0.52rem]`}>{f.tag}</span>
                     {f.text}
                   </div>
                   {clickable && (
-                    <div className="text-[0.5rem] text-[#374151] mt-0.5 font-mono truncate">
+                    <div className="text-[0.5rem] text-[#484f58] mt-0.5 font-mono truncate">
                       {f.mint!.slice(0,8)}…{f.mint!.slice(-6)}
                     </div>
                   )}
@@ -2636,7 +2636,7 @@ export default function Page() {
                     }
                   }}
                   placeholder="DexScreener — paste token address…"
-                  className="flex-1 min-w-0 bg-transparent border-none outline-none font-mono text-[0.62rem] text-[#c9d1d9] placeholder:text-[#374151]"
+                  className="flex-1 min-w-0 bg-transparent border-none outline-none font-mono text-[0.62rem] text-[#c9d1d9] placeholder:text-[#484f58]"
                   autoComplete="off" spellCheck={false}
                 />
                 <button
@@ -2672,11 +2672,11 @@ export default function Page() {
                   spellCheck={false}
                   style={{
                     flex: 1,
-                    background: 'rgba(99,102,241,0.06)',
-                    border: '1px solid rgba(99,102,241,0.2)',
+                    background: 'rgba(0,212,130,0.06)',
+                    border: '1px solid rgba(48,54,61,1)',
                     borderRadius: '6px',
                     padding: '8px 12px',
-                    color: '#e6edf3',
+                    color: '#e2e8f0',
                     fontFamily: 'IBM Plex Mono, monospace',
                     fontSize: '11px',
                     outline: 'none',
@@ -2686,7 +2686,7 @@ export default function Page() {
                   onClick={() => doScan()}
                   disabled={scanState === 'loading'}
                   style={{
-                    background: scanState === 'loading' ? 'rgba(99,102,241,0.3)' : 'linear-gradient(135deg,#6366f1,#4f46e5)',
+                    background: scanState === 'loading' ? 'rgba(48,54,61,1)' : 'linear-gradient(135deg,#00d4aa,#00b894)',
                     border: 'none', borderRadius: '6px',
                     padding: '8px 16px', color: '#fff',
                     fontFamily: 'IBM Plex Mono, monospace',
@@ -2757,7 +2757,7 @@ export default function Page() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="ds-badge ds-badge-rpc text-[0.5rem]">Helius RPC</span>
-                  <span className="text-[0.52rem] text-[#374151] font-mono">{feedItems.length} events</span>
+                  <span className="text-[0.52rem] text-[#484f58] font-mono">{feedItems.length} events</span>
                 </div>
               </div>
               {/* Scrollable feed */}
@@ -2769,20 +2769,20 @@ export default function Page() {
                       key={f.id}
                       onClick={() => { if (clickable) { handleFeedClick(f.mint!); setView('scanner') } }}
                       style={{ cursor: clickable ? 'pointer' : 'default' }}
-                      className="py-3 border-b border-[rgba(255,255,255,0.05)] last:border-0 slide-in rounded-[4px] px-2 -mx-2"
-                      onMouseEnter={e => { if (clickable) (e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.06)' }}
+                      className="py-3 border-b border-[rgba(33,38,45,0.6)] last:border-0 slide-in rounded-[4px] px-2 -mx-2"
+                      onMouseEnter={e => { if (clickable) (e.currentTarget as HTMLElement).style.background = 'rgba(0,212,130,0.06)' }}
                       onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
                     >
                       <div className="flex items-center justify-between mb-1">
                         <span className={`alpha-tag ${f.tagCls} text-[0.52rem]`}>{f.tag}</span>
                         <div className="flex items-center gap-2">
                           {clickable && <span className="text-[0.5rem] text-[#00d4aa] font-mono">⚡ tap to scan</span>}
-                          <span className="text-[0.5rem] text-[#374151]">{f.ts}</span>
+                          <span className="text-[0.5rem] text-[#484f58]">{f.ts}</span>
                         </div>
                       </div>
                       <div className="text-[0.7rem] leading-relaxed text-[#c9d1d9]">{f.text}</div>
                       {clickable && (
-                        <div className="text-[0.52rem] text-[#374151] mt-0.5 font-mono">
+                        <div className="text-[0.52rem] text-[#484f58] mt-0.5 font-mono">
                           {f.mint!.slice(0,10)}…{f.mint!.slice(-8)}
                         </div>
                       )}
@@ -2808,7 +2808,7 @@ export default function Page() {
       {/* ── DISCLAIMER FOOTER ── */}
       <footer className="bg-[#161b22] border-t border-[rgba(0,212,130,0.15)] px-5 py-3.5 relative z-10 flex items-start gap-2.5 flex-wrap">
         <span className="text-[0.82rem] opacity-40 flex-shrink-0 mt-0.5">⚠</span>
-        <p className="text-[0.57rem] text-[#374151] leading-relaxed flex-1 min-w-[200px]">
+        <p className="text-[0.57rem] text-[#484f58] leading-relaxed flex-1 min-w-[200px]">
           <strong className="text-[#8b949e]">DISCLAIMER — NOT FINANCIAL ADVICE.</strong>{' '}
           CryptoCheck AI is a data analysis tool only. Trading cryptocurrencies involves significant risk of loss. Token scan results are algorithmic assessments, not investment advice. Past performance does not predict future results. Always conduct your own research (DYOR). CryptoCheck AI is not responsible for any trading losses.
           <span className="text-[#4b5563]"> · Powered by Helius Real-Time RPC · {NETWORK_LABEL} · {ENGINE_LABEL}</span>
@@ -2825,7 +2825,7 @@ export default function Page() {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[400] bg-[rgba(2,4,14,0.98)] backdrop-blur-xl border-t border-[rgba(91,95,239,0.12)]" style={{height:60}}>
         {/* Row 1 — main tabs */}
         <div style={{display:'flex',height:'100%'}}>
-          <button onClick={() => { setView('scanner'); setScanTab('verdict') }} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'transparent',border:'none',cursor:'pointer',color:view==='scanner'&&scanTab==='verdict'?'#8b85f8':'#5a6478',fontFamily:'IBM Plex Mono,monospace',fontSize:'0.42rem',letterSpacing:'0.08em',textTransform:'uppercase'}}>
+          <button onClick={() => { setView('scanner'); setScanTab('verdict') }} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'transparent',border:'none',cursor:'pointer',color:view==='scanner'&&scanTab==='verdict'?'#00d4aa':'#5a6478',fontFamily:'IBM Plex Mono,monospace',fontSize:'0.42rem',letterSpacing:'0.08em',textTransform:'uppercase'}}>
             <span style={{fontSize:16,filter:view==='scanner'&&scanTab==='verdict'?'drop-shadow(0 0 5px rgba(139,133,248,0.8))':'none'}}>⚡</span>SCAN
           </button>
           <button onClick={() => { setView('scanner'); setScanTab('chart') }} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'transparent',border:'none',cursor:'pointer',color:view==='scanner'&&scanTab==='chart'?'#10b981':'#5a6478',fontFamily:'IBM Plex Mono,monospace',fontSize:'0.42rem',letterSpacing:'0.08em',textTransform:'uppercase'}}>
@@ -2840,7 +2840,7 @@ export default function Page() {
           <button onClick={() => setView('forensics')} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'transparent',border:'none',cursor:'pointer',color:view==='forensics'?'#ef4444':'#5a6478',fontFamily:'IBM Plex Mono,monospace',fontSize:'0.42rem',letterSpacing:'0.08em',textTransform:'uppercase'}}>
             <span style={{fontSize:16,filter:view==='forensics'?'drop-shadow(0 0 5px rgba(239,68,68,0.8))':'none'}}>🔐</span>RUG
           </button>
-          <button onClick={() => setView('neuralv4')} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'transparent',border:'none',cursor:'pointer',color:view==='neuralv4'?'#a78bfa':'#5a6478',fontFamily:'IBM Plex Mono,monospace',fontSize:'0.42rem',letterSpacing:'0.08em',textTransform:'uppercase'}}>
+          <button onClick={() => setView('neuralv4')} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'transparent',border:'none',cursor:'pointer',color:view==='neuralv4'?'#00d4aa':'#5a6478',fontFamily:'IBM Plex Mono,monospace',fontSize:'0.42rem',letterSpacing:'0.08em',textTransform:'uppercase'}}>
             <span style={{fontSize:16,filter:view==='neuralv4'?'drop-shadow(0 0 5px rgba(167,139,250,0.8))':'none'}}>🧠</span>NEURAL
           </button>
           <button onClick={() => setView('feed')} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'transparent',border:'none',cursor:'pointer',color:view==='feed'?'#38bdf8':'#5a6478',fontFamily:'IBM Plex Mono,monospace',fontSize:'0.42rem',letterSpacing:'0.08em',textTransform:'uppercase'}}>
