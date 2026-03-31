@@ -1991,10 +1991,32 @@ export default function Page() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const pro = localStorage.getItem('cc_is_pro') === 'true'
-      const activated = localStorage.getItem('cc_trial_activated') === '1'
       setIsPro(pro)
-      setTrialActivated(activated)
-      if (!activated && !pro) setShowSignup(true)
+      // Check trial from Supabase first
+      try {
+        const { checkTrialStatus } = await import('@/lib/trial')
+        const trial = await checkTrialStatus()
+        if (trial.isPro) {
+          setIsPro(true)
+          localStorage.setItem('cc_is_pro', 'true')
+        }
+        if (!trial.expired || trial.isPro) {
+          setTrialActivated(true)
+          localStorage.setItem('cc_trial_activated', '1')
+          // Save trial start to localStorage as backup
+          if (trial.trialStart) {
+            localStorage.setItem('cc_trial_start', trial.trialStart)
+          }
+        } else {
+          setTrialActivated(false)
+          if (!pro) setShowSignup(true)
+        }
+      } catch {
+        // Fallback to localStorage
+        const activated = localStorage.getItem('cc_trial_activated') === '1'
+        setTrialActivated(activated)
+        if (!activated && !pro) setShowSignup(true)
+      }
     }
   }, [])
   const [showSwap,    setShowSwap]    = useState(false)     // Jupiter swap modal
