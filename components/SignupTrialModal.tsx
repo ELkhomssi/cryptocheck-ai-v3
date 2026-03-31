@@ -45,6 +45,8 @@ export default function SignupTrialModal({ walletAddress, isConnected, isConnect
       if (!res.ok || data.error) throw new Error(data.error || 'Activation failed')
       localStorage.setItem('cc_trial_start', data.trialStart)
       localStorage.setItem('cc_trial_activated', '1')
+          localStorage.setItem('cc_trial_activation_time', new Date().toISOString())
+          localStorage.setItem('cc_trial_start', new Date().toISOString())
       localStorage.setItem('cc_user_email', email.trim().toLowerCase())
       localStorage.setItem('cc_wallet', walletAddress)
       onSuccess({ trialStart: data.trialStart, daysRemaining: data.daysRemaining, displayTime: data.displayTime })
