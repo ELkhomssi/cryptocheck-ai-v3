@@ -1993,7 +1993,7 @@ export default function Page() {
       const pro = localStorage.getItem('cc_is_pro') === 'true'
       setIsPro(pro)
       // Check trial from Supabase first
-      try {
+      ;(async () => { try {
         const { checkTrialStatus } = await import('@/lib/trial')
         const trial = await checkTrialStatus()
         if (trial.isPro) {
@@ -2012,11 +2012,10 @@ export default function Page() {
           if (!pro) setShowSignup(true)
         }
       } catch {
-        // Fallback to localStorage
         const activated = localStorage.getItem('cc_trial_activated') === '1'
         setTrialActivated(activated)
         if (!activated && !pro) setShowSignup(true)
-      }
+      }})()
     }
   }, [])
   const [showSwap,    setShowSwap]    = useState(false)     // Jupiter swap modal
