@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { checkTrialStatus, TrialStatus } from '@/lib/trial'
 
 // ── Trial Countdown Banner ──
