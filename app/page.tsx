@@ -2194,7 +2194,15 @@ export default function Page() {
       const risk = computeRisk(data)
       const name = data.meta?.onChainMetadata?.metadata?.data?.name ?? data.meta?.legacyMetadata?.name ?? 'Unknown'
       const sym  = data.meta?.onChainMetadata?.metadata?.data?.symbol ?? data.meta?.legacyMetadata?.symbol ?? '???'
-      setRecentScans(prev => [{ mint, name, symbol: sym, score: risk.score }, ...prev.filter(s => s.mint !== mint)].slice(0, 8))
+      const scanName = data.name || name || 'Unknown'
+      const scanSym = data.symbol || sym || mint.slice(0,4)
+      setRecentScans(prev => [{ mint, name: scanName, symbol: scanSym, score: risk.score }, ...prev.filter(s => s.mint !== mint)].slice(0, 8))
+      // Save to scan history
+      try {
+        const history = JSON.parse(localStorage.getItem('cc_scan_history') || '[]')
+        history.unshift({ mint, symbol: scanSym, name: scanName, score: risk.score, timestamp: Date.now() })
+        localStorage.setItem('cc_scan_history', JSON.stringify(history.slice(0, 50)))
+      } catch {}
       // Add feed entry
       feedIdRef.current++
       const tpl = FEED_TEMPLATES[Math.floor(Math.random() * FEED_TEMPLATES.length)](sym)

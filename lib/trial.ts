@@ -78,18 +78,15 @@ function computeTrial(trialStart: string, isPro: boolean): TrialStatus {
 
 function getLocalTrial(): TrialStatus {
   const isPro = typeof window !== 'undefined' && localStorage.getItem('cc_is_pro') === 'true'
-  let trialStart = localStorage.getItem('cc_trial_start')
-  // NEVER reset — only set once on first visit
-  if (!trialStart) {
-    const activated = localStorage.getItem('cc_trial_activated')
-    if (activated === '1') {
-      // Trial was activated but start lost — use activation time
-      trialStart = localStorage.getItem('cc_trial_activation_time') || new Date().toISOString()
-    } else {
-      trialStart = new Date().toISOString()
-    }
-    localStorage.setItem('cc_trial_start', trialStart)
-  }
+  // Read all possible trial start keys — never overwrite existing
+  const trialStart = 
+    localStorage.getItem('cc_trial_start') ||
+    localStorage.getItem('cc_trial_activation_time') ||
+    (() => {
+      const t = new Date().toISOString()
+      localStorage.setItem('cc_trial_start', t)
+      return t
+    })()
   return computeTrial(trialStart, isPro)
 }
 
