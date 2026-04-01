@@ -2194,8 +2194,8 @@ export default function Page() {
       const risk = computeRisk(data)
       const name = data.meta?.onChainMetadata?.metadata?.data?.name ?? data.meta?.legacyMetadata?.name ?? 'Unknown'
       const sym  = data.meta?.onChainMetadata?.metadata?.data?.symbol ?? data.meta?.legacyMetadata?.symbol ?? '???'
-      const scanName = data.name || name || 'Unknown'
-      const scanSym = data.symbol || sym || mint.slice(0,4)
+      const scanName = (data as any).name || name || 'Unknown'
+      const scanSym = (data as any).symbol || sym || mint.slice(0,4)
       setRecentScans(prev => [{ mint, name: scanName, symbol: scanSym, score: risk.score }, ...prev.filter(s => s.mint !== mint)].slice(0, 8))
       // Save to scan history
       try {
