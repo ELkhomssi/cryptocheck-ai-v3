@@ -2070,13 +2070,28 @@ export default function Page() {
       { id:5, tag:'MINT',  tagCls:'bg-amber-950/50 text-amber-400 border border-amber-800/25', text:'⚠ Mint authority revoked on MEW — supply fixed', ts: new Date().toLocaleTimeString(), mint: DEMO_TOK_MINTS['MEW'] },
     ]
     setFeedItems(init)
-    const iv = setInterval(() => {
+    // Fetch real events from Helius
+    async function fetchRealFeed() {
       if (document.hidden) return
-      const tok = DEMO_TOKS[Math.floor(Math.random() * DEMO_TOKS.length)]
-      const tpl = FEED_TEMPLATES[Math.floor(Math.random() * FEED_TEMPLATES.length)](tok)
-      feedIdRef.current++
-      setFeedItems(prev => [{ id: feedIdRef.current, tag: tpl.tag, tagCls: tpl.cls, text: tpl.text, ts: new Date().toLocaleTimeString() }, ...prev].slice(0, 20))
-    }, 30000)
+      try {
+        const res = await fetch('/api/live-feed')
+        const data = await res.json()
+        if (data.events && data.events.length > 0) {
+          for (const ev of data.events) {
+            feedIdRef.current++
+            setFeedItems(prev => [{
+              id: feedIdRef.current,
+              tag: ev.tag,
+              tagCls: ev.cls,
+              text: ev.text,
+              ts: new Date().toLocaleTimeString()
+            }, ...prev].slice(0, 20))
+          }
+        }
+      } catch {}
+    }
+    fetchRealFeed()
+    const iv = setInterval(fetchRealFeed, 30000)
     return () => clearInterval(iv)
   }, [])
 
