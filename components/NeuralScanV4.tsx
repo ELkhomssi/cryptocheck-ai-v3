@@ -93,6 +93,7 @@ export default function NeuralScanV4() {
   const [error, setError] = useState('')
   const [logs, setLogs] = useState<string[]>([])
   const [activeTab, setActiveTab] = useState<'verdict'|'holders'|'market'|'txs'>('verdict')
+  const [predict, setPredict] = useState<{score:number;confidence:number;signal:string;rugProb:number}|null>(null)
 
   async function runScan() {
     const mint = inputRef.current?.value?.trim() || ''
