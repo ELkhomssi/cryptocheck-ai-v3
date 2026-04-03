@@ -285,6 +285,25 @@ export default function NeuralScanV4() {
             </div>
           )}
 
+          {/* Predictive Engine */}
+          {predict && (
+            <div style={{margin:'8px 0',padding:'10px 14px',background:'rgba(0,0,0,0.3)',border:'1px solid rgba(91,95,239,0.2)',borderRadius:6}}>
+              <div style={{fontSize:'9px',fontWeight:700,letterSpacing:'0.1em',color:'#6e7681',marginBottom:8,fontFamily:'IBM Plex Mono,monospace'}}>⚡ PREDICTIVE ENGINE · 5m-15m SIGNAL</div>
+              <div style={{display:'flex',alignItems:'center',gap:12}}>
+                <div style={{textAlign:'center'}}>
+                  <div style={{fontSize:'22px',fontWeight:700,color:predict.signal==='BUY'?'#00d4aa':predict.signal==='SELL'||predict.signal==='AVOID'?'#ff4444':'#f0a500',fontFamily:'IBM Plex Mono,monospace'}}>{predict.score}</div>
+                  <div style={{fontSize:'8px',color:'#6e7681'}}>PRED SCORE</div>
+                </div>
+                <div style={{flex:1}}>
+                  <div style={{display:'flex',gap:6,marginBottom:6}}>
+                    <span style={{padding:'3px 10px',borderRadius:4,fontSize:'10px',fontWeight:700,background:predict.signal==='BUY'?'rgba(0,212,130,0.15)':predict.signal==='SELL'||predict.signal==='AVOID'?'rgba(255,68,68,0.15)':'rgba(240,165,0,0.15)',color:predict.signal==='BUY'?'#00d4aa':predict.signal==='SELL'||predict.signal==='AVOID'?'#ff4444':'#f0a500',border:`1px solid ${predict.signal==='BUY'?'rgba(0,212,130,0.3)':predict.signal==='SELL'||predict.signal==='AVOID'?'rgba(255,68,68,0.3)':'rgba(240,165,0,0.3)'}`}}>{predict.signal}</span>
+                    <span style={{padding:'3px 10px',borderRadius:4,fontSize:'10px',color:'#8b949e',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)'}}>Confidence: {predict.confidence}%</span>
+                  </div>
+                  <div style={{fontSize:'9px',color:predict.rugProb>60?'#ff4444':predict.rugProb>30?'#f0a500':'#00d4aa',fontFamily:'IBM Plex Mono,monospace'}}>Rug Probability: {predict.rugProb}% {predict.rugProb>60?'⚠️ HIGH RISK':predict.rugProb>30?'⚡ MEDIUM':'✓ LOW'}</div>
+                </div>
+              </div>
+            </div>
+          )}
           {/* Market */}
           {activeTab === 'market' && (
             <div>
