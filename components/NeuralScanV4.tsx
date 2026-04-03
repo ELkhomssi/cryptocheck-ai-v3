@@ -123,6 +123,9 @@ export default function NeuralScanV4() {
       } else {
         setResult(data)
         setActiveTab('verdict')
+        // Fetch predictive score
+        fetch('/api/predict', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mint:data.mint})})
+          .then(r=>r.json()).then(p=>{ if(!p.error) setPredict(p) }).catch(()=>{})
       }
     } catch {
       setError('Scan failed. Check connection.')
