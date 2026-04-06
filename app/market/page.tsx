@@ -167,7 +167,7 @@ export default function MarketPage() {
         token: tok.symbol,
         trader: Math.random().toString(36).slice(2,6).toUpperCase()+'...'+Math.random().toString(36).slice(2,6).toUpperCase(),
         time: 'just now',
-        type: Math.random()>0.5?'buy':'sell'
+        type: (Math.random()>0.5?'buy':'sell') as 'buy'|'sell'
       }, ...prev].slice(0,20))
     }
     gen()
