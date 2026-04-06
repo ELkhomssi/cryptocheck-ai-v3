@@ -59,7 +59,7 @@ const TOKEN_NAMES = [
   { name:'PepeSol',  symbol:'PSOL'  },
 ]
 
-export default function ValueProtectedWidget({ events: externalEvents }: { events?: ProtectionEvent[] }) {
+export default function ValueProtectedWidget({ events: externalEvents, compact }: { events?: ProtectionEvent[], compact?: boolean }) {
   const [events, setEvents] = useState<ProtectionEvent[]>([])
   const [totalSaved, setTotalSaved] = useState(0)
   const [pulse, setPulse] = useState(false)
@@ -131,6 +131,18 @@ export default function ValueProtectedWidget({ events: externalEvents }: { event
   const rugCount = events.length
   const avgSave = rugCount > 0 ? Math.floor(totalSaved / rugCount) : 0
   const roi = totalSaved > 0 ? Math.round(totalSaved / 30) : 0
+
+  if (compact) return (
+    <div style={{fontFamily:'IBM Plex Mono,monospace',display:'flex',alignItems:'center',gap:12,padding:'6px 10px',background:'rgba(0,212,130,0.04)',border:'1px solid rgba(0,212,130,0.1)',borderRadius:4,marginBottom:8}}>
+      <span style={{width:6,height:6,borderRadius:'50%',background:pulse?'#00d4aa':'rgba(0,212,130,0.3)',boxShadow:pulse?'0 0 6px rgba(0,212,130,0.6)':'none',transition:'all 0.5s',flexShrink:0,display:'inline-block'}}/>
+      <span style={{fontSize:'9px',fontWeight:700,color:'#00d4aa',letterSpacing:'0.1em'}}>NEURAL PROTECTION ACTIVE</span>
+      <span style={{fontSize:'9px',color:'#6e7681',marginLeft:4}}>{rugCount > 0 ? `${rugCount} rugs blocked · ${totalSaved.toLocaleString()} saved` : 'Monitoring...'}</span>
+      {events.slice(0,2).map(ev => (
+        <span key={ev.id} style={{fontSize:'8px',color:ev.riskColor,background:`${ev.riskColor}15`,border:`1px solid ${ev.riskColor}30`,padding:'1px 6px',borderRadius:3,whiteSpace:'nowrap'}}>{ev.riskIcon} ${ev.symbol} +${ev.valueSaved.toLocaleString()}</span>
+      ))}
+      {totalSaved > 0 && <span style={{marginLeft:'auto',fontSize:'10px',fontWeight:700,color:'#00d4aa',fontFamily:'IBM Plex Mono,monospace'}}>$<CountUp target={totalSaved} duration={800} /></span>}
+    </div>
+  )
 
   return (
     <div style={{fontFamily:'IBM Plex Mono,monospace'}}>

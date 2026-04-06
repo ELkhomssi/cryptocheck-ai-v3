@@ -2521,7 +2521,7 @@ export default function Page() {
 
       {/* ── BUBBLE MAP (scanner view only) ── */}
       {view === 'scanner' && (
-        <div style={{height:220,margin:'6px 8px',flexShrink:0}}>
+        <div style={{height:160,margin:'4px 6px',flexShrink:0,borderRadius:6,overflow:'hidden',border:'1px solid #1f2937'}}>
           <BubbleMap onSelectToken={(mint, symbol) => {
             setMintInput(mint)
             doScan(mint)
@@ -2705,7 +2705,7 @@ export default function Page() {
                   </button>
                 )}
               </div>
-              <ValueProtectedWidget />
+              <ValueProtectedWidget compact />
               {/* PERSISTENT SCAN INPUT — outside renderScanContent to prevent re-mount */}
               <div className="flex items-center gap-2 px-3 py-2 bg-[#161b22] border-b border-[rgba(0,212,130,0.15)] flex-shrink-0">
                 <input
