@@ -11,6 +11,7 @@ import {
 import RugForensicsLab from '@/components/RugForensicsLab'
 import SignupTrialModal from '@/components/SignupTrialModal'
 import ChartSwapModal from '@/components/ChartSwapModal'
+import BubbleMap from '@/components/BubbleMap'
 import NeuralScanV4 from '@/components/NeuralScanV4'
 import ValueProtectedWidget from '@/components/ValueProtectedWidget'
 import NeuralAuditLog from '@/components/NeuralAuditLog'
@@ -2445,15 +2446,7 @@ export default function Page() {
 
   if (!mounted) return (
     <>
-      {showSignup && !trialActivated && !isPro && (
-        <SignupTrialModal
-          walletAddress={walletAddress}
-          isConnected={isConnected}
-          isConnecting={isConnecting}
-          onConnect={connect}
-          onSuccess={() => { setTrialActivated(true); setShowSignup(false) }}
-        />
-      )}
+      {/* SignupModal disabled - using Gated Access instead */}
     </>
   )
 
@@ -2465,7 +2458,7 @@ export default function Page() {
       <div className="ambient-blob ambient-blob-3" />
 
       {/* ── HEADER ── */}
-      {showSignup && !trialActivated && !isPro && (
+      {false && (
         <SignupTrialModal
           walletAddress={walletAddress}
           isConnected={isConnected}
@@ -2475,7 +2468,7 @@ export default function Page() {
         />
       )}
       {chartSwapModal && <ChartSwapModal mint={chartSwapModal.mint} symbol={chartSwapModal.symbol} initialTab={chartSwapModal.tab as any} onClose={() => setChartSwapModal(null)} />}
-      {isTrialExpired && !isPro && <TrialWall onUpgrade={() => setShowModal(true)} daysUsed={4} />}
+      {/* TrialWall removed - using Gated Access */}
       <header className="sticky top-0 z-[300] h-12 flex items-center justify-between px-4 bg-[rgba(13,17,23,0.97)] backdrop-blur-xl border-b border-[rgba(0,212,130,0.15)]">
         <a href="/" className="flex items-center gap-2 font-mono text-[0.82rem] font-bold text-white tracking-wider uppercase no-underline">
           <div style={{width:30,height:26,flexShrink:0}}>
@@ -2493,7 +2486,7 @@ export default function Page() {
           </div>
           CryptoCheck<span className="text-[#00d4aa]">AI</span>
           <span className="text-[0.5rem] text-[#8b949e] ml-0.5">v3</span>
-          <TrialBanner walletAddress={walletAddress} />
+          {!isPro && <span style={{fontSize:'9px',color:'#f0a500',border:'1px solid rgba(240,165,0,0.2)',background:'rgba(240,165,0,0.06)',padding:'2px 8px',borderRadius:4,fontFamily:'IBM Plex Mono,monospace',fontWeight:700}}>FREE</span>}
         </a>
 
         {/* Desktop nav */}
@@ -2507,7 +2500,7 @@ export default function Page() {
 
         <div className="flex items-center gap-1.5">
           <div className="live-badge bg-emerald-950/30 border border-emerald-800/25 text-emerald-400 px-2 py-0.5 rounded-[3px] text-[0.58rem] font-bold tracking-wider hidden sm:block">● MAINNET-BETA</div>
-          <button onClick={() => setShowModal(true)} className="btn-terminal px-3 py-1 text-white border-none rounded-[4px] text-[0.62rem]" style={{ background:'linear-gradient(135deg,#00d4aa,#06b6d4)', boxShadow:'0 0 12px rgba(48,54,61,1)' }}>⚡ PRO</button>
+          <button onClick={() => setShowModal(true)} className="btn-terminal px-3 py-1 text-white border-none rounded-[4px] text-[0.62rem]" style={{ background:'linear-gradient(135deg,#00d4aa,#059669)', boxShadow:'0 0 12px rgba(0,212,130,0.3)' }}>⚡ UPGRADE</button>
           <button onClick={isConnected ? disconnect : connect} disabled={isConnecting} className={`btn-terminal px-3 py-1 rounded-[4px] text-[0.62rem] ${isConnected ? 'bg-emerald-950/30 border-emerald-800/25 text-emerald-400' : 'bg-[rgba(0,212,130,0.08)] border-[rgba(0,212,130,0.15)] text-[#00d4aa]'}`}>
             {isConnecting ? 'Connecting…' : isConnected ? `✓ ${shortAddr}` : 'Connect Wallet'}
           </button>
@@ -2526,6 +2519,15 @@ export default function Page() {
         </div>
       </div>
 
+      {/* ── BUBBLE MAP (scanner view only) ── */}
+      {view === 'scanner' && (
+        <div style={{height:220,margin:'6px 8px',flexShrink:0}}>
+          <BubbleMap onSelectToken={(mint, symbol) => {
+            setMintInput(mint)
+            doScan(mint)
+          }} />
+        </div>
+      )}
       {/* ── APP BODY ── */}
       <div className="flex" style={{ minHeight: 'calc(100vh - 48px - 26px - 32px - 80px)', position: 'relative', zIndex: 1 }}>
 
