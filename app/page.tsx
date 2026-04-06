@@ -1286,343 +1286,213 @@ const DEST_WALLET = '5jbWsijUWqXLyuaNtzkiu2JM1C5jNPUP9oRjKmmJx15i'
 const USDC_MINT   = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
 const HELIUS_RPC  = 'https://mainnet.helius-rpc.com/?api-key=35530e51-dad1-480b-af8f-11c8af2ab3fd'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DexQuote = any
+
 function ProModal({ onClose }: { onClose: () => void }) {
-  // Stripe
-  const [stripeLoading, setStripeLoading] = useState<PlanId|null>(null)
-  const [stripeError,   setStripeError]   = useState('')
+  const [selected, setSelected] = useState<'starter'|'pro'|'whale'>('pro')
+  const [billing, setBilling] = useState<'monthly'|'yearly'>('monthly')
+  const [loading, setLoading] = useState<string|null>(null)
+  const [step, setStep] = useState<'plans'|'pay'>('plans')
+  const [pulse, setPulse] = useState(false)
 
-  // Crypto — one state machine shared, active plan tracked
-  const [cryptoPlan,  setCryptoPlan]  = useState<PlanId|null>(null)
-  const [cryptoStep,  setCryptoStep]  = useState<CryptoStep>('idle')
-  const [cryptoError, setCryptoError] = useState('')
-  const [txSig,       setTxSig]       = useState('')
-  const [successPlan, setSuccessPlan] = useState<PlanId|null>(null)
+  useEffect(() => {
+    const iv = setInterval(() => setPulse(p => !p), 1500)
+    return () => clearInterval(iv)
+  }, [])
 
-  // Per-plan coin preference
-  const [coins, setCoins] = useState<Record<PlanId, Coin>>({ weekly:'SOL', yearly:'SOL', vip:'SOL' })
-  const setCoin = (plan: PlanId, coin: Coin) => setCoins(p => ({ ...p, [plan]: coin }))
+  const plans = [
+    {
+      id: 'starter' as const,
+      name: 'Starter',
+      price: 5,
+      period: 'one-time',
+      color: '#c0c0c0',
+      glow: 'rgba(192,192,192,0.3)',
+      border: 'rgba(192,192,192,0.25)',
+      bg: 'linear-gradient(135deg,rgba(192,192,192,0.06),rgba(0,0,0,0))',
+      icon: '⚡',
+      badge: null,
+      features: [
+        '10 Deep AI Neural Scans',
+        'Rug Detection Reports',
+        'Basic Risk Scoring',
+        'Email Support',
+        'Valid 30 days',
+      ],
+      cta: 'Get Started',
+      sol: 0.06,
+    },
+    {
+      id: 'pro' as const,
+      name: 'Pro',
+      price: billing === 'monthly' ? 30 : 24,
+      period: billing === 'monthly' ? '/month' : '/month billed yearly',
+      color: '#d4af37',
+      glow: 'rgba(212,175,55,0.4)',
+      border: 'rgba(212,175,55,0.4)',
+      bg: 'linear-gradient(135deg,rgba(212,175,55,0.1),rgba(0,0,0,0))',
+      icon: '🧠',
+      badge: 'MOST POPULAR',
+      features: [
+        'Unlimited Neural Scans',
+        'AI Prediction Scores (5m-15m)',
+        'AI-Pilot Auto-Sniper',
+        'Priority Alpha Feed',
+        'Whale Wallet Tracking',
+        'Rug Forensics Lab',
+        'Real-time Alerts',
+        'Priority Support',
+      ],
+      cta: 'Upgrade to Pro',
+      sol: 0.35,
+    },
+    {
+      id: 'whale' as const,
+      name: 'Whale',
+      price: 0,
+      period: '0.5% success fee',
+      color: '#00d4aa',
+      glow: 'rgba(0,212,130,0.3)',
+      border: 'rgba(0,212,130,0.3)',
+      bg: 'linear-gradient(135deg,rgba(0,212,130,0.08),rgba(0,0,0,0))',
+      icon: '🐋',
+      badge: 'NO MONTHLY FEE',
+      features: [
+        'Everything in Pro',
+        'Zero monthly cost',
+        '0.5% fee on profitable trades only',
+        'Dedicated Trading Wallet',
+        'Custom AI Strategy',
+        'Direct Founder Access',
+        'Early Alpha Signals',
+        'VIP Telegram Group',
+      ],
+      cta: 'Apply for Whale',
+      sol: 0,
+    },
+  ]
 
-  // ── Stripe checkout ──────────────────────────
-  async function selectPlan(plan: PlanId) {
-    setStripeLoading(plan)
-    setStripeError('')
+  const activePlan = plans.find(pl => pl.id === selected)!
+
+  async function handleBuy() {
+    setLoading(selected)
     try {
-      const res  = await fetch('/api/stripe/checkout', {
-        method: 'POST', headers: { 'Content-Type':'application/json' },
-        body: JSON.stringify({ plan }),
+      if (selected === 'whale') {
+        window.open('mailto:elkhomsiabderrahim@gmail.com?subject=Whale Plan Application', '_blank')
+        setLoading(null)
+        return
+      }
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ plan: selected === 'starter' ? 'starter' : billing === 'monthly' ? 'weekly' : 'yearly' })
       })
       const data = await res.json()
-      if (!res.ok || data.error) { setStripeError(data.error ?? `Error ${res.status}`); return }
       if (data.url) window.location.assign(data.url)
+      else throw new Error(data.error || 'Failed')
     } catch(e) {
-      setStripeError(e instanceof Error ? e.message : 'Network error')
+      alert('Payment error: ' + (e instanceof Error ? e.message : 'Unknown'))
     } finally {
-      setStripeLoading(null)
+      setLoading(null)
     }
-  }
-
-  // ── Unified crypto payment ───────────────────
-  async function handleCryptoPayment(planId: PlanId, coin: Coin) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const w = window as any
-    const plan = PLANS.find(p => p.id === planId)!
-    const amountSol  = plan.solAmt
-    const amountUsdc = plan.usdcAmt
-
-    setCryptoPlan(planId)
-    setCryptoError('')
-    setCryptoStep('connecting')
-
-    // 1 — Connect wallet
-    if (!w.solana?.isPhantom && !w.solflare) {
-      setCryptoError('No Solana wallet found. Install Phantom or Solflare.')
-      setCryptoStep('error'); return
-    }
-    const provider = w.solana || w.solflare
-    try {
-      if (!provider.isConnected) await provider.connect()
-    } catch {
-      setCryptoError('Wallet connection rejected.')
-      setCryptoStep('error'); return
-    }
-
-    const sender = provider.publicKey?.toString()
-    if (!sender) {
-      setCryptoError('Could not read wallet public key.')
-      setCryptoStep('error'); return
-    }
-
-    // 2 — Show confirm state
-    setCryptoStep('confirm')
-    await new Promise(r => setTimeout(r, 350))
-    setCryptoStep('sending')
-
-    try {
-      const { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } =
-        await import('@solana/web3.js')
-      const conn = new Connection(HELIUS_RPC, 'confirmed')
-      let signature: string
-
-      if (coin === 'SOL') {
-        // SOL native transfer
-        const tx = new Transaction().add(
-          SystemProgram.transfer({
-            fromPubkey: new PublicKey(sender),
-            toPubkey:   new PublicKey(DEST_WALLET),
-            lamports:   Math.round(amountSol * LAMPORTS_PER_SOL),
-          })
-        )
-        const { blockhash } = await conn.getLatestBlockhash()
-        tx.recentBlockhash = blockhash
-        tx.feePayer = new PublicKey(sender)
-        const signed = await provider.signTransaction(tx)
-        signature = await conn.sendRawTransaction(signed.serialize())
-
-      } else {
-        // USDC SPL transfer
-        const splMod = await import('@solana/spl-token').catch(() => {
-          throw new Error('@solana/spl-token not installed. Use SOL payment.')
-        })
-        const { getAssociatedTokenAddress, createTransferInstruction, TOKEN_PROGRAM_ID } = splMod
-        const mint     = new PublicKey(USDC_MINT)
-        const fromAta  = await getAssociatedTokenAddress(mint, new PublicKey(sender))
-        const toAta    = await getAssociatedTokenAddress(mint, new PublicKey(DEST_WALLET))
-        const tx = new Transaction().add(
-          createTransferInstruction(fromAta, toAta, new PublicKey(sender), amountUsdc * 1_000_000, [], TOKEN_PROGRAM_ID)
-        )
-        const { blockhash } = await conn.getLatestBlockhash()
-        tx.recentBlockhash = blockhash
-        tx.feePayer = new PublicKey(sender)
-        const signed = await provider.signTransaction(tx)
-        signature = await conn.sendRawTransaction(signed.serialize())
-      }
-
-      // 3 — Confirm on-chain
-      await conn.confirmTransaction(signature, 'confirmed')
-      console.log(`[CryptoPay] ✅ ${planId} | ${coin} | TX: ${signature}`)
-
-      // 4 — Update Supabase (fire-and-forget, non-blocking)
-      fetch('/api/crypto/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: planId, coin, signature, wallet: sender }),
-      }).then(r => r.json()).then(data => { if(data.success) { localStorage.setItem('cc_is_pro','true'); localStorage.setItem('cc_plan', data.plan); localStorage.setItem('cc_expires', data.expiresAt); window.location.reload(); } }).catch(console.warn)
-
-      setTxSig(signature)
-      setSuccessPlan(planId)
-      setCryptoStep('success')
-setTimeout(()=>window.location.reload(),2500)
-
-    } catch(e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Transaction failed'
-      setCryptoError(msg.includes('rejected') || msg.includes('cancel') ? 'Transaction rejected by wallet.' : msg.slice(0, 140))
-      setCryptoStep('error')
-    }
-  }
-
-  // ── Per-plan crypto widget ───────────────────
-  function CryptoWidget({ planId }: { planId: PlanId }) {
-    const plan    = PLANS.find(p => p.id === planId)!
-    const coin    = coins[planId]
-    const busy    = cryptoPlan === planId && ['connecting','confirm','sending'].includes(cryptoStep)
-    const success = cryptoPlan === planId && cryptoStep === 'success'
-    const error   = cryptoPlan === planId && cryptoStep === 'error'
-    const isVip   = planId === 'vip'
-
-    if (success) return (
-      <div className="mt-2 p-3 rounded-[4px] bg-emerald-950/20 border border-emerald-800/25 text-center">
-        <div className="text-lg mb-0.5">✅</div>
-        <div className="text-[0.65rem] font-bold text-emerald-400">Payment Confirmed!</div>
-        <div className="text-[0.58rem] text-emerald-300 font-bold mt-0.5">
-          {isVip ? '🎯 VIP Sniper Unlocked' : `✓ ${plan.label} Plan Active`}
-        </div>
-        <a href={`https://solscan.io/tx/${txSig}`} target="_blank" rel="noopener noreferrer"
-          className="text-[0.48rem] text-[#8b949e] underline font-mono block mt-1 break-all">
-          {txSig.slice(0,16)}…{txSig.slice(-8)} ↗
-        </a>
-      </div>
-    )
-
-    if (busy) return (
-      <div className="mt-2 p-2.5 rounded-[4px] bg-[rgba(153,69,255,0.06)] border border-[rgba(153,69,255,0.2)] text-center">
-        {cryptoStep === 'connecting' && <div className="text-[0.62rem] text-[#00d4aa] animate-pulse">Connecting wallet…</div>}
-        {cryptoStep === 'confirm'    && (
-          <>
-            <div className="text-[0.62rem] text-amber-400 font-bold">Confirm in wallet</div>
-            <div className="text-[0.52rem] text-[#8b949e] mt-0.5">Check Phantom / Solflare</div>
-          </>
-        )}
-        {cryptoStep === 'sending' && (
-          <>
-            <div className="flex justify-center gap-1 mb-1.5">
-              {[0,1,2].map(i => <div key={i} className="w-1.5 h-1.5 rounded-full bg-[#14f195]"
-                style={{ animation:`bounce 0.7s ease-in-out ${i*0.15}s infinite` }} />)}
-            </div>
-            <div className="text-[0.6rem] text-[#14f195]">Broadcasting to Solana…</div>
-          </>
-        )}
-      </div>
-    )
-
-    return (
-      <div className="mt-2">
-        {/* OR divider */}
-        <div className="flex items-center gap-2 my-2">
-          <div className="flex-1 h-px bg-[rgba(33,38,45,0.8)]" />
-          <span className="text-[0.48rem] text-[#484f58]">OR PAY WITH CRYPTO</span>
-          <div className="flex-1 h-px bg-[rgba(33,38,45,0.8)]" />
-        </div>
-
-        {/* Coin toggle */}
-        <div className="flex gap-1 mb-2">
-          {(['SOL','USDC'] as Coin[]).map(c => (
-            <button key={c} onClick={() => setCoin(planId, c)}
-              className="flex-1 py-1 rounded-[3px] text-[0.55rem] font-bold font-mono cursor-pointer transition-all border-none"
-              style={{
-                background: coin === c ? 'rgba(153,69,255,0.15)' : 'rgba(33,38,45,0.5)',
-                color:      coin === c ? '#00d4aa' : '#6e7681',
-                outline:    coin === c ? '1px solid rgba(153,69,255,0.35)' : '1px solid rgba(33,38,45,0.6)',
-              }}>
-              {c === 'SOL' ? '◎' : '$'} {c}
-            </button>
-          ))}
-        </div>
-
-        {/* Pay button */}
-        <button
-          onClick={() => { setCryptoError(''); handleCryptoPayment(planId, coin) }}
-          disabled={!!stripeLoading}
-          className="w-full py-2 rounded-[4px] text-[0.62rem] font-bold font-mono tracking-wider border-none cursor-pointer text-white disabled:opacity-40 flex items-center justify-center gap-2"
-          style={{ background:'linear-gradient(135deg,#9945ff,#14f195)', boxShadow:'0 0 12px rgba(153,69,255,0.3)' }}>
-          <SolanaLogo size={13} />
-          Pay {coin === 'SOL' ? `${plan.solAmt} SOL` : `${plan.usdcAmt} USDC`} on Solana
-        </button>
-
-        {error && (
-          <div className="mt-1.5 text-[0.56rem] text-red-400 text-center leading-relaxed">{cryptoError}</div>
-        )}
-      </div>
-    )
   }
 
   return (
-    <div className="fixed inset-0 z-[999] bg-black/80 backdrop-blur-[10px] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#161b22] border border-[rgba(0,212,130,0.15)] rounded-[6px] max-w-[680px] w-full max-h-[90vh] overflow-y-auto p-6 relative modal-enter" onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-3 right-3 w-7 h-7 rounded-[3px] border border-[rgba(0,212,130,0.15)] bg-[#1c2128] flex items-center justify-center text-[#8b949e] text-xs hover:border-red-700 hover:text-red-400 transition-all">✕</button>
+    <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.85)',backdropFilter:'blur(20px)',display:'flex',alignItems:'center',justifyContent:'center',padding:16,fontFamily:'Inter,sans-serif'}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:'min(880px,95vw)',maxHeight:'90vh',overflowY:'auto',background:'#0a0a0a',border:'1px solid #1f2937',borderRadius:12,boxShadow:'0 32px 80px rgba(0,0,0,0.8)'}}>
+        
+        {/* Top accent */}
+        <div style={{height:2,background:'linear-gradient(90deg,transparent,#d4af37,#00d4aa,transparent)',borderRadius:'12px 12px 0 0'}}/>
 
-        <div className="text-center mb-5">
-          <div className="inline-flex items-center gap-1.5 bg-[rgba(0,212,130,0.1)] border border-[rgba(0,212,130,0.15)] rounded-full px-3 py-1 text-[0.6rem] text-[#00d4aa] mb-3 tracking-wider uppercase">⚡ Institutional Access</div>
-          <h2 className="text-xl font-bold text-[#e2e8f0] font-sans mb-1">
-            Upgrade to <span className="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">PRO</span>
-          </h2>
-          <p className="text-[0.65rem] text-[#8b949e]">Pay with card or crypto on Solana — instant access.</p>
-        </div>
-
-        {/* Plans grid */}
-        <div className="grid grid-cols-3 gap-3 mb-4 max-sm:grid-cols-1">
-          {PLANS.map(plan => {
-            const isVip = plan.id === 'vip'
-            return (
-              <div key={plan.id} className="rounded-[4px] p-4 relative flex flex-col"
-                style={isVip
-                  ? { background:'linear-gradient(135deg,rgba(251,191,36,0.06),rgba(124,58,237,0.08))', border:'1px solid rgba(251,191,36,0.3)' }
-                  : plan.id === 'yearly'
-                    ? { background:'rgba(0,212,130,0.06)', border:'1px solid rgba(48,54,61,1)' }
-                    : { background:'#0c0c18', border:'1px solid rgba(33,38,45,1)' }
-                }
-              >
-                {/* Badge */}
-                {plan.badge && (
-                  <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[0.48rem] font-bold text-white whitespace-nowrap"
-                    style={(plan as { badgeStyle?: React.CSSProperties }).badgeStyle ?? {}}>
-                    {plan.badge}
-                  </div>
-                )}
-
-                {/* Label + price */}
-                <div className="text-center mb-2 mt-1">
-                  <div className="text-[0.55rem] uppercase tracking-widest mb-1"
-                    style={{ color: isVip ? '#fbbf24' : '#6e7681' }}>{plan.label}</div>
-                  <div className="text-2xl font-bold font-mono leading-none"
-                    style={{ color: isVip ? '#fbbf24' : '#e2e8f0' }}>
-                    <sup className="text-sm">{plan.price.charAt(0)}</sup>
-                    {plan.price.slice(1)}
-                    <sub className="text-[0.58rem] font-normal text-[#8b949e]">{plan.period}</sub>
-                  </div>
-                  <div className="text-[0.5rem] text-[#484f58] mt-0.5 font-mono">
-                    ≈ {plan.solAmt} SOL · {plan.usdcAmt} USDC
-                  </div>
-                </div>
-
-                {/* Features */}
-                <ul className="space-y-1 mb-3 flex-1">
-                  {plan.features.map(f => (
-                    <li key={f} className="flex items-start gap-1.5 text-[0.58rem]" style={{ color:'#c9d1d9' }}>
-                      <span style={{ color: isVip ? '#fbbf24' : '#10b981', flexShrink:0 }}>✓</span>{f}
-                    </li>
-                  ))}
-                </ul>
-
-                {/* Stripe button */}
-                <button
-                  onClick={() => selectPlan(plan.id)}
-                  disabled={!!stripeLoading || (cryptoPlan === plan.id && ['connecting','confirm','sending'].includes(cryptoStep))}
-                  className="w-full py-2 rounded-[4px] text-[0.62rem] font-bold font-mono tracking-wider cursor-pointer transition-all disabled:opacity-40"
-                  style={{ ...(plan.btnStyle as React.CSSProperties), border: (plan.btnStyle as { border?: string }).border ?? 'none' }}
-                >
-                  {stripeLoading === plan.id ? 'Redirecting…' : '💳 Pay with Card'}
-                </button>
-
-                {/* Crypto widget */}
-                <CryptoWidget planId={plan.id} />
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Stripe error */}
-        {stripeError && (
-          <div className="mb-3 px-3 py-2.5 rounded-[4px] bg-red-950/20 border border-red-800/25 text-[0.62rem] text-red-400 flex gap-2">
-            <span>⚠</span><div><strong className="block">Stripe error</strong>{stripeError}</div>
+        {/* Header */}
+        <div style={{padding:'24px 28px 16px',borderBottom:'1px solid #1f2937',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div>
+            <div style={{fontSize:22,fontWeight:700,color:'#fff',letterSpacing:'-0.01em'}}>
+              Upgrade <span style={{color:'#d4af37'}}>CryptoCheck AI</span>
+            </div>
+            <div style={{fontSize:13,color:'#6e7681',marginTop:4}}>Choose the plan that fits your trading style</div>
           </div>
-        )}
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
+            {/* Billing toggle */}
+            <div style={{display:'flex',alignItems:'center',gap:8,background:'#161b22',border:'1px solid #21262d',borderRadius:8,padding:'4px 6px'}}>
+              {(['monthly','yearly'] as const).map(b => (
+                <button key={b} onClick={()=>setBilling(b)} style={{padding:'4px 12px',borderRadius:6,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,transition:'all 0.15s',background:billing===b?'#d4af37':'transparent',color:billing===b?'#0a0a0a':'#6e7681'}}>
+                  {b === 'monthly' ? 'Monthly' : 'Yearly -20%'}
+                </button>
+              ))}
+            </div>
+            <button onClick={onClose} style={{background:'none',border:'none',color:'#6e7681',cursor:'pointer',fontSize:20,lineHeight:1,padding:4}}>×</button>
+          </div>
+        </div>
 
-        {/* Features perks */}
-        <div className="grid grid-cols-3 gap-2 pt-4 border-t border-[rgba(0,212,130,0.15)] max-sm:grid-cols-1">
-          {[
-            { icon:'🐋', t:'Whale Tracker',  d:'Follow top wallets with +$50K PnL live' },
-            { icon:'📡', t:'Alpha Feed',      d:'Rug alerts, accumulation signals, mint events' },
-            { icon:'🎯', t:'AI Auto-Sniper', d:'Neural-powered auto-trade execution on Jupiter' },
-          ].map(p => (
-            <div key={p.t} className="bg-[#1c2128] border border-[rgba(33,38,45,0.6)] rounded-[3px] p-3 text-center">
-              <div className="text-xl mb-1">{p.icon}</div>
-              <div className="text-[0.62rem] font-bold text-[#e2e8f0] mb-0.5">{p.t}</div>
-              <div className="text-[0.55rem] text-[#8b949e] leading-relaxed">{p.d}</div>
+        {/* Plans */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,padding:'24px 28px'}}>
+          {plans.map(pl => (
+            <div key={pl.id} onClick={()=>setSelected(pl.id)}
+              style={{position:'relative',background:selected===pl.id?pl.bg:'rgba(255,255,255,0.02)',border:`2px solid ${selected===pl.id?pl.border:'#1f2937'}`,borderRadius:10,padding:'20px 18px',cursor:'pointer',transition:'all 0.2s',boxShadow:selected===pl.id?`0 0 24px ${pl.glow}`:'none'}}>
+              
+              {pl.badge && (
+                <div style={{position:'absolute',top:-10,left:'50%',transform:'translateX(-50%)',background:pl.id==='pro'?'#d4af37':pl.id==='whale'?'#00d4aa':'#c0c0c0',color:'#0a0a0a',fontSize:9,fontWeight:700,padding:'3px 10px',borderRadius:20,whiteSpace:'nowrap',letterSpacing:'0.08em'}}>
+                  {pl.badge}
+                </div>
+              )}
+
+              <div style={{fontSize:24,marginBottom:8}}>{pl.icon}</div>
+              <div style={{fontSize:15,fontWeight:700,color:selected===pl.id?pl.color:'#e2e8f0',marginBottom:4}}>{pl.name}</div>
+              
+              <div style={{marginBottom:16}}>
+                {pl.price === 0 ? (
+                  <div style={{fontSize:28,fontWeight:700,color:pl.color,lineHeight:1}}>FREE</div>
+                ) : (
+                  <div style={{fontSize:28,fontWeight:700,color:pl.color,lineHeight:1}}>${pl.price}</div>
+                )}
+                <div style={{fontSize:11,color:'#6e7681',marginTop:3}}>{pl.period}</div>
+              </div>
+
+              <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:16}}>
+                {pl.features.map(f => (
+                  <div key={f} style={{display:'flex',alignItems:'flex-start',gap:7,fontSize:12,color:selected===pl.id?'#e2e8f0':'#8b949e'}}>
+                    <span style={{color:pl.color,flexShrink:0,marginTop:1}}>✓</span>
+                    {f}
+                  </div>
+                ))}
+              </div>
+
+              {pl.sol > 0 && (
+                <div style={{fontSize:10,color:'#484f58',borderTop:'1px solid #1f2937',paddingTop:8,marginBottom:12}}>
+                  ≈ {pl.sol} SOL on Solana
+                </div>
+              )}
+
+              <button onClick={e=>{e.stopPropagation();setSelected(pl.id);handleBuy()}}
+                disabled={loading === pl.id}
+                style={{width:'100%',padding:'10px 0',borderRadius:6,border:'none',cursor:'pointer',fontWeight:700,fontSize:13,transition:'all 0.2s',
+                  background:selected===pl.id?pl.color:'#161b22',
+                  color:selected===pl.id?'#0a0a0a':'#8b949e',
+                  boxShadow:selected===pl.id?`0 0 16px ${pl.glow}`:'none',
+                  opacity:loading===pl.id?0.7:1}}>
+                {loading === pl.id ? '⟳ Processing...' : pl.cta}
+              </button>
             </div>
           ))}
         </div>
 
-        <div className="mt-3 text-center text-[0.5rem] text-[#484f58]">
-          Crypto payments settle on Solana Mainnet · Card payments via Stripe · No refunds on digital access
+        {/* Footer */}
+        <div style={{padding:'16px 28px',borderTop:'1px solid #1f2937',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div style={{display:'flex',gap:16}}>
+            {['🔒 Secure Payment','⚡ Instant Access','↩ Cancel Anytime'].map(f => (
+              <span key={f} style={{fontSize:11,color:'#6e7681'}}>{f}</span>
+            ))}
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:6}}>
+            <span style={{width:6,height:6,borderRadius:'50%',background:pulse?'#00d4aa':'rgba(0,212,130,0.3)',display:'inline-block',transition:'all 0.5s',boxShadow:pulse?'0 0 6px #00d4aa':'none'}}/>
+            <span style={{fontSize:11,color:'#00d4aa',fontFamily:'IBM Plex Mono,monospace',fontWeight:700}}>LIVE · Solana Mainnet</span>
+          </div>
         </div>
       </div>
     </div>
   )
-}
-
-
-// ══════════════════════════════════════════════
-//  ALPHA EDGE TAB — Arbitrage & Edge Detector
-// ══════════════════════════════════════════════
-
-interface DexQuote {
-  dex:        string
-  icon:       string
-  price:      number
-  liquidity:  number
-  volume24h:  number
-  fee:        number
-  color:      string
 }
 
 function generateDexQuotes(riskScore: number, supply: number): DexQuote[] {
@@ -1665,12 +1535,12 @@ function calcEdge(quotes: DexQuote[], riskScore: number): {
   edgePct: number; edgeLabel: string; edgeColor: string; confidence: number;
   bestBuy: DexQuote; bestSell: DexQuote; netAfterFees: number
 } {
-  const sorted   = [...quotes].sort((a, b) => a.price - b.price)
-  const bestBuy  = sorted[0]
-  const bestSell = sorted[sorted.length - 1]
+  const sorted   = [...quotes].sort((a: any, b: any) => (a.price as number) - (b.price as number))
+  const bestBuy: any  = sorted[0]
+  const bestSell: any = sorted[sorted.length - 1]
 
-  const rawEdge    = ((bestSell.price - bestBuy.price) / bestBuy.price) * 100
-  const feesCost   = bestBuy.fee + bestSell.fee   // round-trip fees
+  const rawEdge    = ((Number(bestSell.price) - Number(bestBuy.price)) / Number(bestBuy.price)) * 100
+  const feesCost   = Number(bestBuy.fee) + Number(bestSell.fee)
   const netAfterFees = rawEdge - feesCost
 
   // Risk-adjusted edge: low risk tokens get a multiplier
