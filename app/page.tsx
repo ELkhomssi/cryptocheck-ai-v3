@@ -1,5 +1,8 @@
 'use client'
 import React from 'react'
+import RootWrapper from './root-page-wrapper'
+import { createClient } from '@supabase/supabase-js'
+const _supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 import MintInput from '@/components/MintInput'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
@@ -1795,6 +1798,19 @@ function ProGate({ children }: { children: React.ReactNode; feature?: string; ic
 }
 
 export default function Page() {
+  const [_authChecked, _setAuthChecked] = React.useState(false)
+  const [_isLoggedIn, _setIsLoggedIn] = React.useState(false)
+
+  React.useEffect(() => {
+    _supabase.auth.getSession().then(({ data }) => {
+      _setIsLoggedIn(!!data.session?.user)
+      _setAuthChecked(true)
+    })
+    const { data: { subscription } } = _supabase.auth.onAuthStateChange((_e, session) => {
+      _setIsLoggedIn(!!session?.user)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
   const { walletAddress, isConnected, isConnecting, connect, disconnect, shortAddr } = useSolana()
 
   const [view,        setView]        = useState<View>('scanner')
@@ -2280,7 +2296,7 @@ export default function Page() {
   )
 
   return (
-    <>
+    <RootWrapper>
       {/* Ambient glow blobs */}
       <div className="ambient-blob ambient-blob-1" />
       <div className="ambient-blob ambient-blob-2" />
@@ -2768,6 +2784,6 @@ export default function Page() {
           onClose={() => setShowSwap(false)}
         />
       )}
-    </>
+    </RootWrapper>
   )
 }
