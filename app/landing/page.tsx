@@ -1,9 +1,27 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { createClient } from '@supabase/supabase-js'
+import AuthModal from '../components/AuthModal'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 export default function LandingPage() {
   const [pulse, setPulse] = useState(false)
-  useEffect(() => { const iv = setInterval(() => setPulse(p => !p), 1500); return () => clearInterval(iv) }, [])
+  const [showAuth, setShowAuth] = useState(false)
+  const [user, setUser] = useState<any>(null)
+
+  useEffect(() => {
+    const iv = setInterval(() => setPulse(p => !p), 1500)
+    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user ?? null)
+      if (session?.user) window.location.replace('/app')
+    })
+    return () => { clearInterval(iv); subscription.unsubscribe() }
+  }, [])
 
   return (
     <div style={{background:'#050a06',minHeight:'100vh',color:'#e8fef0',fontFamily:'Inter,system-ui,sans-serif',overflowX:'hidden'}}>
@@ -23,13 +41,17 @@ export default function LandingPage() {
           <span style={{fontSize:15,fontWeight:700,color:'#f0fdf4'}}>CryptoCheck<span style={{color:'#34d399'}}>AI</span></span>
         </div>
         <div style={{display:'flex',gap:2,margin:'0 auto'}}>
-          {['Features','Pricing','Neural Scan','Whale Intel'].map(t => (
-            <a key={t} href="#" style={{padding:'6px 13px',fontSize:13,color:'#6ee7b7',borderRadius:6,opacity:0.8}}>{t}</a>
+          {[['Features','#features'],['Pricing','#pricing'],['Neural Scan','/app'],['Whale Intel','/app']].map(([t,h]) => (
+            <a key={t} href={h} style={{padding:'6px 13px',fontSize:13,color:'#6ee7b7',textDecoration:'none',borderRadius:6,opacity:0.8}}>{t}</a>
           ))}
         </div>
         <div style={{display:'flex',gap:8,alignItems:'center'}}>
-          <a href="/app" style={{padding:'7px 16px',fontSize:13,color:'#6ee7b7',opacity:0.8}}>Sign In</a>
-          <a href="/app" style={{padding:'8px 18px',fontSize:13,fontWeight:600,background:'linear-gradient(135deg,#34d399,#10b981)',color:'#050a06',borderRadius:8,boxShadow:'0 0 16px rgba(52,211,153,0.3)'}}>Launch App →</a>
+          <button onClick={()=>user?window.location.replace('/app'):setShowAuth(true)} style={{padding:'7px 16px',fontSize:13,color:'#6ee7b7',opacity:0.8,background:'none',border:'none',cursor:'pointer'}}>
+            {user ? 'Dashboard →' : 'Sign In'}
+          </button>
+          <button onClick={()=>user?window.location.replace('/app'):setShowAuth(true)} style={{padding:'8px 18px',fontSize:13,fontWeight:600,background:'linear-gradient(135deg,#34d399,#10b981)',color:'#050a06',borderRadius:8,border:'none',cursor:'pointer',boxShadow:'0 0 16px rgba(52,211,153,0.3)'}}>
+            Launch App →
+          </button>
         </div>
       </nav>
 
@@ -55,9 +77,9 @@ export default function LandingPage() {
         </p>
 
         <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap',marginBottom:48,position:'relative'}}>
-          <a href="/app" style={{padding:'13px 28px',background:'linear-gradient(135deg,#34d399,#10b981)',color:'#050a06',borderRadius:10,fontSize:14,fontWeight:700,display:'flex',alignItems:'center',gap:8,boxShadow:'0 0 32px rgba(52,211,153,0.4)'}}>
+          <button onClick={()=>user?window.location.replace('/app'):setShowAuth(true)} style={{padding:'13px 28px',background:'linear-gradient(135deg,#34d399,#10b981)',color:'#050a06',borderRadius:10,fontSize:14,fontWeight:700,display:'flex',alignItems:'center',gap:8,border:'none',cursor:'pointer',boxShadow:'0 0 32px rgba(52,211,153,0.4)'}}>
             ⚡ Start Free — 10 Credits
-          </a>
+          </button>
           <a href="#features" style={{padding:'13px 26px',background:'rgba(52,211,153,0.06)',color:'#a7f3d0',borderRadius:10,fontSize:14,fontWeight:600,border:'1px solid rgba(52,211,153,0.2)'}}>
             See Features →
           </a>
@@ -158,7 +180,7 @@ export default function LandingPage() {
       </section>
 
       {/* PRICING */}
-      <section style={{padding:'60px 24px',maxWidth:800,margin:'0 auto'}}>
+      <section id="pricing" style={{padding:'60px 24px',maxWidth:800,margin:'0 auto'}}>
         <div style={{textAlign:'center',marginBottom:36}}>
           <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.14em',color:'#34d399',textTransform:'uppercase',marginBottom:10}}>PRICING</div>
           <h2 style={{fontSize:'clamp(24px,4vw,36px)',fontWeight:800,color:'#f0fdf4',letterSpacing:'-0.02em'}}>Simple, transparent pricing</h2>
@@ -177,9 +199,9 @@ export default function LandingPage() {
               <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:14}}>
                 {pl.features.map(f => <div key={f} style={{display:'flex',gap:6,fontSize:11,color:'#6ee7b7',opacity:0.8,alignItems:'center'}}><span style={{color:'#34d399',fontSize:10}}>✓</span>{f}</div>)}
               </div>
-              <a href="/app" style={{display:'block',padding:'9px',borderRadius:7,textAlign:'center',fontSize:12,fontWeight:700,...pl.btnStyle as any}}>
+              <button onClick={()=>user?window.location.replace('/app'):setShowAuth(true)} style={{display:'block',padding:'9px',borderRadius:7,textAlign:'center',fontSize:12,fontWeight:700,...(pl as any).btnStyle,border:'none',cursor:'pointer'}}>
                 {pl.cta}
-              </a>
+              </button>
             </div>
           ))}
         </div>
@@ -192,9 +214,9 @@ export default function LandingPage() {
           Start protecting your <span style={{color:'#34d399'}}>Solana portfolio</span> today
         </h2>
         <p style={{fontSize:14,color:'#6ee7b7',marginBottom:28,opacity:0.8,position:'relative'}}>Join thousands of traders using AI to trade smarter</p>
-        <a href="/app" style={{display:'inline-flex',alignItems:'center',gap:8,padding:'14px 32px',background:'linear-gradient(135deg,#34d399,#10b981)',color:'#050a06',borderRadius:10,fontSize:14,fontWeight:700,boxShadow:'0 0 36px rgba(52,211,153,0.4)',position:'relative'}}>
+        <button onClick={()=>user?window.location.replace('/app'):setShowAuth(true)} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'14px 32px',background:'linear-gradient(135deg,#34d399,#10b981)',color:'#050a06',borderRadius:10,fontSize:14,fontWeight:700,border:'none',cursor:'pointer',boxShadow:'0 0 36px rgba(52,211,153,0.4)',position:'relative'}}>
           ⚡ Launch App Free — 10 Credits
-        </a>
+        </button>
       </section>
 
       {/* FOOTER */}
@@ -214,6 +236,7 @@ export default function LandingPage() {
           ))}
         </div>
       </footer>
+      {showAuth && <AuthModal onClose={()=>setShowAuth(false)} onSuccess={(u)=>{setUser(u);window.location.replace('/app')}} />}
     </div>
   )
 }
