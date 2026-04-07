@@ -1386,7 +1386,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ plan: selected === 'starter' ? 'starter' : billing === 'monthly' ? 'weekly' : 'yearly' })
+        body: JSON.stringify({ plan: selected === 'starter' ? 'starter' : selected === 'pro' ? (billing === 'monthly' ? 'pro' : 'yearly') : 'whale' })
       })
       const data = await res.json()
       if (data.url) window.location.assign(data.url)

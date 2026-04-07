@@ -5,9 +5,12 @@ import { NextRequest, NextResponse } from 'next/server'
 // yearly → $200/year → price_1T9vdDAkjKVFT4LeAb9952Gt
 // vip    → $30/month → set STRIPE_PRICE_VIP in .env.local
 const PRICES: Record<string, string> = {
-  weekly: process.env.STRIPE_PRICE_WEEKLY  ?? 'price_1T7JMPAkjKVFT4LeDqPZOdMe',
-  yearly: process.env.STRIPE_PRICE_YEARLY  ?? 'price_1T9vdDAkjKVFT4LeAb9952Gt',
-  vip:    process.env.STRIPE_PRICE_VIP     ?? 'price_1TCTrmAkjKVFT4Le6GBIJ5K8', // $30/month VIP AI Sniper
+  weekly:  process.env.STRIPE_PRICE_WEEKLY   ?? 'price_1T7JMPAkjKVFT4LeDqPZOdMe',
+  yearly:  process.env.STRIPE_PRICE_YEARLY   ?? 'price_1T9vdDAkjKVFT4LeAb9952Gt',
+  vip:     process.env.STRIPE_PRICE_VIP      ?? 'price_1TCTrmAkjKVFT4Le6GBIJ5K8',
+  starter: process.env.STRIPE_PRICE_STARTER  ?? 'price_1T7JMPAkjKVFT4LeDqPZOdMe', // $5 one-time
+  pro:     process.env.STRIPE_PRICE_VIP      ?? 'price_1TCTrmAkjKVFT4Le6GBIJ5K8', // $30/month
+  whale:   process.env.STRIPE_PRICE_YEARLY   ?? 'price_1T9vdDAkjKVFT4LeAb9952Gt', // custom
 }
 
 export async function POST(req: NextRequest) {
