@@ -2356,7 +2356,9 @@ export default function Page() {
           </div>
           CryptoCheck<span className="text-[#00d4aa]">AI</span>
           <span className="text-[0.5rem] text-[#8b949e] ml-0.5">v3</span>
-          {!isPro && <span style={{fontSize:'9px',color:'#f0a500',border:'1px solid rgba(240,165,0,0.2)',background:'rgba(240,165,0,0.06)',padding:'2px 8px',borderRadius:4,fontFamily:'IBM Plex Mono,monospace',fontWeight:700}}>FREE</span>}
+          {isPro ? (
+            <span style={{fontSize:'9px',fontWeight:700,padding:'2px 8px',borderRadius:4,fontFamily:'IBM Plex Mono,monospace',letterSpacing:'0.08em',background:'linear-gradient(135deg,rgba(212,175,55,0.15),rgba(212,175,55,0.05))',border:'1px solid rgba(212,175,55,0.35)',color:'#d4af37'}}>⭐ PRO</span>
+          ) : null}
         </a>
 
         {/* Desktop nav */}
@@ -2370,7 +2372,17 @@ export default function Page() {
 
         <div className="flex items-center gap-1.5">
           <div className="live-badge bg-emerald-950/30 border border-emerald-800/25 text-emerald-400 px-2 py-0.5 rounded-[3px] text-[0.58rem] font-bold tracking-wider hidden sm:block">● MAINNET-BETA</div>
-          <button onClick={() => setShowModal(true)} className="btn-terminal px-3 py-1 text-white border-none rounded-[4px] text-[0.62rem]" style={{ background:'linear-gradient(135deg,#00d4aa,#059669)', boxShadow:'0 0 12px rgba(0,212,130,0.3)' }}>⚡ UPGRADE</button>
+          {isPro ? (
+            <div style={{display:'flex',alignItems:'center',gap:6,fontSize:'0.6rem',fontFamily:'IBM Plex Mono,monospace'}}>
+              <span style={{color:'#6e7681'}}>∞ scans</span>
+              <button onClick={() => setShowModal(true)} className="btn-terminal px-3 py-1 rounded-[4px] text-[0.62rem]" style={{color:'#d4af37',border:'1px solid rgba(212,175,55,0.3)',background:'rgba(212,175,55,0.06)'}}>⭐ PRO</button>
+            </div>
+          ) : (
+            <div style={{display:'flex',alignItems:'center',gap:6}}>
+              <span style={{fontSize:'0.58rem',color:'#6e7681',fontFamily:'IBM Plex Mono,monospace'}}>10 scans left</span>
+              <button onClick={() => setShowModal(true)} className="btn-terminal px-3 py-1 text-white border-none rounded-[4px] text-[0.62rem]" style={{ background:'linear-gradient(135deg,#00d4aa,#059669)', boxShadow:'0 0 12px rgba(0,212,130,0.3)' }}>⚡ UPGRADE</button>
+            </div>
+          )}
           <button onClick={isConnected ? disconnect : connect} disabled={isConnecting} className={`btn-terminal px-3 py-1 rounded-[4px] text-[0.62rem] ${isConnected ? 'bg-emerald-950/30 border-emerald-800/25 text-emerald-400' : 'bg-[rgba(0,212,130,0.08)] border-[rgba(0,212,130,0.15)] text-[#00d4aa]'}`}>
             {isConnecting ? 'Connecting…' : isConnected ? `✓ ${shortAddr}` : 'Connect Wallet'}
           </button>
