@@ -50,6 +50,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
         if (error) throw error
         onSuccess(data.user)
         onClose()
+        window.location.replace('/app')
       }
     } catch (e: any) {
       setError(e.message)
