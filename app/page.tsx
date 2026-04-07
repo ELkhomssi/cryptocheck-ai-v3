@@ -11,6 +11,7 @@ import {
 import RugForensicsLab from '@/components/RugForensicsLab'
 import SignupTrialModal from '@/components/SignupTrialModal'
 import ChartSwapModal from '@/components/ChartSwapModal'
+import AuthModal from '@/components/AuthModal'
 import BubbleMap from '@/components/BubbleMap'
 import NeuralScanV4 from '@/components/NeuralScanV4'
 import ValueProtectedWidget from '@/components/ValueProtectedWidget'
@@ -1808,6 +1809,8 @@ export default function Page() {
   const [slot,        setSlot]        = useState('')
   const [timeStr,     setTimeStr]     = useState('')
   const [showModal,   setShowModal]   = useState(false)
+  const [showAuth,    setShowAuth]    = useState(false)
+  const [authUser,    setAuthUser]    = useState<any>(null)
   const [isPro,setIsPro] = useState(false)
   const [credits, setCredits] = useState(10)
   const [trialActivated, setTrialActivated] = useState(false)
@@ -2293,6 +2296,7 @@ export default function Page() {
           onSuccess={() => { setTrialActivated(true); setShowSignup(false) }}
         />
       )}
+      {showAuth && <AuthModal onClose={()=>setShowAuth(false)} onSuccess={(u)=>{setAuthUser(u);setIsPro(u?.user_metadata?.is_pro||false)}} />}
       {chartSwapModal && <ChartSwapModal mint={chartSwapModal.mint} symbol={chartSwapModal.symbol} initialTab={chartSwapModal.tab as any} onClose={() => setChartSwapModal(null)} />}
       {/* TrialWall removed - using Gated Access */}
       <header className="sticky top-0 z-[300] h-12 flex items-center justify-between px-4 bg-[rgba(13,17,23,0.97)] backdrop-blur-xl border-b border-[rgba(0,212,130,0.15)]">
@@ -2348,6 +2352,9 @@ export default function Page() {
               <button onClick={() => setShowModal(true)} className="btn-terminal px-3 py-1 text-white border-none rounded-[4px] text-[0.62rem]" style={{ background:'linear-gradient(135deg,#00d4aa,#059669)', boxShadow:'0 0 12px rgba(0,212,130,0.3)' }}>⚡ UPGRADE</button>
             </div>
           )}
+          <button onClick={()=>setShowAuth(true)} style={{padding:'5px 12px',fontSize:'0.6rem',fontWeight:700,background:authUser?'rgba(52,211,153,0.1)':'transparent',border:authUser?'1px solid rgba(52,211,153,0.25)':'1px solid rgba(52,211,153,0.2)',borderRadius:4,color:authUser?'#34d399':'#6ee7b7',cursor:'pointer',fontFamily:'IBM Plex Mono,monospace'}}>
+            {authUser ? '✓ '+authUser.email?.split('@')[0] : 'Sign In'}
+          </button>
           <button onClick={isConnected ? disconnect : connect} disabled={isConnecting} className={`btn-terminal px-3 py-1 rounded-[4px] text-[0.62rem] ${isConnected ? 'bg-emerald-950/30 border-emerald-800/25 text-emerald-400' : 'bg-[rgba(0,212,130,0.08)] border-[rgba(0,212,130,0.15)] text-[#00d4aa]'}`}>
             {isConnecting ? 'Connecting…' : isConnected ? `✓ ${shortAddr}` : 'Connect Wallet'}
           </button>
