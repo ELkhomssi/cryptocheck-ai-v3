@@ -1293,8 +1293,8 @@ function ProModal({ onClose }: { onClose: () => void }) {
   const [selected, setSelected] = useState<'starter'|'pro'|'whale'>('pro')
   const [billing, setBilling] = useState<'monthly'|'yearly'>('monthly')
   const [loading, setLoading] = useState<string|null>(null)
-  const [step, setStep] = useState<'plans'|'pay'>('plans')
   const [pulse, setPulse] = useState(false)
+  const [credits] = useState(2)
 
   useEffect(() => {
     const iv = setInterval(() => setPulse(p => !p), 1500)
@@ -1304,190 +1304,145 @@ function ProModal({ onClose }: { onClose: () => void }) {
   const plans = [
     {
       id: 'starter' as const,
-      name: 'Starter',
-      price: 5,
-      period: 'one-time',
-      color: '#c0c0c0',
-      glow: 'rgba(192,192,192,0.3)',
-      border: 'rgba(192,192,192,0.25)',
-      bg: 'linear-gradient(135deg,rgba(192,192,192,0.06),rgba(0,0,0,0))',
-      icon: '⚡',
-      badge: null,
-      features: [
-        '10 Deep AI Neural Scans',
-        'Rug Detection Reports',
-        'Basic Risk Scoring',
-        'Email Support',
-        'Valid 30 days',
-      ],
-      cta: 'Get Started',
-      sol: 0.06,
+      name: 'Micro Pack', price: 5, period: 'one-time',
+      color: '#c0c0c0', border: 'rgba(192,192,192,0.2)', bg: 'transparent',
+      icon: '⚡', badge: null, badgeColor: '',
+      credits: '+10 Credits', creditsColor: 'rgba(192,192,192,0.15)', creditsBorder: 'rgba(192,192,192,0.3)', creditsText: '#c0c0c0',
+      features: ['10 deep AI scans','Rug detection reports','Basic risk scoring','Valid 30 days'],
+      cta: 'Get 10 Credits', btnBg: '#1f2937', btnColor: '#e2e8f0', sol: 0.06,
     },
     {
       id: 'pro' as const,
-      name: 'Pro',
-      price: billing === 'monthly' ? 30 : 24,
+      name: 'Pro Trader', price: billing === 'monthly' ? 30 : 24,
       period: billing === 'monthly' ? '/month' : '/month billed yearly',
-      color: '#d4af37',
-      glow: 'rgba(212,175,55,0.4)',
-      border: 'rgba(212,175,55,0.4)',
-      bg: 'linear-gradient(135deg,rgba(212,175,55,0.1),rgba(0,0,0,0))',
-      icon: '🧠',
-      badge: 'MOST POPULAR',
-      features: [
-        'Unlimited Neural Scans',
-        'AI Prediction Scores (5m-15m)',
-        'AI-Pilot Auto-Sniper',
-        'Priority Alpha Feed',
-        'Whale Wallet Tracking',
-        'Rug Forensics Lab',
-        'Real-time Alerts',
-        'Priority Support',
-      ],
-      cta: 'Upgrade to Pro',
-      sol: 0.35,
+      color: '#d4af37', border: 'rgba(212,175,55,0.45)', bg: 'linear-gradient(135deg,rgba(212,175,55,0.07),rgba(0,0,0,0))',
+      icon: '🧠', badge: 'MOST POPULAR', badgeColor: '#d4af37',
+      credits: '∞ Unlimited', creditsColor: 'rgba(212,175,55,0.12)', creditsBorder: 'rgba(212,175,55,0.3)', creditsText: '#d4af37',
+      features: ['Unlimited credits','AI prediction scores','Auto-Sniper bot','Priority alpha feed','Whale wallet tracking','Rug Forensics Lab'],
+      cta: 'Upgrade to Pro', btnBg: '#d4af37', btnColor: '#0a0a0a', sol: 0.35,
     },
     {
       id: 'whale' as const,
-      name: 'Whale',
-      price: 0,
-      period: '0.5% success fee',
-      color: '#00d4aa',
-      glow: 'rgba(0,212,130,0.3)',
-      border: 'rgba(0,212,130,0.3)',
-      bg: 'linear-gradient(135deg,rgba(0,212,130,0.08),rgba(0,0,0,0))',
-      icon: '🐋',
-      badge: 'NO MONTHLY FEE',
-      features: [
-        'Everything in Pro',
-        'Zero monthly cost',
-        '0.5% fee on profitable trades only',
-        'Dedicated Trading Wallet',
-        'Custom AI Strategy',
-        'Direct Founder Access',
-        'Early Alpha Signals',
-        'VIP Telegram Group',
-      ],
-      cta: 'Apply for Whale',
-      sol: 0,
+      name: 'Whale Access', price: 0, period: '0.5% success fee',
+      color: '#00d4aa', border: 'rgba(0,212,130,0.35)', bg: 'linear-gradient(135deg,rgba(0,212,130,0.07),rgba(0,0,0,0))',
+      icon: '🐋', badge: 'NO MONTHLY FEE', badgeColor: '#00d4aa',
+      credits: '∞ Unlimited', creditsColor: 'rgba(0,212,130,0.1)', creditsBorder: 'rgba(0,212,130,0.3)', creditsText: '#00d4aa',
+      features: ['Everything in Pro','Zero monthly cost','0.5% on profits only','Dedicated trading wallet','VIP Telegram group'],
+      cta: 'Apply for Whale', btnBg: '#00d4aa', btnColor: '#0a0a0a', sol: 0,
     },
   ]
 
-  const activePlan = plans.find(pl => pl.id === selected)!
-
-  async function handleBuy() {
-    setLoading(selected)
+  async function handleBuy(planId: string) {
+    setLoading(planId)
     try {
-      if (selected === 'whale') {
+      if (planId === 'whale') {
         window.open('mailto:elkhomsiabderrahim@gmail.com?subject=Whale Plan Application', '_blank')
-        setLoading(null)
-        return
+        setLoading(null); return
       }
       const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ plan: selected === 'starter' ? 'starter' : selected === 'pro' ? (billing === 'monthly' ? 'pro' : 'yearly') : 'whale' })
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ plan: planId === 'starter' ? 'starter' : billing === 'monthly' ? 'pro' : 'yearly' })
       })
       const data = await res.json()
       if (data.url) window.location.assign(data.url)
       else throw new Error(data.error || 'Failed')
     } catch(e) {
       alert('Payment error: ' + (e instanceof Error ? e.message : 'Unknown'))
-    } finally {
-      setLoading(null)
-    }
+    } finally { setLoading(null) }
   }
 
   return (
-    <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.85)',backdropFilter:'blur(20px)',display:'flex',alignItems:'center',justifyContent:'center',padding:16,fontFamily:'Inter,sans-serif'}}>
-      <div onClick={e=>e.stopPropagation()} style={{width:'min(880px,95vw)',maxHeight:'90vh',overflowY:'auto',background:'#0a0a0a',border:'1px solid #1f2937',borderRadius:12,boxShadow:'0 32px 80px rgba(0,0,0,0.8)'}}>
-        
-        {/* Top accent */}
-        <div style={{height:2,background:'linear-gradient(90deg,transparent,#d4af37,#00d4aa,transparent)',borderRadius:'12px 12px 0 0'}}/>
+    <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.75)',backdropFilter:'blur(16px)',display:'flex',alignItems:'center',justifyContent:'center',padding:16,fontFamily:'Inter,sans-serif'}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:'min(560px,95vw)',background:'#0a0a0a',border:'1px solid #1f2937',borderRadius:12,overflow:'hidden',boxShadow:'0 32px 80px rgba(0,0,0,0.8)'}}>
+
+        {/* Top gradient bar */}
+        <div style={{height:2,background:'linear-gradient(90deg,#d4af37,#00d4aa)'}}/>
 
         {/* Header */}
-        <div style={{padding:'24px 28px 16px',borderBottom:'1px solid #1f2937',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-          <div>
-            <div style={{fontSize:22,fontWeight:700,color:'#fff',letterSpacing:'-0.01em'}}>
-              Upgrade <span style={{color:'#d4af37'}}>CryptoCheck AI</span>
+        <div style={{padding:'18px 20px 14px',borderBottom:'1px solid #1f2937'}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+            <div style={{fontSize:17,fontWeight:700,color:'#fff'}}>Top up <span style={{color:'#d4af37'}}>Credits</span></div>
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <div style={{display:'flex',gap:3,background:'#161b22',border:'1px solid #21262d',borderRadius:6,padding:3}}>
+                {(['monthly','yearly'] as const).map(b => (
+                  <button key={b} onClick={()=>setBilling(b)} style={{padding:'3px 10px',borderRadius:4,border:'none',cursor:'pointer',fontSize:10,fontWeight:700,background:billing===b?'#d4af37':'transparent',color:billing===b?'#0a0a0a':'#6e7681',transition:'all 0.15s'}}>
+                    {b === 'monthly' ? 'Monthly' : 'Yearly -20%'}
+                  </button>
+                ))}
+              </div>
+              <button onClick={onClose} style={{background:'none',border:'none',color:'#6e7681',cursor:'pointer',fontSize:18,lineHeight:1}}>×</button>
             </div>
-            <div style={{fontSize:13,color:'#6e7681',marginTop:4}}>Choose the plan that fits your trading style</div>
           </div>
-          <div style={{display:'flex',alignItems:'center',gap:12}}>
-            {/* Billing toggle */}
-            <div style={{display:'flex',alignItems:'center',gap:8,background:'#161b22',border:'1px solid #21262d',borderRadius:8,padding:'4px 6px'}}>
-              {(['monthly','yearly'] as const).map(b => (
-                <button key={b} onClick={()=>setBilling(b)} style={{padding:'4px 12px',borderRadius:6,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,transition:'all 0.15s',background:billing===b?'#d4af37':'transparent',color:billing===b?'#0a0a0a':'#6e7681'}}>
-                  {b === 'monthly' ? 'Monthly' : 'Yearly -20%'}
-                </button>
-              ))}
+          <div style={{fontSize:11,color:'#6e7681',marginBottom:10}}>1 Credit = 1 Deep Neural AI Scan</div>
+
+          {/* Balance */}
+          <div style={{display:'flex',alignItems:'center',gap:10,padding:'9px 12px',background:'rgba(212,175,55,0.05)',border:'1px solid rgba(212,175,55,0.15)',borderRadius:7}}>
+            <span style={{fontSize:18}}>🪙</span>
+            <div>
+              <div style={{fontSize:10,color:'#8b949e',marginBottom:1}}>Current balance</div>
+              <div style={{fontSize:18,fontWeight:700,color:'#d4af37',fontFamily:'IBM Plex Mono,monospace'}}>{credits} Credits</div>
             </div>
-            <button onClick={onClose} style={{background:'none',border:'none',color:'#6e7681',cursor:'pointer',fontSize:20,lineHeight:1,padding:4}}>×</button>
+            {credits < 3 && (
+              <div style={{marginLeft:'auto',fontSize:10,fontWeight:700,color:'#f0a500',background:'rgba(240,165,0,0.1)',border:'1px solid rgba(240,165,0,0.2)',padding:'2px 8px',borderRadius:4,animation:'pulse 1.5s infinite'}}>
+                ⚠ LOW BALANCE
+              </div>
+            )}
           </div>
         </div>
 
+        {/* Section label */}
+        <div style={{padding:'12px 20px 6px',fontSize:10,fontWeight:700,letterSpacing:'0.1em',color:'#6e7681',textTransform:'uppercase'}}>Choose a plan</div>
+
         {/* Plans */}
-        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,padding:'24px 28px'}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,padding:'0 14px 16px'}}>
           {plans.map(pl => (
             <div key={pl.id} onClick={()=>setSelected(pl.id)}
-              style={{position:'relative',background:selected===pl.id?pl.bg:'rgba(255,255,255,0.02)',border:`2px solid ${selected===pl.id?pl.border:'#1f2937'}`,borderRadius:10,padding:'20px 18px',cursor:'pointer',transition:'all 0.2s',boxShadow:selected===pl.id?`0 0 24px ${pl.glow}`:'none'}}>
-              
+              style={{position:'relative',background:selected===pl.id?pl.bg:'#111',border:`1.5px solid ${selected===pl.id?pl.border:'#1f2937'}`,borderRadius:8,padding:'14px 12px',cursor:'pointer',transition:'all 0.15s'}}>
+
               {pl.badge && (
-                <div style={{position:'absolute',top:-10,left:'50%',transform:'translateX(-50%)',background:pl.id==='pro'?'#d4af37':pl.id==='whale'?'#00d4aa':'#c0c0c0',color:'#0a0a0a',fontSize:9,fontWeight:700,padding:'3px 10px',borderRadius:20,whiteSpace:'nowrap',letterSpacing:'0.08em'}}>
+                <div style={{position:'absolute',top:-9,left:'50%',transform:'translateX(-50%)',background:pl.badgeColor,color:'#0a0a0a',fontSize:8,fontWeight:700,padding:'2px 8px',borderRadius:10,whiteSpace:'nowrap',letterSpacing:'0.06em'}}>
                   {pl.badge}
                 </div>
               )}
 
-              <div style={{fontSize:24,marginBottom:8}}>{pl.icon}</div>
-              <div style={{fontSize:15,fontWeight:700,color:selected===pl.id?pl.color:'#e2e8f0',marginBottom:4}}>{pl.name}</div>
-              
-              <div style={{marginBottom:16}}>
-                {pl.price === 0 ? (
-                  <div style={{fontSize:28,fontWeight:700,color:pl.color,lineHeight:1}}>FREE</div>
-                ) : (
-                  <div style={{fontSize:28,fontWeight:700,color:pl.color,lineHeight:1}}>${pl.price}</div>
-                )}
-                <div style={{fontSize:11,color:'#6e7681',marginTop:3}}>{pl.period}</div>
+              <div style={{fontSize:18,marginBottom:6}}>{pl.icon}</div>
+              <div style={{fontSize:12,fontWeight:700,color:'#e2e8f0',marginBottom:3}}>{pl.name}</div>
+              <div style={{fontSize:22,fontWeight:700,color:pl.color,fontFamily:'IBM Plex Mono,monospace',lineHeight:1,marginBottom:2}}>
+                {pl.price === 0 ? 'FREE' : `$${pl.price}`}
+              </div>
+              <div style={{fontSize:10,color:'#6e7681',marginBottom:8}}>{pl.period}</div>
+
+              <div style={{display:'inline-flex',alignItems:'center',padding:'2px 7px',background:pl.creditsColor,border:`1px solid ${pl.creditsBorder}`,borderRadius:4,fontSize:10,fontWeight:700,color:pl.creditsText,fontFamily:'IBM Plex Mono,monospace',marginBottom:8}}>
+                {pl.credits}
               </div>
 
-              <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:16}}>
+              <div style={{display:'flex',flexDirection:'column',gap:4,marginBottom:10}}>
                 {pl.features.map(f => (
-                  <div key={f} style={{display:'flex',alignItems:'flex-start',gap:7,fontSize:12,color:selected===pl.id?'#e2e8f0':'#8b949e'}}>
-                    <span style={{color:pl.color,flexShrink:0,marginTop:1}}>✓</span>
-                    {f}
+                  <div key={f} style={{display:'flex',alignItems:'flex-start',gap:5,fontSize:10,color:'#8b949e'}}>
+                    <span style={{color:'#00d4aa',flexShrink:0}}>✓</span>{f}
                   </div>
                 ))}
               </div>
 
-              {pl.sol > 0 && (
-                <div style={{fontSize:10,color:'#484f58',borderTop:'1px solid #1f2937',paddingTop:8,marginBottom:12}}>
-                  ≈ {pl.sol} SOL on Solana
-                </div>
-              )}
-
-              <button onClick={e=>{e.stopPropagation();setSelected(pl.id);handleBuy()}}
-                disabled={loading === pl.id}
-                style={{width:'100%',padding:'10px 0',borderRadius:6,border:'none',cursor:'pointer',fontWeight:700,fontSize:13,transition:'all 0.2s',
-                  background:selected===pl.id?pl.color:'#161b22',
-                  color:selected===pl.id?'#0a0a0a':'#8b949e',
-                  boxShadow:selected===pl.id?`0 0 16px ${pl.glow}`:'none',
-                  opacity:loading===pl.id?0.7:1}}>
-                {loading === pl.id ? '⟳ Processing...' : pl.cta}
+              <button onClick={e=>{e.stopPropagation();handleBuy(pl.id)}}
+                disabled={loading===pl.id}
+                style={{width:'100%',padding:'8px 0',borderRadius:5,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,letterSpacing:'0.05em',background:pl.btnBg,color:pl.btnColor,transition:'all 0.15s',opacity:loading===pl.id?0.7:1}}>
+                {loading===pl.id ? '⟳ Processing...' : pl.cta}
               </button>
             </div>
           ))}
         </div>
 
         {/* Footer */}
-        <div style={{padding:'16px 28px',borderTop:'1px solid #1f2937',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-          <div style={{display:'flex',gap:16}}>
-            {['🔒 Secure Payment','⚡ Instant Access','↩ Cancel Anytime'].map(f => (
-              <span key={f} style={{fontSize:11,color:'#6e7681'}}>{f}</span>
+        <div style={{padding:'12px 20px',borderTop:'1px solid #1f2937',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div style={{display:'flex',gap:14}}>
+            {['🔒 Secure','⚡ Instant','↩ Cancel anytime'].map(f => (
+              <span key={f} style={{fontSize:10,color:'#6e7681'}}>{f}</span>
             ))}
           </div>
-          <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={{width:6,height:6,borderRadius:'50%',background:pulse?'#00d4aa':'rgba(0,212,130,0.3)',display:'inline-block',transition:'all 0.5s',boxShadow:pulse?'0 0 6px #00d4aa':'none'}}/>
-            <span style={{fontSize:11,color:'#00d4aa',fontFamily:'IBM Plex Mono,monospace',fontWeight:700}}>LIVE · Solana Mainnet</span>
+          <div style={{display:'flex',alignItems:'center',gap:5}}>
+            <span style={{width:6,height:6,borderRadius:'50%',background:pulse?'#00d4aa':'rgba(0,212,130,0.3)',display:'inline-block',transition:'all 0.5s'}}/>
+            <span style={{fontSize:10,color:'#00d4aa',fontFamily:'IBM Plex Mono,monospace',fontWeight:700}}>LIVE · Solana Mainnet</span>
           </div>
         </div>
       </div>
