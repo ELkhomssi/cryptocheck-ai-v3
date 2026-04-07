@@ -15,7 +15,6 @@ import SignupTrialModal from '@/components/SignupTrialModal'
 import ChartSwapModal from '@/components/ChartSwapModal'
 import AuthModal from '@/components/AuthModal'
 import BubbleMap from '@/components/BubbleMap'
-import TokenListDashboard from '@/components/TokenListDashboard'
 import NeuralScanV4 from '@/components/NeuralScanV4'
 import ValueProtectedWidget from '@/components/ValueProtectedWidget'
 import NeuralAuditLog from '@/components/NeuralAuditLog'
@@ -2480,13 +2479,13 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── TOKEN LIST VIEW (scanner view) ── */}
+      {/* ── BUBBLE MAP (scanner view only) ── */}
       {view === 'scanner' && (
-        <div style={{position:'absolute',inset:0,zIndex:10,background:'#000'}}>
-          <TokenListDashboard
-            onScanToken={(mint) => { setMintInput(mint); doScan(mint) }}
-            showModal={() => setShowModal(true)}
-          />
+        <div style={{height:160,margin:'4px 6px',flexShrink:0,borderRadius:6,overflow:'hidden',border:'1px solid #1f2937'}}>
+          <BubbleMap onSelectToken={(mint, symbol) => {
+            setMintInput(mint)
+            doScan(mint)
+          }} />
         </div>
       )}
       {/* ── APP BODY ── */}
