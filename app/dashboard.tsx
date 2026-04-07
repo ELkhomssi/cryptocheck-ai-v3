@@ -14,7 +14,7 @@ import RugForensicsLab from '@/components/RugForensicsLab'
 import SignupTrialModal from '@/components/SignupTrialModal'
 import ChartSwapModal from '@/components/ChartSwapModal'
 import AuthModal from '@/components/AuthModal'
-import BubbleMap from '@/components/BubbleMap'
+import TokenListDashboard from '@/components/TokenListDashboard'
 import NeuralScanV4 from '@/components/NeuralScanV4'
 import ValueProtectedWidget from '@/components/ValueProtectedWidget'
 import NeuralAuditLog from '@/components/NeuralAuditLog'
@@ -2405,7 +2405,7 @@ export default function Dashboard() {
       {showAuth && <AuthModal onClose={()=>setShowAuth(false)} onSuccess={(u)=>{setAuthUser(u);setIsPro(u?.user_metadata?.is_pro||false)}} />}
       {chartSwapModal && <ChartSwapModal mint={chartSwapModal.mint} symbol={chartSwapModal.symbol} initialTab={chartSwapModal.tab as any} onClose={() => setChartSwapModal(null)} />}
       {/* TrialWall removed - using Gated Access */}
-      <header className="sticky top-0 z-[300] h-12 flex items-center justify-between px-4 bg-[rgba(13,17,23,0.97)] backdrop-blur-xl border-b border-[rgba(0,212,130,0.15)]">
+      <header className="sticky top-0 z-[300] h-12 flex items-center justify-between px-4 backdrop-blur-xl" style={{background:'#000',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
         <a href="/" className="flex items-center gap-2 font-mono text-[0.82rem] font-bold text-white tracking-wider uppercase no-underline">
           <div style={{width:30,height:26,flexShrink:0}}>
             <svg width="30" height="26" viewBox="0 0 140 120" xmlns="http://www.w3.org/2000/svg">
@@ -2479,20 +2479,12 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── BUBBLE MAP (scanner view only) ── */}
-      {view === 'scanner' && (
-        <div style={{height:160,margin:'4px 6px',flexShrink:0,borderRadius:6,overflow:'hidden',border:'1px solid #1f2937'}}>
-          <BubbleMap onSelectToken={(mint, symbol) => {
-            setMintInput(mint)
-            doScan(mint)
-          }} />
-        </div>
-      )}
+
       {/* ── APP BODY ── */}
-      <div className="flex" style={{ minHeight: 'calc(100vh - 48px - 26px - 32px - 80px)', position: 'relative', zIndex: 1 }}>
+      <div className="flex" style={{ minHeight: 'calc(100vh - 48px - 26px - 32px - 80px)', position: 'relative', zIndex: 1, background: '#000' }}>
 
         {/* SIDEBAR (desktop only) */}
-        <aside className="hidden md:flex flex-col w-[280px] border-r border-[rgba(0,212,130,0.15)] bg-[#161b22] flex-shrink-0 overflow-hidden" style={{ height: 'calc(100vh - 48px - 26px - 32px - 80px)', position: 'sticky', top: 74 }}>
+        <aside className="hidden md:flex flex-col w-[280px] flex-shrink-0 overflow-hidden" style={{borderRight:'1px solid rgba(255,255,255,0.06)',background:'#000',height:'calc(100vh - 48px - 26px - 32px - 80px)',position:'sticky',top:74}}>
           {/* Scan zone — stable external MintInput */}
           <div ref={scanTopRef}>
             <MintInput onScan={(v) => {
@@ -2632,7 +2624,7 @@ export default function Dashboard() {
         </aside>
 
         {/* MAIN */}
-        <main className="flex flex-col flex-1 overflow-y-auto">
+        <main className="flex flex-col flex-1 overflow-y-auto" style={{background:'#000'}}>
           {/* Scanner view */}
           {view === 'scanner' && (
             <>
