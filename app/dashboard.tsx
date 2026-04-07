@@ -19,6 +19,7 @@ import NeuralScanV4 from '@/components/NeuralScanV4'
 import ValueProtectedWidget from '@/components/ValueProtectedWidget'
 import NeuralAuditLog from '@/components/NeuralAuditLog'
 import InsiderWhaleIntel from '@/components/InsiderWhaleIntel'
+import ErrorBoundary from '@/components/ErrorBoundary'
 import { TrialBanner, TrialWall, useTrialStatus } from '@/components/TrialSystem'
 import { AiAutoSniper } from '@/components/AiAutoSniper'
 import { Doughnut } from 'react-chartjs-2'
@@ -2730,7 +2731,9 @@ export default function Dashboard() {
           {view === 'whales' && (
             <ProGate feature="Smart Money & Whale Tracking is available on the Pro plan. Follow top Solana traders in real-time." icon="🐋">
               <div className="flex-1 overflow-y-auto p-4">
-                <InsiderWhaleIntel />
+                <ErrorBoundary name="Whale Intel">
+                  <InsiderWhaleIntel />
+                </ErrorBoundary>
               </div>
             </ProGate>
           )}
