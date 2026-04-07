@@ -201,19 +201,122 @@ function DistChart({ top10Pct, liqPct, restPct }: { top10Pct: number; liqPct: nu
 }
 
 // ── Empty state ──
-function EmptyState() {
+const TRENDING_TOKENS = [
+  { symbol: 'BONK', mint: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', change: '+6.8%', color: '#f0a500' },
+  { symbol: 'WIF',  mint: 'EKpQGSml4jJeE3yJGk2bCRfFsGPNJMhTqHMLHJNK4p',  change: '+5.7%', color: '#00d4aa' },
+  { symbol: 'POPCAT', mint: '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdCBuHYmW2hr', change: '+15.4%', color: '#00d4aa' },
+  { symbol: 'JUP',  mint: 'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN',  change: '+3.2%', color: '#00d4aa' },
+  { symbol: 'PYTH', mint: 'HZ1JovNiVvGqNLQLjJe1yohSWhe58gorEHPHYNGrSWjk', change: '-3.3%', color: '#ff4444' },
+  { symbol: 'RAY',  mint: '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R',  change: '+2.4%', color: '#00d4aa' },
+]
+
+function SkeletonLoader() {
   return (
-    <div className="flex flex-col items-center justify-center h-full text-center gap-3 p-10">
-      <div className="w-16 h-16 rounded-full bg-[rgba(0,212,130,0.1)] border border-[rgba(0,212,130,0.15)] flex items-center justify-center text-3xl float-anim">⬡</div>
-      <h3 className="text-base font-bold text-[#e2e8f0] font-sans">Neural Scanner Ready</h3>
-      <p className="text-[0.68rem] text-[#8b949e] max-w-xs leading-relaxed">
-        Paste any Solana mint address for institutional-grade analysis: rug detection, distribution chart, authority checks, and Jupiter integration.
-      </p>
-      <div className="flex flex-wrap gap-1.5 justify-center mt-1">
-        <span className="e-pill bg-emerald-950/50 border border-emerald-800/25 text-emerald-400">✓ Rug Detection</span>
-        <span className="e-pill bg-cyan-950/50 border border-cyan-800/25 text-cyan-400">✓ Distribution Chart</span>
-        <span className="e-pill bg-indigo-950/50 border border-[rgba(0,212,130,0.15)] text-[#00d4aa]">✓ Jupiter Buy</span>
+    <div style={{padding:'16px',display:'flex',flexDirection:'column',gap:10,animation:'fadeIn 0.3s ease'}}>
+      {[...Array(4)].map((_,i) => (
+        <div key={i} style={{display:'flex',alignItems:'center',gap:10}}>
+          <div style={{width:32,height:32,borderRadius:6,background:'rgba(255,255,255,0.04)',animation:'shimmer 1.5s infinite'}}/>
+          <div style={{flex:1,display:'flex',flexDirection:'column',gap:5}}>
+            <div style={{height:8,borderRadius:4,background:'rgba(255,255,255,0.04)',width:`${60+i*10}%`,animation:'shimmer 1.5s infinite'}}/>
+            <div style={{height:6,borderRadius:4,background:'rgba(255,255,255,0.03)',width:`${40+i*8}%`,animation:'shimmer 1.5s infinite'}}/>
+          </div>
+        </div>
+      ))}
+      <style>{`
+        @keyframes shimmer {
+          0%{opacity:0.4}
+          50%{opacity:0.8}
+          100%{opacity:0.4}
+        }
+        @keyframes fadeIn {
+          from{opacity:0;transform:translateY(4px)}
+          to{opacity:1;transform:translateY(0)}
+        }
+      `}</style>
+    </div>
+  )
+}
+
+function EmptyState({ onScan }: { onScan?: (mint: string) => void }) {
+  const [pulse, setPulse] = useState(false)
+  const [scanning, setScanning] = useState(false)
+  const [activeMint, setActiveMint] = useState('')
+
+  useEffect(() => {
+    const iv = setInterval(() => setPulse(p => !p), 1800)
+    return () => clearInterval(iv)
+  }, [])
+
+  function handleQuickScan(mint: string) {
+    setActiveMint(mint)
+    setScanning(true)
+    setTimeout(() => { setScanning(false); onScan?.(mint) }, 600)
+  }
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',padding:'24px 20px',gap:0,fontFamily:'IBM Plex Mono,monospace'}}>
+      
+      {/* Animated icon */}
+      <div style={{position:'relative',width:64,height:64,marginBottom:16}}>
+        <div style={{
+          width:64,height:64,borderRadius:'50%',
+          background:'rgba(0,212,130,0.06)',
+          border:`1px solid ${pulse?'rgba(0,212,130,0.4)':'rgba(0,212,130,0.15)'}`,
+          display:'flex',alignItems:'center',justifyContent:'center',
+          fontSize:28,transition:'all 0.6s ease',
+          boxShadow:pulse?'0 0 20px rgba(0,212,130,0.15)':'none'
+        }}>⬡</div>
+        {/* Ping rings */}
+        <div style={{position:'absolute',inset:-6,borderRadius:'50%',border:'1px solid rgba(0,212,130,0.15)',animation:'ping 2s ease infinite'}}/>
+        <div style={{position:'absolute',inset:-12,borderRadius:'50%',border:'1px solid rgba(0,212,130,0.07)',animation:'ping 2s ease 0.5s infinite'}}/>
       </div>
+
+      <div style={{fontSize:14,fontWeight:700,color:'#e2e8f0',marginBottom:6,fontFamily:'Inter,sans-serif'}}>Neural Scanner Ready</div>
+      <p style={{fontSize:11,color:'#6e7681',maxWidth:280,lineHeight:1.7,textAlign:'center',marginBottom:20,fontFamily:'Inter,sans-serif'}}>
+        Paste any Solana mint for institutional-grade analysis — rug detection, AI risk score, holder distribution, and Jupiter integration.
+      </p>
+
+      {/* Feature pills */}
+      <div style={{display:'flex',flexWrap:'wrap',gap:5,justifyContent:'center',marginBottom:20}}>
+        {['✓ Rug Detection','✓ Distribution Chart','✓ Jupiter Buy','✓ AI Prediction'].map(f => (
+          <span key={f} style={{fontSize:9,padding:'3px 8px',borderRadius:4,background:'rgba(0,212,130,0.06)',border:'1px solid rgba(0,212,130,0.15)',color:'#00d4aa',fontWeight:600}}>{f}</span>
+        ))}
+      </div>
+
+      {/* Divider */}
+      <div style={{width:'100%',maxWidth:320,height:1,background:'linear-gradient(90deg,transparent,rgba(0,212,130,0.15),transparent)',marginBottom:16}}/>
+
+      {/* Quick scan label */}
+      <div style={{fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:'#6e7681',textTransform:'uppercase',marginBottom:10}}>
+        ⚡ Quick Scan — Trending Tokens
+      </div>
+
+      {/* Trending token buttons */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,width:'100%',maxWidth:320}}>
+        {TRENDING_TOKENS.map(tok => (
+          <button key={tok.mint} onClick={()=>handleQuickScan(tok.mint)}
+            style={{
+              padding:'7px 6px',
+              background:activeMint===tok.mint&&scanning?'rgba(0,212,130,0.12)':'rgba(255,255,255,0.02)',
+              border:`1px solid ${activeMint===tok.mint&&scanning?'rgba(0,212,130,0.3)':'rgba(255,255,255,0.06)'}`,
+              borderRadius:5,cursor:'pointer',transition:'all 0.15s',
+              display:'flex',flexDirection:'column',alignItems:'center',gap:2
+            }}
+            onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.background='rgba(0,212,130,0.06)';(e.currentTarget as HTMLButtonElement).style.borderColor='rgba(0,212,130,0.2)'}}
+            onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.background=activeMint===tok.mint&&scanning?'rgba(0,212,130,0.12)':'rgba(255,255,255,0.02)';(e.currentTarget as HTMLButtonElement).style.borderColor=activeMint===tok.mint&&scanning?'rgba(0,212,130,0.3)':'rgba(255,255,255,0.06)'}}>
+            <span style={{fontSize:10,fontWeight:700,color:'#e2e8f0',fontFamily:'IBM Plex Mono,monospace'}}>{tok.symbol}</span>
+            <span style={{fontSize:9,color:tok.color,fontWeight:600}}>{tok.change}</span>
+          </button>
+        ))}
+      </div>
+
+      <style>{`
+        @keyframes ping {
+          0%{transform:scale(1);opacity:0.5}
+          70%{transform:scale(1.15);opacity:0}
+          100%{transform:scale(1.15);opacity:0}
+        }
+      `}</style>
     </div>
   )
 }
