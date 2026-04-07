@@ -2310,7 +2310,12 @@ export default function Dashboard() {
         </div>
       )
     }
-    if (scanState === 'idle') return <EmptyState />
+    if (scanState === 'idle') return (
+      <TokenListDashboard
+        onScanToken={(mint) => { setMintInput(mint); doScan(mint) }}
+        showModal={() => setShowModal(true)}
+      />
+    )
     if (scanState === 'loading') return (
       <div className="flex flex-col items-center justify-center h-full gap-4 p-10">
         <NeuralSpinner />
