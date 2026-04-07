@@ -1854,6 +1854,7 @@ export default function Page() {
   const [timeStr,     setTimeStr]     = useState('')
   const [showModal,   setShowModal]   = useState(false)
   const [isPro,setIsPro] = useState(false)
+  const [credits, setCredits] = useState(10)
   const [trialActivated, setTrialActivated] = useState(false)
   const [showSignup, setShowSignup] = useState(false)
   const [chartSwapModal, setChartSwapModal] = useState<{mint:string;symbol:string;tab?:string}|null>(null)
@@ -2379,7 +2380,16 @@ export default function Page() {
             </div>
           ) : (
             <div style={{display:'flex',alignItems:'center',gap:6}}>
-              <span style={{fontSize:'0.58rem',color:'#6e7681',fontFamily:'IBM Plex Mono,monospace'}}>10 scans left</span>
+              <button onClick={() => setShowModal(true)} style={{
+                display:'flex',alignItems:'center',gap:4,
+                background:credits<3?'rgba(240,165,0,0.1)':'rgba(255,255,255,0.04)',
+                border:credits<3?'1px solid rgba(240,165,0,0.3)':'1px solid #21262d',
+                borderRadius:4,padding:'3px 8px',cursor:'pointer',
+                animation:credits<3?'pulse 1.5s infinite':'none'
+              }}>
+                <span style={{fontSize:'12px'}}>🪙</span>
+                <span style={{fontSize:'0.6rem',fontWeight:700,color:credits<3?'#f0a500':'#e2e8f0',fontFamily:'IBM Plex Mono,monospace'}}>{credits} Credits</span>
+              </button>
               <button onClick={() => setShowModal(true)} className="btn-terminal px-3 py-1 text-white border-none rounded-[4px] text-[0.62rem]" style={{ background:'linear-gradient(135deg,#00d4aa,#059669)', boxShadow:'0 0 12px rgba(0,212,130,0.3)' }}>⚡ UPGRADE</button>
             </div>
           )}
@@ -2417,7 +2427,14 @@ export default function Page() {
         <aside className="hidden md:flex flex-col w-[280px] border-r border-[rgba(0,212,130,0.15)] bg-[#161b22] flex-shrink-0 overflow-hidden" style={{ height: 'calc(100vh - 48px - 26px - 32px - 80px)', position: 'sticky', top: 74 }}>
           {/* Scan zone — stable external MintInput */}
           <div ref={scanTopRef}>
-            <MintInput onScan={(v) => { setMintInput(v); doScan(v) }} loading={scanState === 'loading'} />
+            <MintInput onScan={(v) => {
+              if (!isPro && credits <= 0) {
+                setShowModal(true)
+                return
+              }
+              setMintInput(v)
+              doScan(v)
+            }} loading={scanState === 'loading'} />
             <div className="flex gap-1 px-3.5 pb-2">
               {SAMPLE_MINTS.map(s => (
                 <button key={s.label} onClick={() => { setMintInput(s.mint); doScan(s.mint) }}
