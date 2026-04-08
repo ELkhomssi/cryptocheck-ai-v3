@@ -1,4 +1,5 @@
 'use client'
+import React from 'react'
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import AuthModal from '../../components/AuthModal'
@@ -135,7 +136,7 @@ export default function LandingPage() {
       </section>
 
       {/* FEATURES */}
-      <section id="features" style={{padding:'64px 24px',maxWidth:920px,margin:'0 auto'}}>
+      <section id="features" style={{padding:'64px 24px',maxWidth:920,margin:'0 auto'}}>
         <div style={{textAlign:'center' as const,marginBottom:40}}>
           <div style={{fontSize:9,fontWeight:500,letterSpacing:'0.14em',color:T,marginBottom:10}}>WHY CRYPTOCHECK AI</div>
           <h2 style={{fontSize:'clamp(22px,3.5vw,36px)',fontWeight:600,color:'#fff',letterSpacing:'-0.02em'}}>Professional tools for <span style={{color:T,fontWeight:500}}>serious Solana traders</span></h2>
@@ -162,7 +163,7 @@ export default function LandingPage() {
       </section>
 
       {/* PRICING */}
-      <section id="pricing" style={{padding:'56px 24px',maxWidth:720px,margin:'0 auto'}}>
+      <section id="pricing" style={{padding:'56px 24px',maxWidth:720,margin:'0 auto'}}>
         <div style={{textAlign:'center' as const,marginBottom:32}}>
           <div style={{fontSize:9,fontWeight:500,letterSpacing:'0.14em',color:T,marginBottom:10}}>PRICING</div>
           <h2 style={{fontSize:'clamp(20px,3.5vw,32px)',fontWeight:600,color:'#fff',letterSpacing:'-0.02em'}}>Simple, transparent pricing</h2>
