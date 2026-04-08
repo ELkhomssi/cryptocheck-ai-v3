@@ -25,18 +25,7 @@ export default function LandingPage() {
 
   return (
     <div style={{background:'#000',color:'#e2e8f0',fontFamily:"'JetBrains Mono',monospace",overflowX:'hidden',fontWeight:300}}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
-        *{box-sizing:border-box;margin:0;padding:0}
-        ::-webkit-scrollbar{width:3px}
-        ::-webkit-scrollbar-thumb{background:rgba(32,178,170,0.2)}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
-        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-        @keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-        @keyframes orb{0%{transform:translate(0,0)}33%{transform:translate(20px,-15px)}66%{transform:translate(-15px,20px)}100%{transform:translate(0,0)}}
-        @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-        a{text-decoration:none;color:inherit}
-      `}</style>
+      
 
       {/* NAV */}
       <nav style={{position:'sticky',top:0,zIndex:100,height:48,background:'rgba(0,0,0,0.92)',borderBottom:'1px solid rgba(32,178,170,0.1)',backdropFilter:'blur(20px)',display:'flex',alignItems:'center',padding:'0 28px',gap:10}}>
@@ -63,27 +52,27 @@ export default function LandingPage() {
 
       {/* HERO */}
       <section style={{minHeight:'88vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'60px 24px 40px',textAlign:'center',position:'relative',overflow:'hidden'}}>
-        <div style={{position:'absolute',top:'10%',left:'20%',width:320,height:320,background:'radial-gradient(circle,rgba(32,178,170,0.1) 0%,transparent 65%)',pointerEvents:'none',animation:'orb 14s ease-in-out infinite'}}/>
-        <div style={{position:'absolute',top:'50%',right:'10%',width:200,height:200,background:'radial-gradient(circle,rgba(45,212,191,0.07) 0%,transparent 65%)',pointerEvents:'none',animation:'orb 18s ease-in-out infinite reverse'}}/>
+        <div style={{position:'absolute',top:'10%',left:'20%',width:320,height:320,background:'radial-gradient(circle,rgba(32,178,170,0.1) 0%,transparent 65%)',pointerEvents:'none',animation:'landing-orb 14s ease-in-out infinite'}}/>
+        <div style={{position:'absolute',top:'50%',right:'10%',width:200,height:200,background:'radial-gradient(circle,rgba(45,212,191,0.07) 0%,transparent 65%)',pointerEvents:'none',animation:'landing-orb 18s ease-in-out infinite reverse'}}/>
         <div style={{position:'absolute',inset:0,backgroundImage:'linear-gradient(rgba(32,178,170,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(32,178,170,0.025) 1px,transparent 1px)',backgroundSize:'56px 56px',pointerEvents:'none'}}/>
 
-        <div style={{display:'inline-flex',alignItems:'center',gap:7,padding:'4px 12px',background:'rgba(32,178,170,0.05)',border:'1px solid rgba(32,178,170,0.15)',borderRadius:20,fontSize:9,color:'#20b2aa',marginBottom:28,letterSpacing:'0.08em',fontWeight:400,animation:'fadeUp 0.5s ease both'}}>
+        <div style={{display:'inline-flex',alignItems:'center',gap:7,padding:'4px 12px',background:'rgba(32,178,170,0.05)',border:'1px solid rgba(32,178,170,0.15)',borderRadius:20,fontSize:9,color:'#20b2aa',marginBottom:28,letterSpacing:'0.08em',fontWeight:400,animation:'landing-fadeUp 0.5s ease both'}}>
           <span style={{width:4,height:4,borderRadius:'50%',background:'#20b2aa',display:'inline-block',animation:'pulse 1.5s infinite'}}/>
           LIVE ON SOLANA MAINNET
         </div>
 
-        <h1 style={{fontSize:'clamp(32px,5.5vw,66px)',fontWeight:700,lineHeight:1.05,letterSpacing:'-0.02em',maxWidth:800,margin:'0 auto 18px',animation:'fadeUp 0.5s ease 0.1s both',fontFamily:"'JetBrains Mono',monospace"}}>
+        <h1 style={{fontSize:'clamp(32px,5.5vw,66px)',fontWeight:700,lineHeight:1.05,letterSpacing:'-0.02em',maxWidth:800,margin:'0 auto 18px',animation:'landing-fadeUp 0.5s ease 0.1s both',fontFamily:"'JetBrains Mono',monospace"}}>
           <span style={{color:'#fff',fontWeight:600}}>SCAN AND PROTECT</span><br/>
           <span style={{color:'#20b2aa',fontWeight:700}}>SOLANA TOKENS</span><br/>
           <span style={{color:'#fff',fontWeight:600}}>AT LIGHTNING SPEED</span>
         </h1>
 
-        <p style={{fontSize:12,color:'rgba(32,178,170,0.45)',maxWidth:480,margin:'0 auto 32px',lineHeight:1.8,fontWeight:300,letterSpacing:'0.02em',animation:'fadeUp 0.5s ease 0.2s both'}}>
+        <p style={{fontSize:12,color:'rgba(32,178,170,0.45)',maxWidth:480,margin:'0 auto 32px',lineHeight:1.8,fontWeight:300,letterSpacing:'0.02em',animation:'landing-fadeUp 0.5s ease 0.2s both'}}>
           Institutional-grade Neural AI · Rug Detection · Whale Tracking · Auto-Sniper<br/>
           Powered by Helius RPC · Solana Mainnet
         </p>
 
-        <div style={{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap',marginBottom:44,animation:'fadeUp 0.5s ease 0.3s both'}}>
+        <div style={{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap',marginBottom:44,animation:'landing-fadeUp 0.5s ease 0.3s both'}}>
           <button onClick={launch} style={{padding:'12px 28px',background:'#20b2aa',color:'#000',border:'none',borderRadius:4,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'JetBrains Mono',monospace",letterSpacing:'0.06em',boxShadow:'0 0 28px rgba(32,178,170,0.3)'}}>
             ⚡ LAUNCH APP FREE
           </button>
@@ -93,7 +82,7 @@ export default function LandingPage() {
         </div>
 
         {/* Stats */}
-        <div style={{display:'flex',gap:0,marginBottom:48,border:'1px solid rgba(32,178,170,0.1)',borderRadius:4,overflow:'hidden',animation:'fadeUp 0.5s ease 0.4s both'}}>
+        <div style={{display:'flex',gap:0,marginBottom:48,border:'1px solid rgba(32,178,170,0.1)',borderRadius:4,overflow:'hidden',animation:'landing-fadeUp 0.5s ease 0.4s both'}}>
           {[['$4.2M+','PROTECTED'],['14,902','SCANNED TODAY'],['97%','RUG ACCURACY'],['<200ms','RESPONSE']].map(([v,l]) => (
             <div key={l} style={{padding:'10px 22px',borderRight:'1px solid rgba(32,178,170,0.08)',textAlign:'center',lastChild:{borderRight:'none'}}}>
               <div style={{fontSize:18,fontWeight:600,color:'#20b2aa',lineHeight:1}}>{v}</div>
@@ -103,7 +92,7 @@ export default function LandingPage() {
         </div>
 
         {/* App preview */}
-        <div style={{width:'100%',maxWidth:860,margin:'0 auto',background:'#080808',border:'1px solid rgba(32,178,170,0.12)',borderRadius:6,overflow:'hidden',boxShadow:'0 0 60px rgba(32,178,170,0.07),0 40px 80px rgba(0,0,0,0.8)',animation:'float 8s ease-in-out infinite'}}>
+        <div style={{width:'100%',maxWidth:860,margin:'0 auto',background:'#080808',border:'1px solid rgba(32,178,170,0.12)',borderRadius:6,overflow:'hidden',boxShadow:'0 0 60px rgba(32,178,170,0.07),0 40px 80px rgba(0,0,0,0.8)',animation:'landing-float 8s ease-in-out infinite'}}>
           <div style={{height:2,background:'linear-gradient(90deg,transparent,#20b2aa,#2dd4bf,transparent)'}}/>
           <div style={{background:'#0a0a0a',borderBottom:'1px solid rgba(32,178,170,0.07)',padding:'0 12px',height:30,display:'flex',alignItems:'center',gap:8}}>
             <div style={{display:'flex',gap:4}}>{['#ff5f57','#ffbd2e','#28c840'].map(c=><div key={c} style={{width:8,height:8,borderRadius:'50%',background:c}}/>)}</div>
@@ -164,7 +153,7 @@ export default function LandingPage() {
 
       {/* TICKER */}
       <div style={{background:'#080808',borderTop:'1px solid rgba(32,178,170,0.07)',borderBottom:'1px solid rgba(32,178,170,0.07)',height:24,overflow:'hidden',display:'flex',alignItems:'center'}}>
-        <div style={{display:'flex',whiteSpace:'nowrap',animation:'ticker 22s linear infinite',gap:0}}>
+        <div style={{display:'flex',whiteSpace:'nowrap',animation:'landing-ticker 22s linear infinite',gap:0}}>
           {['SOL $82.08 +3.19%','BONK +6.84%','WIF -2.1%','POPCAT +15.4%','JUP +3.2%','GRASS +10.6%','NEURAL ENGINE ONLINE','SOL $82.08 +3.19%','BONK +6.84%','WIF -2.1%','POPCAT +15.4%'].map((t,i) => (
             <span key={i} style={{fontSize:8,fontWeight:300,color:'rgba(32,178,170,0.3)',padding:'0 16px',borderRight:'1px solid rgba(32,178,170,0.06)',letterSpacing:'0.06em'}}>{t}</span>
           ))}
