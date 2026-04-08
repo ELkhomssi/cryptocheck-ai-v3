@@ -9,197 +9,217 @@ const supabase = createClient(
 )
 
 export default function LandingPage() {
-  const [pulse, setPulse] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
   const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
-    const iv = setInterval(() => setPulse(p => !p), 1500)
     supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null))
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null)
       if (session?.user) window.location.replace('/app')
     })
-    return () => { clearInterval(iv); subscription.unsubscribe() }
+    return () => subscription.unsubscribe()
   }, [])
 
+  const launch = () => user ? window.location.replace('/app') : setShowAuth(true)
+
   return (
-    <div style={{background:'#050a06',minHeight:'100vh',color:'#e8fef0',fontFamily:'Inter,system-ui,sans-serif',overflowX:'hidden'}}>
+    <div style={{background:'#000',color:'#e2e8f0',fontFamily:"'JetBrains Mono',monospace",overflowX:'hidden',fontWeight:300}}>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+        *{box-sizing:border-box;margin:0;padding:0}
+        ::-webkit-scrollbar{width:3px}
+        ::-webkit-scrollbar-thumb{background:rgba(32,178,170,0.2)}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
-        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-        *{box-sizing:border-box}
-        ::-webkit-scrollbar{width:4px}
-        ::-webkit-scrollbar-thumb{background:rgba(52,211,153,0.2);border-radius:2px}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+        @keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+        @keyframes orb{0%{transform:translate(0,0)}33%{transform:translate(20px,-15px)}66%{transform:translate(-15px,20px)}100%{transform:translate(0,0)}}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
         a{text-decoration:none;color:inherit}
       `}</style>
 
-      {/* NAVBAR */}
-      <nav style={{position:'sticky',top:0,zIndex:100,padding:'0 40px',height:58,display:'flex',alignItems:'center',background:'rgba(5,10,6,0.92)',borderBottom:'1px solid rgba(52,211,153,0.08)',backdropFilter:'blur(20px)'}}>
+      {/* NAV */}
+      <nav style={{position:'sticky',top:0,zIndex:100,height:48,background:'rgba(0,0,0,0.92)',borderBottom:'1px solid rgba(32,178,170,0.1)',backdropFilter:'blur(20px)',display:'flex',alignItems:'center',padding:'0 28px',gap:10}}>
         <div style={{display:'flex',alignItems:'center',gap:8}}>
-          <img src="/logo.jpg" alt="CryptoCheck AI" style={{width:28,height:28,borderRadius:7,objectFit:'cover'}}/>
-          <span style={{fontSize:15,fontWeight:700,color:'#f0fdf4'}}>CryptoCheck<span style={{color:'#34d399'}}>AI</span></span>
+          <img src="/logo.jpg" alt="logo" style={{width:22,height:22,borderRadius:4,objectFit:'cover'}}/>
+          <span style={{fontSize:13,fontWeight:500,color:'#fff',letterSpacing:'0.01em'}}>CryptoCheck<span style={{color:'#20b2aa'}}>AI</span></span>
         </div>
-        <div style={{display:'flex',gap:2,margin:'0 auto'}}>
-          {[['Features','#features'],['Pricing','#pricing'],['Neural Scan','/app'],['Whale Intel','/app']].map(([t,h]) => (
-            <a key={t} href={h} style={{padding:'6px 13px',fontSize:13,color:'#6ee7b7',textDecoration:'none',borderRadius:6,opacity:0.8}}>{t}</a>
+        <div style={{display:'flex',gap:0,marginLeft:14}}>
+          {[['Features','#features'],['Pricing','#pricing'],['Docs','#']].map(([t,h]) => (
+            <a key={t} href={h} style={{padding:'5px 12px',fontSize:11,color:'rgba(32,178,170,0.5)',letterSpacing:'0.04em',fontWeight:400,transition:'color 0.15s'}}
+              onMouseEnter={e=>(e.currentTarget.style.color='#20b2aa')}
+              onMouseLeave={e=>(e.currentTarget.style.color='rgba(32,178,170,0.5)')}>{t}</a>
           ))}
         </div>
-        <div style={{display:'flex',gap:8,alignItems:'center'}}>
-          <button onClick={()=>user?window.location.replace('/app'):setShowAuth(true)} style={{padding:'7px 16px',fontSize:13,color:'#6ee7b7',opacity:0.8,background:'none',border:'none',cursor:'pointer'}}>
-            {user ? 'Dashboard →' : 'Sign In'}
+        <div style={{marginLeft:'auto',display:'flex',gap:8,alignItems:'center'}}>
+          <button onClick={launch} style={{padding:'5px 12px',fontSize:11,color:'rgba(32,178,170,0.5)',background:'none',border:'none',cursor:'pointer',fontFamily:"'JetBrains Mono',monospace",letterSpacing:'0.04em',fontWeight:400}}>
+            {user ? 'Dashboard' : 'Sign In'}
           </button>
-          <button onClick={()=>user?window.location.replace('/app'):setShowAuth(true)} style={{padding:'8px 18px',fontSize:13,fontWeight:600,background:'linear-gradient(135deg,#34d399,#10b981)',color:'#050a06',borderRadius:8,border:'none',cursor:'pointer',boxShadow:'0 0 16px rgba(52,211,153,0.3)'}}>
-            Launch App →
+          <button onClick={launch} style={{padding:'6px 16px',background:'#20b2aa',color:'#000',border:'none',borderRadius:4,fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:"'JetBrains Mono',monospace",letterSpacing:'0.06em'}}>
+            LAUNCH APP →
           </button>
         </div>
       </nav>
 
       {/* HERO */}
-      <section style={{position:'relative',padding:'80px 24px 60px',textAlign:'center',overflow:'hidden'}}>
-        <div style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%)',width:'800px',height:'600px',background:'radial-gradient(ellipse,rgba(52,211,153,0.12) 0%,transparent 65%)',pointerEvents:'none'}}/>
-        <div style={{position:'absolute',inset:0,backgroundImage:'linear-gradient(rgba(52,211,153,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(52,211,153,0.03) 1px,transparent 1px)',backgroundSize:'56px 56px',pointerEvents:'none'}}/>
+      <section style={{minHeight:'88vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'60px 24px 40px',textAlign:'center',position:'relative',overflow:'hidden'}}>
+        <div style={{position:'absolute',top:'10%',left:'20%',width:320,height:320,background:'radial-gradient(circle,rgba(32,178,170,0.1) 0%,transparent 65%)',pointerEvents:'none',animation:'orb 14s ease-in-out infinite'}}/>
+        <div style={{position:'absolute',top:'50%',right:'10%',width:200,height:200,background:'radial-gradient(circle,rgba(45,212,191,0.07) 0%,transparent 65%)',pointerEvents:'none',animation:'orb 18s ease-in-out infinite reverse'}}/>
+        <div style={{position:'absolute',inset:0,backgroundImage:'linear-gradient(rgba(32,178,170,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(32,178,170,0.025) 1px,transparent 1px)',backgroundSize:'56px 56px',pointerEvents:'none'}}/>
 
-        <div style={{display:'inline-flex',alignItems:'center',gap:8,padding:'6px 16px',background:'rgba(52,211,153,0.08)',border:'1px solid rgba(52,211,153,0.2)',borderRadius:20,fontSize:12,color:'#34d399',marginBottom:28,fontWeight:600,position:'relative'}}>
-          <span style={{width:6,height:6,borderRadius:'50%',background:'#34d399',display:'inline-block',animation:'pulse 1.5s infinite',boxShadow:'0 0 6px #34d399'}}/>
-          AI-Powered Solana Intelligence · Live on Mainnet
+        <div style={{display:'inline-flex',alignItems:'center',gap:7,padding:'4px 12px',background:'rgba(32,178,170,0.05)',border:'1px solid rgba(32,178,170,0.15)',borderRadius:20,fontSize:9,color:'#20b2aa',marginBottom:28,letterSpacing:'0.08em',fontWeight:400,animation:'fadeUp 0.5s ease both'}}>
+          <span style={{width:4,height:4,borderRadius:'50%',background:'#20b2aa',display:'inline-block',animation:'pulse 1.5s infinite'}}/>
+          LIVE ON SOLANA MAINNET
         </div>
 
-        <h1 style={{fontSize:'clamp(36px,6vw,68px)',fontWeight:800,lineHeight:1.1,letterSpacing:'-0.03em',color:'#f0fdf4',maxWidth:780,margin:'0 auto 20px',position:'relative'}}>
-          Stop Losing Money to<br/>
-          <span style={{background:'linear-gradient(135deg,#34d399,#6ee7b7,#a7f3d0)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text'}}>
-            Solana Rug Pulls
-          </span>
+        <h1 style={{fontSize:'clamp(32px,5.5vw,66px)',fontWeight:700,lineHeight:1.05,letterSpacing:'-0.02em',maxWidth:800,margin:'0 auto 18px',animation:'fadeUp 0.5s ease 0.1s both',fontFamily:"'JetBrains Mono',monospace"}}>
+          <span style={{color:'#fff',fontWeight:600}}>SCAN AND PROTECT</span><br/>
+          <span style={{color:'#20b2aa',fontWeight:700}}>SOLANA TOKENS</span><br/>
+          <span style={{color:'#fff',fontWeight:600}}>AT LIGHTNING SPEED</span>
         </h1>
 
-        <p style={{fontSize:'clamp(14px,2vw,17px)',color:'#6ee7b7',maxWidth:520,margin:'0 auto 36px',lineHeight:1.7,opacity:0.85,position:'relative'}}>
-          Institutional-grade Neural Scan, AI Predictions, Whale Tracking and Auto-Sniper for serious Solana traders. Powered by Helius RPC.
+        <p style={{fontSize:12,color:'rgba(32,178,170,0.45)',maxWidth:480,margin:'0 auto 32px',lineHeight:1.8,fontWeight:300,letterSpacing:'0.02em',animation:'fadeUp 0.5s ease 0.2s both'}}>
+          Institutional-grade Neural AI · Rug Detection · Whale Tracking · Auto-Sniper<br/>
+          Powered by Helius RPC · Solana Mainnet
         </p>
 
-        <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap',marginBottom:48,position:'relative'}}>
-          <button onClick={()=>user?window.location.replace('/app'):setShowAuth(true)} style={{padding:'13px 28px',background:'linear-gradient(135deg,#34d399,#10b981)',color:'#050a06',borderRadius:10,fontSize:14,fontWeight:700,display:'flex',alignItems:'center',gap:8,border:'none',cursor:'pointer',boxShadow:'0 0 32px rgba(52,211,153,0.4)'}}>
-            ⚡ Start Free — 10 Credits
+        <div style={{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap',marginBottom:44,animation:'fadeUp 0.5s ease 0.3s both'}}>
+          <button onClick={launch} style={{padding:'12px 28px',background:'#20b2aa',color:'#000',border:'none',borderRadius:4,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'JetBrains Mono',monospace",letterSpacing:'0.06em',boxShadow:'0 0 28px rgba(32,178,170,0.3)'}}>
+            ⚡ LAUNCH APP FREE
           </button>
-          <a href="#features" style={{padding:'13px 26px',background:'rgba(52,211,153,0.06)',color:'#a7f3d0',borderRadius:10,fontSize:14,fontWeight:600,border:'1px solid rgba(52,211,153,0.2)'}}>
-            See Features →
+          <a href="#features" style={{padding:'12px 22px',background:'rgba(32,178,170,0.05)',color:'rgba(32,178,170,0.7)',border:'1px solid rgba(32,178,170,0.15)',borderRadius:4,fontSize:12,fontWeight:400,letterSpacing:'0.04em'}}>
+            DOCUMENTATION →
           </a>
         </div>
 
         {/* Stats */}
-        <div style={{display:'flex',gap:32,justifyContent:'center',flexWrap:'wrap',marginBottom:52,position:'relative'}}>
-          {[['$4.2M+','Protected from rugs'],['14,902','Tokens scanned today'],['97%','Rug detection accuracy'],['<200ms','Real-time response']].map(([v,l]) => (
-            <div key={l} style={{textAlign:'center'}}>
-              <div style={{fontSize:22,fontWeight:700,color:'#34d399',fontFamily:'IBM Plex Mono,monospace',textShadow:'0 0 12px rgba(52,211,153,0.4)'}}>{v}</div>
-              <div style={{fontSize:11,color:'#6ee7b7',marginTop:3,opacity:0.7}}>{l}</div>
+        <div style={{display:'flex',gap:0,marginBottom:48,border:'1px solid rgba(32,178,170,0.1)',borderRadius:4,overflow:'hidden',animation:'fadeUp 0.5s ease 0.4s both'}}>
+          {[['$4.2M+','PROTECTED'],['14,902','SCANNED TODAY'],['97%','RUG ACCURACY'],['<200ms','RESPONSE']].map(([v,l]) => (
+            <div key={l} style={{padding:'10px 22px',borderRight:'1px solid rgba(32,178,170,0.08)',textAlign:'center',lastChild:{borderRight:'none'}}}>
+              <div style={{fontSize:18,fontWeight:600,color:'#20b2aa',lineHeight:1}}>{v}</div>
+              <div style={{fontSize:8,color:'rgba(32,178,170,0.3)',marginTop:3,letterSpacing:'0.1em',fontWeight:400}}>{l}</div>
             </div>
           ))}
         </div>
 
-        {/* Dashboard preview */}
-        <div style={{maxWidth:860,margin:'0 auto',background:'#0a110b',border:'1px solid rgba(52,211,153,0.18)',borderRadius:14,overflow:'hidden',boxShadow:'0 0 60px rgba(52,211,153,0.08),0 40px 80px rgba(0,0,0,0.7)',animation:'float 6s ease-in-out infinite'}}>
-          <div style={{height:2,background:'linear-gradient(90deg,transparent,#34d399,transparent)'}}/>
-          <div style={{background:'#0d1510',borderBottom:'1px solid rgba(52,211,153,0.08)',padding:'0 14px',height:36,display:'flex',alignItems:'center',gap:8}}>
-            <div style={{display:'flex',gap:5}}>
-              {['#ff5f57','#ffbd2e','#28c840'].map(c => <div key={c} style={{width:10,height:10,borderRadius:'50%',background:c}}/>)}
-            </div>
+        {/* App preview */}
+        <div style={{width:'100%',maxWidth:860,margin:'0 auto',background:'#080808',border:'1px solid rgba(32,178,170,0.12)',borderRadius:6,overflow:'hidden',boxShadow:'0 0 60px rgba(32,178,170,0.07),0 40px 80px rgba(0,0,0,0.8)',animation:'float 8s ease-in-out infinite'}}>
+          <div style={{height:2,background:'linear-gradient(90deg,transparent,#20b2aa,#2dd4bf,transparent)'}}/>
+          <div style={{background:'#0a0a0a',borderBottom:'1px solid rgba(32,178,170,0.07)',padding:'0 12px',height:30,display:'flex',alignItems:'center',gap:8}}>
+            <div style={{display:'flex',gap:4}}>{['#ff5f57','#ffbd2e','#28c840'].map(c=><div key={c} style={{width:8,height:8,borderRadius:'50%',background:c}}/>)}</div>
             <div style={{flex:1,display:'flex',justifyContent:'center'}}>
-              <div style={{background:'#050a06',border:'1px solid rgba(52,211,153,0.1)',borderRadius:4,padding:'2px 20px',fontSize:10,color:'#6ee7b7'}}>cryptocheckai.com</div>
+              <div style={{background:'#060606',border:'1px solid rgba(32,178,170,0.08)',borderRadius:2,padding:'2px 14px',fontSize:8,color:'rgba(32,178,170,0.3)',letterSpacing:'0.04em'}}>cryptocheckai.com/app</div>
             </div>
-            <div style={{display:'flex',alignItems:'center',gap:4,fontSize:9,color:'#34d399',fontFamily:'IBM Plex Mono,monospace'}}>
-              <span style={{width:5,height:5,borderRadius:'50%',background:'#34d399',animation:'pulse 1.5s infinite'}}/>LIVE
+            <div style={{display:'flex',alignItems:'center',gap:3,fontSize:8,color:'#20b2aa',letterSpacing:'0.06em'}}>
+              <span style={{width:3,height:3,borderRadius:'50%',background:'#20b2aa',animation:'pulse 1.5s infinite'}}/>LIVE
             </div>
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'185px 1fr',height:220}}>
-            <div style={{borderRight:'1px solid rgba(52,211,153,0.06)',padding:8,display:'flex',flexDirection:'column',gap:5}}>
-              <div style={{background:'rgba(52,211,153,0.06)',border:'1px solid rgba(52,211,153,0.15)',borderRadius:6,padding:7}}>
-                <div style={{fontSize:8,fontWeight:700,color:'#34d399',marginBottom:5,letterSpacing:'0.08em'}}>⚡ NEURAL SCAN V4</div>
-                <div style={{background:'#050a06',border:'1px solid rgba(52,211,153,0.1)',borderRadius:3,padding:'4px 7px',fontSize:8,color:'#4ade80',opacity:0.5,marginBottom:4}}>Enter mint address...</div>
-                <div style={{background:'linear-gradient(135deg,#34d399,#10b981)',borderRadius:3,padding:4,textAlign:'center',fontSize:8,fontWeight:700,color:'#050a06'}}>⚡ NEURAL SCAN</div>
-              </div>
-              <div style={{fontSize:8,fontWeight:700,color:'#4ade80',opacity:0.6,padding:'2px 4px',letterSpacing:'0.08em'}}>LIVE ALPHA FEED</div>
-              {[['WHALE','rgba(251,191,36,0.12)','#fbbf24','7xKP bought 2.4M BONK'],['RUG','rgba(248,113,113,0.1)','#f87171','MEW holder dump 45%'],['ALPHA','rgba(52,211,153,0.1)','#34d399','POPCAT vol +340%']].map(([tag,bg,color,txt]) => (
-                <div key={tag} style={{display:'flex',gap:4,alignItems:'flex-start'}}>
-                  <span style={{fontSize:7,padding:'1px 4px',background:bg as string,color:color as string,borderRadius:2,flexShrink:0}}>{tag}</span>
-                  <span style={{fontSize:8,color:'#6ee7b7',opacity:0.7}}>{txt}</span>
+          <div style={{display:'grid',gridTemplateColumns:'150px 1fr 170px',height:190,fontFamily:"'JetBrains Mono',monospace"}}>
+            <div style={{borderRight:'1px solid rgba(32,178,170,0.06)',padding:8,display:'flex',flexDirection:'column',gap:4}}>
+              <div style={{fontSize:7,color:'rgba(32,178,170,0.25)',letterSpacing:'0.1em',fontWeight:400,marginBottom:2}}>NEURAL SCAN</div>
+              <div style={{background:'#060606',border:'1px solid rgba(32,178,170,0.08)',borderRadius:2,padding:'4px 6px',fontSize:7,color:'rgba(32,178,170,0.25)',fontWeight:300}}>Paste mint address...</div>
+              <div style={{background:'#20b2aa',borderRadius:2,padding:'4px',textAlign:'center',fontSize:7,fontWeight:600,color:'#000',letterSpacing:'0.06em'}}>⚡ SCAN</div>
+              <div style={{fontSize:7,color:'rgba(32,178,170,0.2)',letterSpacing:'0.08em',fontWeight:400,marginTop:4}}>TRENDING</div>
+              {[['BONK','+6.8%',true],['WIF','-2.1%',false],['POPCAT','+15%',true]].map(([s,c,pos]) => (
+                <div key={s} style={{display:'flex',justifyContent:'space-between',padding:'2px 3px',background:pos?'rgba(32,178,170,0.03)':'rgba(239,68,68,0.02)',borderRadius:2}}>
+                  <span style={{fontSize:7,color:'#d4d4d4',fontWeight:400}}>{s}</span>
+                  <span style={{fontSize:7,color:pos?'#20b2aa':'#ef4444',fontWeight:500}}>{c}</span>
                 </div>
               ))}
             </div>
-            <div style={{padding:10,display:'flex',flexDirection:'column',gap:7}}>
-              <div style={{background:'rgba(52,211,153,0.04)',border:'1px solid rgba(52,211,153,0.1)',borderRadius:5,padding:'6px 12px',display:'flex',alignItems:'center',gap:8}}>
-                <span style={{width:5,height:5,borderRadius:'50%',background:'#34d399',animation:'pulse 1.5s infinite'}}/>
-                <span style={{fontSize:8,fontWeight:700,color:'#34d399',letterSpacing:'0.08em'}}>NEURAL PROTECTION ACTIVE</span>
-                <span style={{marginLeft:'auto',fontSize:16,fontWeight:700,color:'#34d399',fontFamily:'IBM Plex Mono,monospace'}}>$4,450</span>
+            <div style={{padding:8,display:'flex',flexDirection:'column',gap:5}}>
+              <div style={{background:'rgba(32,178,170,0.03)',border:'1px solid rgba(32,178,170,0.07)',borderRadius:2,padding:'4px 8px',display:'flex',alignItems:'center',gap:7}}>
+                <span style={{width:3,height:3,borderRadius:'50%',background:'#20b2aa',animation:'pulse 1.5s infinite'}}/>
+                <span style={{fontSize:7,fontWeight:500,color:'#20b2aa',letterSpacing:'0.08em'}}>NEURAL PROTECTION ACTIVE</span>
+                <span style={{marginLeft:'auto',fontSize:13,fontWeight:600,color:'#20b2aa'}}>$4,450</span>
               </div>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,flex:1}}>
-                {[
-                  {label:'Neural Score',val:'78',color:'#34d399',sub:'LOW RISK',locked:false},
-                  {label:'AI Prediction',val:'82%',color:'#fbbf24',sub:'PRO ONLY',locked:true},
-                  {label:'Rug Prob',val:'12%',color:'#34d399',sub:'SAFE',locked:false},
-                ].map(c => (
-                  <div key={c.label} style={{background:'#0a110b',border:`1px solid ${c.locked?'rgba(251,191,36,0.2)':'rgba(52,211,153,0.1)'}`,borderRadius:7,padding:8,textAlign:'center',position:'relative',overflow:'hidden'}}>
-                    {c.locked && <div style={{position:'absolute',inset:0,backdropFilter:'blur(4px)',background:'rgba(5,10,6,0.6)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2}}>
-                      <div style={{width:20,height:20,background:'linear-gradient(135deg,#fbbf24,#f59e0b)',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10}}>🔒</div>
-                      <div style={{fontSize:7,color:'#fbbf24',fontWeight:700}}>PRO ONLY</div>
-                    </div>}
-                    <div style={{fontSize:7,color:'#6ee7b7',opacity:0.6,marginBottom:3,textTransform:'uppercase',letterSpacing:'0.08em'}}>{c.label}</div>
-                    <div style={{fontSize:22,fontWeight:700,color:c.color,fontFamily:'IBM Plex Mono,monospace',lineHeight:1}}>{c.val}</div>
-                    <div style={{fontSize:7,color:c.color,marginTop:2,fontWeight:700}}>{c.sub}</div>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:4,flex:1}}>
+                {[{l:'NEURAL SCORE',v:'78',sub:'LOW RISK',c:'#20b2aa',locked:false},{l:'AI PREDICT',v:'82%',sub:'PRO ONLY',c:'#f59e0b',locked:true},{l:'RUG PROB',v:'12%',sub:'SAFE',c:'#20b2aa',locked:false}].map(item => (
+                  <div key={item.l} style={{background:'#060606',border:`1px solid ${item.locked?'rgba(245,158,11,0.1)':'rgba(32,178,170,0.07)'}`,borderRadius:3,padding:6,textAlign:'center',position:'relative',overflow:'hidden'}}>
+                    {item.locked && <div style={{position:'absolute',inset:0,background:'rgba(0,0,0,0.65)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2}}><span style={{fontSize:9}}>🔒</span><div style={{fontSize:6,color:'#f59e0b',fontWeight:500,letterSpacing:'0.06em'}}>PRO</div></div>}
+                    <div style={{fontSize:6,color:'rgba(32,178,170,0.25)',marginBottom:2,letterSpacing:'0.08em',fontWeight:400}}>{item.l}</div>
+                    <div style={{fontSize:19,fontWeight:600,color:item.c,lineHeight:1}}>{item.v}</div>
+                    <div style={{fontSize:6,color:item.c,marginTop:1,fontWeight:400}}>{item.sub}</div>
                   </div>
                 ))}
+              </div>
+            </div>
+            <div style={{borderLeft:'1px solid rgba(32,178,170,0.06)',padding:8,display:'flex',flexDirection:'column',gap:3}}>
+              <div style={{fontSize:7,color:'rgba(32,178,170,0.25)',letterSpacing:'0.08em',fontWeight:400,marginBottom:2}}>ALPHA FEED</div>
+              {[{tag:'WHL',c:'rgba(245,158,11,0.1)',tc:'#f59e0b',txt:'7xKP bought BONK 180 SOL'},{tag:'RUG',c:'rgba(239,68,68,0.1)',tc:'#ef4444',txt:'MEW holder dump 45%'},{tag:'ALP',c:'rgba(32,178,170,0.07)',tc:'#20b2aa',txt:'POPCAT vol +340%'}].map(f => (
+                <div key={f.tag} style={{display:'flex',gap:4,fontSize:7,alignItems:'flex-start'}}>
+                  <span style={{padding:'1px 3px',background:f.c,color:f.tc,borderRadius:1,flexShrink:0,fontWeight:500,letterSpacing:'0.04em'}}>{f.tag}</span>
+                  <span style={{color:'rgba(32,178,170,0.35)',lineHeight:1.4,fontWeight:300}}>{f.txt}</span>
+                </div>
+              ))}
+              <div style={{marginTop:4,fontSize:7,color:'rgba(32,178,170,0.2)',letterSpacing:'0.06em',fontWeight:400}}>BUY / SELL</div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:2}}>
+                <div style={{padding:'4px',background:'#20b2aa',borderRadius:1,textAlign:'center',fontSize:7,fontWeight:600,color:'#000',letterSpacing:'0.06em'}}>BUY</div>
+                <div style={{padding:'4px',background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.15)',borderRadius:1,textAlign:'center',fontSize:7,fontWeight:500,color:'#ef4444',letterSpacing:'0.06em'}}>SELL</div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* FEATURES */}
-      <section id="features" style={{padding:'64px 24px',maxWidth:980,margin:'0 auto'}}>
-        <div style={{textAlign:'center',marginBottom:44}}>
-          <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.14em',color:'#34d399',textTransform:'uppercase',marginBottom:10}}>WHY CRYPTOCHECK AI</div>
-          <h2 style={{fontSize:'clamp(26px,4vw,40px)',fontWeight:800,color:'#f0fdf4',letterSpacing:'-0.02em'}}>Everything to trade safely on Solana</h2>
+      {/* TICKER */}
+      <div style={{background:'#080808',borderTop:'1px solid rgba(32,178,170,0.07)',borderBottom:'1px solid rgba(32,178,170,0.07)',height:24,overflow:'hidden',display:'flex',alignItems:'center'}}>
+        <div style={{display:'flex',whiteSpace:'nowrap',animation:'ticker 22s linear infinite',gap:0}}>
+          {['SOL $82.08 +3.19%','BONK +6.84%','WIF -2.1%','POPCAT +15.4%','JUP +3.2%','GRASS +10.6%','NEURAL ENGINE ONLINE','SOL $82.08 +3.19%','BONK +6.84%','WIF -2.1%','POPCAT +15.4%'].map((t,i) => (
+            <span key={i} style={{fontSize:8,fontWeight:300,color:'rgba(32,178,170,0.3)',padding:'0 16px',borderRight:'1px solid rgba(32,178,170,0.06)',letterSpacing:'0.06em'}}>{t}</span>
+          ))}
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
+      </div>
+
+      {/* FEATURES */}
+      <section id="features" style={{padding:'64px 24px',maxWidth:920px,margin:'0 auto'}}>
+        <div style={{textAlign:'center',marginBottom:40}}>
+          <div style={{fontSize:9,fontWeight:500,letterSpacing:'0.14em',color:'#20b2aa',marginBottom:10}}>WHY CRYPTOCHECK AI</div>
+          <h2 style={{fontSize:'clamp(22px,3.5vw,36px)',fontWeight:600,color:'#fff',letterSpacing:'-0.02em'}}>Professional tools for<br/><span style={{color:'#20b2aa',fontWeight:500}}>serious Solana traders</span></h2>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:0,background:'rgba(32,178,170,0.06)',border:'1px solid rgba(32,178,170,0.08)',borderRadius:4,overflow:'hidden'}}>
           {[
-            {icon:'🧠',title:'Neural Scan V4',badge:'FREE',badgeColor:'#34d399',desc:'AI risk scoring, holder analysis, mint authority checks in under 2 seconds.'},
-            {icon:'⚡',title:'AI Prediction Engine',badge:'PRO',badgeColor:'#fbbf24',desc:'5m-15m price predictions using on-chain signals and whale accumulation.'},
-            {icon:'🐋',title:'Whale Intelligence',badge:'PRO',badgeColor:'#fbbf24',desc:'Track smart money wallets in real-time. See what insiders buy before pumps.'},
-            {icon:'🔐',title:'Rug Forensics Lab',badge:'PRO',badgeColor:'#fbbf24',desc:'Deep contract analysis, bundling detection, liquidity trap identification.'},
-            {icon:'🎯',title:'AI Auto-Sniper',badge:'PRO',badgeColor:'#fbbf24',desc:'AI executes trades automatically when high-probability setups appear.'},
-            {icon:'📡',title:'Priority Alpha Feed',badge:'PRO',badgeColor:'#fbbf24',desc:'Real-time alerts for whale movements, new pools, and alpha setups.'},
-          ].map(f => (
-            <div key={f.title} style={{background:'#0a110b',border:'1px solid rgba(52,211,153,0.08)',borderRadius:10,padding:18,transition:'all 0.2s',cursor:'default'}}
-              onMouseEnter={e=>{(e.currentTarget as HTMLDivElement).style.borderColor='rgba(52,211,153,0.25)';(e.currentTarget as HTMLDivElement).style.boxShadow='0 0 20px rgba(52,211,153,0.05)'}}
-              onMouseLeave={e=>{(e.currentTarget as HTMLDivElement).style.borderColor='rgba(52,211,153,0.08)';(e.currentTarget as HTMLDivElement).style.boxShadow='none'}}>
-              <div style={{width:36,height:36,borderRadius:8,background:'rgba(52,211,153,0.08)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,marginBottom:10,border:'1px solid rgba(52,211,153,0.12)'}}>{f.icon}</div>
-              <div style={{fontSize:13,fontWeight:700,color:'#f0fdf4',marginBottom:4}}>{f.title}</div>
-              <div style={{fontSize:8,fontWeight:700,padding:'1px 7px',borderRadius:20,background:`rgba(${f.badgeColor==='#34d399'?'52,211,153':'251,191,36'},0.1)`,color:f.badgeColor,border:`1px solid rgba(${f.badgeColor==='#34d399'?'52,211,153':'251,191,36'},0.2)`,display:'inline-block',marginBottom:8,letterSpacing:'0.06em'}}>{f.badge}</div>
-              <p style={{fontSize:12,color:'#6ee7b7',lineHeight:1.6,opacity:0.75,margin:0}}>{f.desc}</p>
+            {icon:'🧠',title:'Neural Scan V4',badge:'FREE',bc:'rgba(32,178,170,0.08)',btc:'#20b2aa',bbc:'rgba(32,178,170,0.15)',desc:'AI risk scoring, mint authority checks, holder distribution in under 2s.'},
+            {icon:'⚡',title:'AI Prediction',badge:'PRO',bc:'rgba(245,158,11,0.06)',btc:'#f59e0b',bbc:'rgba(245,158,11,0.15)',desc:'5m-15m price predictions using whale accumulation patterns.'},
+            {icon:'🐋',title:'Whale Intel',badge:'PRO',bc:'rgba(245,158,11,0.06)',btc:'#f59e0b',bbc:'rgba(245,158,11,0.15)',desc:'Track smart money wallets in real-time before the pump.'},
+            {icon:'🔐',title:'Rug Forensics',badge:'PRO',bc:'rgba(245,158,11,0.06)',btc:'#f59e0b',bbc:'rgba(245,158,11,0.15)',desc:'Deep contract analysis and bundling detection.'},
+            {icon:'🎯',title:'Auto-Sniper',badge:'PRO',bc:'rgba(245,158,11,0.06)',btc:'#f59e0b',bbc:'rgba(245,158,11,0.15)',desc:'AI executes trades when high-probability setups appear.'},
+            {icon:'📡',title:'Alpha Feed',badge:'PRO',bc:'rgba(245,158,11,0.06)',btc:'#f59e0b',bbc:'rgba(245,158,11,0.15)',desc:'Real-time alerts for whale movements and new pool launches.'},
+          ].map((f,i) => (
+            <div key={f.title} style={{background:'#000',padding:'16px',borderRight:i%3!==2?'1px solid rgba(32,178,170,0.06)':'none',borderBottom:i<3?'1px solid rgba(32,178,170,0.06)':'none',transition:'background 0.15s'}}
+              onMouseEnter={e=>(e.currentTarget.style.background='rgba(32,178,170,0.02)')}
+              onMouseLeave={e=>(e.currentTarget.style.background='#000')}>
+              <div style={{fontSize:16,marginBottom:6}}>{f.icon}</div>
+              <div style={{fontSize:11,fontWeight:500,color:'#e2e8f0',marginBottom:3,letterSpacing:'0.01em'}}>{f.title}</div>
+              <div style={{fontSize:7,padding:'1px 6px',borderRadius:2,background:f.bc,color:f.btc,border:`1px solid ${f.bbc}`,display:'inline-block',marginBottom:7,letterSpacing:'0.08em',fontWeight:500}}>{f.badge}</div>
+              <p style={{fontSize:10,color:'rgba(32,178,170,0.4)',lineHeight:1.7,fontWeight:300,margin:0}}>{f.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* PRICING */}
-      <section id="pricing" style={{padding:'60px 24px',maxWidth:800,margin:'0 auto'}}>
-        <div style={{textAlign:'center',marginBottom:36}}>
-          <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.14em',color:'#34d399',textTransform:'uppercase',marginBottom:10}}>PRICING</div>
-          <h2 style={{fontSize:'clamp(24px,4vw,36px)',fontWeight:800,color:'#f0fdf4',letterSpacing:'-0.02em'}}>Simple, transparent pricing</h2>
+      <section id="pricing" style={{padding:'56px 24px',maxWidth:720px,margin:'0 auto'}}>
+        <div style={{textAlign:'center',marginBottom:32}}>
+          <div style={{fontSize:9,fontWeight:500,letterSpacing:'0.14em',color:'#20b2aa',marginBottom:10}}>PRICING</div>
+          <h2 style={{fontSize:'clamp(20px,3.5vw,32px)',fontWeight:600,color:'#fff',letterSpacing:'-0.02em'}}>Simple, transparent pricing</h2>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:0,background:'rgba(32,178,170,0.06)',border:'1px solid rgba(32,178,170,0.08)',borderRadius:4,overflow:'hidden'}}>
           {[
-            {name:'Starter',price:'$5',period:'one-time',color:'#6ee7b7',border:'rgba(110,231,183,0.15)',bg:'transparent',badge:null,features:['10 Neural Scans','Rug Detection','Valid 30 days'],cta:'Get Started',btnStyle:{background:'rgba(52,211,153,0.08)',color:'#34d399',border:'1px solid rgba(52,211,153,0.2)'}},
-            {name:'Pro',price:'$30',period:'/month',color:'#34d399',border:'rgba(52,211,153,0.4)',bg:'rgba(52,211,153,0.03)',badge:'MOST POPULAR',features:['Unlimited Credits','AI Predictions','Auto-Sniper Bot','Whale Tracking','Forensics Lab'],cta:'Upgrade to Pro',btnStyle:{background:'linear-gradient(135deg,#34d399,#10b981)',color:'#050a06',border:'none'}},
-            {name:'Whale',price:'FREE',period:'0.5% success fee',color:'#6ee7b7',border:'rgba(52,211,153,0.2)',bg:'transparent',badge:'NO MONTHLY FEE',features:['Everything in Pro','Zero monthly cost','0.5% on profits only','VIP Telegram'],cta:'Apply for Whale',btnStyle:{background:'rgba(52,211,153,0.06)',color:'#34d399',border:'1px solid rgba(52,211,153,0.2)'}},
-          ].map(pl => (
-            <div key={pl.name} style={{background:pl.bg||'#0a110b',border:`1.5px solid ${pl.border}`,borderRadius:10,padding:18,position:'relative',transition:'transform 0.2s',transform:pl.badge==='MOST POPULAR'?'translateY(-4px)':'none',boxShadow:pl.badge==='MOST POPULAR'?'0 0 28px rgba(52,211,153,0.1)':'none'}}>
-              {pl.badge && <div style={{position:'absolute',top:-10,left:'50%',transform:'translateX(-50%)',background:pl.badge==='MOST POPULAR'?'linear-gradient(135deg,#34d399,#10b981)':'rgba(52,211,153,0.12)',color:pl.badge==='MOST POPULAR'?'#050a06':'#34d399',fontSize:8,fontWeight:700,padding:'2px 12px',borderRadius:10,whiteSpace:'nowrap',letterSpacing:'0.06em',border:pl.badge==='MOST POPULAR'?'none':'1px solid rgba(52,211,153,0.25)'}}>{pl.badge}</div>}
-              <div style={{fontSize:12,fontWeight:700,color:pl.color,marginBottom:5}}>{pl.name}</div>
-              <div style={{fontSize:26,fontWeight:800,color:pl.color,fontFamily:'IBM Plex Mono,monospace',lineHeight:1,marginBottom:2}}>{pl.price}</div>
-              <div style={{fontSize:11,color:'#6ee7b7',opacity:0.6,marginBottom:14}}>{pl.period}</div>
-              <div style={{display:'flex',flexDirection:'column',gap:6,marginBottom:14}}>
-                {pl.features.map(f => <div key={f} style={{display:'flex',gap:6,fontSize:11,color:'#6ee7b7',opacity:0.8,alignItems:'center'}}><span style={{color:'#34d399',fontSize:10}}>✓</span>{f}</div>)}
+            {name:'STARTER',price:'$5',period:'one-time',badge:null,features:['10 Neural Scans','Rug Detection','Valid 30 days'],cta:'GET STARTED',primary:false},
+            {name:'PRO',price:'$30',period:'/month',badge:'MOST POPULAR',features:['Unlimited Credits','AI Predictions','Auto-Sniper Bot','Whale Tracking'],cta:'UPGRADE TO PRO',primary:true},
+            {name:'WHALE',price:'FREE',period:'0.5% success fee',badge:'NO MONTHLY FEE',features:['Everything in Pro','0.5% on profits only','VIP Telegram'],cta:'APPLY FOR WHALE',primary:false},
+          ].map((pl,i) => (
+            <div key={pl.name} style={{background:pl.primary?'#050505':'#000',padding:'18px',borderRight:i<2?'1px solid rgba(32,178,170,0.08)':'none',position:'relative',overflow:'hidden'}}>
+              {pl.primary && <div style={{position:'absolute',top:0,left:0,right:0,height:'1px',background:'linear-gradient(90deg,transparent,#20b2aa,transparent)'}}/>}
+              {pl.badge && <div style={{fontSize:7,fontWeight:600,color:pl.primary?'#000':'#20b2aa',background:pl.primary?'#20b2aa':'rgba(32,178,170,0.08)',border:pl.primary?'none':'1px solid rgba(32,178,170,0.2)',padding:'1px 7px',borderRadius:2,display:'inline-block',marginBottom:6,letterSpacing:'0.08em'}}>{pl.badge}</div>}
+              <div style={{fontSize:9,fontWeight:500,color:'rgba(32,178,170,0.5)',marginBottom:4,letterSpacing:'0.08em'}}>{pl.name}</div>
+              <div style={{fontSize:24,fontWeight:600,color:'#20b2aa',lineHeight:1,marginBottom:2}}>{pl.price}</div>
+              <div style={{fontSize:9,color:'rgba(32,178,170,0.25)',marginBottom:12,fontWeight:300}}>{pl.period}</div>
+              <div style={{display:'flex',flexDirection:'column',gap:5,marginBottom:14}}>
+                {pl.features.map(f => <div key={f} style={{fontSize:10,color:'rgba(32,178,170,0.45)',display:'flex',gap:6,fontWeight:300}}><span style={{color:'#20b2aa',fontWeight:400}}>✓</span>{f}</div>)}
               </div>
-              <button onClick={()=>user?window.location.replace('/app'):setShowAuth(true)} style={{display:'block',padding:'9px',borderRadius:7,textAlign:'center',fontSize:12,fontWeight:700,...(pl as any).btnStyle,border:'none',cursor:'pointer'}}>
+              <button onClick={launch} style={{width:'100%',padding:'7px',background:pl.primary?'#20b2aa':'rgba(32,178,170,0.06)',border:pl.primary?'none':'1px solid rgba(32,178,170,0.15)',borderRadius:2,color:pl.primary?'#000':'#20b2aa',fontSize:9,fontWeight:pl.primary?600:400,cursor:'pointer',fontFamily:"'JetBrains Mono',monospace",letterSpacing:'0.06em'}}>
                 {pl.cta}
               </button>
             </div>
@@ -208,35 +228,38 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section style={{padding:'64px 24px',textAlign:'center',position:'relative'}}>
-        <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse at center,rgba(52,211,153,0.07) 0%,transparent 65%)',pointerEvents:'none'}}/>
-        <h2 style={{fontSize:'clamp(26px,4vw,40px)',fontWeight:800,color:'#f0fdf4',marginBottom:14,position:'relative'}}>
-          Start protecting your <span style={{color:'#34d399'}}>Solana portfolio</span> today
+      <section style={{padding:'56px 24px',textAlign:'center',position:'relative'}}>
+        <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse at center,rgba(32,178,170,0.05) 0%,transparent 60%)',pointerEvents:'none'}}/>
+        <h2 style={{fontSize:'clamp(22px,4vw,36px)',fontWeight:600,color:'#fff',marginBottom:10,position:'relative',letterSpacing:'-0.02em'}}>
+          START PROTECTING YOUR<br/><span style={{color:'#20b2aa',fontWeight:500}}>SOLANA PORTFOLIO TODAY</span>
         </h2>
-        <p style={{fontSize:14,color:'#6ee7b7',marginBottom:28,opacity:0.8,position:'relative'}}>Join thousands of traders using AI to trade smarter</p>
-        <button onClick={()=>user?window.location.replace('/app'):setShowAuth(true)} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'14px 32px',background:'linear-gradient(135deg,#34d399,#10b981)',color:'#050a06',borderRadius:10,fontSize:14,fontWeight:700,border:'none',cursor:'pointer',boxShadow:'0 0 36px rgba(52,211,153,0.4)',position:'relative'}}>
-          ⚡ Launch App Free — 10 Credits
+        <p style={{fontSize:10,color:'rgba(32,178,170,0.3)',marginBottom:22,letterSpacing:'0.08em',fontWeight:300,position:'relative'}}>10 FREE SCANS · NO CREDIT CARD REQUIRED</p>
+        <button onClick={launch} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'12px 28px',background:'#20b2aa',color:'#000',border:'none',borderRadius:4,fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:"'JetBrains Mono',monospace",letterSpacing:'0.06em',boxShadow:'0 0 28px rgba(32,178,170,0.25)',position:'relative'}}>
+          ⚡ LAUNCH APP FREE
         </button>
       </section>
 
       {/* FOOTER */}
-      <footer style={{borderTop:'1px solid rgba(52,211,153,0.08)',padding:'20px 40px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
-        <div style={{display:'flex',alignItems:'center',gap:8}}>
-          <img src="/logo.jpg" alt="CryptoCheck AI" style={{width:28,height:28,borderRadius:7,objectFit:'cover'}}/>
-          <span style={{fontSize:13,fontWeight:600,color:'#f0fdf4'}}>CryptoCheck AI</span>
-          <span style={{fontSize:11,color:'#4ade80',opacity:0.4}}>© 2026</span>
+      <footer style={{borderTop:'1px solid rgba(32,178,170,0.07)',padding:'16px 28px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10,background:'#050505'}}>
+        <div style={{display:'flex',alignItems:'center',gap:7}}>
+          <img src="/logo.jpg" alt="logo" style={{width:16,height:16,borderRadius:3,objectFit:'cover'}}/>
+          <span style={{fontSize:11,fontWeight:400,color:'#e2e8f0',letterSpacing:'0.02em'}}>CryptoCheck AI</span>
+          <span style={{fontSize:9,color:'rgba(32,178,170,0.2)',fontWeight:300}}>© 2026</span>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:5}}>
-          <span style={{width:5,height:5,borderRadius:'50%',background:'#34d399',display:'inline-block',animation:'pulse 1.5s infinite'}}/>
-          <span style={{fontSize:10,color:'#34d399',fontFamily:'IBM Plex Mono,monospace',fontWeight:700}}>LIVE · Solana Mainnet</span>
+          <span style={{width:4,height:4,borderRadius:'50%',background:'#20b2aa',animation:'pulse 1.5s infinite'}}/>
+          <span style={{fontSize:9,color:'#20b2aa',letterSpacing:'0.08em',fontWeight:400}}>LIVE · SOLANA MAINNET</span>
         </div>
-        <div style={{display:'flex',gap:16}}>
-          {['Privacy','Terms','Docs','Contact'].map(l => (
-            <a key={l} href="#" style={{fontSize:11,color:'#6ee7b7',opacity:0.5}}>{l}</a>
+        <div style={{display:'flex',gap:14}}>
+          {['PRIVACY','TERMS','DOCS','CONTACT'].map(l => (
+            <a key={l} href="#" style={{fontSize:9,color:'rgba(32,178,170,0.25)',letterSpacing:'0.06em',fontWeight:300,transition:'color 0.15s'}}
+              onMouseEnter={e=>(e.currentTarget.style.color='#20b2aa')}
+              onMouseLeave={e=>(e.currentTarget.style.color='rgba(32,178,170,0.25)')}>{l}</a>
           ))}
         </div>
       </footer>
-      {showAuth && <AuthModal onClose={()=>setShowAuth(false)} onSuccess={(u)=>{setUser(u);window.location.replace('/app')}} />}
+
+      {showAuth && <AuthModal onClose={()=>setShowAuth(false)} onSuccess={(u)=>{setUser(u);window.location.replace('/app')}}/>}
     </div>
   )
 }
