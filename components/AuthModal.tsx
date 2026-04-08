@@ -70,7 +70,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
         <div style={{padding:'22px 24px 16px',borderBottom:'1px solid rgba(52,211,153,0.08)'}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <div style={{width:26,height:26,background:'linear-gradient(135deg,#34d399,#10b981)',borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#050a06'}}>CC</div>
+              <img src="/logo.jpg" alt="CryptoCheck AI" style={{width:26,height:26,borderRadius:6,objectFit:'cover'}}/>
               <span style={{fontSize:15,fontWeight:700,color:'#f0fdf4'}}>CryptoCheck<span style={{color:'#34d399'}}>AI</span></span>
             </div>
             <button onClick={onClose} style={{background:'none',border:'none',color:'#6ee7b7',cursor:'pointer',fontSize:18,opacity:0.6}}>×</button>

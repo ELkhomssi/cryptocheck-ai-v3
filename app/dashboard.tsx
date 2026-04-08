@@ -2413,19 +2413,7 @@ export default function Dashboard() {
       {/* TrialWall removed - using Gated Access */}
       <header className="sticky top-0 z-[300] h-12 flex items-center justify-between px-4 backdrop-blur-xl" style={{background:'#000',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
         <a href="/" className="flex items-center gap-2 font-mono text-[0.82rem] font-bold text-white tracking-wider uppercase no-underline">
-          <div style={{width:30,height:26,flexShrink:0}}>
-            <svg width="30" height="26" viewBox="0 0 140 120" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="ccS" x1="20%" y1="0%" x2="80%" y2="100%"><stop offset="0%" stopColor="#c8d8ea"/><stop offset="45%" stopColor="#8aaac4"/><stop offset="100%" stopColor="#4a6e8f"/></linearGradient>
-                <linearGradient id="ccC" x1="0%" y1="0%" x2="100%" y2="80%"><stop offset="0%" stopColor="#00c8ff"/><stop offset="100%" stopColor="#0090d8"/></linearGradient>
-                <linearGradient id="ccN" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#0070bb"/><stop offset="100%" stopColor="#08306e"/></linearGradient>
-              </defs>
-              <path d="M 76 22 A 36 36 0 1 0 76 98" fill="none" stroke="url(#ccS)" strokeWidth="16" strokeLinecap="round"/>
-              <path d="M 64 28 A 25 25 0 0 1 90 50" fill="none" stroke="url(#ccC)" strokeWidth="13" strokeLinecap="round"/>
-              <path d="M 90 70 A 25 25 0 0 1 64 92" fill="none" stroke="url(#ccN)" strokeWidth="13" strokeLinecap="round"/>
-              <text x="100" y="65" fontFamily="Inter,sans-serif" fontSize="14" fontWeight="700" fill="#ffffff" letterSpacing="0.5">AI</text>
-            </svg>
-          </div>
+          <img src="/logo.jpg" alt="CryptoCheck AI" style={{width:30,height:26,borderRadius:5,objectFit:'cover',flexShrink:0}}/>
           CryptoCheck<span className="text-[#00d4aa]">AI</span>
           <span className="text-[0.5rem] text-[#8b949e] ml-0.5">v3</span>
           {isPro ? (

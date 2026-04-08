@@ -17,9 +17,10 @@ const ibmSans = IBM_Plex_Sans({
   variable: '--font-sans',
   display: 'swap',
 })
-export const metadata: Metadata = {
-  title: 'CryptoCheck AI — Institutional Terminal v3',
-  description: 'The neural scanner for Solana. Real-time rug detection, portfolio risk scoring, whale tracking, and Jupiter integration. Powered by Helius.',
+export const metadata = {
+  icons: { icon: '/logo.jpg', apple: '/logo.jpg' },
+  title: 'CryptoCheck AI — Solana Token Intelligence',
+  description: 'Institutional-grade Neural Scan, AI Predictions, Whale Tracking for Solana traders',
   keywords: ['Solana', 'token scanner', 'rug detection', 'DeFi', 'blockchain analytics', 'Helius'],
   authors: [{ name: 'CryptoCheck AI' }],
   themeColor: '#030308',

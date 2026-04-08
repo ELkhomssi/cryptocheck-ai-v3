@@ -37,7 +37,7 @@ export default function LandingPage() {
       {/* NAVBAR */}
       <nav style={{position:'sticky',top:0,zIndex:100,padding:'0 40px',height:58,display:'flex',alignItems:'center',background:'rgba(5,10,6,0.92)',borderBottom:'1px solid rgba(52,211,153,0.08)',backdropFilter:'blur(20px)'}}>
         <div style={{display:'flex',alignItems:'center',gap:8}}>
-          <div style={{width:28,height:28,background:'linear-gradient(135deg,#34d399,#10b981)',borderRadius:7,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#050a06'}}>CC</div>
+          <img src="/logo.jpg" alt="CryptoCheck AI" style={{width:28,height:28,borderRadius:7,objectFit:'cover'}}/>
           <span style={{fontSize:15,fontWeight:700,color:'#f0fdf4'}}>CryptoCheck<span style={{color:'#34d399'}}>AI</span></span>
         </div>
         <div style={{display:'flex',gap:2,margin:'0 auto'}}>
@@ -222,7 +222,7 @@ export default function LandingPage() {
       {/* FOOTER */}
       <footer style={{borderTop:'1px solid rgba(52,211,153,0.08)',padding:'20px 40px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10}}>
         <div style={{display:'flex',alignItems:'center',gap:8}}>
-          <div style={{width:22,height:22,background:'linear-gradient(135deg,#34d399,#10b981)',borderRadius:5,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:700,color:'#050a06'}}>CC</div>
+          <img src="/logo.jpg" alt="CryptoCheck AI" style={{width:28,height:28,borderRadius:7,objectFit:'cover'}}/>
           <span style={{fontSize:13,fontWeight:600,color:'#f0fdf4'}}>CryptoCheck AI</span>
           <span style={{fontSize:11,color:'#4ade80',opacity:0.4}}>© 2026</span>
         </div>
