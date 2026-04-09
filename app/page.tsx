@@ -5,33 +5,70 @@ import LandingPage from './landing/page'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storageKey: 'cc_auth_token',
+    }
+  }
 )
 
 export default function RootPage() {
   const [status, setStatus] = useState<'loading'|'guest'|'user'>('loading')
 
   useEffect(() => {
+    // Check existing session
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session?.user) window.location.replace('/app')
-      else setStatus('guest')
+      if (data.session?.user) {
+        window.location.replace('/app')
+      } else {
+        setStatus('guest')
+      }
     })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (session?.user) window.location.replace('/app')
-      else setStatus('guest')
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        window.location.replace('/app')
+      } else {
+        setStatus('guest')
+      }
     })
+
     return () => subscription.unsubscribe()
   }, [])
 
-  if (status === 'loading') return (
-    <div style={{background:'#050a06',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center'}}>
-      <div style={{textAlign:'center'}}>
-        <div style={{width:36,height:36,background:'linear-gradient(135deg,#34d399,#10b981)',borderRadius:9,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color:'#050a06',margin:'0 auto 12px'}}>CC</div>
-        <div style={{fontSize:11,color:'#34d399',fontFamily:'IBM Plex Mono,monospace',letterSpacing:'0.1em'}}>LOADING...</div>
+  if (status === 'loading') {
+    return (
+      <div style={{
+        background: '#000',
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 16,
+        fontFamily: "'JetBrains Mono',monospace"
+      }}>
+        {/* Teal spinner */}
+        <div style={{
+          width: 28,
+          height: 28,
+          border: '2px solid rgba(32,178,170,0.15)',
+          borderTop: '2px solid #20b2aa',
+          borderRadius: '50%',
+          animation: 'spin 0.7s linear infinite'
+        }}/>
+        <div style={{fontSize: 10, color: 'rgba(32,178,170,0.5)', letterSpacing: '0.1em', fontWeight: 400}}>
+          LOADING
+        </div>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}`}</style>
-    </div>
-  )
+    )
+  }
 
   return <LandingPage />
 }
