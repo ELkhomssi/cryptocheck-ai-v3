@@ -1,5 +1,5 @@
-import { supabase } from '@/lib/supabase'
 'use client'
+import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
 import LandingPage from './landing/page'
 
