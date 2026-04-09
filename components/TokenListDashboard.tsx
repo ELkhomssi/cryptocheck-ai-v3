@@ -139,13 +139,13 @@ export default function TokenListDashboard({ onScanToken, showModal }: { onScanT
       </div>
 
       {/* Main layout */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr 290px',flex:1,minHeight:0,overflow:'hidden'}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr',flex:1,minHeight:0,overflow:'hidden'}}>
 
         {/* Token list */}
-        <div style={{display:'flex',flexDirection:'column',overflow:'hidden',borderRight:`1px solid ${COL}`}}>
+        <div style={{display:'flex',flexDirection:'column',overflow:'hidden',borderRight:'none'}}>
 
           {/* Column headers */}
-          <div style={{display:'grid',gridTemplateColumns:'28px 1.6fr 100px 70px 88px 88px 64px 84px',padding:'6px 14px',fontSize:9,fontWeight:500,color:'#4b5563',letterSpacing:'0.08em',textTransform:'uppercase',borderBottom:`1px solid ${COL}`,flexShrink:0}}>
+          <div style={{display:'grid',gridTemplateColumns:'28px 1.6fr 80px 60px 70px 70px 50px 70px',padding:'6px 14px',fontSize:9,fontWeight:500,color:'#4b5563',letterSpacing:'0.08em',textTransform:'uppercase',borderBottom:`1px solid ${COL}`,flexShrink:0}}>
             <span/><span>Token</span>
             <span style={{textAlign:'right'}}>Price</span>
             <span style={{textAlign:'right'}}>24h</span>
