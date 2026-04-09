@@ -1919,7 +1919,13 @@ export default function Dashboard() {
   const [showAuth,    setShowAuth]    = useState(false)
   const [authUser,    setAuthUser]    = useState<any>(null)
   const [isPro,setIsPro] = useState(false)
-  const [credits, setCredits] = useState(10)
+  const [credits, setCredits] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('cc_credits')
+      return saved !== null ? parseInt(saved) : 10
+    }
+    return 10
+  })
   const [trialActivated, setTrialActivated] = useState(false)
   const [showSignup, setShowSignup] = useState(false)
   const [chartSwapModal, setChartSwapModal] = useState<{mint:string;symbol:string;tab?:string}|null>(null)
@@ -2125,6 +2131,14 @@ export default function Dashboard() {
       setScanData(data)
       setScanState('done')
       setScanCount(c => c + 1)
+      // Deduct 1 credit per scan
+      if (!isPro) {
+        setCredits(prev => {
+          const next = Math.max(0, prev - 1)
+          localStorage.setItem('cc_credits', String(next))
+          return next
+        })
+      }
       setDexMint(mint)
       setCurrentMint(mint)   // sync chart + Jupiter to scanned token
       setChartKey(k => k + 1)  // force iframe remount
@@ -2312,10 +2326,12 @@ export default function Dashboard() {
       )
     }
     if (scanState === 'idle') return (
-      <TokenListDashboard
-        onScanToken={(mint) => { setMintInput(mint); doScan(mint) }}
-        showModal={() => setShowModal(true)}
-      />
+      <div style={{flex:1,minHeight:0,overflow:'hidden'}}>
+        <TokenListDashboard
+          onScanToken={(mint) => { setMintInput(mint); doScan(mint) }}
+          showModal={() => setShowModal(true)}
+        />
+      </div>
     )
     if (scanState === 'loading') return (
       <div className="flex flex-col items-center justify-center h-full gap-4 p-10">
@@ -2618,7 +2634,7 @@ export default function Dashboard() {
         </aside>
 
         {/* MAIN */}
-        <main className="flex flex-col flex-1 overflow-y-auto" style={{background:'#000'}}>
+        <main className="flex flex-col flex-1 overflow-y-auto min-w-0" style={{background:'#000',width:'100%'}}>
           {/* Scanner view */}
           {view === 'scanner' && (
             <>

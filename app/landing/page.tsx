@@ -20,15 +20,15 @@ export default function LandingPage() {
       <nav style={{position:'sticky',top:0,zIndex:100,padding:'0 40px',height:58,display:'flex',alignItems:'center',background:'rgba(5,10,6,0.92)',borderBottom:'1px solid rgba(52,211,153,0.08)',backdropFilter:'blur(20px)'}}>
         <div style={{display:'flex',alignItems:'center',gap:8}}>
           <div style={{width:28,height:28,background:'linear-gradient(135deg,#34d399,#10b981)',borderRadius:7,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#050a06'}}>CC</div>
-          <span style={{fontSize:15,fontWeight:700,color:'#f0fdf4'}}>CryptoCheck<span style={{color:'#34d399',fontWeight:800}}>AI</span></span>
+          <span style={{fontSize:15,fontWeight:800,color:'#f0fdf4',letterSpacing:'-0.02em'}}>CryptoCheck<span style={{color:'#34d399',fontWeight:900}}>AI</span></span>
         </div>
         <div style={{display:'flex',gap:2,margin:'0 auto'}}>
           {['Features','Pricing','Neural Scan','Whale Intel'].map(t => (
-            <a key={t} href="#" style={{padding:'6px 13px',fontSize:13,color:'#6ee7b7',borderRadius:6,opacity:0.8}}>{t}</a>
+            <a key={t} href="#" style={{padding:'6px 13px',fontSize:13,fontWeight:600,color:'#a7f3d0',borderRadius:6,letterSpacing:'-0.01em'}}>{t}</a>
           ))}
         </div>
         <div style={{display:'flex',gap:8,alignItems:'center'}}>
-          <a href="/app" style={{padding:'7px 16px',fontSize:13,color:'#6ee7b7',opacity:0.8}}>Sign In</a>
+          <a href="/app" style={{padding:'7px 16px',fontSize:13,fontWeight:600,color:'#6ee7b7',letterSpacing:'-0.01em'}}>Sign In</a>
           <a href="/app" style={{padding:'8px 18px',fontSize:13,fontWeight:600,background:'linear-gradient(135deg,#34d399,#10b981)',color:'#050a06',borderRadius:8,boxShadow:'0 0 16px rgba(52,211,153,0.3)'}}>Launch App →</a>
         </div>
       </nav>

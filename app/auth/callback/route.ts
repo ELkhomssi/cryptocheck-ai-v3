@@ -7,7 +7,6 @@ export async function GET(req: NextRequest) {
   const error = searchParams.get('error')
 
   if (error) {
-    console.error('Auth error:', error, searchParams.get('error_description'))
     return NextResponse.redirect('https://www.cryptocheckai.com/?auth=error')
   }
 
@@ -18,9 +17,7 @@ export async function GET(req: NextRequest) {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
       const { data, error: exchError } = await supabase.auth.exchangeCodeForSession(code)
-
       if (exchError) throw exchError
-
       if (data.user) {
         const svc = createClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,14 +31,11 @@ export async function GET(req: NextRequest) {
           is_pro: false,
           plan: 'free'
         }, { onConflict: 'id', ignoreDuplicates: false })
-
         return NextResponse.redirect('https://www.cryptocheckai.com/app')
       }
-    } catch (e) {
-      console.error('Callback error:', e)
-      return NextResponse.redirect('https://www.cryptocheckai.com/?auth=error')
+    } catch(e) {
+      console.error('Auth callback error:', e)
     }
   }
-
   return NextResponse.redirect('https://www.cryptocheckai.com/app')
 }
