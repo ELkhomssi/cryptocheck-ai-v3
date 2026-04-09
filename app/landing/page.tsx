@@ -35,16 +35,18 @@ export default function LandingPage() {
       <nav style={{position:'sticky' as const,top:0,zIndex:100,height:48,background:'rgba(0,0,0,0.92)',borderBottom:'1px solid rgba(32,178,170,0.15)',backdropFilter:'blur(20px)',display:'flex',alignItems:'center',padding:'0 28px',gap:10}}>
         <div style={{display:'flex',alignItems:'center',gap:8}}>
           <img src="/logo.jpg" alt="logo" style={{width:22,height:22,borderRadius:4,objectFit:'cover' as const}}/>
-          <span style={{fontSize:13,fontWeight:500,color:'#fff'}}>CryptoCheck<span style={{color:T}}>AI</span></span>
+          <span style={{fontSize:13,fontWeight:300,color:'rgba(255,255,255,0.9)',letterSpacing:'-0.01em',fontFamily:"'Inter',sans-serif"}}>CryptoCheck<span style={{color:T,fontWeight:400}}>AI</span></span>
         </div>
         <div style={{display:'flex',gap:0,marginLeft:14}}>
           {([['Features','#features'],['Pricing','#pricing'],['Docs','#']] as [string,string][]).map(([t,h]) => (
-            <a key={t} href={h} style={{padding:'5px 12px',fontSize:11,color:'rgba(32,178,170,0.5)',fontWeight:400,textDecoration:'none',letterSpacing:'0.04em'}}>{t}</a>
+            <a key={t} href={h} style={{padding:'5px 14px',fontSize:12,color:'rgba(255,255,255,0.4)',fontWeight:300,textDecoration:'none',letterSpacing:'0.01em',fontFamily:"'Inter',sans-serif",transition:'color 0.15s'}}
+    onMouseEnter={e=>(e.currentTarget.style.color='rgba(255,255,255,0.8)')}
+    onMouseLeave={e=>(e.currentTarget.style.color='rgba(255,255,255,0.4)')}>{t}</a>
           ))}
         </div>
         <div style={{marginLeft:'auto',display:'flex',gap:8,alignItems:'center'}}>
-          <button onClick={go} style={{padding:'5px 12px',fontSize:11,color:'rgba(32,178,170,0.5)',background:'none',border:'none',cursor:'pointer',fontFamily:MN,fontWeight:400}}>{user?'Dashboard':'Sign In'}</button>
-          <button onClick={go} style={{padding:'6px 16px',background:T,color:'#000',border:'none',borderRadius:4,fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:MN,letterSpacing:'0.06em'}}>LAUNCH APP</button>
+          <button onClick={go} style={{padding:'5px 14px',fontSize:12,color:'rgba(255,255,255,0.4)',background:'none',border:'none',cursor:'pointer',fontFamily:"'Inter',sans-serif",fontWeight:300,letterSpacing:'0.01em'}}>{user?'Dashboard':'Sign In'}</button>
+          <button onClick={go} style={{padding:'6px 18px',background:T,color:'#000',border:'none',borderRadius:4,fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:"'Inter',sans-serif",letterSpacing:'0.04em'}}>Launch App →</button>
         </div>
       </nav>
 
@@ -58,13 +60,13 @@ export default function LandingPage() {
           LIVE ON SOLANA MAINNET
         </div>
 
-        <h1 style={{fontSize:'clamp(32px,5.5vw,64px)',fontWeight:700,lineHeight:1.05,letterSpacing:'-0.02em',maxWidth:800,margin:'0 auto 18px',fontFamily:MN}}>
-          <span style={{color:'#fff',fontWeight:600}}>SCAN AND PROTECT</span><br/>
-          <span style={{color:T,fontWeight:700}}>SOLANA TOKENS</span><br/>
-          <span style={{color:'#fff',fontWeight:600}}>AT LIGHTNING SPEED</span>
+        <h1 style={{fontSize:'clamp(36px,5.5vw,68px)',fontWeight:800,lineHeight:1.04,letterSpacing:'-0.03em',maxWidth:820px,margin:'0 auto 18px',fontFamily:"'Inter',sans-serif"}}>
+          <span style={{color:'#fff',fontWeight:800}}>SCAN AND PROTECT</span><br/>
+          <span style={{color:T,fontWeight:800}}>SOLANA TOKENS</span><br/>
+          <span style={{color:'#fff',fontWeight:800}}>AT LIGHTNING SPEED</span>
         </h1>
 
-        <p style={{fontSize:12,color:'rgba(32,178,170,0.45)',maxWidth:480,margin:'0 auto 32px',lineHeight:1.8,fontWeight:300,letterSpacing:'0.02em'}}>
+        <p style={{fontSize:13,color:'rgba(255,255,255,0.35)',maxWidth:480,margin:'0 auto 32px',lineHeight:1.8,fontWeight:300,letterSpacing:'0.01em',fontFamily:"'Inter',sans-serif"}}>
           Neural AI · Rug Detection · Whale Tracking · Auto-Sniper<br/>Powered by Helius RPC · Solana Mainnet
         </p>
 

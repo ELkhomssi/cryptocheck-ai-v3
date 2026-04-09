@@ -4,36 +4,44 @@ import { createClient } from '@supabase/supabase-js'
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const code = searchParams.get('code')
+  const error = searchParams.get('error')
 
-  const BASE = 'https://www.cryptocheckai.com'
+  if (error) {
+    console.error('Auth error:', error, searchParams.get('error_description'))
+    return NextResponse.redirect('https://www.cryptocheckai.com/?auth=error')
+  }
 
   if (code) {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-
-    if (!error && data.user) {
-      const serviceSupabase = createClient(
+    try {
+      const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
-      await serviceSupabase.from('profiles').upsert({
-        id: data.user.id,
-        email: data.user.email,
-        confirmed_at: new Date().toISOString(),
-        trial_started_at: new Date().toISOString(),
-        referral_source: 'direct',
-        is_pro: false,
-        plan: 'free'
-      }, { onConflict: 'id' })
+      const { data, error: exchError } = await supabase.auth.exchangeCodeForSession(code)
 
-      // Redirect to /app with session token in hash (Supabase PKCE)
-      const redirectUrl = new URL('/app', BASE)
-      return NextResponse.redirect(redirectUrl.toString())
+      if (exchError) throw exchError
+
+      if (data.user) {
+        const svc = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        )
+        await svc.from('profiles').upsert({
+          id: data.user.id,
+          email: data.user.email,
+          confirmed_at: new Date().toISOString(),
+          trial_started_at: new Date().toISOString(),
+          is_pro: false,
+          plan: 'free'
+        }, { onConflict: 'id', ignoreDuplicates: false })
+
+        return NextResponse.redirect('https://www.cryptocheckai.com/app')
+      }
+    } catch (e) {
+      console.error('Callback error:', e)
+      return NextResponse.redirect('https://www.cryptocheckai.com/?auth=error')
     }
   }
 
-  return NextResponse.redirect(`https://www.cryptocheckai.com/?auth=error`)
+  return NextResponse.redirect('https://www.cryptocheckai.com/app')
 }

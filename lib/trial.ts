@@ -98,3 +98,4 @@ export function getDeviceId(): string {
   localStorage.setItem('cc_device_id', id)
   return id
 }
+// cache bust Jeu  9 avr 2026 17:46:20 +01
