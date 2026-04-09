@@ -1,7 +1,8 @@
 'use client'
 import React from 'react'
 import { createClient } from '@supabase/supabase-js'
-const _supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+import { supabase as _supabase } from '@/lib/supabase'
+// supabase client imported from lib
 import MintInput from '@/components/MintInput'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
