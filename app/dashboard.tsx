@@ -2,7 +2,6 @@
 import React from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { supabase as _supabase } from '@/lib/supabase'
-// supabase client imported from lib
 import MintInput from '@/components/MintInput'
 
 import { useState, useEffect, useRef, useCallback } from 'react'

@@ -1,20 +1,8 @@
+import { supabase } from '@/lib/supabase'
 'use client'
 import { useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
 import LandingPage from './landing/page'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-      storageKey: 'cc_auth_token',
-    }
-  }
-)
 
 export default function RootPage() {
   const [status, setStatus] = useState<'loading'|'guest'|'user'>('loading')
