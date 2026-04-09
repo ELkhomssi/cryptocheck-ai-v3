@@ -1,4 +1,3 @@
-# Écrit le fichier via Python sans heredoc
 python3 -c "
 import os
 lines = []
