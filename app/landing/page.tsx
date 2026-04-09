@@ -23,8 +23,8 @@ export default function LandingPage() {
           <span style={{fontSize:15,fontWeight:800,color:'#f0fdf4',letterSpacing:'-0.02em'}}>CryptoCheck<span style={{color:'#34d399',fontWeight:900}}>AI</span></span>
         </div>
         <div style={{display:'flex',gap:2,margin:'0 auto'}}>
-          {['Features','Pricing','Neural Scan','Whale Intel'].map(t => (
-            <a key={t} href="#" style={{padding:'6px 13px',fontSize:13,fontWeight:600,color:'#a7f3d0',borderRadius:6,letterSpacing:'-0.01em'}}>{t}</a>
+          {[['⚡ Features','#features'],['💰 Pricing','#pricing'],['🧠 Neural Scan','/app'],['🐋 Whale Intel','/app']].map(([t,h]) => (
+            <a key={t} href={h} style={{padding:'6px 13px',fontSize:13,fontWeight:600,color:'#a7f3d0',borderRadius:6,letterSpacing:'-0.01em'}}>{t}</a>
           ))}
         </div>
         <div style={{display:'flex',gap:8,alignItems:'center'}}>

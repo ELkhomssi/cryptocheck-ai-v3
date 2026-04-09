@@ -26,7 +26,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: 'https://www.cryptocheckai.com/auth/callback',
         queryParams: provider === 'google' ? { access_type: 'offline', prompt: 'consent' } : {}
       }
     })
@@ -41,7 +41,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
       if (mode === 'signup') {
         const { error } = await supabase.auth.signUp({
           email, password,
-          options: { emailRedirectTo: `${window.location.origin}/auth/callback` }
+          options: { emailRedirectTo: 'https://www.cryptocheckai.com/auth/callback' }
         })
         if (error) throw error
         setSent(true)
