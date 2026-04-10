@@ -1,1 +1,11 @@
-{"framework":"nextjs"}
+{
+  "framework": "nextjs",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "cryptocheckai.com" }],
+      "destination": "https://www.cryptocheckai.com/:path*",
+      "permanent": true
+    }
+  ]
+}
