@@ -10,69 +10,58 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Create BROWSER client — this has access to localStorage
-        // where the PKCE code_verifier was stored by signInWithOAuth()
+        // MUST use createBrowserClient — same as AuthModal
+        // This shares the cookie storage where code_verifier lives
         const supabase = createBrowserClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
         )
 
-        // Get the code from URL
         const params = new URLSearchParams(window.location.search)
         const code = params.get('code')
         const error = params.get('error')
         const errorDescription = params.get('error_description')
 
         if (error) {
-          console.error('[AUTH CALLBACK] OAuth error:', error, errorDescription)
+          console.error('[AUTH CB] OAuth error:', error, errorDescription)
           setErrorMsg(errorDescription || error)
           setStatus('error')
           return
         }
 
         if (!code) {
-          console.error('[AUTH CALLBACK] No code in URL')
+          console.error('[AUTH CB] No code in URL')
           setErrorMsg('No authorization code received')
           setStatus('error')
           return
         }
 
-        // Exchange code for session — BROWSER-SIDE so code_verifier is available
+        console.log('[AUTH CB] Exchanging code for session...')
         const { data, error: exchError } = await supabase.auth.exchangeCodeForSession(code)
 
         if (exchError) {
-          console.error('[AUTH CALLBACK] Exchange error:', exchError.message)
+          console.error('[AUTH CB] Exchange error:', exchError.message)
           setErrorMsg(exchError.message)
           setStatus('error')
           return
         }
 
-        console.log('[AUTH CALLBACK] Session created for:', data?.user?.email)
+        console.log('[AUTH CB] Success! User:', data?.user?.email)
 
-        // Upsert profile via API (don't expose service role key to client)
+        // Profile sync (non-blocking)
         if (data?.user) {
-          try {
-            await fetch('/api/auth/profile-sync', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                id: data.user.id,
-                email: data.user.email,
-              }),
-            })
-          } catch (e) {
-            // Non-blocking
-            console.error('[AUTH CALLBACK] Profile sync error:', e)
-          }
+          fetch('/api/auth/profile-sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: data.user.id, email: data.user.email }),
+          }).catch(e => console.error('[AUTH CB] Profile sync error:', e))
         }
 
         setStatus('success')
-
-        // Redirect to app
-        window.location.replace('/app')
+        setTimeout(() => window.location.replace('/app'), 500)
 
       } catch (e: any) {
-        console.error('[AUTH CALLBACK] Unexpected error:', e)
+        console.error('[AUTH CB] Unexpected:', e)
         setErrorMsg(e?.message || 'Unexpected error')
         setStatus('error')
       }
@@ -90,73 +79,40 @@ export default function AuthCallbackPage() {
       justifyContent: 'center',
       fontFamily: 'IBM Plex Mono, monospace',
     }}>
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 16,
-        padding: 40,
-      }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: 40 }}>
         {status === 'loading' && (
           <>
             <div style={{
-              width: 40,
-              height: 40,
-              border: '3px solid rgba(0, 212, 170, 0.2)',
+              width: 40, height: 40,
+              border: '3px solid rgba(0,212,170,0.2)',
               borderTop: '3px solid #00d4aa',
               borderRadius: '50%',
               animation: 'spin 1s linear infinite',
             }} />
-            <div style={{ fontSize: 13, color: '#00d4aa', letterSpacing: '0.1em' }}>
-              AUTHENTICATING...
-            </div>
+            <div style={{ fontSize: 13, color: '#00d4aa', letterSpacing: '0.1em' }}>AUTHENTICATING...</div>
           </>
         )}
-
         {status === 'success' && (
           <>
             <div style={{ fontSize: 32, color: '#00d4aa' }}>✓</div>
-            <div style={{ fontSize: 13, color: '#00d4aa' }}>
-              SIGNED IN — REDIRECTING...
-            </div>
+            <div style={{ fontSize: 13, color: '#00d4aa' }}>SIGNED IN — REDIRECTING...</div>
           </>
         )}
-
         {status === 'error' && (
           <>
             <div style={{ fontSize: 32, color: '#ff4444' }}>✗</div>
-            <div style={{ fontSize: 13, color: '#ff4444', marginBottom: 8 }}>
-              AUTHENTICATION FAILED
-            </div>
-            <div style={{ fontSize: 11, color: '#6e7681', maxWidth: 400, textAlign: 'center' }}>
-              {errorMsg}
-            </div>
-            <button
-              onClick={() => window.location.replace('/app')}
-              style={{
-                marginTop: 16,
-                padding: '8px 24px',
-                background: 'rgba(0, 212, 170, 0.1)',
-                border: '1px solid rgba(0, 212, 170, 0.3)',
-                borderRadius: 6,
-                color: '#00d4aa',
-                fontSize: 12,
-                cursor: 'pointer',
-                fontFamily: 'IBM Plex Mono, monospace',
-              }}
-            >
-              ← Back to App
-            </button>
+            <div style={{ fontSize: 13, color: '#ff4444', marginBottom: 8 }}>AUTHENTICATION FAILED</div>
+            <div style={{ fontSize: 11, color: '#6e7681', maxWidth: 400, textAlign: 'center' }}>{errorMsg}</div>
+            <button onClick={() => window.location.replace('/app')} style={{
+              marginTop: 16, padding: '8px 24px',
+              background: 'rgba(0,212,170,0.1)', border: '1px solid rgba(0,212,170,0.3)',
+              borderRadius: 6, color: '#00d4aa', fontSize: 12, cursor: 'pointer',
+              fontFamily: 'IBM Plex Mono, monospace',
+            }}>← Back to App</button>
           </>
         )}
       </div>
-
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }
