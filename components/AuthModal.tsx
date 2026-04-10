@@ -22,7 +22,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: 'https://www.cryptocheckai.com/auth/callback',
+        redirectTo: 'https://www.cryptocheckai.com/app',
         queryParams: provider === 'google' ? { access_type: 'offline', prompt: 'consent' } : {}
       }
     })

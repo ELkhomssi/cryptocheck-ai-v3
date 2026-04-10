@@ -8,11 +8,41 @@ export default function AppPage() {
   const [status, setStatus] = useState<'loading'|'ready'>('loading')
 
   useEffect(() => {
+    // Check existing session
     supabase.auth.getSession().then(({ data }) => {
-      // Always show dashboard — trial users + logged in users
+      if (data.session?.user) {
+        syncProfile(data.session.user)
+      }
       setStatus('ready')
     })
+
+    // Listen for auth changes (picks up PKCE code exchange from URL)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        console.log('[APP] User signed in:', session.user.email)
+        syncProfile(session.user)
+        // Clean up URL params after successful auth
+        if (window.location.search.includes('code=')) {
+          window.history.replaceState({}, '', '/app')
+        }
+      }
+      setStatus('ready')
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
+
+  async function syncProfile(user: any) {
+    try {
+      await fetch('/api/auth/profile-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: user.id, email: user.email }),
+      })
+    } catch (e) {
+      console.error('[APP] Profile sync error:', e)
+    }
+  }
 
   if (status === 'loading') return (
     <div style={{background:'#000',height:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:14,fontFamily:"'JetBrains Mono',monospace"}}>
