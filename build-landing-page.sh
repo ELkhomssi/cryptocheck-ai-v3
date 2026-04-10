@@ -1,3 +1,34 @@
+#!/bin/bash
+# ============================================================
+# CryptoCheck AI — Premium SaaS Landing Page
+# Dark terminal aesthetic, sarcelle accents, conversion-focused
+# ============================================================
+
+set -e
+echo "🎨 Building CryptoCheck AI Landing Page..."
+
+# ---- Step 1: Copy robot image to public ----
+echo "📸 Setting up hero image..."
+mkdir -p public/images
+if [ -f ~/Downloads/robot-hero.png ]; then
+  cp ~/Downloads/robot-hero.png public/images/robot-hero.png
+  echo "   ✅ Robot image from Downloads"
+elif [ -f "public/images/robot-hero.png" ]; then
+  echo "   ✅ Robot image already exists"
+else
+  echo "   ⚠️  Place the robot image at public/images/robot-hero.png"
+  echo "   (Copy the uploaded image manually)"
+fi
+
+# Also check if the image was named differently
+ls -la public/images/ 2>/dev/null || true
+
+# ---- Step 2: Create the Landing Page ----
+echo ""
+echo "📝 Creating app/landing/page.tsx..."
+mkdir -p app/landing
+
+cat > app/landing/page.tsx << 'ENDOFSCRIPT'
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -614,3 +645,21 @@ export default function LandingPage() {
     </div>
   )
 }
+ENDOFSCRIPT
+echo "   ✅ app/landing/page.tsx created"
+
+# ---- Step 3: TypeScript check ----
+echo ""
+echo "🔍 TypeScript check..."
+npx tsc --noEmit 2>&1 | head -10
+
+echo ""
+echo "============================================"
+echo "✅ LANDING PAGE READY"
+echo ""
+echo "⚠️  IMPORTANT: Copy the robot image to public/"
+echo "   cp ~/Downloads/Protection_contre_les_rug_pulls_Solana.png public/images/robot-hero.png"
+echo ""
+echo "🚀 Deploy:"
+echo "   git add -A && git commit -m 'feat: premium SaaS landing page with hybrid credit model' && vercel --prod"
+echo "============================================"
