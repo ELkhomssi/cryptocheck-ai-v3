@@ -1424,7 +1424,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
       color: '#d4af37', border: 'rgba(212,175,55,0.45)', bg: 'linear-gradient(135deg,rgba(212,175,55,0.07),rgba(0,0,0,0))',
       icon: '🧠', badge: 'MOST POPULAR', badgeColor: '#d4af37',
       credits: '∞ Unlimited', creditsColor: 'rgba(212,175,55,0.12)', creditsBorder: 'rgba(212,175,55,0.3)', creditsText: '#d4af37',
-      features: ['Unlimited credits','AI prediction scores','Auto-Sniper bot','Priority alpha feed','Whale wallet tracking','Rug Forensics Lab'],
+      features: ['Unlimited credits','AI prediction scores','Auto-Sniper bot','Priority alpha feed','Whale wallet tracking','Rug Forensics Lab','0.5% performance fee on sniper profits'],
       cta: 'Upgrade to Pro', btnBg: '#d4af37', btnColor: '#0a0a0a', sol: 0.35,
     },
     {
@@ -2182,20 +2182,42 @@ export default function Dashboard() {
     const mint = (mintAddr ?? mintInput).trim()
     setScanError('')
     if (!mint || mint.length < 32 || mint.length > 44) { setScanError('Please paste a valid Solana token address (32-44 chars).'); setScanState('error'); return }
+
+    // ── CREDIT GATE: Check before scanning ──
+    if (!isPro && credits <= 0) {
+      setScanError('No credits remaining. Refill to continue scanning.')
+      setScanState('error')
+      setShowModal(true) // Open pricing modal
+      return
+    }
+
+    // Optimistic UI: deduct immediately
+    if (!isPro) {
+      setCredits(prev => {
+        const next = Math.max(0, prev - 1)
+        localStorage.setItem('cc_credits', String(next))
+        return next
+      })
+    }
+
     setScanState('loading')
     setScanData(null)
     try {
+      // Server-side credit deduction (parallel with scan)
+      const creditPromise = authUser?.id
+        ? fetch('/api/scan/use-credit', { method: 'POST' }).then(r => r.json()).catch(() => null)
+        : Promise.resolve(null)
+
       const data = await scanToken(mint)
       setScanData(data)
       setScanState('done')
       setScanCount(c => c + 1)
-      // Deduct 1 credit per scan
-      if (!isPro) {
-        setCredits(prev => {
-          const next = Math.max(0, prev - 1)
-          localStorage.setItem('cc_credits', String(next))
-          return next
-        })
+
+      // Sync server credit count
+      const creditResult = await creditPromise
+      if (creditResult?.credits !== undefined && creditResult.credits >= 0) {
+        setCredits(creditResult.credits)
+        localStorage.setItem('cc_credits', String(creditResult.credits))
       }
       setDexMint(mint)
       setCurrentMint(mint)   // sync chart + Jupiter to scanned token
@@ -2520,9 +2542,15 @@ export default function Dashboard() {
                 borderRadius:4,padding:'3px 8px',cursor:'pointer',
                 animation:credits<3?'pulse 1.5s infinite':'none'
               }}>
-                <span style={{fontSize:'12px'}}>🪙</span>
-                <span style={{fontSize:'0.6rem',fontWeight:700,color:credits<3?'#f0a500':'#e2e8f0',fontFamily:'IBM Plex Mono,monospace'}}>{credits} Credits</span>
+                <span style={{fontSize:'11px'}}>◆</span>
+                <span style={{fontSize:'0.6rem',fontWeight:700,color:credits<=0?'#ff4444':credits<3?'#f0a500':'#20b2aa',fontFamily:'IBM Plex Mono,monospace'}}>{isPro ? '∞' : credits}</span>
+                <span style={{fontSize:'0.45rem',color:'#6e7681',fontWeight:600}}>SCANS</span>
               </button>
+              {!isPro && credits < 5 && (
+                <button onClick={() => setShowModal(true)} style={{padding:'3px 8px',fontSize:'0.55rem',fontWeight:700,background:'rgba(32,178,170,0.1)',border:'1px solid rgba(32,178,170,0.3)',borderRadius:4,color:'#20b2aa',cursor:'pointer',fontFamily:'IBM Plex Mono,monospace',animation:'pulse 2s infinite'}}>
+                  + REFILL
+                </button>
+              )}
               <button onClick={() => setShowModal(true)} className="btn-terminal px-3 py-1 text-white border-none rounded-[4px] text-[0.62rem]" style={{ background:'linear-gradient(135deg,#00d4aa,#059669)', boxShadow:'0 0 12px rgba(0,212,130,0.3)' }}>⚡ UPGRADE</button>
             </div>
           )}
@@ -2767,7 +2795,7 @@ export default function Dashboard() {
                 />
                 <button
                   onClick={() => doScan()}
-                  disabled={scanState === 'loading'}
+                  disabled={scanState === 'loading' || (credits <= 0 && !isPro)}
                   style={{
                     background: scanState === 'loading' ? 'rgba(48,54,61,1)' : 'linear-gradient(135deg,#00d4aa,#00b894)',
                     border: 'none', borderRadius: '6px',
@@ -2778,7 +2806,7 @@ export default function Dashboard() {
                     letterSpacing: '0.05em', whiteSpace: 'nowrap',
                   }}
                 >
-                  {scanState === 'loading' ? '⟳ SCANNING…' : '⚡ NEURAL SCAN'}
+                  {scanState === 'loading' ? '⟳ SCANNING…' : credits <= 0 && !isPro ? '🔒 NO CREDITS' : '⚡ NEURAL SCAN'}
                 </button>
               </div>
               <div className="flex overflow-x-auto border-b border-[rgba(0,212,130,0.15)] bg-[#161b22] flex-shrink-0 scrollbar-none">
