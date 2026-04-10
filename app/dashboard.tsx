@@ -1,7 +1,6 @@
 'use client'
 import React from 'react'
-import { createClient } from '@supabase/supabase-js'
-import { supabase as _supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import MintInput from '@/components/MintInput'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
@@ -1918,6 +1917,65 @@ export default function Dashboard() {
   const [showModal,   setShowModal]   = useState(false)
   const [showAuth,    setShowAuth]    = useState(false)
   const [authUser,    setAuthUser]    = useState<any>(null)
+
+  // ── Auth session listener (picks up OAuth redirect + existing session) ──
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user) {
+        setAuthUser(data.session.user)
+        setIsPro(data.session.user.user_metadata?.is_pro || false)
+        loadCreditsFromProfile(data.session.user.id)
+      }
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        setAuthUser(session.user)
+        setIsPro(session.user.user_metadata?.is_pro || false)
+        loadCreditsFromProfile(session.user.id)
+        if (window.location.search.includes('code=')) {
+          window.history.replaceState({}, '', '/app')
+        }
+      }
+      if (event === 'SIGNED_OUT') {
+        setAuthUser(null)
+        setIsPro(false)
+        setCredits(10)
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  async function loadCreditsFromProfile(userId: string) {
+    try {
+      const { data } = await supabase.from('profiles').select('credits, is_pro').eq('id', userId).single()
+      if (data) {
+        if (data.credits !== null && data.credits !== undefined) {
+          setCredits(data.credits)
+          localStorage.setItem('cc_credits', String(data.credits))
+        }
+        if (data.is_pro) { setIsPro(true); localStorage.setItem('cc_is_pro', 'true') }
+      }
+    } catch { /* fallback to localStorage */ }
+  }
+
+  async function useCredit(): Promise<boolean> {
+    if (isPro) return true
+    if (credits <= 0) return false
+    const nc = credits - 1
+    setCredits(nc)
+    localStorage.setItem('cc_credits', String(nc))
+    if (authUser?.id) {
+      supabase.from('profiles').update({ credits: nc }).eq('id', authUser.id).then(() => {})
+    }
+    return true
+  }
+
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+    setAuthUser(null)
+    setIsPro(false)
+    localStorage.removeItem('cc_is_pro')
+  }
   const [isPro,setIsPro] = useState(false)
   const [credits, setCredits] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -2468,9 +2526,19 @@ export default function Dashboard() {
               <button onClick={() => setShowModal(true)} className="btn-terminal px-3 py-1 text-white border-none rounded-[4px] text-[0.62rem]" style={{ background:'linear-gradient(135deg,#00d4aa,#059669)', boxShadow:'0 0 12px rgba(0,212,130,0.3)' }}>⚡ UPGRADE</button>
             </div>
           )}
-          <button onClick={()=>setShowAuth(true)} style={{padding:'5px 12px',fontSize:'0.6rem',fontWeight:700,background:authUser?'rgba(52,211,153,0.1)':'transparent',border:authUser?'1px solid rgba(52,211,153,0.25)':'1px solid rgba(52,211,153,0.2)',borderRadius:4,color:authUser?'#34d399':'#6ee7b7',cursor:'pointer',fontFamily:'IBM Plex Mono,monospace'}}>
-            {authUser ? '✓ '+authUser.email?.split('@')[0] : 'Sign In'}
-          </button>
+          {authUser ? (
+              <div style={{position:'relative',display:'inline-block'}}>
+                <button onClick={handleSignOut} style={{padding:'5px 12px',fontSize:'0.6rem',fontWeight:700,background:'rgba(52,211,153,0.1)',border:'1px solid rgba(52,211,153,0.25)',borderRadius:4,color:'#34d399',cursor:'pointer',fontFamily:'IBM Plex Mono,monospace',display:'flex',alignItems:'center',gap:6}}>
+                  <span style={{width:6,height:6,borderRadius:'50%',background:'#34d399',display:'inline-block'}}/>
+                  {authUser.email?.split('@')[0]}
+                  <span style={{fontSize:'0.5rem',opacity:0.6,marginLeft:4}}>✕</span>
+                </button>
+              </div>
+            ) : (
+              <button onClick={()=>setShowAuth(true)} style={{padding:'5px 12px',fontSize:'0.6rem',fontWeight:700,background:'transparent',border:'1px solid rgba(52,211,153,0.2)',borderRadius:4,color:'#6ee7b7',cursor:'pointer',fontFamily:'IBM Plex Mono,monospace'}}>
+                Sign In
+              </button>
+            )}
           <button onClick={isConnected ? disconnect : connect} disabled={isConnecting} className={`btn-terminal px-3 py-1 rounded-[4px] text-[0.62rem] ${isConnected ? 'bg-emerald-950/30 border-emerald-800/25 text-emerald-400' : 'bg-[rgba(0,212,130,0.08)] border-[rgba(0,212,130,0.15)] text-[#00d4aa]'}`}>
             {isConnecting ? 'Connecting…' : isConnected ? `✓ ${shortAddr}` : 'Connect Wallet'}
           </button>
