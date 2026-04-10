@@ -2,6 +2,14 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  // ---- FORCE WWW: prevent cookie domain mismatch ----
+  const url = request.nextUrl.clone()
+  if (url.hostname === 'cryptocheckai.com') {
+    url.hostname = 'www.cryptocheckai.com'
+    return NextResponse.redirect(url, 301)
+  }
+
+  // ---- Supabase session refresh ----
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -25,7 +33,7 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Triggers session refresh — use getUser() not getSession() for security
+  // Refresh session — use getUser() not getSession()
   await supabase.auth.getUser()
 
   return supabaseResponse
