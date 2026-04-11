@@ -2163,6 +2163,7 @@ export default function Dashboard() {
     localStorage.removeItem('cc_is_pro')
   }
   const [isPro,setIsPro] = useState(false)
+  const [isElite, setIsElite] = useState(false)
   const [credits, setCredits] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('cc_credits')
@@ -3042,7 +3043,7 @@ export default function Dashboard() {
           )}
           {view === 'promax' && (
             <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', background: '#050505' }}>
-              <ProMaxEliteDashboard isPro={isPro} onUpgrade={() => setShowModal(true)} />
+              <ProMaxEliteDashboard isPro={isPro} tier={isElite ? "elite" : "pro"} onUpgrade={() => setShowModal(true)} />
             </div>
           )}
           {/* Feed — Mobile fullscreen Alpha Feed */}
