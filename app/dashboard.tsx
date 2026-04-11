@@ -2107,7 +2107,7 @@ export default function Dashboard() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session?.user) {
-        setAuthUser(data.session.user)
+        setAuthUser((prev: any) => prev?.id === data.session!.user.id ? prev : data.session!.user)
         setIsPro(data.session.user.user_metadata?.is_pro || false)
         loadCreditsFromProfile(data.session.user.id)
       }
@@ -2263,16 +2263,11 @@ export default function Dashboard() {
         const res = await fetch('/api/live-feed')
         const data = await res.json()
         if (data.events && data.events.length > 0) {
-          for (const ev of data.events) {
+          const batch = data.events.map((ev: any) => {
             feedIdRef.current++
-            setFeedItems(prev => [{
-              id: feedIdRef.current,
-              tag: ev.tag,
-              tagCls: ev.cls,
-              text: ev.text,
-              ts: new Date().toLocaleTimeString()
-            }, ...prev].slice(0, 20))
-          }
+            return { id: feedIdRef.current, tag: ev.tag, tagCls: ev.cls, text: ev.text, ts: new Date().toLocaleTimeString() }
+          })
+          setFeedItems(prev => [...batch, ...prev].slice(0, 20))
         }
       } catch {}
     }
@@ -2433,7 +2428,7 @@ export default function Dashboard() {
       setScanError('Scan failed: ' + msg)
       setScanState('error')
     }
-  }, [mintInput])
+  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Feed click — scan token and scroll to top ──
   const handleFeedClick = useCallback((mint: string) => {
@@ -2729,7 +2724,7 @@ export default function Dashboard() {
               }}>
                 <span style={{fontSize:'11px'}}>◆</span>
                 <span style={{fontSize:'0.6rem',fontWeight:700,color:credits<=0?'#ff4444':credits<3?'#f0a500':'#20b2aa',fontFamily:'IBM Plex Mono,monospace'}}>{isPro ? '∞' : credits}</span>
-                <span style={{fontSize:'0.45rem',color:'#6e7681',fontWeight:600}}>SCANS</span>
+                <span style={{fontSize:'0.45rem',color:'#6e7681',fontWeight:600}}><span className='hidden sm:inline'>SCANS</span></span>
               </button>
               {!isPro && credits < 5 && (
                 <button onClick={() => setShowModal(true)} style={{padding:'3px 8px',fontSize:'0.55rem',fontWeight:700,background:'rgba(32,178,170,0.1)',border:'1px solid rgba(32,178,170,0.3)',borderRadius:4,color:'#20b2aa',cursor:'pointer',fontFamily:'IBM Plex Mono,monospace',animation:'pulse 2s infinite'}}>
@@ -2741,7 +2736,7 @@ export default function Dashboard() {
           )}
           {authUser ? (
               <div style={{position:'relative',display:'inline-block'}}>
-                <button onClick={handleSignOut} style={{padding:'5px 12px',fontSize:'0.6rem',fontWeight:700,background:'rgba(52,211,153,0.1)',border:'1px solid rgba(52,211,153,0.25)',borderRadius:4,color:'#34d399',cursor:'pointer',fontFamily:'IBM Plex Mono,monospace',display:'flex',alignItems:'center',gap:6}}>
+                <button onClick={handleSignOut} style={{padding:'4px 8px',fontSize:'0.55rem',fontWeight:700,background:'rgba(52,211,153,0.1)',border:'1px solid rgba(52,211,153,0.25)',borderRadius:4,color:'#34d399',cursor:'pointer',fontFamily:'IBM Plex Mono,monospace',display:'flex',alignItems:'center',gap:6}}>
                   <span style={{width:6,height:6,borderRadius:'50%',background:'#34d399',display:'inline-block'}}/>
                   {authUser.email?.split('@')[0]}
                   <span style={{fontSize:'0.5rem',opacity:0.6,marginLeft:4}}>✕</span>
@@ -2752,7 +2747,7 @@ export default function Dashboard() {
                 Sign In
               </button>
             )}
-          <button onClick={isConnected ? disconnect : connect} disabled={isConnecting} className={`btn-terminal px-3 py-1 rounded-[4px] text-[0.62rem] ${isConnected ? 'bg-emerald-950/30 border-emerald-800/25 text-emerald-400' : 'bg-[rgba(0,212,130,0.08)] border-[rgba(0,212,130,0.15)] text-[#00d4aa]'}`}>
+          <button onClick={isConnected ? disconnect : connect} disabled={isConnecting} className={`btn-terminal px-2 md:px-3 py-1 rounded-[4px] text-[0.5rem] md:text-[0.62rem] ${isConnected ? 'bg-emerald-950/30 border-emerald-800/25 text-emerald-400' : 'bg-[rgba(0,212,130,0.08)] border-[rgba(0,212,130,0.15)] text-[#00d4aa]'}`}>
             {isConnecting ? 'Connecting…' : isConnected ? `✓ ${shortAddr}` : 'Connect Wallet'}
           </button>
         </div>
@@ -2984,7 +2979,7 @@ export default function Dashboard() {
                   style={{
                     background: scanState === 'loading' ? 'rgba(48,54,61,1)' : 'linear-gradient(135deg,#00d4aa,#00b894)',
                     border: 'none', borderRadius: '6px',
-                    padding: '8px 16px', color: '#fff',
+                    padding: '8px 12px', color: '#fff',
                     fontFamily: 'IBM Plex Mono, monospace',
                     fontSize: '11px', fontWeight: 700,
                     cursor: scanState === 'loading' ? 'not-allowed' : 'pointer',
@@ -2994,7 +2989,7 @@ export default function Dashboard() {
                   {scanState === 'loading' ? '⟳ SCANNING…' : credits <= 0 && !isPro ? '🔒 NO CREDITS' : '⚡ NEURAL SCAN'}
                 </button>
               </div>
-              <div className="flex overflow-x-auto border-b border-[rgba(0,212,130,0.15)] bg-[#161b22] flex-shrink-0 scrollbar-none">
+              <div className="flex overflow-x-auto border-b border-[rgba(0,212,130,0.15)] bg-[#161b22] flex-shrink-0 scrollbar-none" style={{WebkitOverflowScrolling:'touch'}}>
                 {(['verdict','holders','liquidity','transfers','chart','edge'] as ScanTab[]).map(t => (
                   <button key={t} onClick={() => { setScanTab(t) }}
                     className={`px-4 py-2.5 text-[0.6rem] font-bold tracking-wider uppercase font-mono border-b-2 whitespace-nowrap transition-all ${scanTab === t ? 'text-[#00d4aa] border-indigo-500 bg-indigo-950/20' : 'text-[#8b949e] border-transparent hover:text-[#c9d1d9]'}`}
