@@ -19,6 +19,7 @@ import ValueProtectedWidget from '@/components/ValueProtectedWidget'
 import NeuralAuditLog from '@/components/NeuralAuditLog'
 import InsiderWhaleIntel from '@/components/InsiderWhaleIntel'
 import ErrorBoundary from '@/components/ErrorBoundary'
+import ProMaxEliteDashboard from '@/components/ProMaxEliteDashboard'
 import { TrialBanner, TrialWall, useTrialStatus } from '@/components/TrialSystem'
 import { AiAutoSniper } from '@/components/AiAutoSniper'
 import { Doughnut } from 'react-chartjs-2'
@@ -3041,7 +3042,7 @@ export default function Dashboard() {
           )}
           {view === 'promax' && (
             <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', background: '#050505' }}>
-              <ProMaxView isPro={isPro} onUpgrade={() => setShowModal(true)} />
+              <ProMaxEliteDashboard isPro={isPro} onUpgrade={() => setShowModal(true)} />
             </div>
           )}
           {/* Feed — Mobile fullscreen Alpha Feed */}
