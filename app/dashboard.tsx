@@ -1887,7 +1887,7 @@ function AlphaEdgeTab({ data, onTradeClick, aiEdge, aiEdgeLoading, onAnalyzeEdge
 //  MAIN PAGE
 // ══════════════════════════════════════════════
 
-type View    = 'scanner' | 'portfolio' | 'whales' | 'alpha' | 'feed' | 'forensics' | 'neuralv4' | 'promax'
+type View    = 'scanner' | 'portfolio' | 'whales' | 'alpha' | 'feed' | 'forensics' | 'neuralv4' | 'promax' | 'elite'
 type ScanTab = 'verdict' | 'holders' | 'liquidity' | 'transfers' | 'chart' | 'edge'
 type ScanState = 'idle' | 'loading' | 'done' | 'error'
 
@@ -2701,9 +2701,9 @@ export default function Dashboard() {
 
         {/* Desktop nav */}
         <div className="hidden lg:flex gap-0.5">
-          {(['scanner','portfolio','whales','alpha','forensics','neuralv4','promax'] as View[]).map(v => (
-            <button key={v} onClick={() => setView(v)} className={`px-3 py-1 rounded-[4px] text-[0.62rem] font-bold tracking-wider uppercase font-mono transition-all border ${view === v ? (v === 'promax' ? 'bg-[rgba(255,215,0,0.08)] text-[#FFD700] border-[rgba(255,215,0,0.2)]' : 'bg-[rgba(0,212,130,0.1)] text-[#00d4aa] border-[rgba(0,212,130,0.15)]') : 'bg-transparent text-[#8b949e] border-transparent hover:text-[#c9d1d9] hover:bg-white/[0.04]'}`}>
-              {v === 'scanner' ? '⚡ Scanner' : v === 'portfolio' ? '📂 Portfolio' : v === 'whales' ? '🐋 Whales' : v === 'alpha' ? '📡 Alpha' : v === 'forensics' ? '🔐 Forensics' : v === 'neuralv4' ? '🧠 Neural V4' : v === 'promax' ? '✦ Pro Max' : v}
+          {(['scanner','portfolio','whales','alpha','forensics','neuralv4','promax','elite'] as View[]).map(v => (
+            <button key={v} onClick={() => setView(v)} className={`px-3 py-1 rounded-[4px] text-[0.62rem] font-bold tracking-wider uppercase font-mono transition-all border ${view === v ? ((v === 'promax' ? 'bg-[rgba(255,215,0,0.08)] text-[#FFD700] border-[rgba(255,215,0,0.2)]' : v === 'elite' ? 'bg-[rgba(139,92,246,0.08)] text-[#8b5cf6] border-[rgba(139,92,246,0.2)]' : null) : 'bg-[rgba(0,212,130,0.1)] text-[#00d4aa] border-[rgba(0,212,130,0.15)]') : 'bg-transparent text-[#8b949e] border-transparent hover:text-[#c9d1d9] hover:bg-white/[0.04]'}`}>
+              {v === 'scanner' ? '⚡ Scanner' : v === 'portfolio' ? '📂 Portfolio' : v === 'whales' ? '🐋 Whales' : v === 'alpha' ? '📡 Alpha' : v === 'forensics' ? '🔐 Forensics' : v === 'neuralv4' ? '🧠 Neural V4' : v === 'promax' ? '✦ Deep' : v === 'elite' ? '◆ Elite' : v}
             </button>
           ))}
         </div>

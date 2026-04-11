@@ -6,38 +6,10 @@ import { Shield, Brain, Network, Activity, Zap, AlertTriangle, Eye, Lock, Trendi
 // ═══════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════
-type Tier = 'free' | 'pro' | 'elite'
-
 interface ProMaxEliteProps {
   isPro: boolean
-  tier?: Tier
   onUpgrade: () => void
 }
-
-const TIER_CONFIG = {
-  pro: {
-    label: 'PRO MAX DEEP',
-    price: 30,
-    accent: '#d4af37',
-    accentRgb: '212,175,55',
-    gradient: 'linear-gradient(135deg,#d4af37,#FFD700)',
-    glow: 'rgba(212,175,55,0.15)',
-    badge: '✦ PRO MAX',
-    features: ['GNN Cluster Mapping','Heuristic Scoring (523K)','LP Exit Prediction','Unlimited Audits','0% Performance Fees'],
-    robotFilter: 'drop-shadow(0 10px 30px rgba(212,175,55,0.15))',
-  },
-  elite: {
-    label: 'PRO MAX ELITE',
-    price: 40,
-    accent: '#8b5cf6',
-    accentRgb: '139,92,246',
-    gradient: 'linear-gradient(135deg,#8b5cf6,#6366f1)',
-    glow: 'rgba(139,92,246,0.15)',
-    badge: '◆ ELITE',
-    features: ['Everything in Pro Max Deep','Priority Neural Node (0.1ms)','Alpha Whale Alerts (>$1M)','Institutional PDF Reports','Dedicated Forensic Queue','Real-time Push Notifications'],
-    robotFilter: 'drop-shadow(0 10px 40px rgba(139,92,246,0.25)) hue-rotate(260deg)',
-  },
-} as const
 
 // ═══════════════════════════════════════════════════
 // MOCK DATA GENERATORS
@@ -333,12 +305,11 @@ function StatMini({ icon: Icon, label, value, delta, color = '#d4af37' }: { icon
 // ═══════════════════════════════════════════════════
 // MAIN EXPORT
 // ═══════════════════════════════════════════════════
-export default function ProMaxEliteDashboard({ isPro, tier = "pro", onUpgrade }: ProMaxEliteProps) {
+export default function ProMaxEliteDashboard({ isPro, onUpgrade }: ProMaxEliteProps) {
   const [liquidityData] = useState(genLiquidityData)
   const [transfers] = useState(genTransfers)
   const [neuralScore] = useState(73)
   const [mounted, setMounted] = useState(false)
-  const t = TIER_CONFIG[tier === 'elite' ? 'elite' : 'pro']
 
   useEffect(() => setMounted(true), [])
 
@@ -348,33 +319,25 @@ export default function ProMaxEliteDashboard({ isPro, tier = "pro", onUpgrade }:
   if (!isPro) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', padding: 'clamp(16px,4vw,40px)', textAlign: 'center', position: 'relative' }}>
-        <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%,-50%)', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle,${t.glow} 0%,transparent 60%)', filter: 'blur(60px)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%,-50%)', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle,rgba(212,175,55,0.06) 0%,transparent 60%)', filter: 'blur(60px)', pointerEvents: 'none' }} />
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <img src="/images/robot-gold.png" alt="Pro Max" style={{ width: 'clamp(180px,30vw,300px)', height: 'auto', margin: '0 auto 20px', display: 'block', borderRadius: 16, filter: t.robotFilter }} />
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px', borderRadius: 16, background: '${t.glow}', border: '1px solid rgba(212,175,55,0.12)', marginBottom: 16 }}>
-            <span style={{ width: 5, height: 5, borderRadius: '50%', background: t.accent, boxShadow: `0 0 6px ${t.accent}` }} />
-            <span style={{ fontSize: 9, color: t.accent, fontWeight: 700, letterSpacing: '0.1em' }}>{t.label}</span>
+          <img src="/images/robot-gold.png" alt="Pro Max" style={{ width: 'clamp(180px,30vw,300px)', height: 'auto', margin: '0 auto 20px', display: 'block', borderRadius: 16, filter: 'drop-shadow(0 10px 30px rgba(212,175,55,0.15))' }} />
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px', borderRadius: 16, background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.12)', marginBottom: 16 }}>
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#d4af37', boxShadow: '0 0 6px #d4af37' }} />
+            <span style={{ fontSize: 9, color: '#d4af37', fontWeight: 700, letterSpacing: '0.1em' }}>PRO MAX NEURAL ENGINE</span>
           </div>
           <h2 style={{ fontSize: 'clamp(22px,4vw,30px)', fontWeight: 800, color: '#fff', margin: '0 0 8px', fontFamily: "'IBM Plex Mono',monospace" }}>
-            Deep Forensic <span style={{ color: t.accent }}>Intelligence</span>
+            Deep Forensic <span style={{ color: '#d4af37' }}>Intelligence</span>
           </h2>
           <p style={{ fontSize: 12, color: '#6e7681', maxWidth: 400, margin: '0 auto 24px', lineHeight: 1.7 }}>
             GNN cluster mapping, predictive rug analysis, unlimited forensic audits. The tools institutional traders use.
           </p>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '10px 20px', borderRadius: 8, background: 'rgba(212,175,55,0.04)', border: '1px solid rgba(212,175,55,0.12)', marginBottom: 20 }}>
-            <span style={{ fontSize: 26, fontWeight: 900, color: t.accent }}>${t.price}</span>
-            <div style={{ textAlign: 'left' }}><div style={{ fontSize: 10, color: t.accent, fontWeight: 700 }}>/month</div><div style={{ fontSize: 8, color: '#484f58' }}>UNLIMITED · 0% FEES</div></div>
-          </div>
-          {/* Feature list */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 20, textAlign: 'left', maxWidth: 320, margin: '0 auto 20px' }}>
-            {t.features.map(f => (
-              <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: '#8b949e' }}>
-                <span style={{ color: t.accent, fontSize: 10 }}>✓</span> {f}
-              </div>
-            ))}
+            <span style={{ fontSize: 26, fontWeight: 900, color: '#d4af37' }}>$30</span>
+            <div style={{ textAlign: 'left' }}><div style={{ fontSize: 10, color: '#d4af37', fontWeight: 700 }}>/month</div><div style={{ fontSize: 8, color: '#484f58' }}>UNLIMITED · 0% FEES</div></div>
           </div>
           <div>
-            <button onClick={onUpgrade} style={{ padding: '14px 32px', fontSize: 13, fontWeight: 700, background: t.gradient, border: 'none', borderRadius: 8, color: '#000', cursor: 'pointer', fontFamily: "'IBM Plex Mono',monospace", boxShadow: `0 0 30px ${t.glow}`, letterSpacing: '0.03em' }}>
+            <button onClick={onUpgrade} style={{ padding: '14px 32px', fontSize: 13, fontWeight: 700, background: 'linear-gradient(135deg,#d4af37,#FFD700)', border: 'none', borderRadius: 8, color: '#000', cursor: 'pointer', fontFamily: "'IBM Plex Mono',monospace", boxShadow: '0 0 30px rgba(212,175,55,0.2)', letterSpacing: '0.03em' }}>
               Upgrade to Pro Max
             </button>
           </div>
@@ -390,7 +353,7 @@ export default function ProMaxEliteDashboard({ isPro, tier = "pro", onUpgrade }:
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Brain size={16} color="#d4af37" />
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{t.label.split(' ').slice(0,2).join(' ')} <span style={{ color: t.accent }}>{t.label.split(' ').slice(2).join(' ')}</span></span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Pro Max <span style={{ color: '#d4af37' }}>Neural</span></span>
           <span style={{ fontSize: 7, fontWeight: 700, color: '#d4af37', padding: '2px 6px', background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.15)', borderRadius: 3, animation: 'riskPulse 2s infinite' }}>● LIVE</span>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
@@ -500,7 +463,7 @@ export default function ProMaxEliteDashboard({ isPro, tier = "pro", onUpgrade }:
         {/* Terminal — 4 cols */}
         <GlassCard span={4} className="promax-cell-4">
           <CardHeader icon={Zap} title="Forensic Log" badge="STREAMING" />
-          <div style={{ height: 220, background: '#050505', borderRadius: 6, border: '1px solid ${t.glow}', overflow: 'hidden' }}>
+          <div style={{ height: 220, background: '#050505', borderRadius: 6, border: '1px solid rgba(212,175,55,0.06)', overflow: 'hidden' }}>
             <ForensicTerminal />
           </div>
         </GlassCard>
