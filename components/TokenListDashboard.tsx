@@ -156,14 +156,14 @@ export default function TokenListDashboard({ onScanToken, showModal }: { onScanT
           </div>
 
           {/* Rows */}
-          <div style={{flex:1,overflowY:'auto'}}>
+          <div style={{flex:1,overflowY:'auto',overflowX:'auto'}}>
             {filtered.map((t, i) => {
               const pos = t.change >= 0
               const col = pos ? '#34d399' : '#f87171'
               const isActive = activeRow === t.sym
               const isScanning = scanning === t.sym
               return (
-                <div key={t.sym} style={{display:'grid',gridTemplateColumns:'28px 1.6fr 100px 70px 88px 88px 64px 84px',padding:'9px 14px',borderBottom:`1px solid ${COL}`,alignItems:'center',background:isActive?'rgba(52,211,153,0.03)':'transparent',transition:'background 0.15s',animation:`fadeUp 0.2s ease ${i*0.03}s both`}}
+                <div key={t.sym} style={{display:'grid',gridTemplateColumns:'28px 1.6fr 100px 70px 88px 88px 64px 84px',minWidth:680,padding:'9px 14px',borderBottom:`1px solid ${COL}`,alignItems:'center',background:isActive?'rgba(52,211,153,0.03)':'transparent',transition:'background 0.15s',animation:`fadeUp 0.2s ease ${i*0.03}s both`}}
                   onMouseEnter={e=>(e.currentTarget.style.background='rgba(255,255,255,0.02)')}
                   onMouseLeave={e=>(e.currentTarget.style.background=isActive?'rgba(52,211,153,0.03)':'transparent')}>
                   <span style={{fontSize:9,color:'#374151',fontFamily:'JetBrains Mono,monospace'}}>{t.rank}</span>

@@ -2692,7 +2692,7 @@ export default function Dashboard() {
       {showAuth && <AuthModal onClose={()=>setShowAuth(false)} onSuccess={(u)=>{setAuthUser(u);setIsPro(u?.user_metadata?.is_pro||false)}} />}
       {chartSwapModal && <ChartSwapModal mint={chartSwapModal.mint} symbol={chartSwapModal.symbol} initialTab={chartSwapModal.tab as any} onClose={() => setChartSwapModal(null)} />}
       {/* TrialWall removed - using Gated Access */}
-      <header className="sticky top-0 z-[300] h-12 flex items-center justify-between px-4 backdrop-blur-xl" style={{background:'#000',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+      <header className="sticky top-0 z-[300] min-h-[48px] flex items-center justify-between px-3 md:px-4 flex-wrap gap-y-1 backdrop-blur-xl" style={{background:'#000',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
         <a href="/" className="flex items-center gap-2 font-mono text-[0.82rem] font-bold text-white tracking-wider uppercase no-underline">
           <img src="/logo.jpg" alt="CryptoCheck AI" style={{width:30,height:26,borderRadius:5,objectFit:'cover',flexShrink:0}}/>
           CryptoCheck<span className="text-[#00d4aa]">AI</span>
@@ -2703,7 +2703,7 @@ export default function Dashboard() {
         </a>
 
         {/* Desktop nav */}
-        <div className="hidden md:flex gap-0.5">
+        <div className="hidden lg:flex gap-0.5">
           {(['scanner','portfolio','whales','alpha','forensics','neuralv4','promax'] as View[]).map(v => (
             <button key={v} onClick={() => setView(v)} className={`px-3 py-1 rounded-[4px] text-[0.62rem] font-bold tracking-wider uppercase font-mono transition-all border ${view === v ? (v === 'promax' ? 'bg-[rgba(255,215,0,0.08)] text-[#FFD700] border-[rgba(255,215,0,0.2)]' : 'bg-[rgba(0,212,130,0.1)] text-[#00d4aa] border-[rgba(0,212,130,0.15)]') : 'bg-transparent text-[#8b949e] border-transparent hover:text-[#c9d1d9] hover:bg-white/[0.04]'}`}>
               {v === 'scanner' ? '⚡ Scanner' : v === 'portfolio' ? '📂 Portfolio' : v === 'whales' ? '🐋 Whales' : v === 'alpha' ? '📡 Alpha' : v === 'forensics' ? '🔐 Forensics' : v === 'neuralv4' ? '🧠 Neural V4' : v === 'promax' ? '✦ Pro Max' : v}
@@ -2736,7 +2736,7 @@ export default function Dashboard() {
                   + REFILL
                 </button>
               )}
-              <button onClick={() => setShowModal(true)} className="btn-terminal px-3 py-1 text-white border-none rounded-[4px] text-[0.62rem]" style={{ background:'linear-gradient(135deg,#00d4aa,#059669)', boxShadow:'0 0 12px rgba(0,212,130,0.3)' }}>⚡ UPGRADE</button>
+              <button onClick={() => setShowModal(true)} className="btn-terminal px-2 md:px-3 py-1 text-white border-none rounded-[4px] text-[0.55rem] md:text-[0.62rem]" style={{ background:'linear-gradient(135deg,#00d4aa,#059669)', boxShadow:'0 0 12px rgba(0,212,130,0.3)' }}><span className="hidden md:inline">⚡ UPGRADE</span><span className="md:hidden">⚡</span></button>
             </div>
           )}
           {authUser ? (
@@ -3003,7 +3003,7 @@ export default function Dashboard() {
                   </button>
                 ))}
               </div>
-              <div className={`flex-1 overflow-y-auto ${(scanTab === 'chart') ? 'p-0' : 'p-4'}`}>{renderScanContent()}</div>
+              <div className={`flex-1 overflow-y-auto pb-[70px] md:pb-0 ${(scanTab === 'chart') ? 'p-0' : 'p-3 md:p-4'}`}>{renderScanContent()}</div>
             </>
           )}
 
