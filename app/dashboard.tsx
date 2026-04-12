@@ -2137,7 +2137,6 @@ export default function Dashboard() {
       if (data) {
         if (data.credits !== null && data.credits !== undefined) {
           setCredits(data.credits)
-          localStorage.setItem('cc_credits', String(data.credits))
         }
         if (data.is_pro) { setIsPro(true); localStorage.setItem('cc_is_pro', 'true') }
       }
@@ -2149,7 +2148,6 @@ export default function Dashboard() {
     if (credits <= 0) return false
     const nc = credits - 1
     setCredits(nc)
-    localStorage.setItem('cc_credits', String(nc))
     if (authUser?.id) {
       supabase.from('profiles').update({ credits: nc }).eq('id', authUser.id).then(() => {})
     }
@@ -2164,13 +2162,7 @@ export default function Dashboard() {
   }
   const [isPro,setIsPro] = useState(false)
   const [isElite, setIsElite] = useState(false)
-  const [credits, setCredits] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('cc_credits')
-      return saved !== null ? parseInt(saved) : 10
-    }
-    return 10
-  })
+  const [credits, setCredits] = useState(10) // Server-synced via loadCreditsFromProfile
   const [trialActivated, setTrialActivated] = useState(false)
   const [showSignup, setShowSignup] = useState(false)
   const [chartSwapModal, setChartSwapModal] = useState<{mint:string;symbol:string;tab?:string}|null>(null)
@@ -2375,11 +2367,7 @@ export default function Dashboard() {
 
     // Optimistic UI: deduct immediately
     if (!isPro) {
-      setCredits(prev => {
-        const next = Math.max(0, prev - 1)
-        localStorage.setItem('cc_credits', String(next))
-        return next
-      })
+      setCredits(prev => Math.max(0, prev - 1)) // Optimistic, server syncs
     }
 
     setScanState('loading')
@@ -2399,7 +2387,6 @@ export default function Dashboard() {
       const creditResult = await creditPromise
       if (creditResult?.credits !== undefined && creditResult.credits >= 0) {
         setCredits(creditResult.credits)
-        localStorage.setItem('cc_credits', String(creditResult.credits))
       }
       setDexMint(mint)
       setCurrentMint(mint)   // sync chart + Jupiter to scanned token
@@ -3043,7 +3030,12 @@ export default function Dashboard() {
           )}
           {view === 'promax' && (
             <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', background: '#050505' }}>
-              <ProMaxEliteDashboard isPro={isPro} tier={isElite ? "elite" : "pro"} onUpgrade={() => setShowModal(true)} />
+              <ProMaxEliteDashboard isPro={isPro} tier="pro" onUpgrade={() => setShowModal(true)} />
+            </div>
+          )}
+          {view === 'elite' && (
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', background: '#030308' }}>
+              <ProMaxEliteDashboard isPro={isPro} tier="elite" onUpgrade={() => setShowModal(true)} />
             </div>
           )}
           {/* Feed — Mobile fullscreen Alpha Feed */}
