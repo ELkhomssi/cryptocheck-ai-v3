@@ -48,7 +48,7 @@ export default function ProMaxEliteDashboard({isPro, tier='pro', onUpgrade}: Pro
   useEffect(()=>sM(true),[])
   if(!mt) return null
 
-  if(!isPro) return(
+  if(false && !isPro) return(  // Always show full dashboard as preview
     <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'60vh',padding:'clamp(16px,4vw,40px)',textAlign:'center',position:'relative'}}>
       <div style={{position:'absolute',top:'40%',left:'50%',transform:'translate(-50%,-50%)',width:400,height:400,borderRadius:'50%',background:`radial-gradient(circle,rgba(${t.rgb},0.06) 0%,transparent 60%)`,filter:'blur(60px)',pointerEvents:'none'}}/>
       <div style={{position:'relative',zIndex:1}}>
@@ -67,6 +67,7 @@ export default function ProMaxEliteDashboard({isPro, tier='pro', onUpgrade}: Pro
     <div style={{padding:'clamp(8px,2vw,16px)',fontFamily:"'IBM Plex Mono','JetBrains Mono',monospace"}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14,flexWrap:'wrap',gap:8}}>
         <div style={{display:'flex',alignItems:'center',gap:8}}><Brain size={16} color={t.accent}/><span style={{fontSize:13,fontWeight:700,color:'#fff'}}>{t.label}</span><span style={{fontSize:7,fontWeight:700,color:t.accent,padding:'2px 6px',background:t.glow,border:`1px solid rgba(${t.rgb},0.15)`,borderRadius:3,animation:'riskPulse 2s infinite'}}>● LIVE</span></div>
+        {!isPro && <div style={{width:'100%',padding:'8px 14px',background:'rgba(139,92,246,0.06)',border:'1px solid rgba(139,92,246,0.15)',borderRadius:6,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8}}><span style={{fontSize:10,color:'#8b949e'}}>◆ Elite Preview — <span style={{color:'#8b5cf6',fontWeight:700}}>Upgrade to unlock live data</span></span><button onClick={onUpgrade} style={{padding:'5px 14px',fontSize:10,fontWeight:700,background:'linear-gradient(135deg,#8b5cf6,#6366f1)',border:'none',borderRadius:4,color:'#fff',cursor:'pointer',fontFamily:"'IBM Plex Mono',monospace"}}>Upgrade $40/mo</button></div>}
         <div style={{display:'flex',gap:12,flexWrap:'wrap'}}><SM icon={Shield} label="AUDITS TODAY" value="47" delta="+12%" color={t.accent}/><SM icon={AlertTriangle} label="RUGS DETECTED" value="3" color="#ff4444"/></div>
       </div>
       <div className="pm-grid" style={{display:'grid',gap:10}}>
