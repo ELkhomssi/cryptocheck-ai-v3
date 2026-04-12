@@ -1398,7 +1398,7 @@ const HELIUS_RPC  = 'https://mainnet.helius-rpc.com/?api-key=35530e51-dad1-480b-
 type DexQuote = any
 
 function ProModal({ onClose }: { onClose: () => void }) {
-  const [selected, setSelected] = useState<'starter'|'pro'|'whale'>('pro')
+  const [selected, setSelected] = useState<'starter'|'pro'|'elite'|'whale'>('pro')
   const [billing, setBilling] = useState<'monthly'|'yearly'>('monthly')
   const [loading, setLoading] = useState<string|null>(null)
   const [pulse, setPulse] = useState(false)
@@ -1438,6 +1438,16 @@ function ProModal({ onClose }: { onClose: () => void }) {
       features: ['Everything in Pro','Zero monthly cost','0.5% on profits only','Dedicated trading wallet','VIP Telegram group'],
       cta: 'Apply for Whale', btnBg: '#00d4aa', btnColor: '#0a0a0a', sol: 0,
     },
+    {
+      id: 'elite' as const,
+      name: 'Pro Max Elite', price: billing === 'monthly' ? 40 : 32,
+      period: billing === 'monthly' ? '/month' : '/month billed yearly',
+      color: '#8b5cf6', border: 'rgba(139,92,246,0.45)', bg: 'linear-gradient(135deg,rgba(139,92,246,0.07),rgba(0,0,0,0))',
+      icon: '◆', badge: 'COMMAND CENTER', badgeColor: '#8b5cf6',
+      credits: '∞ Unlimited', creditsColor: 'rgba(139,92,246,0.1)', creditsBorder: 'rgba(139,92,246,0.3)', creditsText: '#8b5cf6',
+      features: ['Everything in Pro Deep','Priority Neural Node (0.1ms)','Alpha Whale Alerts (>$1M)','Institutional PDF Reports','Dedicated Forensic Queue','0% performance fees'],
+      cta: 'Upgrade to Elite', btnBg: '#8b5cf6', btnColor: '#fff', sol: 0.5,
+    },
   ]
 
   async function handleBuy(planId: string) {
@@ -1449,7 +1459,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
       }
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ plan: planId === 'starter' ? 'starter' : billing === 'monthly' ? 'pro' : 'yearly' })
+        body: JSON.stringify({ plan: planId === 'starter' ? 'starter' : planId === 'elite' ? (billing === 'monthly' ? 'elite' : 'elite_yearly') : billing === 'monthly' ? 'pro' : 'yearly' })
       })
       const data = await res.json()
       if (data.url) window.location.assign(data.url)
@@ -1461,10 +1471,10 @@ function ProModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.75)',backdropFilter:'blur(16px)',display:'flex',alignItems:'center',justifyContent:'center',padding:16,fontFamily:'Inter,sans-serif'}}>
-      <div onClick={e=>e.stopPropagation()} style={{width:'min(560px,95vw)',background:'#0a0a0a',border:'1px solid #1f2937',borderRadius:12,overflow:'hidden',boxShadow:'0 32px 80px rgba(0,0,0,0.8)'}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:'min(720px,95vw)',background:'#0a0a0a',border:'1px solid #1f2937',borderRadius:12,overflow:'hidden',boxShadow:'0 32px 80px rgba(0,0,0,0.8)'}}>
 
         {/* Top gradient bar */}
-        <div style={{height:2,background:'linear-gradient(90deg,#d4af37,#00d4aa)'}}/>
+        <div style={{height:2,background:'linear-gradient(90deg,#d4af37,#00d4aa,#8b5cf6)'}}/>
 
         {/* Header */}
         <div style={{padding:'18px 20px 14px',borderBottom:'1px solid #1f2937'}}>
@@ -1502,7 +1512,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
         <div style={{padding:'12px 20px 6px',fontSize:10,fontWeight:700,letterSpacing:'0.1em',color:'#6e7681',textTransform:'uppercase'}}>Choose a plan</div>
 
         {/* Plans */}
-        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,padding:'0 14px 16px'}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,padding:'0 14px 16px'}}>
           {plans.map(pl => (
             <div key={pl.id} onClick={()=>setSelected(pl.id)}
               style={{position:'relative',background:selected===pl.id?pl.bg:'#111',border:`1.5px solid ${selected===pl.id?pl.border:'#1f2937'}`,borderRadius:8,padding:'14px 12px',cursor:'pointer',transition:'all 0.15s'}}>
@@ -1527,7 +1537,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
               <div style={{display:'flex',flexDirection:'column',gap:4,marginBottom:10}}>
                 {pl.features.map(f => (
                   <div key={f} style={{display:'flex',alignItems:'flex-start',gap:5,fontSize:10,color:'#8b949e'}}>
-                    <span style={{color:'#00d4aa',flexShrink:0}}>✓</span>{f}
+                    <span style={{color:pl.color,flexShrink:0}}>✓</span>{f}
                   </div>
                 ))}
               </div>
