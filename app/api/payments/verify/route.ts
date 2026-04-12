@@ -70,6 +70,32 @@ export async function POST(req: NextRequest) {
     if (pc.isElite) upd.is_elite = true
     if (Object.keys(upd).length) await svc.from('profiles').update(upd).eq('id',userId)
 
+    // Process referral commission
+    const { data: payerProfile } = await svc.from('profiles').select('referred_by').eq('id', userId).single()
+    if (payerProfile?.referred_by) {
+      const { data: referrer } = await svc.from('profiles').select('id, referral_earnings_sol').eq('referral_code', payerProfile.referred_by).single()
+      if (referrer && pc.minUsd > 0) {
+        const commissionRate = 0.20
+        const commissionSol = transferAmount * commissionRate
+        const commissionUsd = commissionSol * (solPrice || 80)
+        await svc.from('commissions').insert({
+          referrer_id: referrer.id,
+          referred_id: userId,
+          plan: plan,
+          tx_signature: signature,
+          amount_sol: transferAmount,
+          amount_usd: transferAmount * (solPrice || 80),
+          commission_rate: commissionRate,
+          commission_sol: commissionSol,
+          commission_usd: commissionUsd,
+          status: 'pending',
+        })
+        await svc.from('profiles').update({
+          referral_earnings_sol: (referrer.referral_earnings_sol || 0) + commissionSol,
+        }).eq('id', referrer.id)
+      }
+    }
+
     return NextResponse.json({success:true,plan:pc.label,credits:pc.credits>0?upd.credits:'unlimited',isPro:pc.isPro,isElite:pc.isElite})
   } catch(e:any) {
     console.error('[PAYMENT]',e)

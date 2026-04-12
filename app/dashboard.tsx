@@ -1405,6 +1405,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
   React.useEffect(() => { fetch('/api/sol-price').then(r=>r.json()).then(d=>{ if(d.price) setSolPrice(d.price) }).catch(()=>{}) }, [])
   const plans = [
     { id:'starter', name:'Micro Pack', price:5, period:'/one-time', badge:null as string|null, badgeColor:'', color:'#20b2aa', features:['10 Deep Neural Scans','Rug Detection Reports','Basic Risk Scoring','Valid 30 days'] },
+    { id:'deep', name:'Pro Max Deep', price:30, period:'/month', badge:'GOLD TIER' as string|null, badgeColor:'#d4af37', color:'#d4af37', features:['Unlimited Neural Scans','GNN Cluster Mapping','Heuristic Scoring (523K)','LP Exit Prediction','0% Performance Fees'] },
     { id:'pro', name:'Pro Trader', price:30, period:'/month', badge:'BEST VALUE' as string|null, badgeColor:'#00d4aa', color:'#00d4aa', features:['Unlimited Neural Scans','Portfolio Risk Scanner','Whale Tracker','Alpha Feed','Priority Support'] },
     { id:'elite', name:'Pro Max Elite', price:40, period:'/month', badge:'COMMAND CENTER' as string|null, badgeColor:'#8b5cf6', color:'#8b5cf6', features:['Everything in Pro','AI Auto-Sniper Bot','Neural Risk Filtering','Jupiter Auto-Execution','Priority RPC Access'] },
   ]
@@ -1452,7 +1453,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
   }
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.8)',backdropFilter:'blur(20px)',display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
-      <div onClick={e=>e.stopPropagation()} style={{width:'min(820px,95vw)',background:'#0a0e14',border:'1px solid rgba(0,212,170,0.12)',borderRadius:16,overflow:'hidden',boxShadow:'0 32px 80px rgba(0,0,0,0.8)',fontFamily:"'IBM Plex Mono','Inter',monospace"}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:'min(920px,95vw)',maxHeight:'90vh',overflowY:'auto',background:'#0a0e14',border:'1px solid rgba(0,212,170,0.12)',borderRadius:16,overflow:'hidden',boxShadow:'0 32px 80px rgba(0,0,0,0.8)',fontFamily:"'IBM Plex Mono','Inter',monospace"}}>
         <div style={{textAlign:'center',padding:'28px 20px 20px',position:'relative'}}>
           <button onClick={onClose} style={{position:'absolute',top:12,right:16,background:'none',border:'none',color:'#484f58',cursor:'pointer',fontSize:20}}>&times;</button>
           <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 12px',borderRadius:16,border:'1px solid rgba(0,212,170,0.2)',background:'rgba(0,212,170,0.05)',marginBottom:12}}>
@@ -1486,14 +1487,14 @@ function ProModal({ onClose }: { onClose: () => void }) {
             </div>
           ))}
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,padding:'8px 20px 20px'}}>
+        <div className='pm-feat-grid' style={{display:'grid',gap:12,padding:'8px 20px 20px'}}>
           {[{icon:'W',name:'Whale Tracker',desc:'Follow top wallets with >$500K PnL'},{icon:'A',name:'Alpha Feed',desc:'Rug alerts, accumulation signals'},{icon:'S',name:'AI Auto-Sniper',desc:'Neural auto-trade on Jupiter'}].map(f => <div key={f.name} style={{background:'rgba(0,212,170,0.02)',border:'1px solid rgba(0,212,170,0.06)',borderRadius:10,padding:'14px 12px',textAlign:'center'}}><div style={{fontSize:16,marginBottom:6,color:'#00d4aa'}}>{f.icon}</div><div style={{fontSize:11,fontWeight:700,color:'#e2e8f0',marginBottom:3}}>{f.name}</div><div style={{fontSize:9,color:'#484f58',lineHeight:1.5}}>{f.desc}</div></div>)}
         </div>
         <div style={{padding:'10px 20px 14px',borderTop:'1px solid rgba(255,255,255,0.04)',textAlign:'center'}}>
           <span style={{fontSize:9,color:'#303030'}}>Crypto payments on Solana Mainnet | Card payments via Stripe | No refunds</span>
         </div>
       </div>
-      <style>{'.pm-modal-grid{grid-template-columns:repeat(3,1fr)}@media(max-width:700px){.pm-modal-grid{grid-template-columns:1fr!important}}'}</style>
+      <style>{'.pm-modal-grid{grid-template-columns:repeat(2,1fr)}@media(min-width:900px){.pm-modal-grid{grid-template-columns:repeat(4,1fr)}}@media(max-width:600px){.pm-modal-grid{grid-template-columns:1fr!important}}'}</style>
     </div>
   )
 }
@@ -2057,6 +2058,13 @@ export default function Dashboard() {
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
+        // Save referral if present
+        const refCode = typeof window !== 'undefined' ? localStorage.getItem('cc_ref') : null
+        if (refCode) {
+          fetch('/api/referral', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ userId: session.user.id, refCode }) })
+            .then(() => localStorage.removeItem('cc_ref'))
+            .catch(() => {})
+        }
         setAuthUser(session.user)
         setIsPro(session.user.user_metadata?.is_pro || false)
         loadCreditsFromProfile(session.user.id)
