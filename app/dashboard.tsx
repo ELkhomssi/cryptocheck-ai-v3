@@ -123,7 +123,7 @@ const ALPHA_CARDS = [
 // ── Data Source Badges ──
 function SourceBadges() {
   return (
-    <div className="flex flex-wrap gap-1.5 mb-3">
+    <div className="flex flex-col md:flex-row gap-1.5 mb-3">
       <span className="ds-badge ds-badge-rpc">
         <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 inline-block dot-pulse" />
         Source: Helius Real-Time RPC
@@ -477,7 +477,7 @@ function AiChatWindow({
 
       {/* Quick question chips */}
       {messages.length === 0 && !loading && (
-        <div className="flex flex-wrap gap-1.5 px-3 py-2 border-t border-[rgba(33,38,45,0.5)]">
+        <div className="flex flex-col md:flex-row gap-1.5 px-3 py-2 border-t border-[rgba(33,38,45,0.5)]">
           {QUICK_Q.map(q => (
             <button key={q} onClick={() => { onInput(q); setTimeout(onSend, 0) }}
               className="px-2 py-1 rounded-[3px] text-[0.54rem] text-[#00d4aa] border border-[rgba(0,212,130,0.15)] bg-indigo-950/20 cursor-pointer hover:bg-[rgba(0,212,130,0.1)] transition-all font-mono"
@@ -615,7 +615,7 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
   return (
     <div>
       {/* ── Source badges ── */}
-      <div className="flex flex-wrap gap-1.5 mb-3">
+      <div className="flex flex-col md:flex-row gap-1.5 mb-3">
         <span className="ds-badge ds-badge-rpc"><span className="w-1.5 h-1.5 rounded-full bg-cyan-400 inline-block dot-pulse" />Source: Helius Real-Time RPC</span>
         <span className="ds-badge ds-badge-net">Network: {NETWORK_LABEL}</span>
         <span className="ds-badge ds-badge-engine">Security: {ENGINE_LABEL}</span>
@@ -1599,7 +1599,7 @@ function AlphaEdgeTab({ data, onTradeClick, aiEdge, aiEdgeLoading, onAnalyzeEdge
   return (
     <div>
       {/* Source badges */}
-      <div className="flex flex-wrap gap-1.5 mb-3">
+      <div className="flex flex-col md:flex-row gap-1.5 mb-3">
         <span className="ds-badge ds-badge-rpc"><span className="w-1.5 h-1.5 rounded-full bg-cyan-400 inline-block dot-pulse" />Helius Real-Time RPC</span>
         <span className="ds-badge ds-badge-net">Solana Mainnet-Beta</span>
         <span className="ds-badge ds-badge-engine">Neural Engine v2</span>
@@ -2474,7 +2474,7 @@ export default function Dashboard() {
         <div className="text-base font-bold text-[#e2e8f0] font-sans">Portfolio Risk Scanner</div>
         <div className="text-[0.7rem] text-[#8b949e] max-w-xs leading-relaxed">Connect your Phantom wallet to scan all token holdings. The AI generates a Global Portfolio Risk Score by analyzing every position via Helius DAS API.</div>
         <button onClick={doPortfolioScan} disabled={isConnecting} className="unlock-btn max-w-xs">{isConnecting ? 'Connecting…' : isConnected ? '🔍 Scan My Portfolio' : '🔗 Connect & Scan Portfolio'}</button>
-        <div className="flex flex-wrap gap-1.5 justify-center">
+        <div className="flex flex-col md:flex-row gap-1.5 justify-center">
           <span className="ds-badge ds-badge-rpc"><span className="w-1.5 h-1.5 rounded-full bg-cyan-400 inline-block dot-pulse" />Helius DAS API</span>
           <span className="ds-badge ds-badge-net">{NETWORK_LABEL}</span>
           <span className="ds-badge ds-badge-engine">{ENGINE_LABEL}</span>
@@ -3034,7 +3034,14 @@ export default function Dashboard() {
               </div>
             </div>
           )}
-        </main>
+<div className="mt-8 p-6 bg-gradient-to-br from-indigo-900/20 to-black border border-purple-500/30 rounded-2xl"> 
+  <h3 className="text-xl font-bold text-white flex items-center gap-2">🚀 Affiliate Program</h3> 
+  <p className="text-gray-400 text-sm mt-2">Share your link and earn 20% in SOL.</p> 
+  <div className="mt-4 flex flex-col sm:flex-row gap-3"> 
+    <input readOnly value={`https://cryptocheckai.com?ref=${typeof window !== "undefined" ? localStorage.getItem("cc_ref") : ""}`} className="flex-1 bg-black/50 border border-gray-700 p-3 rounded-lg text-green-400 font-mono text-sm" /> 
+    <button onClick={() => alert("Link Copied!")} className="bg-purple-600 text-white px-6 py-3 rounded-lg font-bold">Copy Link</button> 
+  </div> 
+</div>        </main>
       </div>
 
       {/* ── STATUS BAR ── */}
