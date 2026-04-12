@@ -1398,248 +1398,106 @@ const HELIUS_RPC  = 'https://mainnet.helius-rpc.com/?api-key=35530e51-dad1-480b-
 type DexQuote = any
 
 function ProModal({ onClose }: { onClose: () => void }) {
-  const [selected, setSelected] = useState<'starter'|'pro'|'elite'|'whale'>('pro')
-  const [billing, setBilling] = useState<'monthly'|'yearly'>('monthly')
-  const [loading, setLoading] = useState<string|null>(null)
-  const [pulse, setPulse] = useState(false)
-  const [credits] = useState(2)
-
-  useEffect(() => {
-    const iv = setInterval(() => setPulse(p => !p), 1500)
-    return () => clearInterval(iv)
-  }, [])
-
-  const plans = [
-    {
-      id: 'starter' as const,
-      name: 'Micro Pack', price: 5, period: 'one-time',
-      color: '#c0c0c0', border: 'rgba(192,192,192,0.2)', bg: 'transparent',
-      icon: '⚡', badge: null, badgeColor: '',
-      credits: '+10 Credits', creditsColor: 'rgba(192,192,192,0.15)', creditsBorder: 'rgba(192,192,192,0.3)', creditsText: '#c0c0c0',
-      features: ['10 deep AI scans','Rug detection reports','Basic risk scoring','Valid 30 days'],
-      cta: 'Get 10 Credits', btnBg: '#1f2937', btnColor: '#e2e8f0', sol: 0.06,
-    },
-    {
-      id: 'pro' as const,
-      name: 'Pro Trader', price: billing === 'monthly' ? 30 : 24,
-      period: billing === 'monthly' ? '/month' : '/month billed yearly',
-      color: '#d4af37', border: 'rgba(212,175,55,0.45)', bg: 'linear-gradient(135deg,rgba(212,175,55,0.07),rgba(0,0,0,0))',
-      icon: '🧠', badge: 'MOST POPULAR', badgeColor: '#d4af37',
-      credits: '∞ Unlimited', creditsColor: 'rgba(212,175,55,0.12)', creditsBorder: 'rgba(212,175,55,0.3)', creditsText: '#d4af37',
-      features: ['Unlimited credits','AI prediction scores','Auto-Sniper bot','Priority alpha feed','Whale wallet tracking','Rug Forensics Lab','0.5% performance fee on sniper profits'],
-      cta: 'Upgrade to Pro', btnBg: '#d4af37', btnColor: '#0a0a0a', sol: 0.35,
-    },
-    {
-      id: 'whale' as const,
-      name: 'Whale Access', price: 0, period: '0.5% success fee',
-      color: '#00d4aa', border: 'rgba(0,212,130,0.35)', bg: 'linear-gradient(135deg,rgba(0,212,130,0.07),rgba(0,0,0,0))',
-      icon: '🐋', badge: 'NO MONTHLY FEE', badgeColor: '#00d4aa',
-      credits: '∞ Unlimited', creditsColor: 'rgba(0,212,130,0.1)', creditsBorder: 'rgba(0,212,130,0.3)', creditsText: '#00d4aa',
-      features: ['Everything in Pro','Zero monthly cost','0.5% on profits only','Dedicated trading wallet','VIP Telegram group'],
-      cta: 'Apply for Whale', btnBg: '#00d4aa', btnColor: '#0a0a0a', sol: 0,
-    },
-    {
-      id: 'elite' as const,
-      name: 'Pro Max Elite', price: billing === 'monthly' ? 40 : 32,
-      period: billing === 'monthly' ? '/month' : '/month billed yearly',
-      color: '#8b5cf6', border: 'rgba(139,92,246,0.45)', bg: 'linear-gradient(135deg,rgba(139,92,246,0.07),rgba(0,0,0,0))',
-      icon: '◆', badge: 'COMMAND CENTER', badgeColor: '#8b5cf6',
-      credits: '∞ Unlimited', creditsColor: 'rgba(139,92,246,0.1)', creditsBorder: 'rgba(139,92,246,0.3)', creditsText: '#8b5cf6',
-      features: ['Everything in Pro Deep','Priority Neural Node (0.1ms)','Alpha Whale Alerts (>$1M)','Institutional PDF Reports','Dedicated Forensic Queue','0% performance fees'],
-      cta: 'Upgrade to Elite', btnBg: '#8b5cf6', btnColor: '#fff', sol: 0.5,
-    },
-  ]
-
   const [solPrice, setSolPrice] = React.useState(80)
   const [txStatus, setTxStatus] = React.useState<string|null>(null)
-
-  React.useEffect(() => {
-    fetch('/api/sol-price').then(r=>r.json()).then(d=>{ if(d.price) setSolPrice(d.price) }).catch(()=>{})
-  }, [])
-
-  async function handleBuy(planId: string) {
-    setLoading(planId)
-    setTxStatus(null)
+  const [loading, setLoading] = React.useState<string|null>(null)
+  const [payMethod, setPayMethod] = React.useState<Record<string,string>>({})
+  React.useEffect(() => { fetch('/api/sol-price').then(r=>r.json()).then(d=>{ if(d.price) setSolPrice(d.price) }).catch(()=>{}) }, [])
+  const plans = [
+    { id:'starter', name:'Micro Pack', price:5, period:'/one-time', badge:null as string|null, badgeColor:'', color:'#20b2aa', features:['10 Deep Neural Scans','Rug Detection Reports','Basic Risk Scoring','Valid 30 days'] },
+    { id:'pro', name:'Pro Trader', price:30, period:'/month', badge:'BEST VALUE' as string|null, badgeColor:'#00d4aa', color:'#00d4aa', features:['Unlimited Neural Scans','Portfolio Risk Scanner','Whale Tracker','Alpha Feed','Priority Support'] },
+    { id:'elite', name:'Pro Max Elite', price:40, period:'/month', badge:'COMMAND CENTER' as string|null, badgeColor:'#8b5cf6', color:'#8b5cf6', features:['Everything in Pro','AI Auto-Sniper Bot','Neural Risk Filtering','Jupiter Auto-Execution','Priority RPC Access'] },
+  ]
+  async function handleSolPay(planId: string) {
+    setLoading(planId); setTxStatus(null)
     try {
-      if (planId === 'whale') {
-        window.open('mailto:elkhomsiabderrahim@gmail.com?subject=Whale Plan Application', '_blank')
-        setLoading(null); return
-      }
-
-      // Get wallet from Solana adapter
-      const walletEl = document.querySelector('[data-wallet-adapter]') as any
-      const { solana } = window as any
-      let provider = (window as any).phantom?.solana || (window as any).solana
-      if (!provider?.isPhantom && !provider?.publicKey) {
-        alert('Please connect your Phantom or Solana wallet first')
-        setLoading(null); return
-      }
-
-      const { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } = await import('@solana/web3.js')
-      const connection = new Connection(process.env.NEXT_PUBLIC_HELIUS_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=35530e51-dad1-480b-af8f-11c8af2ab3fd', 'confirmed')
-
-      // Calculate SOL amount
-      const plan = planId === 'starter' ? 'starter' : planId === 'elite' ? (billing === 'monthly' ? 'elite' : 'elite_yearly') : billing === 'monthly' ? 'pro' : 'yearly'
-      const usdPrices: Record<string,number> = { starter:5, pro:30, yearly:288, elite:40, elite_yearly:384 }
-      const usdAmount = usdPrices[plan] || 30
-      const solAmount = usdAmount / solPrice
-
+      const provider = (window as any).phantom?.solana || (window as any).solana
+      if (!provider?.publicKey) { alert('Connect your Phantom wallet first'); setLoading(null); return }
+      const web3 = await import('@solana/web3.js')
+      const connection = new web3.Connection(process.env.NEXT_PUBLIC_HELIUS_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=35530e51-dad1-480b-af8f-11c8af2ab3fd', 'confirmed')
+      const plan = plans.find(p => p.id === planId)!
+      const solAmount = plan.price / solPrice
       setTxStatus('Requesting wallet approval...')
-
-      const fromPubkey = provider.publicKey
-      const toPubkey = new PublicKey('5jbWsijUWqXLyuaNtzkiu2JM1C5jNPUP9oRjKmmJx15i')
-
-      const transaction = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey,
-          toPubkey,
-          lamports: Math.round(solAmount * LAMPORTS_PER_SOL),
-        })
-      )
-
+      const tx = new web3.Transaction().add(web3.SystemProgram.transfer({ fromPubkey: provider.publicKey, toPubkey: new web3.PublicKey('5jbWsijUWqXLyuaNtzkiu2JM1C5jNPUP9oRjKmmJx15i'), lamports: Math.round(solAmount * web3.LAMPORTS_PER_SOL) }))
       const { blockhash } = await connection.getLatestBlockhash()
-      transaction.recentBlockhash = blockhash
-      transaction.feePayer = fromPubkey
-
+      tx.recentBlockhash = blockhash; tx.feePayer = provider.publicKey
       setTxStatus('Confirm in wallet...')
-      const signed = await provider.signTransaction(transaction)
-      
-      setTxStatus('Sending transaction...')
-      const signature = await connection.sendRawTransaction(signed.serialize())
-      
+      const signed = await provider.signTransaction(tx)
+      setTxStatus('Broadcasting to Solana...')
+      const sig = await connection.sendRawTransaction(signed.serialize())
       setTxStatus('Confirming on-chain...')
-      await connection.confirmTransaction(signature, 'confirmed')
-
+      await connection.confirmTransaction(sig, 'confirmed')
       setTxStatus('Verifying payment...')
-      // Get user ID from auth
-      const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession()
-      const userId = session?.user?.id
-      if (!userId) throw new Error('Not logged in')
-
-      const verifyRes = await fetch('/api/payments/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ signature, plan, userId, solPrice }),
-      })
-      const result = await verifyRes.json()
-
-      if (!verifyRes.ok) throw new Error(result.error || 'Verification failed')
-
-      setTxStatus('✅ Payment confirmed!')
+      const { supabase } = await import('@/lib/supabase')
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user?.id) throw new Error('Not logged in')
+      const res = await fetch('/api/payments/verify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ signature:sig, plan:planId, userId:session.user.id, solPrice }) })
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.error || 'Verification failed')
+      setTxStatus('Payment confirmed!')
       setTimeout(() => window.location.reload(), 1500)
-
     } catch(e: any) {
-      const msg = e?.message || 'Unknown error'
-      if (msg.includes('User rejected')) {
-        setTxStatus('Transaction cancelled')
-      } else {
-        setTxStatus('❌ ' + msg)
-      }
-    } finally {
-      setTimeout(() => setLoading(null), 2000)
-    }
+      setTxStatus(e?.message?.includes('User rejected') ? 'Transaction cancelled' : (e?.message || 'Failed'))
+    } finally { setTimeout(() => setLoading(null), 2000) }
   }
-
+  async function handleCardPay(planId: string) {
+    setLoading(planId)
+    try {
+      const res = await fetch('/api/stripe/checkout', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ plan: planId }) })
+      const data = await res.json()
+      if (data.url) window.location.assign(data.url)
+      else throw new Error(data.error || 'Failed')
+    } catch(e: any) { alert('Payment error: ' + (e?.message || 'Unknown')) }
+    finally { setLoading(null) }
+  }
   return (
-    <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.75)',backdropFilter:'blur(16px)',display:'flex',alignItems:'center',justifyContent:'center',padding:16,fontFamily:'Inter,sans-serif'}}>
-      <div onClick={e=>e.stopPropagation()} style={{width:'min(720px,95vw)',background:'#0a0a0a',border:'1px solid #1f2937',borderRadius:12,overflow:'hidden',boxShadow:'0 32px 80px rgba(0,0,0,0.8)'}}>
-
-        {/* Top gradient bar */}
-        <div style={{height:2,background:'linear-gradient(90deg,#d4af37,#00d4aa,#8b5cf6)'}}/>
-
-        {/* Header */}
-        <div style={{padding:'18px 20px 14px',borderBottom:'1px solid #1f2937'}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
-            <div style={{fontSize:17,fontWeight:700,color:'#fff'}}>Top up <span style={{color:'#d4af37'}}>Credits</span></div>
-            <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <div style={{display:'flex',gap:3,background:'#161b22',border:'1px solid #21262d',borderRadius:6,padding:3}}>
-                {(['monthly','yearly'] as const).map(b => (
-                  <button key={b} onClick={()=>setBilling(b)} style={{padding:'3px 10px',borderRadius:4,border:'none',cursor:'pointer',fontSize:10,fontWeight:700,background:billing===b?'#d4af37':'transparent',color:billing===b?'#0a0a0a':'#6e7681',transition:'all 0.15s'}}>
-                    {b === 'monthly' ? 'Monthly' : 'Yearly -20%'}
-                  </button>
-                ))}
-              </div>
-              <button onClick={onClose} style={{background:'none',border:'none',color:'#6e7681',cursor:'pointer',fontSize:18,lineHeight:1}}>×</button>
-            </div>
+    <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.8)',backdropFilter:'blur(20px)',display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:'min(820px,95vw)',background:'#0a0e14',border:'1px solid rgba(0,212,170,0.12)',borderRadius:16,overflow:'hidden',boxShadow:'0 32px 80px rgba(0,0,0,0.8)',fontFamily:"'IBM Plex Mono','Inter',monospace"}}>
+        <div style={{textAlign:'center',padding:'28px 20px 20px',position:'relative'}}>
+          <button onClick={onClose} style={{position:'absolute',top:12,right:16,background:'none',border:'none',color:'#484f58',cursor:'pointer',fontSize:20}}>&times;</button>
+          <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 12px',borderRadius:16,border:'1px solid rgba(0,212,170,0.2)',background:'rgba(0,212,170,0.05)',marginBottom:12}}>
+            <span style={{fontSize:8,fontWeight:700,color:'#00d4aa',letterSpacing:'0.1em'}}>INSTITUTIONAL ACCESS</span>
           </div>
-          <div style={{fontSize:11,color:'#6e7681',marginBottom:10}}>1 Credit = 1 Deep Neural AI Scan</div>
-
-          {/* Balance */}
-          <div style={{display:'flex',alignItems:'center',gap:10,padding:'9px 12px',background:'rgba(212,175,55,0.05)',border:'1px solid rgba(212,175,55,0.15)',borderRadius:7}}>
-            <span style={{fontSize:18}}>🪙</span>
-            <div>
-              <div style={{fontSize:10,color:'#8b949e',marginBottom:1}}>Current balance</div>
-              <div style={{fontSize:18,fontWeight:700,color:'#d4af37',fontFamily:'IBM Plex Mono,monospace'}}>{credits} Credits</div>
-            </div>
-            {credits < 3 && (
-              <div style={{marginLeft:'auto',fontSize:10,fontWeight:700,color:'#f0a500',background:'rgba(240,165,0,0.1)',border:'1px solid rgba(240,165,0,0.2)',padding:'2px 8px',borderRadius:4,animation:'pulse 1.5s infinite'}}>
-                ⚠ LOW BALANCE
-              </div>
-            )}
-          </div>
+          <h2 style={{fontSize:24,fontWeight:800,color:'#fff',margin:'0 0 6px'}}>Upgrade to <span style={{color:'#00d4aa'}}>PRO</span></h2>
+          <p style={{fontSize:12,color:'#6e7681',margin:0}}>Pay with card or crypto on Solana — instant access.</p>
         </div>
-
-        {/* Section label */}
-        {txStatus && <div style={{margin:'0 14px 8px',padding:'8px 12px',borderRadius:6,fontSize:11,fontWeight:600,fontFamily:"'IBM Plex Mono',monospace",background:txStatus.includes('✅')?'rgba(0,255,136,0.06)':txStatus.includes('❌')?'rgba(255,68,68,0.06)':'rgba(212,175,55,0.06)',border:txStatus.includes('✅')?'1px solid rgba(0,255,136,0.15)':txStatus.includes('❌')?'1px solid rgba(255,68,68,0.15)':'1px solid rgba(212,175,55,0.15)',color:txStatus.includes('✅')?'#00ff88':txStatus.includes('❌')?'#ff4444':'#d4af37'}}>{txStatus}</div>}
-        <div style={{padding:'12px 20px 6px',fontSize:10,fontWeight:700,letterSpacing:'0.1em',color:'#6e7681',textTransform:'uppercase'}}>Choose a plan</div>
-
-        {/* Plans */}
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8,padding:'0 14px 16px'}}>
+        {txStatus && <div style={{margin:'0 20px 12px',padding:'8px 14px',borderRadius:8,fontSize:11,fontWeight:600,fontFamily:"'IBM Plex Mono',monospace",textAlign:'center',background:'rgba(0,212,170,0.06)',border:'1px solid rgba(0,212,170,0.15)',color:'#00d4aa'}}>{txStatus}</div>}
+        <div className="pm-modal-grid" style={{display:'grid',gap:12,padding:'0 20px 16px'}}>
           {plans.map(pl => (
-            <div key={pl.id} onClick={()=>setSelected(pl.id)}
-              style={{position:'relative',background:selected===pl.id?pl.bg:'#111',border:`1.5px solid ${selected===pl.id?pl.border:'#1f2937'}`,borderRadius:8,padding:'14px 12px',cursor:'pointer',transition:'all 0.15s'}}>
-
-              {pl.badge && (
-                <div style={{position:'absolute',top:-9,left:'50%',transform:'translateX(-50%)',background:pl.badgeColor,color:'#0a0a0a',fontSize:8,fontWeight:700,padding:'2px 8px',borderRadius:10,whiteSpace:'nowrap',letterSpacing:'0.06em'}}>
-                  {pl.badge}
-                </div>
-              )}
-
-              <div style={{fontSize:18,marginBottom:6}}>{pl.icon}</div>
-              <div style={{fontSize:12,fontWeight:700,color:'#e2e8f0',marginBottom:3}}>{pl.name}</div>
-              <div style={{fontSize:22,fontWeight:700,color:pl.color,fontFamily:'IBM Plex Mono,monospace',lineHeight:1,marginBottom:2}}>
-                {pl.price === 0 ? 'FREE' : `$${pl.price}`}
+            <div key={pl.id} style={{background:'#0d1420',border:'1px solid ' + (pl.badge ? pl.color + '30' : 'rgba(0,212,170,0.08)'),borderRadius:12,padding:'20px 16px',position:'relative'}}>
+              {pl.badge && <div style={{position:'absolute',top:-10,left:'50%',transform:'translateX(-50%)',background:pl.badgeColor,color:pl.badgeColor==='#8b5cf6'?'#fff':'#0a0a0a',fontSize:8,fontWeight:700,padding:'3px 10px',borderRadius:10,whiteSpace:'nowrap',letterSpacing:'0.06em'}}>{pl.badge}</div>}
+              <div style={{textAlign:'center',marginBottom:14}}>
+                <div style={{fontSize:11,fontWeight:600,color:'#8b949e',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.08em'}}>{pl.name}</div>
+                <div style={{fontSize:32,fontWeight:800,color:'#fff',lineHeight:1}}>${pl.price}</div>
+                <div style={{fontSize:11,color:'#484f58'}}>{pl.period}</div>
+                <div style={{fontSize:9,color:'#303030',fontFamily:"'IBM Plex Mono',monospace",marginTop:2}}>{'~'} {(pl.price / solPrice).toFixed(2)} SOL</div>
               </div>
-              <div style={{fontSize:10,color:'#6e7681',marginBottom:2}}>{pl.period}</div>
-              {pl.price > 0 && <div style={{fontSize:9,color:'#484f58',marginBottom:6,fontFamily:"'IBM Plex Mono',monospace"}}>≈ {(pl.price / solPrice).toFixed(3)} SOL</div>}
-
-              <div style={{display:'inline-flex',alignItems:'center',padding:'2px 7px',background:pl.creditsColor,border:`1px solid ${pl.creditsBorder}`,borderRadius:4,fontSize:10,fontWeight:700,color:pl.creditsText,fontFamily:'IBM Plex Mono,monospace',marginBottom:8}}>
-                {pl.credits}
+              <div style={{display:'flex',flexDirection:'column',gap:5,marginBottom:16}}>
+                {pl.features.map((f: string) => <div key={f} style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:'#8b949e'}}><span style={{color:pl.color,fontSize:10}}>{'✓'}</span>{f}</div>)}
               </div>
-
-              <div style={{display:'flex',flexDirection:'column',gap:4,marginBottom:10}}>
-                {pl.features.map(f => (
-                  <div key={f} style={{display:'flex',alignItems:'flex-start',gap:5,fontSize:10,color:'#8b949e'}}>
-                    <span style={{color:pl.color,flexShrink:0}}>✓</span>{f}
-                  </div>
-                ))}
+              <button onClick={()=>handleCardPay(pl.id)} disabled={loading===pl.id} style={{width:'100%',padding:'10px 0',borderRadius:8,border:'1px solid rgba(0,212,170,0.2)',background:'rgba(0,212,170,0.05)',color:'#fff',fontSize:12,fontWeight:600,cursor:'pointer',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontFamily:"'IBM Plex Mono',monospace"}}>Pay with Card</button>
+              <div style={{textAlign:'center',fontSize:9,color:'#303030',margin:'4px 0 8px',letterSpacing:'0.05em'}}>or pay with crypto</div>
+              <div style={{display:'flex',gap:4,marginBottom:8}}>
+                {['SOL','USDC'].map((c: string) => <button key={c} onClick={()=>setPayMethod(prev=>({...prev,[pl.id]:c}))} style={{flex:1,padding:'5px 0',borderRadius:6,border:'1px solid ' + ((payMethod[pl.id]||'SOL')===c?'rgba(0,212,170,0.3)':'rgba(255,255,255,0.06)'),background:(payMethod[pl.id]||'SOL')===c?'rgba(0,212,170,0.08)':'transparent',color:(payMethod[pl.id]||'SOL')===c?'#00d4aa':'#484f58',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:"'IBM Plex Mono',monospace"}}>{c}</button>)}
               </div>
-
-              <button onClick={e=>{e.stopPropagation();handleBuy(pl.id)}}
-                disabled={loading===pl.id}
-                style={{width:'100%',padding:'8px 0',borderRadius:5,border:'none',cursor:'pointer',fontSize:11,fontWeight:700,letterSpacing:'0.05em',background:pl.btnBg,color:pl.btnColor,transition:'all 0.15s',opacity:loading===pl.id?0.7:1}}>
-                {loading===pl.id ? '⟳ Processing...' : pl.cta}
+              <button onClick={()=>handleSolPay(pl.id)} disabled={loading===pl.id} style={{width:'100%',padding:'10px 0',borderRadius:8,border:'none',background:'linear-gradient(135deg,#00d4aa,#059669)',color:'#000',fontSize:11,fontWeight:700,cursor:loading===pl.id?'not-allowed':'pointer',opacity:loading===pl.id?0.6:1,fontFamily:"'IBM Plex Mono',monospace"}}>
+                {loading===pl.id ? 'Processing...' : 'Pay ' + (pl.price / solPrice).toFixed(2) + ' SOL on Solana'}
               </button>
             </div>
           ))}
         </div>
-
-        {/* Footer */}
-        <div style={{padding:'12px 20px',borderTop:'1px solid #1f2937',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-          <div style={{display:'flex',gap:14}}>
-            {['🔒 Secure','⚡ Instant','↩ Cancel anytime'].map(f => (
-              <span key={f} style={{fontSize:10,color:'#6e7681'}}>{f}</span>
-            ))}
-          </div>
-          <div style={{display:'flex',alignItems:'center',gap:5}}>
-            <span style={{width:6,height:6,borderRadius:'50%',background:pulse?'#00d4aa':'rgba(0,212,130,0.3)',display:'inline-block',transition:'all 0.5s'}}/>
-            <span style={{fontSize:10,color:'#00d4aa',fontFamily:'IBM Plex Mono,monospace',fontWeight:700}}>LIVE · Solana Mainnet</span>
-          </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,padding:'8px 20px 20px'}}>
+          {[{icon:'W',name:'Whale Tracker',desc:'Follow top wallets with >$500K PnL'},{icon:'A',name:'Alpha Feed',desc:'Rug alerts, accumulation signals'},{icon:'S',name:'AI Auto-Sniper',desc:'Neural auto-trade on Jupiter'}].map(f => <div key={f.name} style={{background:'rgba(0,212,170,0.02)',border:'1px solid rgba(0,212,170,0.06)',borderRadius:10,padding:'14px 12px',textAlign:'center'}}><div style={{fontSize:16,marginBottom:6,color:'#00d4aa'}}>{f.icon}</div><div style={{fontSize:11,fontWeight:700,color:'#e2e8f0',marginBottom:3}}>{f.name}</div><div style={{fontSize:9,color:'#484f58',lineHeight:1.5}}>{f.desc}</div></div>)}
+        </div>
+        <div style={{padding:'10px 20px 14px',borderTop:'1px solid rgba(255,255,255,0.04)',textAlign:'center'}}>
+          <span style={{fontSize:9,color:'#303030'}}>Crypto payments on Solana Mainnet | Card payments via Stripe | No refunds</span>
         </div>
       </div>
+      <style>{'.pm-modal-grid{grid-template-columns:repeat(3,1fr)}@media(max-width:700px){.pm-modal-grid{grid-template-columns:1fr!important}}'}</style>
     </div>
   )
 }
+
 
 function generateDexQuotes(riskScore: number, supply: number): DexQuote[] {
   // Simulate realistic price spread based on token risk + supply
