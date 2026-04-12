@@ -6,8 +6,11 @@ import { Shield, Brain, Network, Activity, Zap, AlertTriangle, Eye, Lock, Trendi
 // ═══════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════
+type Tier = 'free' | 'pro' | 'elite'
+
 interface ProMaxEliteProps {
   isPro: boolean
+  tier?: Tier
   onUpgrade: () => void
 }
 
@@ -305,7 +308,7 @@ function StatMini({ icon: Icon, label, value, delta, color = '#d4af37' }: { icon
 // ═══════════════════════════════════════════════════
 // MAIN EXPORT
 // ═══════════════════════════════════════════════════
-export default function ProMaxEliteDashboard({ isPro, onUpgrade }: ProMaxEliteProps) {
+export default function ProMaxEliteDashboard({ isPro, tier = "pro", onUpgrade }: ProMaxEliteProps) {
   const [liquidityData] = useState(genLiquidityData)
   const [transfers] = useState(genTransfers)
   const [neuralScore] = useState(73)
