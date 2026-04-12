@@ -1450,23 +1450,94 @@ function ProModal({ onClose }: { onClose: () => void }) {
     },
   ]
 
+  const [solPrice, setSolPrice] = React.useState(80)
+  const [txStatus, setTxStatus] = React.useState<string|null>(null)
+
+  React.useEffect(() => {
+    fetch('/api/sol-price').then(r=>r.json()).then(d=>{ if(d.price) setSolPrice(d.price) }).catch(()=>{})
+  }, [])
+
   async function handleBuy(planId: string) {
     setLoading(planId)
+    setTxStatus(null)
     try {
       if (planId === 'whale') {
         window.open('mailto:elkhomsiabderrahim@gmail.com?subject=Whale Plan Application', '_blank')
         setLoading(null); return
       }
-      const res = await fetch('/api/stripe/checkout', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ plan: planId === 'starter' ? 'starter' : planId === 'elite' ? (billing === 'monthly' ? 'elite' : 'elite_yearly') : billing === 'monthly' ? 'pro' : 'yearly' })
+
+      // Get wallet from Solana adapter
+      const walletEl = document.querySelector('[data-wallet-adapter]') as any
+      const { solana } = window as any
+      let provider = (window as any).phantom?.solana || (window as any).solana
+      if (!provider?.isPhantom && !provider?.publicKey) {
+        alert('Please connect your Phantom or Solana wallet first')
+        setLoading(null); return
+      }
+
+      const { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } = await import('@solana/web3.js')
+      const connection = new Connection(process.env.NEXT_PUBLIC_HELIUS_RPC_URL || 'https://api.mainnet-beta.solana.com', 'confirmed')
+
+      // Calculate SOL amount
+      const plan = planId === 'starter' ? 'starter' : planId === 'elite' ? (billing === 'monthly' ? 'elite' : 'elite_yearly') : billing === 'monthly' ? 'pro' : 'yearly'
+      const usdPrices: Record<string,number> = { starter:5, pro:30, yearly:288, elite:40, elite_yearly:384 }
+      const usdAmount = usdPrices[plan] || 30
+      const solAmount = usdAmount / solPrice
+
+      setTxStatus('Requesting wallet approval...')
+
+      const fromPubkey = provider.publicKey
+      const toPubkey = new PublicKey('5jbWsijUWqXLyuaNtzkiu2JM1C5jNPUP9oRjKmmJx15i')
+
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey,
+          toPubkey,
+          lamports: Math.round(solAmount * LAMPORTS_PER_SOL),
+        })
+      )
+
+      const { blockhash } = await connection.getLatestBlockhash()
+      transaction.recentBlockhash = blockhash
+      transaction.feePayer = fromPubkey
+
+      setTxStatus('Confirm in wallet...')
+      const signed = await provider.signTransaction(transaction)
+      
+      setTxStatus('Sending transaction...')
+      const signature = await connection.sendRawTransaction(signed.serialize())
+      
+      setTxStatus('Confirming on-chain...')
+      await connection.confirmTransaction(signature, 'confirmed')
+
+      setTxStatus('Verifying payment...')
+      // Get user ID from auth
+      const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession()
+      const userId = session?.user?.id
+      if (!userId) throw new Error('Not logged in')
+
+      const verifyRes = await fetch('/api/payments/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ signature, plan, userId, solPrice }),
       })
-      const data = await res.json()
-      if (data.url) window.location.assign(data.url)
-      else throw new Error(data.error || 'Failed')
-    } catch(e) {
-      alert('Payment error: ' + (e instanceof Error ? e.message : 'Unknown'))
-    } finally { setLoading(null) }
+      const result = await verifyRes.json()
+
+      if (!verifyRes.ok) throw new Error(result.error || 'Verification failed')
+
+      setTxStatus('✅ Payment confirmed!')
+      setTimeout(() => window.location.reload(), 1500)
+
+    } catch(e: any) {
+      const msg = e?.message || 'Unknown error'
+      if (msg.includes('User rejected')) {
+        setTxStatus('Transaction cancelled')
+      } else {
+        setTxStatus('❌ ' + msg)
+      }
+    } finally {
+      setTimeout(() => setLoading(null), 2000)
+    }
   }
 
   return (
@@ -1509,6 +1580,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Section label */}
+        {txStatus && <div style={{margin:'0 14px 8px',padding:'8px 12px',borderRadius:6,fontSize:11,fontWeight:600,fontFamily:"'IBM Plex Mono',monospace",background:txStatus.includes('✅')?'rgba(0,255,136,0.06)':txStatus.includes('❌')?'rgba(255,68,68,0.06)':'rgba(212,175,55,0.06)',border:txStatus.includes('✅')?'1px solid rgba(0,255,136,0.15)':txStatus.includes('❌')?'1px solid rgba(255,68,68,0.15)':'1px solid rgba(212,175,55,0.15)',color:txStatus.includes('✅')?'#00ff88':txStatus.includes('❌')?'#ff4444':'#d4af37'}}>{txStatus}</div>}
         <div style={{padding:'12px 20px 6px',fontSize:10,fontWeight:700,letterSpacing:'0.1em',color:'#6e7681',textTransform:'uppercase'}}>Choose a plan</div>
 
         {/* Plans */}
@@ -1528,7 +1600,8 @@ function ProModal({ onClose }: { onClose: () => void }) {
               <div style={{fontSize:22,fontWeight:700,color:pl.color,fontFamily:'IBM Plex Mono,monospace',lineHeight:1,marginBottom:2}}>
                 {pl.price === 0 ? 'FREE' : `$${pl.price}`}
               </div>
-              <div style={{fontSize:10,color:'#6e7681',marginBottom:8}}>{pl.period}</div>
+              <div style={{fontSize:10,color:'#6e7681',marginBottom:2}}>{pl.period}</div>
+              {pl.price > 0 && <div style={{fontSize:9,color:'#484f58',marginBottom:6,fontFamily:"'IBM Plex Mono',monospace"}}>≈ {(pl.price / solPrice).toFixed(3)} SOL</div>}
 
               <div style={{display:'inline-flex',alignItems:'center',padding:'2px 7px',background:pl.creditsColor,border:`1px solid ${pl.creditsBorder}`,borderRadius:4,fontSize:10,fontWeight:700,color:pl.creditsText,fontFamily:'IBM Plex Mono,monospace',marginBottom:8}}>
                 {pl.credits}
