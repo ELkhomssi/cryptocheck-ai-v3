@@ -76,15 +76,15 @@ export async function POST(req: NextRequest) {
       const { data: referrer } = await svc.from('profiles').select('id, referral_earnings_sol').eq('referral_code', payerProfile.referred_by).single()
       if (referrer && pc.minUsd > 0) {
         const commissionRate = 0.20
-        const commissionSol = transferAmount * commissionRate
+        const commissionSol = amount * commissionRate
         const commissionUsd = commissionSol * (solPrice || 80)
         await svc.from('commissions').insert({
           referrer_id: referrer.id,
           referred_id: userId,
           plan: plan,
           tx_signature: signature,
-          amount_sol: transferAmount,
-          amount_usd: transferAmount * (solPrice || 80),
+          amount_sol: amount,
+          amount_usd: amount * (solPrice || 80),
           commission_rate: commissionRate,
           commission_sol: commissionSol,
           commission_usd: commissionUsd,
