@@ -1460,7 +1460,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
   }
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.8)',backdropFilter:'blur(20px)',display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
-      <div onClick={e=>e.stopPropagation()} style={{width:'min(920px,95vw)',maxHeight:'90vh',overflowY:'auto',background:'#0a0e14',border:'1px solid rgba(0,212,170,0.12)',borderRadius:16,overflow:'hidden',boxShadow:'0 32px 80px rgba(0,0,0,0.8)',fontFamily:"'IBM Plex Mono','Inter',monospace"}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:920,maxHeight:'90vh',overflowY:'auto',overflowX:'hidden',background:'#0a0e14',border:'1px solid rgba(0,212,170,0.12)',borderRadius:16,boxShadow:'0 32px 80px rgba(0,0,0,0.8)',fontFamily:"'IBM Plex Mono','Inter',monospace"}}>
         <div style={{textAlign:'center',padding:'28px 20px 20px',position:'relative'}}>
           <button onClick={onClose} style={{position:'absolute',top:12,right:16,background:'none',border:'none',color:'#484f58',cursor:'pointer',fontSize:20}}>&times;</button>
           <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 12px',borderRadius:16,border:'1px solid rgba(0,212,170,0.2)',background:'rgba(0,212,170,0.05)',marginBottom:12}}>
@@ -1470,9 +1470,9 @@ function ProModal({ onClose }: { onClose: () => void }) {
           <p style={{fontSize:12,color:'#6e7681',margin:0}}>Pay with card or crypto on Solana — instant access.</p>
         </div>
         {txStatus && <div style={{margin:'0 20px 12px',padding:'8px 14px',borderRadius:8,fontSize:11,fontWeight:600,fontFamily:"'IBM Plex Mono',monospace",textAlign:'center',background:'rgba(0,212,170,0.06)',border:'1px solid rgba(0,212,170,0.15)',color:'#00d4aa'}}>{txStatus}</div>}
-        <div className="pm-modal-grid" style={{display:'grid',gap:12,padding:'0 20px 16px'}}>
+        <div className="pm-modal-grid" style={{display:'grid',gap:12,padding:'0 20px 16px',width:'100%'}}>
           {plans.map(pl => (
-            <div key={pl.id} className="pm-plan-card" style={{background:'#0d1420',border:'1px solid ' + (pl.badge ? pl.color + '30' : 'rgba(0,212,170,0.08)'),borderRadius:12,padding:'20px 16px',position:'relative',minWidth:0,overflow:'hidden'}}>
+            <div key={pl.id} className="pm-plan-card" style={{background:'#0d1420',border:'1px solid ' + (pl.badge ? pl.color + '30' : 'rgba(0,212,170,0.08)'),borderRadius:12,padding:'20px 16px',position:'relative',minWidth:0,overflow:'hidden',width:'100%'}}>
               {pl.badge && <div style={{position:'absolute',top:-10,left:'50%',transform:'translateX(-50%)',background:pl.badgeColor,color:pl.badgeColor==='#8b5cf6'?'#fff':'#0a0a0a',fontSize:8,fontWeight:700,padding:'3px 10px',borderRadius:10,whiteSpace:'nowrap',letterSpacing:'0.06em'}}>{pl.badge}</div>}
               <div style={{textAlign:'center',marginBottom:14}}>
                 <div style={{fontSize:11,fontWeight:600,color:'#8b949e',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.08em'}}>{pl.name}</div>
@@ -1501,7 +1501,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
           <span style={{fontSize:9,color:'#303030'}}>Crypto payments on Solana Mainnet | Card payments via Stripe | No refunds</span>
         </div>
       </div>
-      <style>{'.pm-modal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.pm-plan-card{width:100%;min-width:0}.pm-plan-card *{word-break:break-word;overflow-wrap:anywhere}@media(min-width:1100px){.pm-modal-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}@media(max-width:1024px){.pm-modal-grid{grid-template-columns:1fr!important;padding:0 12px 16px!important}.pm-plan-card{padding:16px 12px!important}}'}</style>
+      <style>{'.pm-modal-grid{grid-template-columns:repeat(2,minmax(0,1fr));width:100%}.pm-plan-card{width:100%;min-width:0;max-width:none}.pm-plan-card *{word-break:break-word;overflow-wrap:anywhere}@media(min-width:1100px){.pm-modal-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}@media(max-width:1023px){.pm-modal-grid{display:flex!important;flex-direction:column!important;align-items:center!important;padding:0 10px 16px!important}.pm-plan-card{width:95%!important;max-width:400px!important;min-width:0!important;padding:16px 12px!important}}'}</style>
     </div>
   )
 }
