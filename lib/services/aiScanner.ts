@@ -3,7 +3,7 @@
  * Uses Helius RPC + REST; optional Solscan Pro API when SOLSCAN_API_KEY is set.
  */
 
-import { HELIUS_RPC, heliusRest, rpcCall } from '@/lib/helius'
+import { HELIUS_API, HELIUS_KEY, HELIUS_RPC } from '@/lib/helius'
 
 const TOKEN_PROGRAM = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
 const TOKEN_2022 = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
@@ -39,6 +39,77 @@ export interface FetchedContractBundle {
   idlJson: string | null
   solscanNote: string | null
   fetchedAt: string
+}
+
+/** 429 / 503: wait 1s and retry; up to 3 retries after the first failure (4 attempts total). */
+const HELIUS_RETRY_BACKOFF_MS = 1000
+const HELIUS_MAX_RETRIES = 3
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function isRetryableHeliusHttpStatus(status: number): boolean {
+  return status === 429 || status === 503
+}
+
+class HeliusRetryableError extends Error {
+  constructor(public readonly status: number) {
+    super(`Helius HTTP ${status}`)
+    this.name = 'HeliusRetryableError'
+  }
+}
+
+async function withHeliusRetry<T>(operation: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await operation()
+    } catch (e) {
+      const retryable =
+        e instanceof HeliusRetryableError ||
+        (e instanceof Error && /Helius API (429|503):/.test(e.message))
+      if (retryable && attempt < HELIUS_MAX_RETRIES) {
+        await sleep(HELIUS_RETRY_BACKOFF_MS)
+        continue
+      }
+      throw e
+    }
+  }
+}
+
+async function rpcCallWithRetry<T>(method: string, params: unknown[] = []): Promise<T> {
+  return withHeliusRetry(async () => {
+    const res = await fetch(HELIUS_RPC, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+    })
+    if (isRetryableHeliusHttpStatus(res.status)) {
+      throw new HeliusRetryableError(res.status)
+    }
+    const data = await res.json()
+    if (data.error) throw new Error(data.error.message ?? 'RPC error')
+    if (!res.ok) throw new Error(`RPC HTTP ${res.status}`)
+    return data.result as T
+  })
+}
+
+async function heliusRestWithRetry<T>(path: string, body?: unknown): Promise<T> {
+  return withHeliusRetry(async () => {
+    const url = `${HELIUS_API}${path}?api-key=${HELIUS_KEY}`
+    const res = await fetch(url, {
+      method: body ? 'POST' : 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    })
+    if (isRetryableHeliusHttpStatus(res.status)) {
+      throw new HeliusRetryableError(res.status)
+    }
+    if (!res.ok) {
+      throw new Error(`Helius API ${res.status}: ${await res.text()}`)
+    }
+    return res.json() as Promise<T>
+  })
 }
 
 function bufToHexPreview(b64: string, maxBytes = 192): { hex: string; length: number } {
@@ -99,7 +170,7 @@ export async function fetchContractForStressTest(address: string): Promise<Fetch
   if (trimmed.length < 32) throw new Error('Invalid Solana address')
 
   const [accountInfo, solscanMeta] = await Promise.all([
-    rpcCall<{
+    rpcCallWithRetry<{
       value: null | {
         lamports: number
         owner: string
@@ -142,7 +213,7 @@ export async function fetchContractForStressTest(address: string): Promise<Fetch
 
   // ── Executable program ──
   if (executable) {
-    const raw = await rpcCall<{
+    const raw = await rpcCallWithRetry<{
       value: null | {
         data: [string, string]
         executable: boolean
@@ -207,9 +278,12 @@ export async function fetchContractForStressTest(address: string): Promise<Fetch
     const decimals = typeof info.decimals === 'number' ? info.decimals : 9
 
     const [supplyRes, holdersRes, metaArr, dex] = await Promise.all([
-      rpcCall<{ value: { amount: string; decimals: number } | null }>('getTokenSupply', [trimmed]),
-      rpcCall<{ value: { address: string; amount: string; uiAmount: number | null }[] } | null>('getTokenLargestAccounts', [trimmed]),
-      heliusRest<unknown[]>('/token-metadata', { mintAccounts: [trimmed] }).catch(() => [] as unknown[]),
+      rpcCallWithRetry<{ value: { amount: string; decimals: number } | null }>('getTokenSupply', [trimmed]),
+      rpcCallWithRetry<{ value: { address: string; amount: string; uiAmount: number | null }[] } | null>(
+        'getTokenLargestAccounts',
+        [trimmed]
+      ),
+      heliusRestWithRetry<unknown[]>('/token-metadata', { mintAccounts: [trimmed] }).catch(() => [] as unknown[]),
       fetchDexIntel(trimmed),
     ])
 
