@@ -2,6 +2,7 @@
 import React from 'react'
 import { supabase } from '@/lib/supabase'
 import MintInput from '@/components/MintInput'
+import { Buffer } from 'buffer'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
@@ -1424,7 +1425,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
       tx.add(new web3.TransactionInstruction({
         keys: [],
         programId: new web3.PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'),
-        data: new TextEncoder().encode('CryptoCheckAI Subscription'),
+        data: Buffer.from('CryptoCheckAI Subscription', 'utf8'),
       }))
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized')
       tx.recentBlockhash = blockhash; tx.feePayer = provider.publicKey
