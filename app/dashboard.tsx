@@ -21,6 +21,7 @@ import NeuralAuditLog from '@/components/NeuralAuditLog'
 import InsiderWhaleIntel from '@/components/InsiderWhaleIntel'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import ProMaxEliteDashboard from '@/components/ProMaxEliteDashboard'
+import BentoGrid, { type StressTestApiResult } from '@/components/Dashboard/BentoGrid'
 import ProMaxDeepDashboard from '@/components/ProMaxDeepDashboard'
 import { TrialBanner, TrialWall, useTrialStatus } from '@/components/TrialSystem'
 import { AiAutoSniper } from '@/components/AiAutoSniper'
@@ -2170,6 +2171,23 @@ export default function Dashboard() {
   const [chatLoading,  setChatLoading]  = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
+  // AI Stress Test (Proactive Defense)
+  const [stressLoading, setStressLoading] = useState(false)
+  const [stressPhase, setStressPhase] = useState<'idle' | 'analyzing' | 'simulating'>('idle')
+  const [stressResult, setStressResult] = useState<StressTestApiResult | null>(null)
+  const [stressModalOpen, setStressModalOpen] = useState(false)
+  const [stressError, setStressError] = useState('')
+
+  useEffect(() => {
+    if (!stressLoading) {
+      setStressPhase('idle')
+      return
+    }
+    setStressPhase('analyzing')
+    const t = setTimeout(() => setStressPhase('simulating'), 2800)
+    return () => clearTimeout(t)
+  }, [stressLoading])
+
   // Portfolio
   const [pfState,     setPfState]     = useState<'idle'|'loading'|'done'|'error'>('idle')
   const [pfHoldings,  setPfHoldings]  = useState<PortfolioHolding[]>([])
@@ -2417,6 +2435,31 @@ export default function Dashboard() {
     }, 80)
     doScan(mint)
   }, [doScan])
+
+  const runAiStressTest = useCallback(async () => {
+    const addr = (scanData?.mint || mintInput).trim()
+    if (addr.length < 32) {
+      setStressError('Enter a valid Solana address (32+ characters) in the scan bar or complete a scan first.')
+      return
+    }
+    setStressError('')
+    setStressLoading(true)
+    try {
+      const res = await fetch('/api/analyze-contract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: addr }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'AI Stress Test failed')
+      setStressResult(json as StressTestApiResult)
+      setStressModalOpen(true)
+    } catch (e) {
+      setStressError(e instanceof Error ? e.message : 'Stress test failed')
+    } finally {
+      setStressLoading(false)
+    }
+  }, [scanData?.mint, mintInput])
 
   // ── Portfolio scan ──
   const doPortfolioScan = useCallback(async () => {
@@ -2929,6 +2972,16 @@ export default function Dashboard() {
                 )}
               </div>
               <ValueProtectedWidget compact />
+              <BentoGrid
+                address={scanData?.mint || mintInput}
+                onRunStressTest={runAiStressTest}
+                stressLoading={stressLoading}
+                stressPhase={stressPhase}
+                stressError={stressError}
+                stressResult={stressResult}
+                reportOpen={stressModalOpen}
+                onCloseReport={() => setStressModalOpen(false)}
+              />
               {/* PERSISTENT SCAN INPUT — outside renderScanContent to prevent re-mount */}
               <div className="flex items-center gap-2 px-3 py-2 bg-[#161b22] border-b border-[rgba(0,212,130,0.15)] flex-shrink-0">
                 <input
