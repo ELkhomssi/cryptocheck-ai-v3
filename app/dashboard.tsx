@@ -2053,6 +2053,7 @@ export default function Dashboard() {
   const [showModal,   setShowModal]   = useState(false)
   const [showAuth,    setShowAuth]    = useState(false)
   const [authUser,    setAuthUser]    = useState<any>(null)
+  const [authResolved, setAuthResolved] = useState(false)
 
   // ── Auth session listener (picks up OAuth redirect + existing session) ──
   useEffect(() => {
@@ -2062,6 +2063,7 @@ export default function Dashboard() {
         setIsPro(data.session.user.user_metadata?.is_pro || false)
         loadCreditsFromProfile(data.session.user.id)
       }
+      setAuthResolved(true)
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
@@ -2084,9 +2086,13 @@ export default function Dashboard() {
         setIsPro(false)
         setCredits(10)
       }
+      setAuthResolved(true)
     })
     return () => subscription.unsubscribe()
   }, [])
+
+  const referralCode = authUser?.id || ''
+  const referralLink = referralCode ? `https://cryptocheckai.com?ref=${referralCode}` : ''
 
   async function loadCreditsFromProfile(userId: string) {
     try {
@@ -3071,8 +3077,26 @@ export default function Dashboard() {
   <h3 className="text-xl font-bold text-white flex items-center gap-2">🚀 Affiliate Program</h3> 
   <p className="text-gray-400 text-sm mt-2">Share your link and earn 20% in SOL.</p> 
   <div className="mt-4 flex flex-col sm:flex-row gap-3"> 
-    <input readOnly value={`https://cryptocheckai.com?ref=${typeof window !== "undefined" ? localStorage.getItem("cc_ref") : ""}`} className="flex-1 bg-black/50 border border-gray-700 p-3 rounded-lg text-green-400 font-mono text-sm" /> 
-    <button onClick={() => alert("Link Copied!")} className="bg-purple-600 text-white px-6 py-3 rounded-lg font-bold">Copy Link</button> 
+    <input
+      readOnly
+      value={!authResolved ? 'Loading referral link...' : referralLink || 'Sign in to generate your referral link'}
+      className="flex-1 bg-black/50 border border-gray-700 p-3 rounded-lg text-green-400 font-mono text-sm"
+    />
+    <button
+      onClick={async () => {
+        if (!referralLink) return
+        try {
+          await navigator.clipboard.writeText(referralLink)
+          alert('Link Copied!')
+        } catch {
+          alert('Copy failed. Please copy manually.')
+        }
+      }}
+      disabled={!referralLink}
+      className="bg-purple-600 disabled:bg-gray-700 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-bold"
+    >
+      Copy Link
+    </button> 
   </div> 
 </div>        </main>
       </div>
