@@ -12,6 +12,16 @@ export default function LandingPage() {
   }, [])
 
   function handleGoogleSignup() {
+    if (typeof navigator !== 'undefined') {
+      const ua = navigator.userAgent.toLowerCase()
+      const inAppWallet = ['phantom', 'metamask', 'trust', 'coinbasewallet', 'tokenpocket', 'okx', 'rainbow'].some(s => ua.includes(s))
+      if (inAppWallet) {
+        const appUrl = 'https://www.cryptocheckai.com/app'
+        navigator.clipboard?.writeText(appUrl).catch(() => {})
+        alert('Google sign-in may be blocked in wallet browsers. Link copied — open in Safari/Chrome: ' + appUrl)
+        return
+      }
+    }
     supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: 'https://www.cryptocheckai.com/app', queryParams: { access_type: 'offline', prompt: 'consent' } },

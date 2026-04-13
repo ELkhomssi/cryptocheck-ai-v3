@@ -15,8 +15,20 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
   const [loading, setLoading] = useState<string|null>(null)
   const [error, setError]     = useState('')
   const [sent, setSent]       = useState(false)
+  const [walletBrowserHint, setWalletBrowserHint] = useState('')
+
+  function isInAppWalletBrowser() {
+    if (typeof navigator === 'undefined') return false
+    const ua = navigator.userAgent.toLowerCase()
+    return ['phantom', 'metamask', 'trust', 'coinbasewallet', 'tokenpocket', 'okx', 'rainbow'].some(s => ua.includes(s))
+  }
 
   async function handleOAuth(provider: 'google'|'github') {
+    if (isInAppWalletBrowser()) {
+      setWalletBrowserHint('Google sign-in is blocked inside wallet in-app browsers. Open this site in Safari or Chrome, then sign in.')
+      setLoading(null)
+      return
+    }
     setLoading(provider)
     setError('')
     const { error } = await supabase.auth.signInWithOAuth({
@@ -85,6 +97,29 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
             </div>
           ) : (
             <>
+              {walletBrowserHint && (
+                <div style={{fontSize:11,color:'#fbbf24',padding:'8px 10px',background:'rgba(251,191,36,0.08)',border:'1px solid rgba(251,191,36,0.25)',borderRadius:6,marginBottom:10,lineHeight:1.5}}>
+                  {walletBrowserHint}
+                  <div style={{display:'flex',gap:8,marginTop:8,flexWrap:'wrap'}}>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText('https://www.cryptocheckai.com/app')
+                          alert('Link copied. Open in Safari/Chrome.')
+                        } catch {
+                          alert('Copy failed. Open https://www.cryptocheckai.com/app in Safari/Chrome.')
+                        }
+                      }}
+                      style={{padding:'6px 10px',background:'rgba(251,191,36,0.15)',border:'1px solid rgba(251,191,36,0.3)',borderRadius:6,color:'#fef3c7',fontSize:11,fontWeight:600,cursor:'pointer'}}
+                    >
+                      Copy Link
+                    </button>
+                    <a href="https://www.cryptocheckai.com/app" target="_blank" rel="noopener noreferrer" style={{padding:'6px 10px',background:'rgba(52,211,153,0.15)',border:'1px solid rgba(52,211,153,0.3)',borderRadius:6,color:'#d1fae5',fontSize:11,fontWeight:600,textDecoration:'none'}}>
+                      Open in Browser
+                    </a>
+                  </div>
+                </div>
+              )}
               {/* OAuth buttons */}
               <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
                 <button onClick={()=>handleOAuth('google')} disabled={!!loading}
