@@ -4,6 +4,9 @@ import { createServerClient } from '@supabase/ssr'
 
 export async function POST(req: NextRequest) {
   try {
+    const body = await req.json().catch(() => ({}))
+    const action = body?.action === 'consume' ? 'consume' : 'check'
+
     // Verify the user's session via cookies
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -40,7 +43,7 @@ export async function POST(req: NextRequest) {
 
     // Pro users have unlimited scans
     if (profile.is_pro) {
-      return NextResponse.json({ credits: -1, unlimited: true })
+      return NextResponse.json({ credits: -1, unlimited: true, allowed: true })
     }
 
     // Check credits
@@ -48,18 +51,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No credits remaining', credits: 0 }, { status: 402 })
     }
 
-    // Atomically deduct 1 credit
-    const newCredits = profile.credits - 1
-    const { error: updateErr } = await svc
-      .from('profiles')
-      .update({ credits: newCredits, last_scan_at: new Date().toISOString() })
-      .eq('id', user.id)
-
-    if (updateErr) {
-      return NextResponse.json({ error: 'Failed to deduct credit' }, { status: 500 })
+    // Check-only mode blocks scans server-side without consuming credit.
+    if (action === 'check') {
+      return NextResponse.json({ credits: profile.credits, allowed: true, mode: 'check' })
     }
 
-    return NextResponse.json({ credits: newCredits, used: 1 })
+    // Consume mode is called only after a successful scan.
+    const { data: consumed, error: rpcErr } = await svc.rpc('consume_credit', { p_user_id: user.id })
+    if (rpcErr) {
+      const fallbackCredits = profile.credits - 1
+      const { data: updatedRows, error: updateErr } = await svc
+        .from('profiles')
+        .update({ credits: fallbackCredits, last_scan_at: new Date().toISOString() })
+        .eq('id', user.id)
+        .gt('credits', 0)
+        .select('credits')
+
+      if (updateErr) {
+        return NextResponse.json({ error: 'Failed to deduct credit' }, { status: 500 })
+      }
+
+      if (!updatedRows?.length) {
+        return NextResponse.json({ error: 'No credits remaining', credits: 0 }, { status: 402 })
+      }
+
+      return NextResponse.json({ credits: updatedRows[0].credits, used: 1, mode: 'consume' })
+    }
+
+    const nextCredits = Array.isArray(consumed) ? consumed[0]?.new_credits : null
+    return NextResponse.json({ credits: nextCredits ?? Math.max(0, profile.credits - 1), used: 1, mode: 'consume' })
 
   } catch (e: any) {
     console.error('[USE-CREDIT] Error:', e)

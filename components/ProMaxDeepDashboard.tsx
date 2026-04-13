@@ -136,17 +136,17 @@ export default function ProMaxDeepDashboard({ isPro, onUpgrade }: DeepProps) {
       {/* ═══ COMPARISON TABLE ═══ */}
       <div style={{marginBottom:48}}>
         <div style={{fontSize:9,fontWeight:700,letterSpacing:'0.2em',color:'#d4af37',marginBottom:14,textAlign:'center'}}>PLAN COMPARISON</div>
-        <div style={{background:'#080808',border:'1px solid rgba(212,175,55,0.08)',borderRadius:10,overflow:'hidden'}}>
-          <div style={{display:'grid',gridTemplateColumns:'1.3fr 1fr 1fr',background:'#0c0c0c',borderBottom:'1px solid rgba(212,175,55,0.06)'}}>
+        <div style={{background:'#080808',border:'1px solid rgba(212,175,55,0.08)',borderRadius:10,overflowX:'auto'}}>
+          <div style={{display:'grid',gridTemplateColumns:'1.3fr 1fr 1fr',background:'#0c0c0c',borderBottom:'1px solid rgba(212,175,55,0.06)',minWidth:520}}>
             <div style={{padding:'12px 16px',fontSize:8,fontWeight:700,color:'#484f58',letterSpacing:'0.12em'}}>FEATURE</div>
             <div style={{padding:'12px 16px',fontSize:8,fontWeight:700,color:'#6e7681',letterSpacing:'0.12em',textAlign:'center'}}>BASIC SCAN<br/><span style={{fontSize:12,fontWeight:800,color:'#8b949e'}}>Free</span></div>
             <div style={{padding:'12px 16px',fontSize:8,fontWeight:700,color:'#d4af37',letterSpacing:'0.12em',textAlign:'center'}}>PRO MAX DEEP<br/><span style={{fontSize:12,fontWeight:800}}>$30/mo</span></div>
           </div>
           {comp.map((r, i) => (
-            <div key={i} style={{display:'grid',gridTemplateColumns:'1.3fr 1fr 1fr',borderBottom:i<comp.length-1?'1px solid rgba(255,255,255,0.02)':'none',transition:'background 0.2s'}}>
-              <div style={{padding:'10px 16px',fontSize:'clamp(10px,1.2vw,11px)',color:'#c9d1d9',fontWeight:600}}>{r.feat}</div>
-              <div style={{padding:'10px 16px',fontSize:'clamp(10px,1.2vw,11px)',color:r.basic==='—'?'#202020':'#6e7681',textAlign:'center'}}>{r.basic}</div>
-              <div style={{padding:'10px 16px',fontSize:'clamp(10px,1.2vw,11px)',color:r.pro.includes('∞')||r.pro.includes('0%')?'#d4af37':'#20b2aa',fontWeight:600,textAlign:'center'}}>{r.pro}</div>
+            <div key={i} style={{display:'grid',gridTemplateColumns:'1.3fr 1fr 1fr',borderBottom:i<comp.length-1?'1px solid rgba(255,255,255,0.02)':'none',transition:'background 0.2s',minWidth:520}}>
+              <div style={{padding:'10px 16px',fontSize:'clamp(10px,2.8vw,11px)',lineHeight:1.4,color:'#c9d1d9',fontWeight:600}}>{r.feat}</div>
+              <div style={{padding:'10px 16px',fontSize:'clamp(10px,2.8vw,11px)',lineHeight:1.4,color:r.basic==='—'?'#202020':'#6e7681',textAlign:'center'}}>{r.basic}</div>
+              <div style={{padding:'10px 16px',fontSize:'clamp(10px,2.8vw,11px)',lineHeight:1.4,color:r.pro.includes('∞')||r.pro.includes('0%')?'#d4af37':'#20b2aa',fontWeight:600,textAlign:'center'}}>{r.pro}</div>
             </div>
           ))}
         </div>

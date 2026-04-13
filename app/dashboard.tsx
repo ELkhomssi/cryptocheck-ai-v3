@@ -1405,9 +1405,9 @@ function ProModal({ onClose }: { onClose: () => void }) {
   React.useEffect(() => { fetch('/api/sol-price').then(r=>r.json()).then(d=>{ if(d.price) setSolPrice(d.price) }).catch(()=>{}) }, [])
   const plans = [
     { id:'starter', name:'Micro Pack', price:5, period:'/one-time', badge:null as string|null, badgeColor:'', color:'#20b2aa', features:['10 Deep Neural Scans','Rug Detection Reports','Basic Risk Scoring','Valid 30 days'] },
-    { id:'deep', name:'Pro Max Deep', price:30, period:'/month', badge:'GOLD TIER' as string|null, badgeColor:'#d4af37', color:'#d4af37', features:['Unlimited Neural Scans','GNN Cluster Mapping','Heuristic Scoring (523K)','LP Exit Prediction','0% Performance Fees'] },
+    { id:'deep', name:'Pro Max Deep', price:30, period:'/month', badge:'GOLD TIER' as string|null, badgeColor:'#d4af37', color:'#d4af37', features:['Deep Neural Scan Engine','Unlimited Neural Scans','GNN Cluster Mapping','LP Exit Prediction','0% Performance Fees'] },
     { id:'pro', name:'Pro Trader', price:30, period:'/month', badge:'BEST VALUE' as string|null, badgeColor:'#00d4aa', color:'#00d4aa', features:['Unlimited Neural Scans','Portfolio Risk Scanner','Whale Tracker','Alpha Feed','Priority Support'] },
-    { id:'elite', name:'Pro Max Elite', price:40, period:'/month', badge:'COMMAND CENTER' as string|null, badgeColor:'#8b5cf6', color:'#8b5cf6', features:['Everything in Pro','AI Auto-Sniper Bot','Neural Risk Filtering','Jupiter Auto-Execution','Priority RPC Access'] },
+    { id:'elite', name:'Pro Max Elite', price:40, period:'/month', badge:'COMMAND CENTER' as string|null, badgeColor:'#8b5cf6', color:'#8b5cf6', features:['Everything in Pro','Elite Whale Alerts','AI Auto-Sniper Bot','Neural Risk Filtering','Priority RPC Access'] },
   ]
   async function handleSolPay(planId: string) {
     setLoading(planId); setTxStatus(null)
@@ -1419,15 +1419,21 @@ function ProModal({ onClose }: { onClose: () => void }) {
       const plan = plans.find(p => p.id === planId)!
       const solAmount = plan.price / solPrice
       setTxStatus('Requesting wallet approval...')
-      const tx = new web3.Transaction().add(web3.SystemProgram.transfer({ fromPubkey: provider.publicKey, toPubkey: new web3.PublicKey('5jbWsijUWqXLyuaNtzkiu2JM1C5jNPUP9oRjKmmJx15i'), lamports: Math.round(solAmount * web3.LAMPORTS_PER_SOL) }))
-      const { blockhash } = await connection.getLatestBlockhash()
+      const tx = new web3.Transaction()
+      tx.add(web3.SystemProgram.transfer({ fromPubkey: provider.publicKey, toPubkey: new web3.PublicKey('5jbWsijUWqXLyuaNtzkiu2JM1C5jNPUP9oRjKmmJx15i'), lamports: Math.round(solAmount * web3.LAMPORTS_PER_SOL) }))
+      tx.add(new web3.TransactionInstruction({
+        keys: [],
+        programId: new web3.PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'),
+        data: new TextEncoder().encode('CryptoCheckAI Subscription'),
+      }))
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized')
       tx.recentBlockhash = blockhash; tx.feePayer = provider.publicKey
       setTxStatus('Confirm in wallet...')
       const signed = await provider.signTransaction(tx)
       setTxStatus('Broadcasting to Solana...')
-      const sig = await connection.sendRawTransaction(signed.serialize())
+      const sig = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false, preflightCommitment: 'confirmed' })
       setTxStatus('Confirming on-chain...')
-      await connection.confirmTransaction(sig, 'confirmed')
+      await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
       setTxStatus('Verifying payment...')
       const { supabase } = await import('@/lib/supabase')
       const { data: { session } } = await supabase.auth.getSession()
@@ -1474,7 +1480,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
                 <div style={{fontSize:9,color:'#303030',fontFamily:"'IBM Plex Mono',monospace",marginTop:2}}>{'~'} {(pl.price / solPrice).toFixed(2)} SOL</div>
               </div>
               <div style={{display:'flex',flexDirection:'column',gap:5,marginBottom:16}}>
-                {pl.features.map((f: string) => <div key={f} style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:'#8b949e'}}><span style={{color:pl.color,fontSize:10}}>{'✓'}</span>{f}</div>)}
+                {pl.features.map((f: string) => <div key={f} style={{display:'flex',alignItems:'flex-start',gap:6,fontSize:'clamp(10px,2.8vw,11px)',lineHeight:1.45,color:'#8b949e'}}><span style={{color:pl.color,fontSize:10,marginTop:1}}>{'✓'}</span><span>{f}</span></div>)}
               </div>
               <button onClick={()=>handleCardPay(pl.id)} disabled={loading===pl.id} style={{width:'100%',padding:'10px 0',borderRadius:8,border:'1px solid rgba(0,212,170,0.2)',background:'rgba(0,212,170,0.05)',color:'#fff',fontSize:12,fontWeight:600,cursor:'pointer',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontFamily:"'IBM Plex Mono',monospace"}}>Pay with Card</button>
               <div style={{textAlign:'center',fontSize:9,color:'#303030',margin:'4px 0 8px',letterSpacing:'0.05em'}}>or pay with crypto</div>
@@ -1494,7 +1500,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
           <span style={{fontSize:9,color:'#303030'}}>Crypto payments on Solana Mainnet | Card payments via Stripe | No refunds</span>
         </div>
       </div>
-      <style>{'.pm-modal-grid{grid-template-columns:repeat(2,1fr)}@media(min-width:900px){.pm-modal-grid{grid-template-columns:repeat(4,1fr)}}@media(max-width:600px){.pm-modal-grid{grid-template-columns:1fr!important}}'}</style>
+      <style>{'.pm-modal-grid{grid-template-columns:repeat(2,1fr)}@media(min-width:1100px){.pm-modal-grid{grid-template-columns:repeat(4,1fr)}}@media(max-width:900px){.pm-modal-grid{grid-template-columns:1fr!important}}'}</style>
     </div>
   )
 }
@@ -2093,17 +2099,6 @@ export default function Dashboard() {
     } catch { /* fallback to localStorage */ }
   }
 
-  async function useCredit(): Promise<boolean> {
-    if (isPro) return true
-    if (credits <= 0) return false
-    const nc = credits - 1
-    setCredits(nc)
-    if (authUser?.id) {
-      supabase.from('profiles').update({ credits: nc }).eq('id', authUser.id).then(() => {})
-    }
-    return true
-  }
-
   async function handleSignOut() {
     await supabase.auth.signOut()
     setAuthUser(null)
@@ -2307,36 +2302,48 @@ export default function Dashboard() {
     setScanError('')
     if (!mint || mint.length < 32 || mint.length > 44) { setScanError('Please paste a valid Solana token address (32-44 chars).'); setScanState('error'); return }
 
-    // ── CREDIT GATE: Check before scanning ──
-    if (!isPro && credits <= 0) {
-      setScanError('No credits remaining. Refill to continue scanning.')
-      setScanState('error')
-      setShowModal(true) // Open pricing modal
-      return
-    }
-
-    // Optimistic UI: deduct immediately
-    if (!isPro) {
-      setCredits(prev => Math.max(0, prev - 1)) // Optimistic, server syncs
-    }
+    let creditConsumed = false
 
     setScanState('loading')
     setScanData(null)
     try {
-      // Server-side credit deduction (parallel with scan)
-      const creditPromise = authUser?.id
-        ? fetch('/api/scan/use-credit', { method: 'POST' }).then(r => r.json()).catch(() => null)
-        : Promise.resolve(null)
+      if (!isPro) {
+        const checkRes = await fetch('/api/scan/use-credit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'check' }),
+        })
+        const checkJson = await checkRes.json().catch(() => ({}))
+        if (!checkRes.ok) {
+          setScanError(checkJson?.error || 'No credits remaining. Refill to continue scanning.')
+          setScanState('error')
+          setShowModal(true)
+          return
+        }
+        if (typeof checkJson?.credits === 'number') {
+          setCredits(checkJson.credits)
+        }
+      }
 
       const data = await scanToken(mint)
       setScanData(data)
       setScanState('done')
       setScanCount(c => c + 1)
 
-      // Sync server credit count
-      const creditResult = await creditPromise
-      if (creditResult?.credits !== undefined && creditResult.credits >= 0) {
-        setCredits(creditResult.credits)
+      if (!isPro) {
+        const consumeRes = await fetch('/api/scan/use-credit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'consume' }),
+        })
+        const consumeJson = await consumeRes.json().catch(() => ({}))
+        if (!consumeRes.ok) {
+          throw new Error(consumeJson?.error || 'Failed to consume scan credit')
+        }
+        creditConsumed = true
+        if (typeof consumeJson?.credits === 'number' && consumeJson.credits >= 0) {
+          setCredits(consumeJson.credits)
+        }
       }
       setDexMint(mint)
       setCurrentMint(mint)   // sync chart + Jupiter to scanned token
@@ -2363,6 +2370,17 @@ export default function Dashboard() {
       setChatMessages([])
       triggerAiSummary(data)
     } catch(e: unknown) {
+      if (!isPro && !creditConsumed) {
+        try {
+          const syncRes = await fetch('/api/scan/use-credit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'check' }),
+          })
+          const syncJson = await syncRes.json().catch(() => ({}))
+          if (syncRes.ok && typeof syncJson?.credits === 'number') setCredits(syncJson.credits)
+        } catch {}
+      }
       const msg = e instanceof Error ? e.message : 'Unknown error'
       setScanError('Scan failed: ' + msg)
       setScanState('error')
@@ -2691,6 +2709,20 @@ export default function Dashboard() {
           </button>
         </div>
       </header>
+
+      <div className="lg:hidden px-3 py-2 border-b border-[rgba(139,92,246,0.15)] bg-[#0b1118] overflow-x-auto">
+        <div className="flex gap-2 min-w-max">
+          <button onClick={() => setView('promax')} className={`px-2.5 py-1.5 rounded-md border text-xs font-bold ${view === 'promax' ? 'text-[#FFD700] border-[rgba(255,215,0,0.35)] bg-[rgba(255,215,0,0.08)]' : 'text-[#8b949e] border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)]'}`}>
+            Deep Neural Scan
+          </button>
+          <button onClick={() => setView('elite')} className={`px-2.5 py-1.5 rounded-md border text-xs font-bold ${view === 'elite' ? 'text-[#a78bfa] border-[rgba(167,139,250,0.35)] bg-[rgba(139,92,246,0.08)]' : 'text-[#8b949e] border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)]'}`}>
+            Elite Whale Alerts
+          </button>
+          <button onClick={() => setShowModal(true)} className="px-2.5 py-1.5 rounded-md border text-xs font-bold text-[#20b2aa] border-[rgba(32,178,170,0.35)] bg-[rgba(32,178,170,0.08)]">
+            Subscription Details
+          </button>
+        </div>
+      </div>
 
       {/* ── TICKER TAPE ── */}
       <div className="h-[26px] bg-[#161b22] border-b border-[rgba(0,212,130,0.15)] overflow-hidden relative z-10 hidden sm:block">
