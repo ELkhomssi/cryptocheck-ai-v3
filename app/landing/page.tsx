@@ -1,6 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
+import { GeistSans } from 'geist/font/sans'
 import { supabase } from '@/lib/supabase'
 
 export default function LandingPage() {
@@ -49,13 +51,13 @@ export default function LandingPage() {
   ]
 
   return (
-    <div style={{ background:'#000', color:'#e2e8f0', overflow:'hidden', fontFamily:"'IBM Plex Mono','JetBrains Mono',monospace" }}>
+    <div className={GeistSans.className} style={{ background:'#000', color:'#e2e8f0', overflow:'hidden', fontFamily:"var(--font-geist-sans), 'IBM Plex Mono', 'JetBrains Mono', monospace" }}>
       {/* NAV */}
-      <nav style={{ position:'fixed',top:0,left:0,right:0,zIndex:1000,height:56,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 clamp(16px,4vw,32px)',background:scrollY>50?'rgba(0,0,0,0.92)':'transparent',backdropFilter:scrollY>50?'blur(20px)':'none',borderBottom:scrollY>50?'1px solid rgba(32,178,170,0.1)':'1px solid transparent',transition:'all 0.3s ease' }}>
-        <div style={{ display:'flex',alignItems:'center',gap:10 }}>
+      <nav style={{ position:'fixed',top:0,left:0,right:0,zIndex:1000,minHeight:56,display:'flex',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',padding:'8px clamp(16px,4vw,32px)',background:scrollY>50?'rgba(0,0,0,0.92)':'transparent',backdropFilter:scrollY>50?'blur(20px)':'none',borderBottom:scrollY>50?'1px solid rgba(32,178,170,0.1)':'1px solid transparent',transition:'all 0.3s ease' }}>
+        <Link href="/" style={{ display:'flex',alignItems:'center',gap:10,textDecoration:'none',color:'inherit' }}>
           <div style={{ width:32,height:32,background:'linear-gradient(135deg,#20b2aa,#00d4aa)',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:800,color:'#000' }}>CC</div>
           <span style={{ fontSize:14,fontWeight:700,color:'#fff',letterSpacing:'-0.02em' }}>Crypto<span style={{ color:'#20b2aa' }}>Check</span>AI</span>
-        </div>
+        </Link>
         <div style={{ display:'flex',alignItems:'center',gap:20 }}>
           <a href="#how-it-works" className="lp-nav-link" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.05em' }}>How it Works</a>
           <a href="#features" className="lp-nav-link" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.05em' }}>Features</a>
@@ -64,10 +66,16 @@ export default function LandingPage() {
           <a href="/pro/dashboard" style={{ fontSize:11,color:'#a5b4fc',textDecoration:'none',letterSpacing:'0.06em',fontWeight:600 }}>Institutional Terminal</a>
           <a href="/app" style={{ padding:'7px 16px',fontSize:11,fontWeight:700,background:'linear-gradient(135deg,#20b2aa,#00d4aa)',color:'#000',borderRadius:6,textDecoration:'none',letterSpacing:'0.04em' }}>Launch App →</a>
         </div>
+        <div className="lp-mobile-nav" style={{ width:'100%',display:'none',flexWrap:'wrap',gap:10,paddingTop:6,alignItems:'center',justifyContent:'flex-start',borderTop:'1px solid rgba(255,255,255,0.06)' }}>
+          <Link href="/" style={{ fontSize:11,color:'#e2e8f0',textDecoration:'none',letterSpacing:'0.04em',padding:'6px 10px',borderRadius:6,border:'0.5px solid rgba(255,255,255,0.12)' }}>Home</Link>
+          <a href="/app" style={{ fontSize:11,color:'#20b2aa',textDecoration:'none',letterSpacing:'0.04em' }}>App</a>
+          <a href="/pro/dashboard" style={{ fontSize:11,color:'#a5b4fc',textDecoration:'none',letterSpacing:'0.04em' }}>Institutional</a>
+          <a href="/landing" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.04em' }}>Landing page</a>
+        </div>
       </nav>
 
       {/* HERO */}
-      <section style={{ minHeight:'100vh',display:'flex',alignItems:'center',position:'relative',overflow:'hidden',paddingTop:56 }}>
+      <section style={{ minHeight:'100vh',display:'flex',alignItems:'center',position:'relative',overflow:'hidden',paddingTop:'clamp(64px,14vw,96px)' }}>
         <div style={{ position:'absolute',inset:0,pointerEvents:'none',backgroundImage:'linear-gradient(rgba(32,178,170,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(32,178,170,0.03) 1px,transparent 1px)',backgroundSize:'60px 60px' }}/>
         <div style={{ position:'absolute',top:'20%',left:'5%',width:500,height:500,borderRadius:'50%',background:'radial-gradient(circle,rgba(32,178,170,0.08) 0%,transparent 70%)',filter:'blur(60px)',pointerEvents:'none' }}/>
         <div className="lp-hero-grid" style={{ maxWidth:1280,margin:'0 auto',padding:'40px clamp(16px,4vw,32px)',display:'grid',gap:40,alignItems:'center',width:'100%',position:'relative',zIndex:1 }}>
@@ -248,6 +256,7 @@ Authorization: Bearer cc_live_…
           .lp-stats-grid { grid-template-columns:repeat(2,1fr) !important; }
           .lp-institutional-grid { grid-template-columns:1fr !important; }
           .lp-nav-link { display:none !important; }
+          .lp-mobile-nav { display:flex !important; }
           .lp-float-badge,.lp-float-badge-delay { display:none !important; }
         }
         ::-webkit-scrollbar { width:6px; }

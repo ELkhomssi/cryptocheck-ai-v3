@@ -2,7 +2,10 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { Home } from 'lucide-react'
 import { GeistMono } from 'geist/font/mono'
+import { GeistSans } from 'geist/font/sans'
+import { useSolana } from '@/components/SolanaProvider'
 import type { ProDashboardSession } from '@/lib/types/pro-dashboard'
 import type { ReasoningObject } from '@/lib/services/scanner-engine'
 import { PulseFeed } from '@/components/pro/PulseFeed'
@@ -24,6 +27,7 @@ export function ProDashboardClient({ session, demoReasoning }: Props) {
   const [loading, setLoading] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
   const [dlBusy, setDlBusy] = useState<'pdf' | 'json' | null>(null)
+  const { connect, disconnect, isConnected, shortAddr, isConnecting } = useSolana()
 
   const canUseDeepApi = session.hasDeepAccess
 
@@ -32,6 +36,12 @@ export function ProDashboardClient({ session, demoReasoning }: Props) {
     if (!session.hasDeepAccess) return 'Institutional Terminal — upgrade for live reasoning API'
     return 'Institutional Terminal'
   }, [session])
+
+  const orderedEvidence = useMemo(() => {
+    const sim = reasoning.evidence.filter((l) => l.id === 'ev_live_simulation')
+    const rest = reasoning.evidence.filter((l) => l.id !== 'ev_live_simulation')
+    return [...sim, ...rest]
+  }, [reasoning.evidence])
 
   const demoMint = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
 
@@ -97,6 +107,16 @@ export function ProDashboardClient({ session, demoReasoning }: Props) {
     }
   }
 
+  function downloadReasoningJsonLocal() {
+    const blob = new Blob([JSON.stringify(reasoning, null, 2)], { type: 'application/json;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `cryptocheck-reasoning-${demoMint.slice(0, 8)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: `
@@ -113,12 +133,96 @@ export function ProDashboardClient({ session, demoReasoning }: Props) {
       `}} />
 
       <div
+        className={GeistSans.className}
         style={{
           maxWidth: 1120,
           margin: '0 auto',
           padding: 'clamp(20px,4vw,40px) clamp(14px,4vw,40px) clamp(48px,8vw,88px)',
+          fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
         }}
       >
+        <nav
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            marginBottom: 20,
+            paddingBottom: 16,
+            borderBottom: '0.5px solid rgba(255,255,255,0.08)',
+          }}
+        >
+          <Link
+            href="/"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              textDecoration: 'none',
+              color: '#f4f4f5',
+              fontWeight: 600,
+              fontSize: 14,
+              letterSpacing: '-0.02em',
+            }}
+          >
+            <span
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                background: 'linear-gradient(135deg,#6366f1,#22d3ee)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 11,
+                fontWeight: 800,
+                color: '#020617',
+              }}
+            >
+              CC
+            </span>
+            CryptoCheck<span style={{ color: '#a5b4fc' }}>AI</span>
+          </Link>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+            <Link
+              href="/"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 12,
+                padding: '8px 12px',
+                borderRadius: 8,
+                border: '0.5px solid rgba(255,255,255,0.12)',
+                color: '#a1a1aa',
+                textDecoration: 'none',
+                background: 'rgba(255,255,255,0.03)',
+              }}
+            >
+              <Home size={16} strokeWidth={2} aria-hidden />
+              Back to Site
+            </Link>
+            <button
+              type="button"
+              onClick={() => (isConnected ? disconnect() : void connect())}
+              disabled={isConnecting}
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                padding: '8px 14px',
+                borderRadius: 8,
+                border: '0.5px solid rgba(52, 211, 153, 0.35)',
+                background: 'rgba(16, 185, 129, 0.1)',
+                color: '#6ee7b7',
+                cursor: 'pointer',
+              }}
+            >
+              {isConnecting ? 'Connecting…' : isConnected ? `✓ ${shortAddr}` : 'Connect Wallet'}
+            </button>
+          </div>
+        </nav>
+
         <header style={{ marginBottom: 'clamp(20px,4vw,36px)' }}>
           <div style={{ fontSize: 11, letterSpacing: '0.14em', color: '#6b7280', marginBottom: 10 }}>
             CRYPTOCHECK AI · PRO
@@ -256,7 +360,7 @@ export function ProDashboardClient({ session, demoReasoning }: Props) {
                     cursor: canUseDeepApi ? 'pointer' : 'not-allowed',
                   }}
                 >
-                  {dlBusy === 'pdf' ? '…' : 'Download Audit (PDF)'}
+                  {dlBusy === 'pdf' ? '…' : 'Download PDF Audit'}
                 </button>
                 <button
                   type="button"
@@ -273,7 +377,23 @@ export function ProDashboardClient({ session, demoReasoning }: Props) {
                     cursor: canUseDeepApi ? 'pointer' : 'not-allowed',
                   }}
                 >
-                  {dlBusy === 'json' ? '…' : 'Export JSON'}
+                  {dlBusy === 'json' ? '…' : 'Export JSON (API)'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => downloadReasoningJsonLocal()}
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    padding: '8px 14px',
+                    borderRadius: 8,
+                    border: '0.5px solid rgba(148, 163, 184, 0.25)',
+                    background: 'rgba(148, 163, 184, 0.08)',
+                    color: '#cbd5e1',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Download JSON (local)
                 </button>
               </div>
             </div>
@@ -316,8 +436,8 @@ export function ProDashboardClient({ session, demoReasoning }: Props) {
                 WebkitOverflowScrolling: 'touch',
               }}
             >
-              <div style={{ color: '#64748b', marginBottom: 8 }}>{'// RAW EVIDENCE'}</div>
-              {reasoning.evidence.map((line) => (
+              <div style={{ color: '#64748b', marginBottom: 8 }}>{'// RAW EVIDENCE (Live Simulation first)'}</div>
+              {orderedEvidence.map((line) => (
                 <div key={line.id} style={{ marginBottom: 10 }}>
                   <span style={{ color: '#818cf8' }}>[{line.category}]</span>{' '}
                   <span style={{ color: '#f1f5f9' }}>{line.label}</span>

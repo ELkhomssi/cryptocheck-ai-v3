@@ -1,5 +1,7 @@
 'use client'
 import React from 'react'
+import Link from 'next/link'
+import { Home } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import MintInput from '@/components/MintInput'
 import { Buffer } from 'buffer'
@@ -2754,6 +2756,14 @@ export default function Dashboard() {
                 Sign In
               </button>
             )}
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-[4px] text-[0.55rem] md:text-[0.62rem] font-bold tracking-wider uppercase font-mono border border-[rgba(255,255,255,0.08)] text-[#8b949e] hover:text-[#c9d1d9] hover:border-[rgba(255,255,255,0.15)] no-underline bg-transparent"
+            title="Back to marketing site"
+          >
+            <Home className="w-3.5 h-3.5 shrink-0 opacity-80" aria-hidden />
+            Back to Site
+          </Link>
           <button onClick={isConnected ? disconnect : connect} disabled={isConnecting} className={`btn-terminal px-2 md:px-3 py-1 rounded-[4px] text-[0.5rem] md:text-[0.62rem] ${isConnected ? 'bg-emerald-950/30 border-emerald-800/25 text-emerald-400' : 'bg-[rgba(0,212,130,0.08)] border-[rgba(0,212,130,0.15)] text-[#00d4aa]'}`}>
             {isConnecting ? 'Connecting…' : isConnected ? `✓ ${shortAddr}` : 'Connect Wallet'}
           </button>
@@ -2761,7 +2771,11 @@ export default function Dashboard() {
       </header>
 
       <div className="lg:hidden px-3 py-2 border-b border-[rgba(139,92,246,0.15)] bg-[#0b1118] overflow-x-auto">
-        <div className="flex gap-2 min-w-max">
+        <div className="flex gap-2 min-w-max items-center">
+          <Link href="/" className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border text-xs font-bold text-[#c9d1d9] border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.04)] no-underline shrink-0">
+            <Home className="w-3.5 h-3.5" aria-hidden />
+            Home
+          </Link>
           <button onClick={() => setView('promax')} className={`px-2.5 py-1.5 rounded-md border text-xs font-bold ${view === 'promax' ? 'text-[#FFD700] border-[rgba(255,215,0,0.35)] bg-[rgba(255,215,0,0.08)]' : 'text-[#8b949e] border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)]'}`}>
             Deep Neural Scan
           </button>

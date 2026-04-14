@@ -89,6 +89,10 @@ export type ScannerEngineInput = {
   /** Jupiter-style expected vs min/actual out (raw token units) for tax/slippage drag. */
   swapQuoteExpectedOut?: number | null
   swapQuoteActualOut?: number | null
+  /** Test / demo: force simulateTransaction placeholder to fail. */
+  forceSimulationFailure?: boolean
+  /** Explicit result from upstream swap builder when available. */
+  simulateSwapPassed?: boolean
 }
 
 const MAX_START = 100
@@ -224,6 +228,35 @@ export function evaluateLinkedCreatorWallets(input: {
     risk: 'low',
     flagBehavioralPattern: false,
     detail: 'No scam-linked funding pattern detected in placeholder indexer.',
+  }
+}
+
+/**
+ * Placeholder for Solana `simulateTransaction` on a swap (e.g. Jupiter). When the sell path
+ * fails, downstream analysis must treat the asset as honeypot-grade regardless of static code.
+ */
+export function simulateTransactionPlaceholder(input: ScannerEngineInput): {
+  passed: boolean
+  detail: string
+} {
+  if (input.forceSimulationFailure === true) {
+    return {
+      passed: false,
+      detail:
+        'simulateTransaction: failure — sell simulation reverts or RPC error (honeypot / blacklist pattern). Score forced to Critical.',
+    }
+  }
+  if (input.simulateSwapPassed === false) {
+    return {
+      passed: false,
+      detail:
+        'simulateTransaction: compiled swap reported failure — cannot exit position safely in simulation.',
+    }
+  }
+  return {
+    passed: true,
+    detail:
+      'simulateTransaction: placeholder OK — wire `serializedSwapTransactionBase64` to `/api/v1/scan/reasoning` for RPC-backed sell simulation.',
   }
 }
 
@@ -401,6 +434,20 @@ export class ScannerEngine {
       flags.push(`fingerprint:${fpMatch.fingerprint.id}`)
     }
 
+    const simPl = simulateTransactionPlaceholder(input)
+    evidence.push({
+      id: 'ev_live_simulation',
+      category: 'simulation',
+      label: 'Live Simulation Result',
+      riskContribution: simPl.passed ? 0 : 100,
+      maxWeight: 100,
+      detail: simPl.detail,
+    })
+    if (!simPl.passed) {
+      score = 8
+      flags.push('LIVE_SIMULATION_FAILED')
+    }
+
     score = clamp(score, 0, 100)
 
     let confidence = 72
@@ -408,9 +455,10 @@ export class ScannerEngine {
     if (top == null) confidence -= 8
     if (age == null) confidence -= 5
     if (!input.creatorWallet) confidence -= 6
+    if (!simPl.passed) confidence = Math.min(confidence, 88)
     confidence = clamp(confidence, 18, 100)
 
-    const v = verdictFromScore(Math.round(score))
+    const v: Verdict = !simPl.passed ? 'CRITICAL_RISK' : verdictFromScore(Math.round(score))
     return finalizeReasoning({
       aggregateScore: Math.round(score),
       confidenceScore: confidence,
