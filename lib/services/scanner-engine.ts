@@ -1,9 +1,15 @@
 import { KNOWN_RUGPULL_FINGERPRINTS, type RugpullFingerprint } from '@/lib/data/known-rugpull-fingerprints'
+import { getSolanaConnection } from '@/lib/solana/connection'
+import {
+  computeRealizedTaxFromQuotes,
+  simulateSerializedSwapTransaction,
+  type SwapSimulationRpcResult,
+} from '@/lib/services/swap-simulation'
 
 /** Single weighted line of evidence (white-box). */
 export type EvidenceLine = {
   id: string
-  category: 'liquidity' | 'authority' | 'distribution' | 'behavior' | 'fingerprint' | 'cluster'
+  category: 'liquidity' | 'authority' | 'distribution' | 'behavior' | 'fingerprint' | 'cluster' | 'simulation'
   label: string
   /** Points toward risk: positive = increases risk (reduces safety score contribution). */
   riskContribution: number
@@ -19,12 +25,26 @@ export type FingerprintMatchResult = {
   weightedScore: number
 }
 
+export type Verdict = 'SAFE' | 'CAUTION' | 'HIGH_RISK' | 'CRITICAL_RISK'
+
+export type DynamicSimulationBlock = {
+  status: 'skipped' | 'ok' | 'critical'
+  /** True when RPC simulateTransaction failed or threw (sell path likely blocked — honeypot). */
+  sellSimulationFailed?: boolean
+  /** Effective tax / slippage drag from quotes or heuristics (0–100). */
+  realizedTaxOrSlippagePct?: number | null
+  rpcDetail?: string
+  summary: string
+}
+
 export type ReasoningObject = {
   /** 0–100 safety-oriented score (higher = safer). */
   aggregateScore: number
   /** 0–100 how complete / reliable the underlying inputs were. */
   confidenceScore: number
-  verdict: 'SAFE' | 'CAUTION' | 'HIGH_RISK'
+  verdict: Verdict
+  /** Letter grade for institutional reporting. */
+  institutionalGrade: string
   evidence: EvidenceLine[]
   /** Named flags for dashboards & API consumers. */
   flags: string[]
@@ -35,6 +55,8 @@ export type ReasoningObject = {
     summary: string
     scamLinkedFundingHits: number
   }
+  /** Dynamic swap simulation (simulateTransaction + quote tax). Overrides static score when critical. */
+  dynamicSimulation?: DynamicSimulationBlock
 }
 
 export type ScannerEngineInput = {
@@ -64,6 +86,9 @@ export type ScannerEngineInput = {
     proxy_mint: boolean
     mixer_funding_trail: boolean
   }>
+  /** Jupiter-style expected vs min/actual out (raw token units) for tax/slippage drag. */
+  swapQuoteExpectedOut?: number | null
+  swapQuoteActualOut?: number | null
 }
 
 const MAX_START = 100
@@ -72,10 +97,35 @@ function clamp(n: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, n))
 }
 
-function verdictFromScore(s: number): ReasoningObject['verdict'] {
+export function verdictFromScore(s: number): Exclude<Verdict, 'CRITICAL_RISK'> {
   if (s >= 72) return 'SAFE'
   if (s >= 45) return 'CAUTION'
   return 'HIGH_RISK'
+}
+
+/** Institutional letter grade (aligned with aggregate score & verdict). */
+export function institutionalSafetyGrade(score: number, verdict: Verdict): string {
+  if (verdict === 'CRITICAL_RISK') return 'F — Critical'
+  if (score >= 90) return 'A+'
+  if (score >= 85) return 'A'
+  if (score >= 78) return 'B+'
+  if (score >= 72) return 'B'
+  if (score >= 62) return 'C+'
+  if (score >= 52) return 'C'
+  if (score >= 45) return 'D'
+  return 'F'
+}
+
+function finalizeReasoning(partial: Omit<ReasoningObject, 'institutionalGrade'>): ReasoningObject {
+  return {
+    ...partial,
+    institutionalGrade: institutionalSafetyGrade(partial.aggregateScore, partial.verdict),
+  }
+}
+
+function baseSansGrade(base: ReasoningObject): Omit<ReasoningObject, 'institutionalGrade'> {
+  const { institutionalGrade: _, ...rest } = base
+  return rest
 }
 
 function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
@@ -360,10 +410,11 @@ export class ScannerEngine {
     if (!input.creatorWallet) confidence -= 6
     confidence = clamp(confidence, 18, 100)
 
-    return {
+    const v = verdictFromScore(Math.round(score))
+    return finalizeReasoning({
       aggregateScore: Math.round(score),
       confidenceScore: confidence,
-      verdict: verdictFromScore(score),
+      verdict: v,
       evidence,
       flags,
       fingerprintBestMatch: fpMatch,
@@ -372,6 +423,124 @@ export class ScannerEngine {
         summary: cluster.detail,
         scamLinkedFundingHits: input.creatorScamLinkedFundingCount ?? 0,
       },
+    })
+  }
+
+  /**
+   * Applies `simulateTransaction` + optional quote-based tax to override static analysis when
+   * the sell path fails (honeypot) or realized tax/slippage exceeds 50%.
+   */
+  static applyDynamicSimulationLayer(
+    base: ReasoningObject,
+    layer: {
+      rpc: SwapSimulationRpcResult | null
+      quoteTaxPct: number | null
     }
+  ): ReasoningObject {
+    const quoteTax = layer.quoteTaxPct
+    const rpc = layer.rpc
+
+    if (!rpc && quoteTax == null) {
+      return finalizeReasoning({
+        ...baseSansGrade(base),
+        dynamicSimulation: {
+          status: 'skipped',
+          summary:
+            'Dynamic swap simulation skipped — provide serializedSwapTransactionBase64 and/or swap quote deltas.',
+        },
+      })
+    }
+
+    const evidence = [...base.evidence]
+    const flags = [...base.flags]
+    let score = base.aggregateScore
+    let verdict: Verdict = base.verdict
+    let confidence = base.confidenceScore
+
+    let sellFailed = rpc?.sellSimulationFailed ?? false
+    let taxPct = quoteTax
+    let rpcDetail = rpc?.rpcError
+
+    if (rpc?.ran) {
+      evidence.push({
+        id: 'ev_sim_rpc',
+        category: 'simulation',
+        label: 'On-chain swap simulation (simulateTransaction)',
+        riskContribution: sellFailed ? 100 : 0,
+        maxWeight: 100,
+        detail: sellFailed
+          ? `RPC simulateTransaction reported failure — sell path likely reverts (honeypot / blacklist). ${rpcDetail || ''}`
+          : `simulateTransaction succeeded — no immediate revert on compiled swap path. Logs: ${(rpc.logs?.length ?? 0)} lines.`,
+      })
+      if (sellFailed) {
+        flags.push('HONEYPOT_SIMULATION_FAILED')
+      }
+    }
+
+    if (taxPct != null) {
+      evidence.push({
+        id: 'ev_sim_tax',
+        category: 'simulation',
+        label: 'Realized tax / slippage (quote delta)',
+        riskContribution: taxPct > 50 ? 100 : Math.min(40, taxPct * 0.5),
+        maxWeight: 100,
+        detail: `Estimated drag from quote delta: ${taxPct.toFixed(2)}% (expected vs actual out).`,
+      })
+      if (taxPct > 50) {
+        flags.push('EXTREME_TAX_OR_SLIPPAGE')
+      }
+    }
+
+    const critical = sellFailed || (taxPct != null && taxPct > 50)
+
+    if (critical) {
+      verdict = 'CRITICAL_RISK'
+      score = Math.min(score, 8)
+      confidence = Math.min(confidence, 95)
+      flags.push('DYNAMIC_CRITICAL_OVERRIDE')
+    }
+
+    const dyn: DynamicSimulationBlock = {
+      status: critical ? 'critical' : 'ok',
+      sellSimulationFailed: sellFailed,
+      realizedTaxOrSlippagePct: taxPct ?? undefined,
+      rpcDetail,
+      summary: critical
+        ? 'Dynamic layer: simulation failed and/or tax exceeded 50% — institutional override to Critical.'
+        : 'Dynamic layer: swap simulation passed; tax within tolerance or unknown.',
+    }
+
+    return finalizeReasoning({
+      ...baseSansGrade(base),
+      aggregateScore: Math.round(clamp(score, 0, 100)),
+      confidenceScore: confidence,
+      verdict,
+      evidence,
+      flags,
+      dynamicSimulation: dyn,
+    })
+  }
+
+  /**
+   * Full pipeline: static ScannerEngine.analyze + optional serialized swap + quote tax.
+   */
+  static async analyzeWithDynamicSimulation(
+    input: ScannerEngineInput,
+    options?: { serializedSwapTransactionBase64?: string }
+  ): Promise<ReasoningObject> {
+    const base = ScannerEngine.analyze(input)
+    const quoteTax = computeRealizedTaxFromQuotes(input.swapQuoteExpectedOut, input.swapQuoteActualOut)
+
+    let rpc: SwapSimulationRpcResult | null = null
+    const b64 = options?.serializedSwapTransactionBase64
+    if (b64 && b64.length > 0) {
+      const conn = getSolanaConnection()
+      rpc = await simulateSerializedSwapTransaction(conn, b64)
+    }
+
+    return ScannerEngine.applyDynamicSimulationLayer(base, {
+      rpc,
+      quoteTaxPct: quoteTax,
+    })
   }
 }
