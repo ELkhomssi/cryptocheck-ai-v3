@@ -11,7 +11,7 @@ export type ApiAuthContext = {
   tier: SubscriptionTier
 }
 
-function extractRawKey(req: NextRequest): string | null {
+export function extractRawApiKey(req: NextRequest): string | null {
   const auth = req.headers.get('authorization')
   if (auth?.toLowerCase().startsWith('bearer ')) {
     const v = auth.slice(7).trim()
@@ -26,20 +26,10 @@ function clientIp(req: NextRequest): string | null {
     null
 }
 
-/**
- * Validates `Authorization: Bearer` or `X-API-Key`, SHA-256 lookup, tier-based Redis sliding window.
- */
-export async function authenticateApiRequest(req: NextRequest): Promise<
-  { ok: true; ctx: ApiAuthContext } | { ok: false; response: NextResponse }
-> {
-  const raw = extractRawKey(req)
-  if (!raw) {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: 'Missing API key' }, { status: 401 }),
-    }
-  }
-
+async function authenticateRawApiKey(
+  req: NextRequest,
+  raw: string
+): Promise<{ ok: true; ctx: ApiAuthContext } | { ok: false; response: NextResponse }> {
   const verified = await verifyApiKey(raw)
   if (!verified) {
     await logSecurityEvent({
@@ -76,6 +66,38 @@ export async function authenticateApiRequest(req: NextRequest): Promise<
     ok: true,
     ctx: { userId: verified.userId, apiKeyId: verified.keyId, tier },
   }
+}
+
+/**
+ * When no API key headers are sent, returns `no_api_key` so callers can fall back to session auth.
+ * If headers are present but invalid, returns `invalid` with a response (do not fall back).
+ */
+export async function authenticateApiRequestOptional(req: NextRequest): Promise<
+  | { kind: 'no_api_key' }
+  | { kind: 'invalid'; response: NextResponse }
+  | { kind: 'ok'; ctx: ApiAuthContext }
+> {
+  const raw = extractRawApiKey(req)
+  if (!raw) return { kind: 'no_api_key' }
+  const result = await authenticateRawApiKey(req, raw)
+  if (result.ok === false) return { kind: 'invalid', response: result.response }
+  return { kind: 'ok', ctx: result.ctx }
+}
+
+/**
+ * Validates `Authorization: Bearer` or `X-API-Key`, SHA-256 lookup, tier-based Redis sliding window.
+ */
+export async function authenticateApiRequest(req: NextRequest): Promise<
+  { ok: true; ctx: ApiAuthContext } | { ok: false; response: NextResponse }
+> {
+  const raw = extractRawApiKey(req)
+  if (!raw) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: 'Missing API key' }, { status: 401 }),
+    }
+  }
+  return authenticateRawApiKey(req, raw)
 }
 
 export type ApiHandlerWithAuth = (req: NextRequest, ctx: ApiAuthContext) => Promise<Response> | Response

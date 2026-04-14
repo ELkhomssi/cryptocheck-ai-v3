@@ -59,7 +59,9 @@ export default function LandingPage() {
         <div style={{ display:'flex',alignItems:'center',gap:20 }}>
           <a href="#how-it-works" className="lp-nav-link" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.05em' }}>How it Works</a>
           <a href="#features" className="lp-nav-link" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.05em' }}>Features</a>
+          <a href="#institutional" className="lp-nav-link" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.05em' }}>Institutional</a>
           <a href="#demo" className="lp-nav-link" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.05em' }}>Demo</a>
+          <a href="/pro/dashboard" style={{ fontSize:11,color:'#a5b4fc',textDecoration:'none',letterSpacing:'0.06em',fontWeight:600 }}>Institutional Terminal</a>
           <a href="/app" style={{ padding:'7px 16px',fontSize:11,fontWeight:700,background:'linear-gradient(135deg,#20b2aa,#00d4aa)',color:'#000',borderRadius:6,textDecoration:'none',letterSpacing:'0.04em' }}>Launch App →</a>
         </div>
       </nav>
@@ -150,6 +152,32 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* INSTITUTIONAL / DEVELOPER */}
+      <section id="institutional" style={{ padding:'clamp(56px,9vw,96px) clamp(16px,4vw,32px)',background:'linear-gradient(180deg,#050a06 0%,#030306 100%)',borderTop:'1px solid rgba(99,102,241,0.12)',borderBottom:'1px solid rgba(99,102,241,0.08)' }}>
+        <div style={{ maxWidth:1100,margin:'0 auto',display:'grid',gap:28,gridTemplateColumns:'minmax(0,1.1fr) minmax(0,0.9fr)',alignItems:'center' }} className="lp-institutional-grid">
+          <div>
+            <div style={{ fontSize:10,fontWeight:700,letterSpacing:'0.2em',color:'#818cf8',marginBottom:12 }}>FOR TEAMS &amp; DEVELOPERS</div>
+            <h2 style={{ fontSize:'clamp(22px,3vw,32px)',fontWeight:800,color:'#fff',margin:0,letterSpacing:'-0.02em' }}>Institutional-grade <span style={{ color:'#a5b4fc' }}>security infrastructure</span></h2>
+            <p style={{ fontSize:14,color:'#8b949e',lineHeight:1.7,marginTop:14,maxWidth:520 }}>
+              Explainable AI reasoning, fingerprint-matched rug archetypes, and Pro-tier APIs. Built for desks that need evidence, not just a number.
+            </p>
+            <div style={{ display:'flex',flexWrap:'wrap',gap:12,marginTop:22 }}>
+              <a href="/pro/dashboard" style={{ padding:'14px 24px',fontSize:13,fontWeight:700,background:'linear-gradient(135deg,#4f46e5,#6366f1)',color:'#fff',borderRadius:8,textDecoration:'none',letterSpacing:'0.04em',border:'0.5px solid rgba(255,255,255,0.12)',boxShadow:'0 12px 40px rgba(79,70,229,0.25)' }}>Access Institutional Terminal →</a>
+              <a href="/app" style={{ padding:'14px 24px',fontSize:13,fontWeight:700,background:'transparent',border:'0.5px solid rgba(129,140,248,0.35)',borderRadius:8,color:'#a5b4fc',textDecoration:'none' }}>Open consumer app</a>
+            </div>
+          </div>
+          <div style={{ background:'rgba(15,23,42,0.5)',border:'0.5px solid rgba(99,102,241,0.2)',borderRadius:12,padding:'20px 22px',backdropFilter:'blur(12px)' }}>
+            <div style={{ fontSize:10,letterSpacing:'0.14em',color:'#64748b',marginBottom:10 }}>PRO API</div>
+            <pre style={{ margin:0,fontSize:11,color:'#94a3b8',lineHeight:1.6,fontFamily:"'IBM Plex Mono',monospace",whiteSpace:'pre-wrap' }}>{`POST /api/v1/scan/reasoning
+Authorization: Bearer cc_live_…
+
+→ ReasoningObject
+  evidence[], fingerprint match,
+  clusterAnalysis (Pro+)`}</pre>
+          </div>
+        </div>
+      </section>
+
       {/* LIVE DEMO */}
       <section id="demo" style={{ padding:'clamp(60px,10vw,100px) clamp(16px,4vw,32px)',background:'linear-gradient(180deg,#000 0%,#050a06 100%)' }}>
         <div style={{ maxWidth:1100,margin:'0 auto' }}>
@@ -218,6 +246,7 @@ export default function LandingPage() {
           .lp-steps-grid { grid-template-columns:1fr !important; }
           .lp-features-grid { grid-template-columns:1fr !important; }
           .lp-stats-grid { grid-template-columns:repeat(2,1fr) !important; }
+          .lp-institutional-grid { grid-template-columns:1fr !important; }
           .lp-nav-link { display:none !important; }
           .lp-float-badge,.lp-float-badge-delay { display:none !important; }
         }
