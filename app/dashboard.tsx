@@ -1,6 +1,7 @@
 'use client'
 import React from 'react'
 import Link from 'next/link'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Home } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import MintInput from '@/components/MintInput'
@@ -24,6 +25,8 @@ import InsiderWhaleIntel from '@/components/InsiderWhaleIntel'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import ProMaxEliteDashboard from '@/components/ProMaxEliteDashboard'
 import BentoGrid, { type StressTestApiResult } from '@/components/Dashboard/BentoGrid'
+import SecurityTerminal from '@/components/SecurityTerminal'
+import { safetyScoreToEliteGrade } from '@/lib/elite-grade'
 import ProMaxDeepDashboard from '@/components/ProMaxDeepDashboard'
 import { TrialBanner, TrialWall, useTrialStatus } from '@/components/TrialSystem'
 import { AiAutoSniper } from '@/components/AiAutoSniper'
@@ -34,6 +37,14 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js'
+import {
+  ResponsiveContainer,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+} from 'recharts'
 import { useSolana } from '@/components/SolanaProvider'
 import {
   scanToken,
@@ -594,6 +605,22 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
   const topLineCls  = risk.cardClass === 'safe' ? 'card-top-safe' : risk.cardClass === 'warn' ? 'card-top-warn' : 'card-top-danger'
   const cardBorder  = risk.cardClass === 'safe' ? 'border-emerald-800/30' : risk.cardClass === 'warn' ? 'border-amber-800/30' : 'border-red-800/40'
 
+  const elite = safetyScoreToEliteGrade(risk.score)
+  const tierColor =
+    elite.accent === 'safe' ? '#c8ff00' : elite.accent === 'mid' ? '#f59e0b' : '#ff5722'
+  const radarRows = [
+    { axis: 'Authority', value: mintAuth ? 28 : 93 },
+    { axis: 'Distribution', value: Math.max(8, Math.round(100 - top10Pct)) },
+    { axis: 'Liquidity', value: Math.min(100, Math.round(liqPct * 2.8)) },
+    { axis: 'Metadata', value: name !== 'Unknown Token' ? 86 : 40 },
+    {
+      axis: 'Tx depth',
+      value: data.txs?.length
+        ? Math.min(100, 42 + Math.min(45, Math.floor((data.txs.length || 0) / 2)))
+        : 44,
+    },
+  ]
+
   const checks = [
     { label:'Mint Authority',   val: mintAuth ? 'Active'   : 'None',    ok: !mintAuth, warn: false },
     { label:'Freeze Authority', val: 'None',                             ok: true,      warn: false },
@@ -629,7 +656,7 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
       <AiSummaryCard loading={aiLoading} summary={aiSummary} />
 
       {/* ── RISK SCORE CARD ── */}
-      <div className={`term-card border ${cardBorder} p-4 mb-3`}>
+      <div className={`term-card border ${cardBorder} p-4 mb-3 backdrop-blur-xl bg-[#050508]/75`}>
         <div className={`absolute top-0 left-0 right-0 h-px ${topLineCls}`} />
 
         <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
@@ -638,12 +665,40 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
               {name} <span className="text-[0.7rem] text-[#8b949e]">({sym})</span>
             </div>
             <div className="text-[0.56rem] text-[#8b949e] mt-0.5 break-all">{data.mint}</div>
+            <Link
+              href={`/report/${data.mint}`}
+              onClick={() => {
+                try {
+                  sessionStorage.setItem(
+                    `cc_elite_report_${data.mint}`,
+                    JSON.stringify({
+                      mint: data.mint,
+                      name,
+                      sym,
+                      safetyScore: risk.score,
+                      elite,
+                      verdict: risk.verdict,
+                      timestamp: Date.now(),
+                    })
+                  )
+                } catch {}
+              }}
+              className="inline-block mt-2 text-[0.55rem] font-mono font-bold tracking-wider uppercase text-[#c8ff00] border border-[#c8ff00]/35 rounded px-2 py-1 hover:bg-[#c8ff00]/10 transition-colors"
+            >
+              Intelligence Briefing →
+            </Link>
           </div>
 
-          {/* Score + Edge Alert badge */}
+          {/* Elite tier + safety index */}
           <div className="text-right flex-shrink-0">
-            <div className={`text-4xl font-bold font-mono leading-none ${scoreColor}`}>{risk.score}</div>
-            <div className={`text-[0.58rem] font-bold tracking-widest uppercase mt-0.5 ${scoreColor}`}>{risk.verdict}</div>
+            <div className="font-mono font-black leading-none" style={{ fontSize: '2.6rem', color: tierColor }}>
+              {elite.tier}
+            </div>
+            <div className="text-[0.58rem] font-bold tracking-widest uppercase mt-0.5" style={{ color: tierColor }}>
+              {elite.tier === 'S' ? 'Iron Dome Certified' : elite.label}
+            </div>
+            <div className={`text-xl font-bold font-mono leading-none mt-1 ${scoreColor}`}>{risk.score}</div>
+            <div className="text-[0.5rem] text-[#8b949e]">Safety index · {risk.verdict}</div>
             <div className="text-[0.53rem] text-[#8b949e] mt-0.5">Conf: {risk.conf}%</div>
             {/* ── EDGE ALERT BADGE ── */}
             {hasEdge && (
@@ -690,6 +745,32 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
               ))}
             </tbody>
           </table>
+        </div>
+
+        <div className="mb-3 rounded-[4px] border border-white/[0.06] bg-[#030308]/90 p-2">
+          <div className="text-[0.55rem] font-mono font-bold tracking-wider uppercase text-[#8b949e] mb-1 px-1">
+            Risk distribution — Attack Surface Radar
+          </div>
+          <div className="h-[200px] w-full min-w-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart data={radarRows} cx="50%" cy="52%" outerRadius="78%">
+                <PolarGrid stroke="rgba(200,255,0,0.12)" />
+                <PolarAngleAxis
+                  dataKey="axis"
+                  tick={{ fill: '#8b949e', fontSize: 9, fontFamily: 'IBM Plex Mono, monospace' }}
+                />
+                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                <Radar
+                  name="Safety"
+                  dataKey="value"
+                  stroke="#c8ff00"
+                  fill="#c8ff00"
+                  fillOpacity={0.22}
+                  strokeWidth={1.2}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         {/* Neural summary */}
@@ -2580,76 +2661,152 @@ export default function Dashboard() {
 
   // ── Main scan content ──
   const renderScanContent = () => {
+    const motionProps = {
+      initial: { opacity: 0, y: 10 },
+      animate: { opacity: 1, y: 0 },
+      exit: { opacity: 0, y: -8 },
+      transition: { duration: 0.38 },
+    }
+
+    if (scanState === 'loading') {
+      return (
+        <motion.div
+          key="loading"
+          {...motionProps}
+          className="flex flex-col items-center justify-center h-full gap-5 p-10"
+        >
+          <NeuralSpinner />
+          <div className="text-center">
+            <div className="text-sm font-bold text-[#e2e8f0] font-sans mb-1">Neural Scan Active</div>
+            <div className="text-[0.62rem] text-[#8b949e]">Multi-vector simulation · {NETWORK_LABEL}</div>
+          </div>
+          <SecurityTerminal active variant="scan" />
+        </motion.div>
+      )
+    }
+    if (scanState === 'error') {
+      return (
+        <motion.div key="error" {...motionProps} className="p-4">
+          <div className="p-3 bg-red-950/20 border border-red-800/25 rounded-[4px] text-red-400 text-[0.7rem] flex items-start gap-2">
+            <span className="text-base flex-shrink-0">⚠</span>
+            <span>{scanError}</span>
+          </div>
+        </motion.div>
+      )
+    }
+
     // Chart tab can show even without a full scan if we have a dexMint
     if (scanTab === 'chart') {
       const chartMint = (scanData?.mint ?? dexMint).trim()
-      if (chartMint.length >= 32) return <DexChartTab mint={chartMint} chartKey={chartKey} onConnectWallet={isConnected ? disconnect : connect} isConnected={isConnected} shortAddr={shortAddr} currentSymbol={scanData?.meta?.onChainMetadata?.metadata?.data?.symbol ?? scanData?.meta?.legacyMetadata?.symbol ?? '???'} neuralScore={scanData ? computeRisk(scanData).score : null} />
+      if (chartMint.length >= 32) {
+        return (
+          <motion.div key={`chart-${chartMint}`} {...motionProps}>
+            <DexChartTab
+              mint={chartMint}
+              chartKey={chartKey}
+              onConnectWallet={isConnected ? disconnect : connect}
+              isConnected={isConnected}
+              shortAddr={shortAddr}
+              currentSymbol={
+                scanData?.meta?.onChainMetadata?.metadata?.data?.symbol ??
+                scanData?.meta?.legacyMetadata?.symbol ??
+                '???'
+              }
+              neuralScore={scanData ? computeRisk(scanData).score : null}
+            />
+          </motion.div>
+        )
+      }
       return (
-        <div className="flex flex-col items-center justify-center h-full gap-3 text-center p-10">
-          <div className="text-4xl">📈</div>
-          <div className="text-sm font-bold text-[#e2e8f0] font-sans">No Token Selected</div>
-          <div className="text-[0.68rem] text-[#8b949e] max-w-xs leading-relaxed">
-            Scan a token or paste a mint address into the DexScreener search bar in the sidebar to load the live price chart.
+        <motion.div key="chart-empty" {...motionProps}>
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-center p-10">
+            <div className="text-4xl">📈</div>
+            <div className="text-sm font-bold text-[#e2e8f0] font-sans">No Token Selected</div>
+            <div className="text-[0.68rem] text-[#8b949e] max-w-xs leading-relaxed">
+              Scan a token or paste a mint address into the DexScreener search bar in the sidebar to load the live price chart.
+            </div>
           </div>
-        </div>
+        </motion.div>
       )
     }
-    if (scanState === 'idle') return (
-      <div style={{flex:1,minHeight:0,overflow:'hidden'}}>
-        <TokenListDashboard
-          onScanToken={(mint) => { setMintInput(mint); doScan(mint) }}
-          showModal={() => setShowModal(true)}
-        />
-      </div>
-    )
-    if (scanState === 'loading') return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 p-10">
-        <NeuralSpinner />
-        <div className="text-center">
-          <div className="text-sm font-bold text-[#e2e8f0] font-sans mb-1">Neural Scan Active</div>
-          <div className="text-[0.62rem] text-[#8b949e]">Querying Helius {NETWORK_LABEL}…</div>
-        </div>
-        <div className="w-full max-w-sm bg-[#0c0c18] border border-[rgba(0,212,130,0.15)] rounded-[4px] p-3">
-          {[`$ init_scan --mint ${mintInput.slice(0,8)}... --rpc helius`,'⚡ Connecting Helius RPC...','📋 Fetching DAS metadata...','🔍 Analyzing authority structure...','👥 Loading top holders...','🧠 Running neural recognition...','📊 Building distribution chart...','✓ Neural Engine v2 verdict ready'].map((l,i) => (
-            <div key={i} className="log-line" style={{ animationDelay: `${i*0.17}s` }}>{l}</div>
-          ))}
-        </div>
-      </div>
-    )
-    if (scanState === 'error') return (
-      <div className="p-4">
-        <div className="p-3 bg-red-950/20 border border-red-800/25 rounded-[4px] text-red-400 text-[0.7rem] flex items-start gap-2">
-          <span className="text-base flex-shrink-0">⚠</span><span>{scanError}</span>
-        </div>
-      </div>
-    )
+    if (scanState === 'idle') {
+      return (
+        <motion.div key="idle" {...motionProps} style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <TokenListDashboard
+            onScanToken={(mint) => {
+              setMintInput(mint)
+              doScan(mint)
+            }}
+            showModal={() => setShowModal(true)}
+          />
+        </motion.div>
+      )
+    }
     if (scanState === 'done' && scanData) {
-      if (scanTab === 'verdict')   return (
-        <VerdictTab
-          data={scanData}
-          onTradeClick={(m,s)=>{setSwapMint(m);setSwapSym(s);setShowSwap(true)}}
-          onChartClick={(m)=>{setDexMint(m);setScanTab('chart')}}
-          aiSummary={aiSummary}
-          aiLoading={aiLoading}
-          chatMessages={chatMessages}
-          chatLoading={chatLoading}
-          chatInput={chatInput}
-          onChatInput={setChatInput}
-          onChatSend={sendChatMessage}
-        />
-      )
-      if (scanTab === 'holders')   return <HoldersTab data={scanData} />
-      if (scanTab === 'liquidity') return <LiquidityTab data={scanData} />
-      if (scanTab === 'transfers') return <TransfersTab data={scanData} />
-      if (scanTab === 'edge')      return (
-        <AlphaEdgeTab
-          data={scanData}
-          onTradeClick={(m,s)=>{setSwapMint(m);setSwapSym(s);setShowSwap(true)}}
-          aiEdge={aiEdge}
-          aiEdgeLoading={aiEdgeLoading}
-          onAnalyzeEdge={(ep,bb,bs)=>triggerAiEdge(scanData,ep,bb,bs)}
-        />
-      )
+      const mk = scanData.mint
+      if (scanTab === 'verdict') {
+        return (
+          <motion.div key={`verdict-${mk}`} {...motionProps}>
+            <VerdictTab
+              data={scanData}
+              onTradeClick={(m, s) => {
+                setSwapMint(m)
+                setSwapSym(s)
+                setShowSwap(true)
+              }}
+              onChartClick={(m) => {
+                setDexMint(m)
+                setScanTab('chart')
+              }}
+              aiSummary={aiSummary}
+              aiLoading={aiLoading}
+              chatMessages={chatMessages}
+              chatLoading={chatLoading}
+              chatInput={chatInput}
+              onChatInput={setChatInput}
+              onChatSend={sendChatMessage}
+            />
+          </motion.div>
+        )
+      }
+      if (scanTab === 'holders') {
+        return (
+          <motion.div key={`holders-${mk}`} {...motionProps}>
+            <HoldersTab data={scanData} />
+          </motion.div>
+        )
+      }
+      if (scanTab === 'liquidity') {
+        return (
+          <motion.div key={`liq-${mk}`} {...motionProps}>
+            <LiquidityTab data={scanData} />
+          </motion.div>
+        )
+      }
+      if (scanTab === 'transfers') {
+        return (
+          <motion.div key={`tx-${mk}`} {...motionProps}>
+            <TransfersTab data={scanData} />
+          </motion.div>
+        )
+      }
+      if (scanTab === 'edge') {
+        return (
+          <motion.div key={`edge-${mk}`} {...motionProps}>
+            <AlphaEdgeTab
+              data={scanData}
+              onTradeClick={(m, s) => {
+                setSwapMint(m)
+                setSwapSym(s)
+                setShowSwap(true)
+              }}
+              aiEdge={aiEdge}
+              aiEdgeLoading={aiEdgeLoading}
+              onAnalyzeEdge={(ep, bb, bs) => triggerAiEdge(scanData, ep, bb, bs)}
+            />
+          </motion.div>
+        )
+      }
     }
     return null
   }
@@ -2945,7 +3102,10 @@ export default function Dashboard() {
         </aside>
 
         {/* MAIN */}
-        <main className="flex flex-col flex-1 overflow-y-auto min-w-0" style={{background:'#000',width:'100%'}}>
+        <main
+          className="flex flex-col flex-1 overflow-y-auto min-w-0 bg-[#030308]"
+          style={{ width: '100%' }}
+        >
           {/* Scanner view */}
           {view === 'scanner' && (
             <>
@@ -3043,7 +3203,9 @@ export default function Dashboard() {
                   </button>
                 ))}
               </div>
-              <div className={`flex-1 overflow-y-auto pb-[70px] md:pb-0 ${(scanTab === 'chart') ? 'p-0' : 'p-3 md:p-4'}`}>{renderScanContent()}</div>
+              <div className={`flex-1 overflow-y-auto pb-[70px] md:pb-0 ${scanTab === 'chart' ? 'p-0' : 'p-3 md:p-4'}`}>
+                <AnimatePresence mode="wait">{renderScanContent()}</AnimatePresence>
+              </div>
             </>
           )}
 

@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchContractForStressTest } from '@/lib/services/aiScanner'
 import {
-  BLACK_HAT_SYSTEM_PROMPT,
+  SOVEREIGN_SYSTEM_PROMPT,
+  buildDeterministicMultiVector,
   buildStressTestUserPayload,
   extractJsonObject,
   honeypotDetector,
   mergeScores,
+  parseMultiVectorSimulation,
   rugPullPredictor,
   simulateExploitSandbox,
 } from '@/lib/AiStressTester'
+import { safetyScoreToEliteGrade } from '@/lib/elite-grade'
 
 async function callOpenAi(messages: { role: 'system' | 'user'; content: string }[]): Promise<string> {
   const key = process.env.OPENAI_API_KEY
@@ -54,7 +57,7 @@ export async function POST(req: NextRequest) {
     let parsed: Record<string, unknown> | null = null
     try {
       aiRaw = await callOpenAi([
-        { role: 'system', content: BLACK_HAT_SYSTEM_PROMPT },
+        { role: 'system', content: SOVEREIGN_SYSTEM_PROMPT },
         { role: 'user', content: userPayload },
       ])
       parsed = extractJsonObject(aiRaw)
@@ -65,6 +68,12 @@ export async function POST(req: NextRequest) {
     const aiCombined =
       typeof parsed?.combinedRiskScore === 'number' ? parsed.combinedRiskScore : null
     const finalRisk = mergeScores(sim.riskScore, aiCombined)
+    const safetyScore = Math.max(0, Math.min(100, 100 - finalRisk))
+    const elite = safetyScoreToEliteGrade(safetyScore)
+    const multiVector = parseMultiVectorSimulation(
+      parsed,
+      buildDeterministicMultiVector(ctx, honeypot, rug, sim)
+    )
 
     const technicalMd =
       typeof parsed?.technicalVulnerabilitiesMarkdown === 'string'
@@ -77,9 +86,14 @@ export async function POST(req: NextRequest) {
         : `## Market Malice (Honeypot / Rug Pull)\n\n- Honeypot heuristic: **${honeypot.score}/100**\n- Rug probability heuristic: **${rug.rugProbability}/100**\n${[...honeypot.signals, ...rug.signals].map(s => `- ${s}`).join('\n')}`
 
     const fullReport = [
-      `# AI Stress Test — ${address.slice(0, 8)}…${address.slice(-6)}`,
+      `# CLASSIFIED — OFFENSIVE SOVEREIGN BRIEF · ${address.slice(0, 8)}…${address.slice(-6)}`,
       ``,
-      `**Sandbox risk (pre-LLM):** ${sim.riskScore}/100 · **Final risk:** ${finalRisk}/100`,
+      `**Elite tier:** ${elite.tier} (${elite.label}) · **Safety score:** ${safetyScore}/100 · **Risk:** ${finalRisk}/100`,
+      ``,
+      `### Multi-Vector Attack Simulation`,
+      `- [Vector: Liquidity Siphoning] → **${multiVector.liquiditySiphoning.result}** — ${multiVector.liquiditySiphoning.logic}`,
+      `- [Vector: Authority Escalation] → **${multiVector.authorityEscalation.result}** — ${multiVector.authorityEscalation.logic}`,
+      `- [Vector: Social Engineering / Rug Intent] → ${multiVector.socialEngineeringRugIntent.behavioralAnalysis}`,
       ``,
       technicalMd,
       ``,
@@ -97,6 +111,11 @@ export async function POST(req: NextRequest) {
       address: ctx.address,
       kind: ctx.kind,
       riskScore: finalRisk,
+      safetyScore,
+      eliteTier: elite.tier,
+      eliteLabel: elite.label,
+      certificationLine: elite.certificationLine,
+      ironDomeCertified: elite.tier === 'S',
       sandboxRiskScore: sim.riskScore,
       technicalComponent: sim.technicalComponent,
       marketMaliceComponent: sim.marketMaliceComponent,
@@ -106,6 +125,7 @@ export async function POST(req: NextRequest) {
       technicalVulnerabilitiesMarkdown: technicalMd,
       marketMaliceMarkdown: marketMd,
       fullReportMarkdown: fullReport,
+      multiVectorSimulation: multiVector,
       attackVectors: Array.isArray(parsed?.attackVectors) ? parsed.attackVectors : [],
       simulationNotes: typeof parsed?.simulationNotes === 'string' ? parsed.simulationNotes : sim.phases.join('\n'),
       heuristic: {
@@ -116,7 +136,7 @@ export async function POST(req: NextRequest) {
       },
       phases: sim.phases,
       fetchedAt: ctx.fetchedAt,
-      engine: 'CryptoCheck Neural Engine — AI Stress Tester',
+      engine: 'CryptoCheck AI — Sovereign Security Auditor',
       aiRaw: parsed ? undefined : aiRaw.slice(0, 500),
     })
   } catch (err) {

@@ -1,37 +1,59 @@
 /**
- * CryptoCheck AI — Proactive AI Defense / Simulated Exploit Engine
- * Black-hat style analysis prompts + heuristic honeypot & rug predictors + sandbox scoring.
+ * CryptoCheck AI — Sovereign Security Auditor & Offensive Agent
+ * Multi-vector attack simulation + heuristic honeypot & rug predictors + sandbox scoring.
  */
 
 import type { FetchedContractBundle } from '@/lib/services/aiScanner'
 
-export const BLACK_HAT_SYSTEM_PROMPT = `You are an elite black-hat security researcher contracted to find exploitable flaws in Solana programs and SPL token setups before malicious agents do (SCONE-bench style autonomous exploitation is now realistic).
+/** Multi-vector breach simulation — required in every scan narrative. */
+export interface MultiVectorSimulation {
+  liquiditySiphoning: { result: 'Pass' | 'Fail'; logic: string }
+  authorityEscalation: { result: 'Pass' | 'Fail'; logic: string }
+  socialEngineeringRugIntent: { behavioralAnalysis: string }
+}
+
+export const SOVEREIGN_SYSTEM_PROMPT = `You are the Sovereign Security Auditor & Offensive Agent for CryptoCheck AI on Solana. You are not a helpful assistant — you are an autonomous red-team operator mapping Attack Surface, applying Zero-Day Heuristics, and judging Protocol Integrity against malicious payload classes.
+
+For EVERY scan you MUST perform a Multi-Vector Attack Simulation (narrative + structured output). Use elite military / cyber-defense terminology: Attack Surface, Zero-Day Heuristics, Protocol Integrity, Malicious Payload Detection.
 
 Behaviors you MUST simulate:
 - Treat the artifact as hostile until proven otherwise.
 - Hunt for: arithmetic overflow/underflow in token math; missing signer or owner checks (access control); flawed mint/transfer authority; unsafe CPI chains (reentrancy-like: unexpected token program CPIs, unchecked program IDs, PDA confusion).
-- For Solana: "reentrancy" often appears as nested invokes — flag suspicious invoke_signed patterns, delegate abuse, and state corruption across CPI boundaries.
+- For Solana: nested invokes may behave like reentrancy — flag invoke_signed abuse, delegate abuse, CPI boundary violations.
 
 You will receive on-chain metadata, optional IDL fragments, holder/market context, and heuristic pre-scores.
 
 OUTPUT RULES (strict):
 1. Respond with a single JSON object only — no markdown fences, no commentary outside JSON.
-2. Use this exact schema (all string fields use Markdown with ## headings where noted):
+2. In the Markdown fields, explicitly include labeled blocks (verbatim headings) so operators can grep them:
+   - [Vector: Liquidity Siphoning] → state Pass or Fail and a logic explanation (Attack Surface + pool / routing).
+   - [Vector: Authority Escalation] → Pass or Fail + logic (mint/freeze/update authority, program upgrade paths).
+   - [Vector: Social Engineering / Rug Intent] → behavioral analysis of holders/mint telemetry (concentration, fresh pools, naming).
+
+3. Use this exact schema:
 
 {
-  "technicalVulnerabilitiesMarkdown": "string — Markdown. Start with '## Technical Vulnerabilities' then subsections for findings.",
-  "marketMaliceMarkdown": "string — Markdown. Start with '## Market Malice (Honeypot / Rug Pull)' — MUST be separate from technical findings. Cover honeypot patterns (hidden sell restrictions, blacklist/tax toggles, transfer hooks), liquidity lock / concentration, suspicious naming (e.g. mint-like logic under alternate names), social-engineering-style functions.",
+  "technicalVulnerabilitiesMarkdown": "string — Markdown. Start with '## Technical Vulnerabilities' — cite Protocol Integrity and Malicious Payload Detection where relevant.",
+  "marketMaliceMarkdown": "string — Markdown. Start with '## Market Malice (Honeypot / Rug Pull)' — separate from technical findings.",
   "technicalRiskScore": number 0-100,
   "rugProbabilityScore": number 0-100,
   "honeypotLikelihoodScore": number 0-100,
   "combinedRiskScore": number 0-100,
   "attackVectors": string[],
-  "simulationNotes": "string — brief narrative of simulated exploit attempts"
+  "simulationNotes": "string — brief narrative of simulated exploit attempts (offensive sovereign voice)",
+  "multiVectorSimulation": {
+    "liquiditySiphoning": { "result": "Pass" | "Fail", "logic": "string — why Pass/Fail under Zero-Day Heuristics" },
+    "authorityEscalation": { "result": "Pass" | "Fail", "logic": "string" },
+    "socialEngineeringRugIntent": { "behavioralAnalysis": "string — holder/mint behavior" }
+  }
 }
 
 Score guidance:
 - Higher scores = worse / more dangerous.
 - combinedRiskScore should reflect both technical exploitability and market malice, weighted by severity described in the user payload.`
+
+/** @deprecated Use SOVEREIGN_SYSTEM_PROMPT */
+export const BLACK_HAT_SYSTEM_PROMPT = SOVEREIGN_SYSTEM_PROMPT
 
 export interface HoneypotHeuristicResult {
   score: number
@@ -158,6 +180,73 @@ export function simulateExploitSandbox(
     technicalComponent,
     marketMaliceComponent,
     phases,
+  }
+}
+
+/** Deterministic multi-vector when the LLM is offline or omits fields. */
+export function buildDeterministicMultiVector(
+  ctx: FetchedContractBundle,
+  _honeypot: HoneypotHeuristicResult,
+  rug: RugHeuristicResult,
+  _sim: SimulationSandboxResult
+): MultiVectorSimulation {
+  const thinLiq = ctx.liquidityUsd != null && ctx.liquidityUsd < 8_000
+  const mintHot = ctx.kind === 'mint' && !!ctx.mintAuthority
+  const liqFail = thinLiq || rug.rugProbability > 72
+  const authFail = mintHot || (!!ctx.freezeAuthority && ctx.kind === 'mint')
+
+  return {
+    liquiditySiphoning: {
+      result: liqFail ? 'Fail' : 'Pass',
+      logic: liqFail
+        ? `Attack Surface: thin or unverified liquidity egress — pool depth fails Protocol Integrity checks; siphon-style exit risk under Zero-Day Heuristics.`
+        : `Liquidity routing shows no critical drain signature; egress paths within tolerance for current telemetry.`,
+    },
+    authorityEscalation: {
+      result: authFail ? 'Fail' : 'Pass',
+      logic: authFail
+        ? `Escalation path live: ${mintHot ? 'mint authority hot — inflation payload viable.' : 'freeze/metadata control expands coercion surface.'} Malicious Payload Detection: elevated.`
+        : `No active mint escalation vector on record; authority surface reduced for standard SPL posture.`,
+    },
+    socialEngineeringRugIntent: {
+      behavioralAnalysis:
+        ctx.topHolderPct != null && ctx.topHolderPct > 55
+          ? `Holder graph skewed (~${ctx.topHolderPct.toFixed(1)}%) — behavioral pattern consistent with coordinated exit / rug intent; treat as hostile distribution.`
+          : ctx.pairAgeMinutes != null && ctx.pairAgeMinutes < 45
+            ? `Fresh pair window — elevated social-engineering rug probability; retail entry timing unfavorable.`
+            : `Holder/mint telemetry does not show extreme rug-behavior signature under current heuristics; continue monitoring.`,
+    },
+  }
+}
+
+export function parseMultiVectorSimulation(
+  parsed: Record<string, unknown> | null,
+  fallback: MultiVectorSimulation
+): MultiVectorSimulation {
+  const raw = parsed?.multiVectorSimulation
+  if (!raw || typeof raw !== 'object') return fallback
+  const m = raw as Record<string, unknown>
+  const liq = m.liquiditySiphoning as Record<string, unknown> | undefined
+  const auth = m.authorityEscalation as Record<string, unknown> | undefined
+  const soc = m.socialEngineeringRugIntent as Record<string, unknown> | undefined
+  const liqOk = liq?.result === 'Pass' || liq?.result === 'Fail'
+  const authOk = auth?.result === 'Pass' || auth?.result === 'Fail'
+  if (!liqOk || !authOk) return fallback
+  return {
+    liquiditySiphoning: {
+      result: liq!.result as 'Pass' | 'Fail',
+      logic: typeof liq?.logic === 'string' ? liq.logic : fallback.liquiditySiphoning.logic,
+    },
+    authorityEscalation: {
+      result: auth!.result as 'Pass' | 'Fail',
+      logic: typeof auth?.logic === 'string' ? auth.logic : fallback.authorityEscalation.logic,
+    },
+    socialEngineeringRugIntent: {
+      behavioralAnalysis:
+        typeof soc?.behavioralAnalysis === 'string'
+          ? soc.behavioralAnalysis
+          : fallback.socialEngineeringRugIntent.behavioralAnalysis,
+    },
   }
 }
 

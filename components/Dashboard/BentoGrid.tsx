@@ -2,17 +2,30 @@
 
 import ReactMarkdown from 'react-markdown'
 import { useMemo } from 'react'
+import SecurityTerminal from '@/components/SecurityTerminal'
 
 export type StressPhase = 'idle' | 'analyzing' | 'simulating'
+
+export interface MultiVectorApi {
+  liquiditySiphoning: { result: 'Pass' | 'Fail'; logic: string }
+  authorityEscalation: { result: 'Pass' | 'Fail'; logic: string }
+  socialEngineeringRugIntent: { behavioralAnalysis: string }
+}
 
 export interface StressTestApiResult {
   address: string
   kind: string
   riskScore: number
+  safetyScore?: number
+  eliteTier?: string
+  eliteLabel?: string
+  certificationLine?: string
+  ironDomeCertified?: boolean
   sandboxRiskScore: number
   technicalVulnerabilitiesMarkdown: string
   marketMaliceMarkdown: string
   fullReportMarkdown: string
+  multiVectorSimulation?: MultiVectorApi
   simulationNotes?: string
   phases?: string[]
 }
@@ -51,7 +64,7 @@ export default function BentoGrid({
 
   return (
     <>
-      <div className="px-3 md:px-4 py-3 border-b border-[rgba(139,92,246,0.2)] bg-gradient-to-r from-[#0a0518] via-[#0c0c18] to-[#050510]">
+      <div className="px-3 md:px-4 py-3 border-b border-white/[0.06] bg-gradient-to-r from-[#030308] via-[#050510] to-[#020204] backdrop-blur-md">
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="text-[0.58rem] font-bold tracking-[0.12em] text-[#a78bfa] font-mono uppercase">Proactive Defense</div>
           <span className="text-[0.5rem] text-[#6b7280] font-mono">{shortAddr}</span>
@@ -89,9 +102,12 @@ export default function BentoGrid({
           </div>
         </div>
         {stressLoading && (
-          <div className="mt-2 flex items-center gap-2 text-[0.58rem] text-[#c4b5fd] font-mono">
-            <span className="inline-flex h-2 w-2 rounded-full bg-violet-400 animate-pulse shadow-[0_0_8px_#a78bfa]" />
-            {phaseLabel}
+          <div className="mt-3 space-y-2">
+            <div className="flex items-center gap-2 text-[0.58rem] text-[#c8ff00] font-mono">
+              <span className="inline-flex h-2 w-2 rounded-full bg-[#c8ff00] animate-pulse shadow-[0_0_8px_#c8ff00]" />
+              {phaseLabel}
+            </div>
+            <SecurityTerminal active variant="stress" />
           </div>
         )}
         {stressError && <div className="mt-2 text-[0.58rem] text-red-400 font-mono">{stressError}</div>}
@@ -104,11 +120,33 @@ export default function BentoGrid({
             role="dialog"
             aria-modal="true"
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(139,92,246,0.2)] bg-gradient-to-r from-violet-950/50 to-fuchsia-950/30">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.08] bg-[#050508]/95">
               <div>
-                <div className="text-[0.55rem] font-mono text-[#a78bfa] tracking-wider uppercase">Neural Engine — Stress Report</div>
-                <div className="text-sm font-bold text-[#f5f3ff] mt-0.5">
-                  Risk {stressResult.riskScore}/100 · {stressResult.kind}
+                <div className="text-[0.55rem] font-mono text-[#c8ff00] tracking-wider uppercase">
+                  Sovereign Brief — Multi-Vector Simulation
+                </div>
+                <div className="text-sm font-bold text-[#e8eaed] mt-0.5 font-mono">
+                  {stressResult.eliteTier ? (
+                    <>
+                      Tier{' '}
+                      <span
+                        className={
+                          stressResult.eliteTier === 'S' || stressResult.eliteTier === 'A'
+                            ? 'text-[#c8ff00]'
+                            : stressResult.eliteTier === 'F' || stressResult.eliteTier === 'D'
+                              ? 'text-[#ff5722]'
+                              : 'text-amber-400'
+                        }
+                      >
+                        {stressResult.eliteTier}
+                      </span>
+                      {stressResult.eliteLabel ? ` · ${stressResult.eliteLabel}` : ''}
+                    </>
+                  ) : null}
+                  <span className="text-[#8b949e] font-normal">
+                    {' '}
+                    · Risk {stressResult.riskScore}/100 · {stressResult.kind}
+                  </span>
                 </div>
               </div>
               <button
@@ -119,7 +157,48 @@ export default function BentoGrid({
                 Close
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#030308]">
+              {stressResult.multiVectorSimulation && (
+                <section className="rounded-lg border border-[#c8ff00]/20 bg-white/[0.03] backdrop-blur-md p-3 space-y-2">
+                  <div className="text-[0.55rem] font-bold text-[#c8ff00] font-mono tracking-wider uppercase">
+                    Multi-Vector Attack Simulation
+                  </div>
+                  <div className="text-[0.6rem] font-mono text-[#b8c5d4] space-y-1.5">
+                    <p>
+                      <span className="text-[#8b949e]">[Vector: Liquidity Siphoning]</span>{' '}
+                      <span
+                        className={
+                          stressResult.multiVectorSimulation.liquiditySiphoning.result === 'Fail'
+                            ? 'text-[#ff5722]'
+                            : 'text-[#c8ff00]'
+                        }
+                      >
+                        {stressResult.multiVectorSimulation.liquiditySiphoning.result}
+                      </span>
+                      <span className="text-[#6b7a90]"> — </span>
+                      {stressResult.multiVectorSimulation.liquiditySiphoning.logic}
+                    </p>
+                    <p>
+                      <span className="text-[#8b949e]">[Vector: Authority Escalation]</span>{' '}
+                      <span
+                        className={
+                          stressResult.multiVectorSimulation.authorityEscalation.result === 'Fail'
+                            ? 'text-[#ff5722]'
+                            : 'text-[#c8ff00]'
+                        }
+                      >
+                        {stressResult.multiVectorSimulation.authorityEscalation.result}
+                      </span>
+                      <span className="text-[#6b7a90]"> — </span>
+                      {stressResult.multiVectorSimulation.authorityEscalation.logic}
+                    </p>
+                    <p>
+                      <span className="text-[#8b949e]">[Vector: Social Engineering / Rug Intent]</span>{' '}
+                      {stressResult.multiVectorSimulation.socialEngineeringRugIntent.behavioralAnalysis}
+                    </p>
+                  </div>
+                </section>
+              )}
               <section className="rounded-lg border border-[rgba(59,130,246,0.2)] bg-[#0c0c18] p-3">
                 <div className="text-[0.55rem] font-bold text-[#60a5fa] font-mono mb-2 tracking-wider">TECHNICAL VULNERABILITIES</div>
                 <div className={mdClass}>

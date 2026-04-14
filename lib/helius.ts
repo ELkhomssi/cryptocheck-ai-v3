@@ -74,36 +74,92 @@ export interface PortfolioHolding {
   score:    number
 }
 
-// ── Core RPC call ──────────────────────────────
+// ── Core RPC call (multi-endpoint failover) ──
 
-export async function rpcCall<T = unknown>(
-  method: string,
-  params: unknown[] = []
-): Promise<T> {
-  const res = await fetch(HELIUS_RPC, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-  })
-  const data = await res.json()
-  if (data.error) throw new Error(data.error.message ?? 'RPC error')
-  return data.result as T
+function rpcErrorIsFailoverWorthy(err: { code?: number; message?: string } | undefined): boolean {
+  if (!err) return false
+  const c = err.code
+  const m = String(err.message ?? '').toLowerCase()
+  return (
+    c === -32005 ||
+    c === -32603 ||
+    c === 429 ||
+    m.includes('429') ||
+    m.includes('503') ||
+    m.includes('timed out') ||
+    m.includes('timeout') ||
+    m.includes('rate limit') ||
+    m.includes('too many requests') ||
+    m.includes('overloaded') ||
+    m.includes('load') ||
+    m.includes('try again')
+  )
+}
+
+export function getRpcEndpoints(): string[] {
+  const key = process.env.NEXT_PUBLIC_HELIUS_KEY || process.env.HELIUS_KEY || HELIUS_KEY
+  const primary = `https://mainnet.helius-rpc.com/?api-key=${key}`
+  const extra = [process.env.SOLANA_RPC_FALLBACK_URL, process.env.NEXT_PUBLIC_SOLANA_RPC_URL].filter(
+    Boolean
+  ) as string[]
+  const publicFallback = 'https://api.mainnet-beta.solana.com'
+  return Array.from(new Set([primary, ...extra, publicFallback]))
+}
+
+export async function rpcCall<T = unknown>(method: string, params: unknown[] = []): Promise<T> {
+  const payload = { jsonrpc: '2.0', id: 1, method, params }
+  const endpoints = getRpcEndpoints()
+  let lastMessage = 'RPC error'
+  for (let i = 0; i < endpoints.length; i++) {
+    const url = endpoints[i]
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (data.error) {
+        lastMessage = data.error.message ?? 'RPC error'
+        if (rpcErrorIsFailoverWorthy(data.error) && i < endpoints.length - 1) continue
+        throw new Error(lastMessage)
+      }
+      if (!res.ok && i < endpoints.length - 1) continue
+      return data.result as T
+    } catch (e) {
+      lastMessage = e instanceof Error ? e.message : String(e)
+      if (i < endpoints.length - 1) continue
+      throw e instanceof Error ? e : new Error(lastMessage)
+    }
+  }
+  throw new Error(lastMessage)
 }
 
 // ── Helius REST API ────────────────────────────
 
-export async function heliusRest<T = unknown>(
-  path: string,
-  body?: unknown
-): Promise<T> {
-  const url = `${HELIUS_API}${path}?api-key=${HELIUS_KEY}`
-  const res = await fetch(url, {
-    method: body ? 'POST' : 'GET',
-    headers: { 'Content-Type': 'application/json' },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  })
-  if (!res.ok) throw new Error(`Helius API ${res.status}: ${await res.text()}`)
-  return res.json() as Promise<T>
+export async function heliusRest<T = unknown>(path: string, body?: unknown): Promise<T> {
+  const key = process.env.NEXT_PUBLIC_HELIUS_KEY || process.env.HELIUS_KEY || HELIUS_KEY
+  const url = `${HELIUS_API}${path}?api-key=${key}`
+  let lastErr: Error | null = null
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(url, {
+        method: body ? 'POST' : 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      })
+      if (res.status === 429 || res.status === 503) {
+        await new Promise((r) => setTimeout(r, 350 * (attempt + 1)))
+        continue
+      }
+      if (!res.ok) throw new Error(`Helius API ${res.status}: ${await res.text()}`)
+      return res.json() as Promise<T>
+    } catch (e) {
+      lastErr = e instanceof Error ? e : new Error(String(e))
+      if (attempt < 2) await new Promise((r) => setTimeout(r, 300 * (attempt + 1)))
+    }
+  }
+  throw lastErr ?? new Error('Helius API failed')
 }
 
 // ── DAS RPC (getAssetsByOwner) ─────────────────
