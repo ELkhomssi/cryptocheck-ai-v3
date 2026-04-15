@@ -11,6 +11,7 @@ import type { ProFeatureContext } from '@/lib/auth/pro-feature-access'
 import type { PlatformScanResponse } from '@/lib/types/platform-scan-api'
 import type { SubscriptionTier } from '@/lib/types/tier'
 import { getUserSubscription } from '@/lib/services/user-subscription.service'
+import { mergeWithRateLimitHeaders } from '@/lib/api/scan-api-errors'
 
 export const dynamic = 'force-dynamic'
 
@@ -84,7 +85,10 @@ export async function POST(req: NextRequest) {
       },
       {
         status: 429,
-        headers: { 'Retry-After': String(retrySec) },
+        headers: {
+          'Retry-After': String(retrySec),
+          ...mergeWithRateLimitHeaders({ limit: daily.limit, remaining: daily.remaining, reset: daily.reset }),
+        },
       }
     )
   }
@@ -139,10 +143,14 @@ export async function POST(req: NextRequest) {
       results,
     },
     {
-      headers: {
-        'X-Request-Id': requestId,
-        'X-Response-Time-Ms': String(Date.now() - started),
-      },
+      headers: mergeWithRateLimitHeaders(
+        { limit: daily.limit, remaining: daily.remaining, reset: daily.reset },
+        {
+          'X-Request-Id': requestId,
+          'X-Response-Time-Ms': String(Date.now() - started),
+          'X-CryptoCheck-Sentinel-Tier': sentinelTier,
+        }
+      ),
     }
   )
 }
