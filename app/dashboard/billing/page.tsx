@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { GlassCard } from '@/components/Dashboard/GlassCard'
 
 type Me = {
   subscription: {
@@ -61,61 +62,72 @@ function BillingInner() {
     else setMsg(j.error || 'Portal unavailable (subscribe to a paid plan first).')
   }
 
-  if (!me) return <p className="text-zinc-500">Loading…</p>
+  if (!me) {
+    return <p className="text-sm font-medium tracking-wide text-slate-500">Loading subscription…</p>
+  }
+
+  const sentinel = ['PRO', 'ENTERPRISE'].includes(me.subscription.effectiveTier.toUpperCase())
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="font-mono text-2xl font-semibold text-white">Billing</h1>
-        <p className="mt-1 text-sm text-zinc-500">Stripe subscription, invoices, and upgrades.</p>
-      </div>
+    <div className="space-y-10">
+      <header className="max-w-2xl">
+        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Commercial</p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-200">Subscription &amp; billing</h1>
+        <p className="mt-2 text-sm font-medium text-slate-400">
+          Stripe-backed contracts, invoices, and upgrades — aligned to intelligence throughput.
+        </p>
+      </header>
 
       {msg && (
-        <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+        <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/[0.08] px-4 py-3 text-sm font-medium text-emerald-200/95">
           {msg}
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-5">
-          <p className="text-xs uppercase text-zinc-500">Current plan</p>
-          <p className="mt-2 font-mono text-xl text-white">{me.subscription.effectiveTier}</p>
-          <p className="mt-1 text-sm text-zinc-500">
-            Status: {me.subscription.status ?? '—'}
-            {me.subscription.currentPeriodEnd && (
-              <>
-                {' '}
-                · Renews / ends: {new Date(me.subscription.currentPeriodEnd).toLocaleDateString()}
-              </>
+      <div className="grid grid-cols-12 gap-6">
+        <div className="col-span-12 md:col-span-6">
+          <GlassCard accent={sentinel ? 'sentinel' : 'default'} className="p-6">
+            <p className="text-[0.65rem] font-medium uppercase tracking-[0.2em] text-slate-500">Active plan</p>
+            <p className="mt-3 text-xl font-semibold tabular-nums text-slate-200">{me.subscription.effectiveTier}</p>
+            <p className="mt-2 text-sm font-medium text-slate-500">
+              Status: {me.subscription.status ?? '—'}
+              {me.subscription.currentPeriodEnd && (
+                <>
+                  {' '}
+                  · Renews / ends: {new Date(me.subscription.currentPeriodEnd).toLocaleDateString()}
+                </>
+              )}
+            </p>
+            {me.subscription.cancelAtPeriodEnd && (
+              <p className="mt-3 text-sm font-medium text-amber-200/90">Cancels at period end.</p>
             )}
-          </p>
-          {me.subscription.cancelAtPeriodEnd && (
-            <p className="mt-2 text-sm text-amber-400">Cancels at period end.</p>
-          )}
+          </GlassCard>
         </div>
-        <div className="flex flex-col justify-center gap-2 rounded-xl border border-white/[0.08] p-5">
-          <button
-            type="button"
-            onClick={() => void upgrade('pro')}
-            className="rounded-lg bg-emerald-600 py-2.5 text-sm font-medium text-white hover:bg-emerald-500"
-          >
-            Upgrade to Pro
-          </button>
-          <button
-            type="button"
-            onClick={() => void upgrade('enterprise')}
-            className="rounded-lg border border-white/[0.12] py-2.5 text-sm text-white hover:bg-white/[0.04]"
-          >
-            Upgrade to Enterprise
-          </button>
-          <button
-            type="button"
-            onClick={() => void openPortal()}
-            disabled={!me.subscription.stripeCustomerId}
-            className="text-sm text-zinc-400 underline decoration-zinc-600 hover:text-white disabled:opacity-40"
-          >
-            Manage subscription & invoices (Stripe portal)
-          </button>
+        <div className="col-span-12 flex flex-col justify-center gap-3 md:col-span-6">
+          <GlassCard className="p-6">
+            <button
+              type="button"
+              onClick={() => void upgrade('pro')}
+              className="w-full rounded-lg border border-emerald-500/35 bg-emerald-500/15 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-200 transition-all duration-150 ease-out hover:-translate-y-0.5 hover:bg-emerald-500/25"
+            >
+              Upgrade to Pro
+            </button>
+            <button
+              type="button"
+              onClick={() => void upgrade('enterprise')}
+              className="mt-3 w-full rounded-lg border border-white/[0.1] py-2.5 text-xs font-semibold uppercase tracking-[0.1em] text-slate-200 transition-all duration-150 ease-out hover:border-white/[0.14] hover:bg-white/[0.04]"
+            >
+              Upgrade to Enterprise
+            </button>
+            <button
+              type="button"
+              onClick={() => void openPortal()}
+              disabled={!me.subscription.stripeCustomerId}
+              className="mt-4 w-full text-left text-sm font-medium text-slate-500 underline decoration-slate-600 underline-offset-2 transition-colors hover:text-slate-300 disabled:opacity-40"
+            >
+              Manage subscription & invoices (Stripe portal)
+            </button>
+          </GlassCard>
         </div>
       </div>
     </div>
@@ -124,7 +136,7 @@ function BillingInner() {
 
 export default function BillingPage() {
   return (
-    <Suspense fallback={<p className="text-zinc-500">Loading…</p>}>
+    <Suspense fallback={<p className="text-sm font-medium text-slate-500">Loading…</p>}>
       <BillingInner />
     </Suspense>
   )

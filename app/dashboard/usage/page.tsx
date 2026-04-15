@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react'
 import {
   Area,
   AreaChart,
-  CartesianGrid,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts'
+import { GlassCard } from '@/components/Dashboard/GlassCard'
 
 type Bundle = {
   series: { date: string; count: number }[]
@@ -30,70 +30,127 @@ export default function UsagePage() {
   }, [])
 
   if (!data) {
-    return <p className="text-zinc-500">Loading usage…</p>
+    return (
+      <p className="text-sm font-medium tracking-wide text-slate-500">Loading intelligence operations…</p>
+    )
   }
 
   const chartData = data.series.map((d) => ({ ...d, label: d.date.slice(5) }))
   const quotaPct = Math.min(100, (data.quota.used / Math.max(1, data.quota.limit)) * 100)
+  const sentinelMode = ['institutional', 'pro'].includes(data.runtimeTier)
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="font-mono text-2xl font-semibold text-white">Usage</h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          Tier <span className="text-zinc-300">{data.runtimeTier}</span> — requests logged from API scans.
+    <div className="space-y-10">
+      <header className="max-w-2xl">
+        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-slate-500">
+          Intelligence operations
         </p>
-      </div>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-200">Throughput &amp; latency</h1>
+        <p className="mt-2 text-sm font-medium text-slate-400">
+          Runtime tier{' '}
+          <span className="font-semibold text-slate-300">{data.runtimeTier}</span> — security analyses and API
+          intelligence routes.
+        </p>
+      </header>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-12 gap-6">
         {[
-          ['Quota used', `${data.quota.used} / ${data.quota.limit}`],
-          ['Remaining', String(data.quota.remaining)],
-          ['p95 latency (ms)', String(Math.round(data.latency.p95))],
-          ['Error rate', `${(data.errors.rate * 100).toFixed(1)}%`],
-        ].map(([a, b]) => (
-          <div key={a} className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
-            <p className="text-xs uppercase text-zinc-500">{a}</p>
-            <p className="mt-1 font-mono text-lg text-white">{b}</p>
+          {
+            label: 'Operations today',
+            value: `${data.quota.used.toLocaleString()} / ${data.quota.limit.toLocaleString()}`,
+            hint: 'Intelligence cycles allocated against your daily system capacity.',
+          },
+          {
+            label: 'Headroom',
+            value: data.quota.remaining.toLocaleString(),
+            hint: 'Remaining analyses before UTC midnight reset.',
+          },
+          {
+            label: 'p95 latency',
+            value: `${Math.round(data.latency.p95)} ms`,
+            hint: 'End-to-end intelligence pipeline — sampled events only.',
+          },
+          {
+            label: 'Pipeline reliability',
+            value: `${(100 - data.errors.rate * 100).toFixed(1)}%`,
+            hint: `Derived from ${data.errors.total.toLocaleString()} monitored events (${data.errors.errors} anomalies).`,
+          },
+        ].map((card) => (
+          <div key={card.label} className="col-span-12 sm:col-span-6 xl:col-span-3">
+            <GlassCard accent={sentinelMode ? 'sentinel' : 'default'} className="h-full p-5">
+              <p className="text-[0.65rem] font-medium uppercase tracking-[0.2em] text-slate-500">{card.label}</p>
+              <p className="mt-3 font-semibold tabular-nums text-lg text-slate-200">{card.value}</p>
+              <p className="mt-2 text-xs font-medium leading-relaxed text-slate-500">{card.hint}</p>
+            </GlassCard>
           </div>
         ))}
-      </div>
 
-      <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
-        <p className="text-sm font-medium text-zinc-300">Daily requests</p>
-        <div className="mt-4 h-64 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.35} />
-                  <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-              <XAxis dataKey="label" stroke="#71717a" fontSize={11} />
-              <YAxis stroke="#71717a" fontSize={11} />
-              <Tooltip
-                contentStyle={{ background: '#0a0a0f', border: '1px solid #27272a' }}
-                labelStyle={{ color: '#a1a1aa' }}
+        <div className="col-span-12">
+          <GlassCard accent={sentinelMode ? 'sentinel' : 'default'} className="p-5">
+            <p className="text-sm font-semibold text-slate-200">Daily intelligence volume</p>
+            <p className="mt-1 text-xs font-medium text-slate-500">Smooth curve — no grid noise</p>
+            <div className="mt-5 h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="intel-fill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="rgb(45, 212, 191)" stopOpacity={0.28} />
+                      <stop offset="100%" stopColor="rgb(45, 212, 191)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="label"
+                    stroke="rgba(148,163,184,0.25)"
+                    tick={{ fill: 'rgba(148,163,184,0.75)', fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    stroke="rgba(148,163,184,0.25)"
+                    tick={{ fill: 'rgba(148,163,184,0.75)', fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={36}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: 'rgba(10,10,11,0.92)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: 8,
+                      fontSize: 12,
+                      color: '#e2e8f0',
+                    }}
+                    labelStyle={{ color: '#94a3b8' }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="count"
+                    stroke="rgb(45, 212, 191)"
+                    strokeWidth={2}
+                    fill="url(#intel-fill)"
+                    dot={false}
+                    activeDot={{ r: 3, strokeWidth: 0, fill: 'rgb(34, 211, 238)' }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </GlassCard>
+        </div>
+
+        <div className="col-span-12">
+          <GlassCard className="p-5">
+            <p className="text-sm font-semibold text-slate-200">System capacity</p>
+            <p className="mt-1 text-xs font-medium text-slate-500">
+              Resets at UTC midnight · Latency sample: {data.latency.sample.toLocaleString()} instrumented events
+            </p>
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/[0.06]">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-emerald-600/90 to-cyan-500/85 shadow-[0_0_16px_rgba(16,185,129,0.25)] transition-[width] duration-700 ease-out"
+                style={{ width: `${quotaPct}%` }}
               />
-              <Area type="monotone" dataKey="count" stroke="#10b981" fill="url(#fill)" strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
+            </div>
+          </GlassCard>
         </div>
-      </div>
-
-      <div className="rounded-xl border border-white/[0.08] p-4">
-        <p className="text-sm font-medium text-zinc-300">Quota</p>
-        <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/[0.06]">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-emerald-600 to-emerald-400"
-            style={{ width: `${quotaPct}%` }}
-          />
-        </div>
-        <p className="mt-2 text-xs text-zinc-500">
-          Resets at UTC midnight. Sample size for latency: {data.latency.sample} events with duration metadata.
-        </p>
       </div>
     </div>
   )

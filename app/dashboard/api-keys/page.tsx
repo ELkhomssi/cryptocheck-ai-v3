@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { GlassCard } from '@/components/Dashboard/GlassCard'
 
 type KeyRow = {
   schema: 'v1' | 'v2'
@@ -61,117 +62,137 @@ export default function ApiKeysPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="font-mono text-2xl font-semibold text-white">API keys</h1>
-        <p className="mt-1 max-w-xl text-sm text-zinc-500">
-          <span className="text-zinc-300">v1</span> (<code className="text-emerald-400/90">cc_live_*</code>) — free tier.
-          <span className="mx-2 text-zinc-600">|</span>
-          <span className="text-zinc-300">v2 SENTINEL</span> (<code className="text-emerald-400/90">cc_sentinel_*</code>) — Pro /
-          Enterprise.
+    <div className="space-y-10">
+      <header className="max-w-2xl">
+        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Credentials</p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-200">API keys</h1>
+        <p className="mt-2 text-sm font-medium leading-relaxed text-slate-400">
+          <span className="text-slate-300">v1</span> (<code className="text-emerald-400/90">cc_live_*</code>) — standard
+          access.
+          <span className="mx-2 text-slate-600">|</span>
+          <span className="text-slate-300">v2 SENTINEL</span> (
+          <code className="text-cyan-400/90">cc_sentinel_*</code>) — Pro / Enterprise intelligence routes.
         </p>
-      </div>
+      </header>
 
-      <form onSubmit={createKey} className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-5">
-        <h2 className="text-sm font-medium text-zinc-300">Create key</h2>
-        <div className="mt-4 flex flex-wrap items-end gap-3">
-          <div>
-            <label className="block text-xs text-zinc-500">Name</label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1 rounded-md border border-white/[0.1] bg-black/40 px-3 py-2 font-mono text-sm text-white"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-zinc-500">Schema</label>
-            <select
-              value={schema}
-              onChange={(e) => setSchema(e.target.value as 'v1' | 'v2')}
-              className="mt-1 rounded-md border border-white/[0.1] bg-black/40 px-3 py-2 font-mono text-sm text-white"
+      <GlassCard className="p-6">
+        <h2 className="text-sm font-semibold text-slate-200">Provision credential</h2>
+        <form onSubmit={createKey} className="mt-5">
+          <div className="flex flex-wrap items-end gap-4">
+            <div>
+              <label className="block text-[0.65rem] font-medium uppercase tracking-[0.16em] text-slate-500">
+                Label
+              </label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="mt-2 min-w-[200px] rounded-lg border border-white/[0.08] bg-black/35 px-3 py-2 text-sm font-medium text-slate-200 outline-none transition-colors duration-150 focus:border-emerald-500/35 focus:ring-1 focus:ring-emerald-500/20"
+              />
+            </div>
+            <div>
+              <label className="block text-[0.65rem] font-medium uppercase tracking-[0.16em] text-slate-500">
+                Schema
+              </label>
+              <select
+                value={schema}
+                onChange={(e) => setSchema(e.target.value as 'v1' | 'v2')}
+                className="mt-2 rounded-lg border border-white/[0.08] bg-black/35 px-3 py-2 text-sm font-medium text-slate-200 outline-none transition-colors duration-150 focus:border-emerald-500/35"
+              >
+                <option value="v1">v1 — Free</option>
+                <option value="v2">v2 — Pro / Enterprise</option>
+              </select>
+            </div>
+            <button
+              type="submit"
+              className="rounded-lg border border-emerald-500/30 bg-emerald-500/15 px-5 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-200 transition-all duration-150 ease-out hover:-translate-y-0.5 hover:bg-emerald-500/25"
             >
-              <option value="v1">v1 — Free</option>
-              <option value="v2">v2 — Pro / Enterprise</option>
-            </select>
+              Generate
+            </button>
           </div>
-          <button
-            type="submit"
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
-          >
-            Generate
-          </button>
-        </div>
-        {err && <p className="mt-3 text-sm text-red-400">{err}</p>}
-        {secretOnce && (
-          <div className="mt-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 font-mono text-xs text-amber-100">
-            Copy now — shown once:
-            <div className="mt-2 break-all text-amber-50">{secretOnce}</div>
-          </div>
-        )}
-      </form>
+          {err && <p className="mt-4 text-sm font-medium text-rose-300/95">{err}</p>}
+          {secretOnce && (
+            <div className="mt-5 rounded-lg border border-amber-500/25 bg-amber-500/[0.08] p-4 font-mono text-xs text-amber-100/95">
+              Copy now — shown once:
+              <div className="mt-2 break-all text-amber-50/95">{secretOnce}</div>
+            </div>
+          )}
+        </form>
+      </GlassCard>
 
-      <div className="rounded-xl border border-white/[0.08] overflow-hidden">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-white/[0.06] bg-white/[0.02] text-xs uppercase text-zinc-500">
-            <tr>
-              <th className="px-4 py-3">Schema</th>
-              <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Prefix</th>
-              <th className="px-4 py-3">Created</th>
-              <th className="px-4 py-3">Last used</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
+      <GlassCard className="overflow-hidden p-0">
+        <div className="border-b border-white/[0.06] px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Issued credentials</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-left text-sm">
+            <thead className="border-b border-white/[0.06] bg-white/[0.02] text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-slate-500">
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">
-                  Loading…
-                </td>
+                <th className="px-5 py-3">Schema</th>
+                <th className="px-5 py-3">Name</th>
+                <th className="px-5 py-3">Prefix</th>
+                <th className="px-5 py-3">Created</th>
+                <th className="px-5 py-3">Last used</th>
+                <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3" />
               </tr>
-            ) : keys.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">
-                  No keys yet.
-                </td>
-              </tr>
-            ) : (
-              keys.map((k) => (
-                <tr key={`${k.schema}-${k.id}`} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
-                  <td className="px-4 py-3 font-mono text-zinc-300">{k.schema}</td>
-                  <td className="px-4 py-3">{k.name}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-zinc-400">{k.key_prefix}</td>
-                  <td className="px-4 py-3 text-zinc-500">{new Date(k.created_at).toLocaleDateString()}</td>
-                  <td className="px-4 py-3 text-zinc-500">
-                    {k.last_used_at ? new Date(k.last_used_at).toLocaleString() : '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={
-                        k.status === 'active' ? 'text-emerald-400' : 'text-zinc-500 line-through'
-                      }
-                    >
-                      {k.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {k.status === 'active' && (
-                      <button
-                        type="button"
-                        onClick={() => void revokeKey(k)}
-                        className="text-xs text-red-400 hover:underline"
-                      >
-                        Revoke
-                      </button>
-                    )}
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-5 py-10 text-center text-sm font-medium text-slate-500">
+                    Loading…
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : keys.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-5 py-10 text-center text-sm font-medium text-slate-500">
+                    No credentials yet.
+                  </td>
+                </tr>
+              ) : (
+                keys.map((k) => (
+                  <tr
+                    key={`${k.schema}-${k.id}`}
+                    className="border-b border-white/[0.04] transition-colors duration-100 hover:bg-white/[0.02]"
+                  >
+                    <td className="px-5 py-3 font-mono text-xs font-medium text-slate-400">{k.schema}</td>
+                    <td className="px-5 py-3 font-medium text-slate-300">{k.name}</td>
+                    <td className="px-5 py-3 font-mono text-xs text-slate-500">{k.key_prefix}</td>
+                    <td className="px-5 py-3 tabular-nums text-slate-500">
+                      {new Date(k.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-5 py-3 tabular-nums text-slate-500">
+                      {k.last_used_at ? new Date(k.last_used_at).toLocaleString() : '—'}
+                    </td>
+                    <td className="px-5 py-3">
+                      <span
+                        className={
+                          k.status === 'active'
+                            ? 'font-medium text-emerald-300/95'
+                            : 'text-slate-600 line-through'
+                        }
+                      >
+                        {k.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      {k.status === 'active' && (
+                        <button
+                          type="button"
+                          onClick={() => void revokeKey(k)}
+                          className="text-xs font-semibold text-rose-300/90 transition-colors hover:text-rose-200"
+                        >
+                          Revoke
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </GlassCard>
     </div>
   )
 }
