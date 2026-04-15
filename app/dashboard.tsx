@@ -22,6 +22,7 @@ import NeuralScanV4 from '@/components/NeuralScanV4'
 import ValueProtectedWidget from '@/components/ValueProtectedWidget'
 import NeuralAuditLog from '@/components/NeuralAuditLog'
 import InsiderWhaleIntel from '@/components/InsiderWhaleIntel'
+import { CryptoCheckLogo } from '@/components/brand/CryptoCheckLogo'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import ProMaxEliteDashboard from '@/components/ProMaxEliteDashboard'
 import BentoGrid, { type StressTestApiResult } from '@/components/Dashboard/BentoGrid'
@@ -2854,14 +2855,13 @@ export default function Dashboard() {
       {chartSwapModal && <ChartSwapModal mint={chartSwapModal.mint} symbol={chartSwapModal.symbol} initialTab={chartSwapModal.tab as any} onClose={() => setChartSwapModal(null)} />}
       {/* TrialWall removed - using Gated Access */}
       <header className="sticky top-0 z-[300] min-h-[48px] flex items-center justify-between px-3 md:px-4 flex-wrap gap-y-1 backdrop-blur-xl" style={{background:'#000',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
-        <a href="/" className="flex items-center gap-2 font-mono text-[0.82rem] font-bold text-white tracking-wider uppercase no-underline">
-          <img src="/logo.jpg" alt="CryptoCheck AI" style={{width:30,height:26,borderRadius:5,objectFit:'cover',flexShrink:0}}/>
-          CryptoCheck<span className="text-[#00d4aa]">AI</span>
-          <span className="text-[0.5rem] text-[#8b949e] ml-0.5">v3</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <CryptoCheckLogo />
+          <span className="text-[0.5rem] text-[#8b949e] ml-0.5 font-mono">v3</span>
           {isPro ? (
             <span style={{fontSize:'9px',fontWeight:700,padding:'2px 8px',borderRadius:4,fontFamily:'IBM Plex Mono,monospace',letterSpacing:'0.08em',background:'linear-gradient(135deg,rgba(212,175,55,0.15),rgba(212,175,55,0.05))',border:'1px solid rgba(212,175,55,0.35)',color:'#d4af37'}}>⭐ PRO</span>
           ) : null}
-        </a>
+        </div>
 
         {/* Desktop nav */}
         <div className="hidden lg:flex gap-0.5">

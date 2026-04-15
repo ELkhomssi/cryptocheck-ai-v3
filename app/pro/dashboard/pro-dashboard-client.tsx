@@ -10,6 +10,7 @@ import type { ProDashboardSession } from '@/lib/types/pro-dashboard'
 import type { EvidenceLine, ReasoningObject } from '@/lib/services/scanner-engine'
 import type { WeightedSecurityScore } from '@/lib/services/scanner/types'
 import type { ScanV1ApiResponse } from '@/lib/types/institutional-scan-api'
+import { CryptoCheckLogo } from '@/components/brand/CryptoCheckLogo'
 import { PulseFeed } from '@/components/pro/PulseFeed'
 import { InstitutionalHero } from '@/components/pro/institutional/InstitutionalHero'
 import { RiskBreakdownPanel } from '@/components/pro/institutional/RiskBreakdownPanel'
@@ -210,50 +211,7 @@ export function ProDashboardClient({
             borderBottom: '0.5px solid rgba(255,255,255,0.08)',
           }}
         >
-          <Link
-            href="/"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              textDecoration: 'none',
-              color: '#f4f4f5',
-              fontWeight: 600,
-              fontSize: 14,
-              letterSpacing: '-0.02em',
-            }}
-          >
-            <span
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 8,
-                background: 'linear-gradient(135deg,#059669,#10b981)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 11,
-                fontWeight: 800,
-                color: '#020617',
-              }}
-            >
-              CC
-            </span>
-            CryptoCheck<span style={{ color: '#6ee7b7' }}>AI</span>
-            <span
-              style={{
-                fontSize: 9,
-                fontWeight: 700,
-                letterSpacing: '0.14em',
-                color: '#64748b',
-                border: '0.5px solid rgba(16,185,129,0.25)',
-                padding: '3px 8px',
-                borderRadius: 6,
-              }}
-            >
-              INSTITUTIONAL
-            </span>
-          </Link>
+          <CryptoCheckLogo variant="institutional" />
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
             <Link
               href="/"

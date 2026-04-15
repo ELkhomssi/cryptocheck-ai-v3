@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google'
 import { SolanaProvider } from '@/components/SolanaProvider'
 import { Analytics } from '@vercel/analytics/react'
@@ -17,19 +17,25 @@ const ibmSans = IBM_Plex_Sans({
   variable: '--font-sans',
   display: 'swap',
 })
-export const metadata = {
+export const metadata: Metadata = {
   icons: { icon: '/logo.jpg', apple: '/logo.jpg' },
   title: 'CryptoCheck AI — Solana Token Intelligence',
   description: 'Institutional-grade Neural Scan, AI Predictions, Whale Tracking for Solana traders',
   keywords: ['Solana', 'token scanner', 'rug detection', 'DeFi', 'blockchain analytics', 'Helius'],
   authors: [{ name: 'CryptoCheck AI' }],
+}
+
+/** Next.js 14+ — themeColor belongs on `viewport`, not `metadata`. */
+export const viewport: Viewport = {
   themeColor: '#030308',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
 }
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${ibmMono.variable} ${ibmSans.variable}`}>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⬡</text></svg>" />
       </head>
       <body className="font-mono antialiased" style={{ backgroundColor: "#050510", minHeight: "100vh" }}>

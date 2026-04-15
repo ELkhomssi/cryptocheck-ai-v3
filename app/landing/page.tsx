@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { GeistSans } from 'geist/font/sans'
+import { CryptoCheckLogo } from '@/components/brand/CryptoCheckLogo'
 import { supabase } from '@/lib/supabase'
 
 export default function LandingPage() {
@@ -54,10 +55,7 @@ export default function LandingPage() {
     <div className={GeistSans.className} style={{ background:'#000', color:'#e2e8f0', overflow:'hidden', fontFamily:"var(--font-geist-sans), 'IBM Plex Mono', 'JetBrains Mono', monospace" }}>
       {/* NAV */}
       <nav style={{ position:'fixed',top:0,left:0,right:0,zIndex:1000,minHeight:56,display:'flex',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',padding:'8px clamp(16px,4vw,32px)',background:scrollY>50?'rgba(0,0,0,0.92)':'transparent',backdropFilter:scrollY>50?'blur(20px)':'none',borderBottom:scrollY>50?'1px solid rgba(32,178,170,0.1)':'1px solid transparent',transition:'all 0.3s ease' }}>
-        <Link href="/" style={{ display:'flex',alignItems:'center',gap:10,textDecoration:'none',color:'inherit' }}>
-          <div style={{ width:32,height:32,background:'linear-gradient(135deg,#20b2aa,#00d4aa)',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:800,color:'#000' }}>CC</div>
-          <span style={{ fontSize:14,fontWeight:700,color:'#fff',letterSpacing:'-0.02em' }}>Crypto<span style={{ color:'#20b2aa' }}>Check</span>AI</span>
-        </Link>
+        <CryptoCheckLogo />
         <div style={{ display:'flex',alignItems:'center',gap:20 }}>
           <a href="#how-it-works" className="lp-nav-link" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.05em' }}>How it Works</a>
           <a href="#features" className="lp-nav-link" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.05em' }}>Features</a>
