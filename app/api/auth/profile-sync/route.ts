@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { ensureFreeTierSubscription } from '@/lib/services/saas-entitlement.service'
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,6 +30,12 @@ export async function POST(req: NextRequest) {
     if (error) {
       console.error('[PROFILE SYNC] Upsert error:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    try {
+      await ensureFreeTierSubscription(id)
+    } catch (e) {
+      console.error('[PROFILE SYNC] saas_subscriptions FREE tier:', e)
     }
 
     return NextResponse.json({ ok: true })

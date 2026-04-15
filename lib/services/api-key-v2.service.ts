@@ -84,6 +84,40 @@ export async function createInstitutionalApiKey(
   }
 }
 
+export async function listInstitutionalApiKeys(userId: string): Promise<
+  Array<{
+    id: string
+    key_id: string
+    key_prefix: string
+    name: string
+    status: string
+    tier: string
+    created_at: string
+    last_used_at: string | null
+    revoked_at: string | null
+  }>
+> {
+  const sb = getSupabaseAdmin()
+  const { data, error } = await sb
+    .from('api_keys_v2')
+    .select('id, key_id, key_prefix, name, status, tier, created_at, last_used_at, revoked_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as Array<{
+    id: string
+    key_id: string
+    key_prefix: string
+    name: string
+    status: string
+    tier: string
+    created_at: string
+    last_used_at: string | null
+    revoked_at: string | null
+  }>
+}
+
 /**
  * Verify raw key against api_keys_v2 (current or grace-period previous hash).
  */

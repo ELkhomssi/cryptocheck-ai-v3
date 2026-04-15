@@ -64,28 +64,55 @@ export async function POST(req: NextRequest) {
 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Record<string, unknown>
+      const meta = session.metadata as Record<string, string> | undefined
       const email =
         (session.customer_email as string) ||
         (session.customer_details as { email?: string } | undefined)?.email ||
-        (session.metadata as { email?: string } | undefined)?.email
+        meta?.email
 
-      if (email && typeof email === 'string') {
-        const meta = session.metadata as Record<string, string> | undefined
-        const tier = resolveTierFromStripeMetadata(meta)
+      const subRef = session.subscription as string | { id?: string } | null | undefined
+      const stripeSubscriptionId =
+        typeof subRef === 'string' ? subRef : typeof subRef === 'object' && subRef?.id ? subRef.id : null
 
-        const subRef = session.subscription as string | { id?: string } | null | undefined
-        const stripeSubscriptionId =
-          typeof subRef === 'string' ? subRef : typeof subRef === 'object' && subRef?.id ? subRef.id : null
+      const custRef = session.customer as string | { id?: string } | null | undefined
+      const stripeCustomerId =
+        typeof custRef === 'string' ? custRef : typeof custRef === 'object' && custRef?.id ? custRef.id : null
 
-        const custRef = session.customer as string | { id?: string } | null | undefined
-        const stripeCustomerId =
-          typeof custRef === 'string' ? custRef : typeof custRef === 'object' && custRef?.id ? custRef.id : null
+      const cps = session.current_period_start as number | undefined
+      const cpe = session.current_period_end as number | undefined
+      const start = cps ? new Date(cps * 1000) : new Date()
+      const end = cpe ? new Date(cpe * 1000) : new Date(Date.now() + 30 * 86400000)
 
-        const cps = session.current_period_start as number | undefined
-        const cpe = session.current_period_end as number | undefined
-        const start = cps ? new Date(cps * 1000) : new Date()
-        const end = cpe ? new Date(cpe * 1000) : new Date(Date.now() + 30 * 86400000)
+      const tier = resolveTierFromStripeMetadata(meta)
 
+      if (meta?.user_id && typeof meta.user_id === 'string') {
+        try {
+          await upsertSaasSubscription({
+            userId: meta.user_id,
+            tier,
+            status: 'active',
+            currentPeriodStart: start,
+            currentPeriodEnd: end,
+            cancelAtPeriodEnd: !!(session.cancel_at_period_end as boolean),
+            stripeCustomerId,
+            stripeSubscriptionId,
+          })
+          if (email) {
+            await supabase
+              .from('profiles')
+              .update({
+                is_pro: tier !== 'FREE',
+                plan: tier === 'ENTERPRISE' ? 'institutional' : tier === 'PRO' ? 'pro' : 'free',
+              })
+              .eq('id', meta.user_id)
+          }
+          console.log('✅ SENTINEL SaaS sync (checkout by user_id):', meta.user_id, tier)
+        } catch (e) {
+          console.error('[stripe-webhook] checkout user_id upsert:', e)
+        }
+      }
+
+      if (email && typeof email === 'string' && !meta?.user_id) {
         await syncProfileAndSaas({
           email,
           tier,
@@ -162,12 +189,12 @@ export async function POST(req: NextRequest) {
           await upsertSaasSubscription({
             userId,
             tier: 'FREE',
-            status: 'canceled',
-            currentPeriodStart: null,
+            status: 'active',
+            currentPeriodStart: new Date(),
             currentPeriodEnd: null,
             cancelAtPeriodEnd: false,
             stripeCustomerId: typeof sub.customer === 'string' ? sub.customer : null,
-            stripeSubscriptionId: typeof sub.id === 'string' ? sub.id : null,
+            stripeSubscriptionId: null,
           })
         } catch (e) {
           console.error('[stripe-webhook] saas cancel:', e)
@@ -181,12 +208,12 @@ export async function POST(req: NextRequest) {
             await upsertSaasSubscription({
               userId: profile.id,
               tier: 'FREE',
-              status: 'canceled',
-              currentPeriodStart: null,
+              status: 'active',
+              currentPeriodStart: new Date(),
               currentPeriodEnd: null,
               cancelAtPeriodEnd: false,
               stripeCustomerId: typeof sub.customer === 'string' ? sub.customer : null,
-              stripeSubscriptionId: typeof sub.id === 'string' ? sub.id : null,
+              stripeSubscriptionId: null,
             })
           } catch (e) {
             console.error('[stripe-webhook] saas cancel:', e)

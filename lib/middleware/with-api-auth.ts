@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { SubscriptionTier } from '@/lib/types/tier'
+import { userEntitledForProductAccess } from '@/lib/services/saas-entitlement.service'
 import { verifyApiKey, touchVerifiedApiKeyLastUsed } from '@/lib/services/api-key.service'
 import { enforceRateLimit } from '@/lib/services/rate-limit.service'
 import { subscriptionService } from '@/lib/services/subscription.service'
@@ -51,6 +52,22 @@ async function authenticateRawApiKey(
           severity: 'high',
         }),
         { status: 401 }
+      ),
+    }
+  }
+
+  const entitled = await userEntitledForProductAccess(verified.userId)
+  if (!entitled) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        scanApiErrorPayload(
+          'Active subscription required. Complete onboarding or choose a plan in the dashboard.',
+          403,
+          'SUBSCRIPTION_REQUIRED',
+          { reason: 'SUBSCRIPTION_REQUIRED', severity: 'medium' }
+        ),
+        { status: 403 }
       ),
     }
   }
