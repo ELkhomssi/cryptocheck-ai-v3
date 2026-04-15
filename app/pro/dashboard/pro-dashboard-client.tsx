@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Home } from 'lucide-react'
+import { Home, LayoutDashboard } from 'lucide-react'
 import { GeistMono } from 'geist/font/mono'
 import { GeistSans } from 'geist/font/sans'
 import { useSolana } from '@/components/SolanaProvider'
@@ -201,7 +201,25 @@ export function ProDashboardClient({ session, demoReasoning }: Props) {
               }}
             >
               <Home size={16} strokeWidth={2} aria-hidden />
-              Back to Site
+              Home
+            </Link>
+            <Link
+              href="/app"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 12,
+                padding: '8px 12px',
+                borderRadius: 8,
+                border: '0.5px solid rgba(255,255,255,0.12)',
+                color: '#a1a1aa',
+                textDecoration: 'none',
+                background: 'rgba(255,255,255,0.03)',
+              }}
+            >
+              <LayoutDashboard size={16} strokeWidth={2} aria-hidden />
+              Dashboard
             </Link>
             <button
               type="button"
