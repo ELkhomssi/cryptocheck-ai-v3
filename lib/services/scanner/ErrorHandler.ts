@@ -18,8 +18,9 @@ export class ScanServiceError extends Error {
     this.cause = cause
   }
 
-  toJSON(): { error: string; code: ScanErrorCode } {
-    return { error: this.message, code: this.code }
+  /** `code` is HTTP status for developer API clients; `reason` is stable machine code. */
+  toJSON(): { error: string; code: number; reason: ScanErrorCode } {
+    return { error: this.message, code: this.httpStatus, reason: this.code }
   }
 }
 

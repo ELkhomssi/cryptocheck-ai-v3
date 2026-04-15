@@ -32,7 +32,7 @@ function buildInput(body: Record<string, unknown>): ScannerEngineInput {
     return null
   }
   return {
-    mint: String(body.mint ?? '').trim(),
+    mint: String(body.mint ?? body.tokenAddress ?? '').trim(),
     liquidityUsd: numOrNull(body.liquidityUsd),
     topHolderPct: numOrNull(body.topHolderPct),
     pairAgeMinutes: numOrNull(body.pairAgeMinutes),

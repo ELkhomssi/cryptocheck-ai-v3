@@ -40,7 +40,7 @@ async function authenticateRawApiKey(
     })
     return {
       ok: false,
-      response: NextResponse.json({ error: 'Invalid API key' }, { status: 401 }),
+      response: NextResponse.json({ error: 'Invalid API key', code: 401, reason: 'INVALID_API_KEY' }, { status: 401 }),
     }
   }
 
@@ -51,7 +51,13 @@ async function authenticateRawApiKey(
     return {
       ok: false,
       response: NextResponse.json(
-        { error: 'Rate limit exceeded', limit: rate.limit, reset: rate.reset },
+        {
+          error: 'Rate limit exceeded',
+          code: 429,
+          reason: 'RATE_LIMIT',
+          limit: rate.limit,
+          reset: rate.reset,
+        },
         {
           status: 429,
           headers: { 'Retry-After': String(retrySec), 'X-RateLimit-Remaining': String(rate.remaining) },
@@ -94,7 +100,10 @@ export async function authenticateApiRequest(req: NextRequest): Promise<
   if (!raw) {
     return {
       ok: false,
-      response: NextResponse.json({ error: 'Missing API key' }, { status: 401 }),
+      response: NextResponse.json(
+        { error: 'Missing API key', code: 401, reason: 'MISSING_API_KEY' },
+        { status: 401 }
+      ),
     }
   }
   return authenticateRawApiKey(req, raw)

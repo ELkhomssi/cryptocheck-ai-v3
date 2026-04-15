@@ -1,24 +1,109 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withProFeature } from '@/lib/auth/pro-feature-access'
+import { randomUUID } from 'crypto'
+import { withScanAccess, scanClientIp, type ScanAccessContext } from '@/lib/auth/scan-access'
 import { runInstitutionalScan } from '@/lib/services/scanner/execute-scan'
+import { normalizeScanBody } from '@/lib/services/scanner/normalize-scan-body'
+import { mapSnapshotToPlatformResponse } from '@/lib/services/scanner/map-platform-response'
+import { logApiUsageEvent } from '@/lib/services/api-usage.service'
+import { ScanServiceError } from '@/lib/services/scanner/ErrorHandler'
+import type { ProFeatureContext } from '@/lib/auth/pro-feature-access'
 
 export const dynamic = 'force-dynamic'
 
-/**
- * Unified institutional scan API — explainable score, pipeline trace, RPC source, simulation preview.
- * Pro / Institutional: session cookie or API key (same as `/api/v1/scan/reasoning`).
- */
-export const POST = withProFeature(async (req: NextRequest, ctx) => {
+const PRIORITY_HEADER = 'high'
+
+function inferResponseMode(body: Record<string, unknown>, req: NextRequest): 'full' | 'platform' {
+  const raw = body.responseMode ?? body.format
+  if (raw === 'platform' || raw === 'developer' || raw === 'compact') return 'platform'
+  const accept = req.headers.get('accept') || ''
+  if (accept.includes('application/vnd.cryptocheck.platform+json')) return 'platform'
+  return 'full'
+}
+
+export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessContext) => {
   const started = Date.now()
-  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>
-  const result = await runInstitutionalScan(req, ctx, body)
+  const requestId = randomUUID()
+  const priority = req.headers.get('x-cryptocheck-priority')?.toLowerCase() === PRIORITY_HEADER
+
+  let rawBody: Record<string, unknown> = {}
+  try {
+    rawBody = (await req.json().catch(() => ({}))) as Record<string, unknown>
+  } catch {
+    rawBody = {}
+  }
+
+  let body: Record<string, unknown>
+  try {
+    body = normalizeScanBody(rawBody)
+  } catch (e) {
+    const err = e instanceof ScanServiceError ? e : new ScanServiceError('Invalid request', 'INVALID_INPUT', 400)
+    await logApiUsageEvent({
+      userId: ctx.userId,
+      apiKeyId: ctx.apiKeyId,
+      endpoint: '/api/v1/scan',
+      method: 'POST',
+      statusCode: err.httpStatus,
+      durationMs: Date.now() - started,
+      ip: scanClientIp(req),
+      userAgent: req.headers.get('user-agent'),
+      priority,
+    })
+    return NextResponse.json(err.toJSON(), { status: err.httpStatus })
+  }
+
+  const mode = inferResponseMode(rawBody, req)
+  const result = await runInstitutionalScan(req, ctx as ProFeatureContext, body)
 
   if (result.ok === false) {
     const err = result.error
+    await logApiUsageEvent({
+      userId: ctx.userId,
+      apiKeyId: ctx.apiKeyId,
+      endpoint: '/api/v1/scan',
+      method: 'POST',
+      statusCode: err.httpStatus,
+      durationMs: Date.now() - started,
+      ip: scanClientIp(req),
+      userAgent: req.headers.get('user-agent'),
+      priority,
+    })
     return NextResponse.json(err.toJSON(), { status: err.httpStatus })
   }
 
   const { snapshot, meta } = result
+  const responseTimeMs = Date.now() - started
+
+  await logApiUsageEvent({
+    userId: ctx.userId,
+    apiKeyId: ctx.apiKeyId,
+    endpoint: '/api/v1/scan',
+    method: 'POST',
+    statusCode: 200,
+    durationMs: responseTimeMs,
+    ip: scanClientIp(req),
+    userAgent: req.headers.get('user-agent'),
+    priority,
+  })
+
+  if (mode === 'platform') {
+    const platform = mapSnapshotToPlatformResponse(snapshot, {
+      responseTimeMs,
+      cache: meta.cache,
+      tier: ctx.tier,
+      environment: 'live',
+      requestId,
+    })
+    return NextResponse.json(platform, {
+      headers: {
+        'X-Cache': meta.cache === 'hit' ? 'HIT' : 'MISS',
+        'X-Response-Time-Ms': String(responseTimeMs),
+        'X-RPC-Provider': snapshot.rpcProviderLabel,
+        'X-Request-Id': requestId,
+        'X-RateLimit-Tier': ctx.tier,
+      },
+    })
+  }
+
   const payload = {
     score: snapshot.weighted.score,
     confidence: snapshot.weighted.confidence,
@@ -35,14 +120,16 @@ export const POST = withProFeature(async (req: NextRequest, ctx) => {
       response_time_ms: meta.responseTimeMs,
       auth_via: meta.authVia,
       user_id: meta.userId,
+      request_id: requestId,
     },
   }
 
   return NextResponse.json(payload, {
     headers: {
       'X-Cache': meta.cache === 'hit' ? 'HIT' : 'MISS',
-      'X-Response-Time-Ms': String(Date.now() - started),
+      'X-Response-Time-Ms': String(responseTimeMs),
       'X-RPC-Provider': snapshot.rpcProviderLabel,
+      'X-Request-Id': requestId,
     },
   })
 })

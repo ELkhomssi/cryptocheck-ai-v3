@@ -1,0 +1,85 @@
+import { NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic'
+
+const HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CryptoCheck Security Intelligence API</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, sans-serif; background: #0a0a0f; color: #e8e8ef; margin: 0; padding: 32px 24px 64px; line-height: 1.55; }
+    h1 { font-size: 1.5rem; margin-bottom: 8px; }
+    h2 { font-size: 1.1rem; margin-top: 28px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; }
+    code, pre { font-family: ui-monospace, monospace; font-size: 12px; }
+    pre { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 14px; overflow-x: auto; }
+    .muted { color: #94a3b8; font-size: 14px; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 12px; }
+    th, td { border: 1px solid rgba(255,255,255,0.08); padding: 8px 10px; text-align: left; }
+    th { background: rgba(16,185,129,0.08); color: #6ee7b7; }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 4px; background: rgba(16,185,129,0.15); color: #6ee7b7; font-size: 11px; }
+  </style>
+</head>
+<body>
+  <p class="pill">v1</p>
+  <h1>CryptoCheck Security Intelligence API</h1>
+  <p class="muted">Developer-first on-chain risk analysis. Authenticate with <code>Authorization: Bearer &lt;api_key&gt;</code> or a Pro/Institutional browser session (dashboard).</p>
+
+  <h2>Authentication</h2>
+  <pre>Authorization: Bearer cc_live_…
+X-API-Key: cc_live_…</pre>
+  <p class="muted">API keys are created via the developer console / keys endpoint. Free tier keys are limited to 10 requests/day; Pro 1,000/day; Enterprise high cap.</p>
+
+  <h2>POST /api/v1/scan</h2>
+  <p>Full institutional payload (default) or compact <strong>platform</strong> JSON for integrations.</p>
+  <p><strong>Platform mode:</strong> set <code>"responseMode": "platform"</code> or header <code>Accept: application/vnd.cryptocheck.platform+json</code>.</p>
+  <pre>{
+  "tokenAddress": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+  "chain": "solana",
+  "liquidityUsd": 8500000,
+  "topHolderPct": 12,
+  "responseMode": "platform"
+}</pre>
+  <p class="muted">Legacy field <code>mint</code> is still supported. Same response shape as before when <code>responseMode</code> is omitted (UI-compatible).</p>
+
+  <h2>POST /api/v1/scan/sandbox</h2>
+  <p>Deterministic sandbox analysis — same engine path without serialized on-chain swap simulation. Optional body <code>{ "tokenAddress": "…" }</code> to override mint.</p>
+
+  <h2>POST /api/v1/scan/batch</h2>
+  <p>Bulk platform scans. Max batch: Free 5, Pro 20, Enterprise 100. Consumes daily quota equal to item count.</p>
+  <pre>{
+  "chain": "solana",
+  "items": [
+    { "tokenAddress": "EPjF…", "chain": "solana" }
+  ]
+}</pre>
+
+  <h2>Priority (Enterprise)</h2>
+  <p>Send <code>X-CryptoCheck-Priority: high</code> — logged for future priority queues.</p>
+
+  <h2>Webhooks</h2>
+  <p><code>GET /api/v1/webhooks</code> — registration endpoint reserved (see response).</p>
+
+  <h2>Error format</h2>
+  <pre>{ "error": "string", "code": 400, "reason": "INVALID_INPUT" }</pre>
+
+  <h2>HTTP status codes</h2>
+  <table>
+    <tr><th>Code</th><th>Meaning</th></tr>
+    <tr><td>200</td><td>Success</td></tr>
+    <tr><td>400</td><td>Invalid input (mint, chain, batch size)</td></tr>
+    <tr><td>401</td><td>Missing or invalid API key / session</td></tr>
+    <tr><td>403</td><td>Insufficient subscription (session-only routes)</td></tr>
+    <tr><td>429</td><td>Rate limit or daily quota exceeded</td></tr>
+    <tr><td>500</td><td>Internal error</td></tr>
+    <tr><td>501</td><td>Not implemented (webhooks registration)</td></tr>
+  </table>
+</body>
+</html>`
+
+export async function GET() {
+  return new NextResponse(HTML, {
+    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+  })
+}
