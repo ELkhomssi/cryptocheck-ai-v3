@@ -13,7 +13,7 @@ import type { ScanV1ApiResponse } from '@/lib/types/institutional-scan-api'
 import { PulseFeed } from '@/components/pro/PulseFeed'
 import { InstitutionalHero } from '@/components/pro/institutional/InstitutionalHero'
 import { RiskBreakdownPanel } from '@/components/pro/institutional/RiskBreakdownPanel'
-import { TrustSignalsBar } from '@/components/pro/institutional/TrustSignalsBar'
+import { WhyItMattersBlock } from '@/components/pro/institutional/WhyItMattersBlock'
 import { WalletIntelGraph } from '@/components/pro/institutional/WalletIntelGraph'
 
 type Props = {
@@ -386,7 +386,15 @@ export function ProDashboardClient({
           score={weighted.score}
           verdict={reasoning.verdict}
           confidence={weighted.confidence}
-          subtitle={`Grade ${reasoning.institutionalGrade} · Model confidence ${reasoning.confidenceScore}% · Evidence-backed, fully auditable.`}
+          trustContext={{
+            rpcProvider: rpcDisplay,
+            lastUpdatedIso: lastUpdated,
+            confidence01: weighted.confidence,
+            cache: scanResponse?.cache,
+            pipelineMs: scanResponse?.pipeline_ms,
+            responseTimeMs: scanResponse?.meta?.response_time_ms,
+          }}
+          urgencyLine="Real-time analysis — on-chain conditions change every block."
           primaryCta={{
             label: 'Run New Scan',
             onClick: () => {
@@ -401,13 +409,7 @@ export function ProDashboardClient({
           }}
         />
 
-        <TrustSignalsBar
-          rpcProvider={rpcDisplay}
-          lastUpdated={lastUpdated}
-          cache={scanResponse?.cache}
-          pipelineMs={scanResponse?.pipeline_ms}
-          responseTimeMs={scanResponse?.meta?.response_time_ms}
-        />
+        <WhyItMattersBlock verdict={reasoning.verdict} reasoning={reasoning} weighted={weighted} />
 
         <div
           style={{

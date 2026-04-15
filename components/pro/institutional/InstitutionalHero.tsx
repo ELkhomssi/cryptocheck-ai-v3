@@ -2,24 +2,30 @@
 
 import type { Verdict } from '@/lib/services/scanner-engine'
 import { ConfidenceMeter } from '@/components/pro/institutional/ConfidenceMeter'
+import { EnterpriseTrustStrip } from '@/components/pro/institutional/EnterpriseTrustStrip'
+import { mapVerdictToDecision } from '@/components/pro/institutional/decision-engine'
 
 type Props = {
   score: number
   verdict: Verdict
   confidence: number
-  subtitle?: string
   primaryCta?: {
     label: string
     onClick: () => void
     disabled?: boolean
     loading?: boolean
   }
-}
-
-function verdictLabel(v: Verdict): 'SAFE' | 'CAUTION' | 'DANGER' {
-  if (v === 'SAFE') return 'SAFE'
-  if (v === 'CAUTION') return 'CAUTION'
-  return 'DANGER'
+  /** Enterprise trust + latency context */
+  trustContext: {
+    rpcProvider: string
+    lastUpdatedIso: string
+    confidence01: number
+    cache?: 'hit' | 'miss'
+    pipelineMs?: number
+    responseTimeMs?: number
+  }
+  /** Subtle urgency line under primary CTA */
+  urgencyLine?: string
 }
 
 function badgeColors(verdict: Verdict): { bg: string; border: string; fg: string } {
@@ -28,16 +34,17 @@ function badgeColors(verdict: Verdict): { bg: string; border: string; fg: string
   return { bg: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.45)', fg: '#f87171' }
 }
 
-export function InstitutionalHero({ score, verdict, confidence, subtitle, primaryCta }: Props) {
+export function InstitutionalHero({ score, verdict, confidence, primaryCta, trustContext, urgencyLine }: Props) {
+  const decision = mapVerdictToDecision(verdict)
   const badge = badgeColors(verdict)
-  const label = verdictLabel(verdict)
+  const { pipelineMs, responseTimeMs, ...stripProps } = trustContext
 
   return (
     <section
       style={{
         position: 'relative',
         borderRadius: 20,
-        padding: 'clamp(28px,5vw,48px) clamp(20px,4vw,40px)',
+        padding: 'clamp(22px,4vw,40px) clamp(18px,4vw,36px)',
         marginBottom: 'clamp(20px,4vw,28px)',
         border: '0.5px solid rgba(16,185,129,0.15)',
         background: 'linear-gradient(165deg, rgba(16,185,129,0.08) 0%, rgba(255,255,255,0.03) 48%, rgba(0,0,0,0.2) 100%)',
@@ -54,51 +61,111 @@ export function InstitutionalHero({ score, verdict, confidence, subtitle, primar
           pointerEvents: 'none',
         }}
       />
-      <div style={{ position: 'relative', textAlign: 'center' }}>
-        <div
-          style={{
-            fontSize: 10,
-            letterSpacing: '0.2em',
-            color: 'rgba(16,185,129,0.85)',
-            fontWeight: 700,
-            marginBottom: 12,
-          }}
-        >
-          SECURITY SCORE
-        </div>
-        <div
-          style={{
-            fontSize: 'clamp(52px,14vw,96px)',
-            fontWeight: 700,
-            lineHeight: 1,
-            letterSpacing: '-0.04em',
-            color: '#ecfdf5',
-            textShadow: '0 0 60px rgba(16,185,129,0.25)',
-          }}
-        >
-          {score}
-        </div>
-        <div style={{ marginTop: 14, display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span
+      <div style={{ position: 'relative' }}>
+        <EnterpriseTrustStrip {...stripProps} />
+
+        <div style={{ textAlign: 'center', marginBottom: 8 }}>
+          <div
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              padding: '8px 18px',
-              borderRadius: 999,
-              fontSize: 12,
-              fontWeight: 800,
-              letterSpacing: '0.12em',
-              ...badge,
+              fontSize: 11,
+              letterSpacing: '0.18em',
+              color: '#94a3b8',
+              fontWeight: 600,
+              marginBottom: 4,
             }}
           >
-            {label}
-          </span>
+            SECURITY SCORE
+          </div>
+          <div
+            style={{
+              fontSize: 'clamp(52px,14vw,96px)',
+              fontWeight: 700,
+              lineHeight: 1,
+              letterSpacing: '-0.04em',
+              color: '#f8fafc',
+              textShadow: '0 0 60px rgba(16,185,129,0.25)',
+            }}
+          >
+            {score}
+          </div>
         </div>
+
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+            maxWidth: 420,
+            margin: '0 auto 18px',
+            textAlign: 'left',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              padding: '10px 14px',
+              borderRadius: 10,
+              border: '0.5px solid rgba(255,255,255,0.08)',
+              background: 'rgba(0,0,0,0.25)',
+            }}
+          >
+            <span style={{ fontSize: 12, letterSpacing: '0.14em', color: '#64748b', fontWeight: 600 }}>STATUS</span>
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 800,
+                letterSpacing: '0.14em',
+                padding: '6px 14px',
+                borderRadius: 8,
+                ...badge,
+              }}
+            >
+              {decision.statusChip}
+            </span>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              padding: '10px 14px',
+              borderRadius: 10,
+              border: '0.5px solid rgba(16,185,129,0.2)',
+              background: 'rgba(16,185,129,0.06)',
+            }}
+          >
+            <span style={{ fontSize: 12, letterSpacing: '0.14em', color: '#64748b', fontWeight: 600 }}>DECISION</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#6ee7b7', textAlign: 'right' }}>{decision.decisionLabel}</span>
+          </div>
+          <div style={{ fontSize: 11, color: '#64748b', paddingLeft: 2 }}>Risk tier: {decision.riskTier}</div>
+        </div>
+
+        {(pipelineMs != null || responseTimeMs != null) && (
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              gap: 16,
+              marginBottom: 10,
+              fontSize: 10,
+              letterSpacing: '0.08em',
+              color: '#64748b',
+            }}
+          >
+            {pipelineMs != null ? <span>Pipeline {pipelineMs}ms</span> : null}
+            {responseTimeMs != null ? <span>API {responseTimeMs}ms</span> : null}
+          </div>
+        )}
 
         <ConfidenceMeter value01={confidence} />
 
         {primaryCta ? (
-          <div style={{ marginTop: 24 }}>
+          <div style={{ marginTop: 24, textAlign: 'center' }}>
             <button
               type="button"
               onClick={primaryCta.onClick}
@@ -127,23 +194,23 @@ export function InstitutionalHero({ score, verdict, confidence, subtitle, primar
             >
               {primaryCta.loading ? 'Running scan…' : primaryCta.label}
             </button>
+            {urgencyLine ? (
+              <p
+                style={{
+                  marginTop: 12,
+                  fontSize: 11,
+                  color: '#64748b',
+                  letterSpacing: '0.04em',
+                  maxWidth: 360,
+                  marginLeft: 'auto',
+                  marginRight: 'auto',
+                  lineHeight: 1.5,
+                }}
+              >
+                {urgencyLine}
+              </p>
+            ) : null}
           </div>
-        ) : null}
-
-        {subtitle ? (
-          <p
-            style={{
-              marginTop: 20,
-              fontSize: 13,
-              color: '#94a3b8',
-              maxWidth: 520,
-              marginLeft: 'auto',
-              marginRight: 'auto',
-              lineHeight: 1.5,
-            }}
-          >
-            {subtitle}
-          </p>
         ) : null}
       </div>
       <style
