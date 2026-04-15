@@ -13,6 +13,7 @@ import {
   assertScanSignature,
   assertScanTimestamp,
 } from '@/lib/middleware/scan-v1-security'
+import { SentinelServerMisconfigurationError } from '@/lib/security/signing'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,6 +50,20 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
     assertScanTimestamp(req, ctx)
     assertScanSignature(req, rawText, ctx)
   } catch (e) {
+    if (e instanceof SentinelServerMisconfigurationError) {
+      await logApiUsageEvent({
+        userId: ctx.userId,
+        apiKeyId: ctx.apiKeyId,
+        endpoint: '/api/v1/scan',
+        method: 'POST',
+        statusCode: 500,
+        durationMs: Date.now() - started,
+        ip: scanClientIp(req),
+        userAgent: req.headers.get('user-agent'),
+        priority,
+      })
+      return jsonWithScanHeaders(ctx, e.toResponseBody(), 500)
+    }
     const err = e instanceof ScanServiceError ? e : new ScanServiceError('Invalid request', 'INVALID_INPUT', 400)
     await logApiUsageEvent({
       userId: ctx.userId,

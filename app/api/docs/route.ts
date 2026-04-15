@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { SCAN_API_DOCS_DEV_SIGNING_SALT } from '@/lib/api/scan-request-security'
+import { SCAN_API_DOCS_DEV_SIGNING_SALT } from '@/lib/security/signing'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,7 +32,7 @@ const HTML = `<!DOCTYPE html>
 X-API-Key: cc_live_…</pre>
   <p class="muted">API keys are created via the developer console / keys endpoint. Free tier keys are limited to 10 requests/day; Pro 1,000/day; Enterprise high cap.</p>
 
-  <h2>Request signing (optional)</h2>
+  <h2 id="security">Request signing (optional)</h2>
   <p>For <code>X-CryptoCheck-Signature</code>, your API key is the <strong>root credential</strong>, but the server never uses the raw key string as the HMAC key. Both sides derive the same signing key and then compute the request MAC.</p>
   <ol style="margin-top:12px;padding-left:20px;">
     <li><strong>Signing salt</strong> — same UTF-8 string as the server env <code>API_SIGNING_SALT</code> (required in production).</li>
