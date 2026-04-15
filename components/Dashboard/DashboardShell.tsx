@@ -8,8 +8,10 @@ import {
   CreditCard,
   KeyRound,
   LayoutDashboard,
+  Radar,
   Shield,
 } from 'lucide-react'
+import { CryptoCheckLogo } from '@/components/brand/CryptoCheckLogo'
 import { useCallback, useEffect, useState } from 'react'
 
 type HealthPayload = {
@@ -23,6 +25,7 @@ const nav = [
   { href: '/dashboard/usage', label: 'Intelligence Ops', icon: BarChart3 },
   { href: '/dashboard/security', label: 'SENTINEL', icon: Shield },
   { href: '/dashboard/billing', label: 'Subscription', icon: CreditCard },
+  { href: '/pro/dashboard', label: 'Intelligence Terminal', icon: Radar },
 ] as const
 
 function tierLabel(t: string): string {
@@ -122,8 +125,10 @@ export function DashboardShell({
       >
         <div className="border-b border-white/[0.05] px-5 py-6">
           <p className="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Control plane</p>
-          <p className="mt-1 text-sm font-semibold tracking-tight text-slate-200">CryptoCheck AI</p>
-          <p className="mt-0.5 text-[0.65rem] font-medium text-slate-500">Intelligence operations</p>
+          <div className="mt-2">
+            <CryptoCheckLogo href="/dashboard" />
+          </div>
+          <p className="mt-2 text-[0.65rem] font-medium text-slate-500">Intelligence operations</p>
         </div>
         <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
           {nav.map(({ href, label, icon: Icon }) => {

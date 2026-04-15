@@ -2856,7 +2856,7 @@ export default function Dashboard() {
       {/* TrialWall removed - using Gated Access */}
       <header className="sticky top-0 z-[300] min-h-[48px] flex items-center justify-between px-3 md:px-4 flex-wrap gap-y-1 backdrop-blur-xl" style={{background:'#000',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
         <div className="flex items-center gap-2 flex-wrap">
-          <CryptoCheckLogo />
+          <CryptoCheckLogo href="/dashboard" />
           <span className="text-[0.5rem] text-[#8b949e] ml-0.5 font-mono">v3</span>
           {isPro ? (
             <span style={{fontSize:'9px',fontWeight:700,padding:'2px 8px',borderRadius:4,fontFamily:'IBM Plex Mono,monospace',letterSpacing:'0.08em',background:'linear-gradient(135deg,rgba(212,175,55,0.15),rgba(212,175,55,0.05))',border:'1px solid rgba(212,175,55,0.35)',color:'#d4af37'}}>⭐ PRO</span>
@@ -2922,9 +2922,9 @@ export default function Dashboard() {
             Home
           </Link>
           <Link
-            href="/app"
+            href="/dashboard"
             className="inline-flex items-center gap-1.5 px-2 py-1 rounded-[4px] text-[0.55rem] md:text-[0.62rem] font-bold tracking-wider uppercase font-mono border border-[rgba(255,255,255,0.08)] text-[#8b949e] hover:text-[#c9d1d9] hover:border-[rgba(255,255,255,0.15)] no-underline bg-transparent"
-            title="Dashboard"
+            title="Developer control plane"
           >
             <LayoutDashboard className="w-3.5 h-3.5 shrink-0 opacity-80" aria-hidden />
             Dashboard
@@ -2941,7 +2941,7 @@ export default function Dashboard() {
             <Home className="w-3.5 h-3.5" aria-hidden />
             Home
           </Link>
-          <Link href="/app" className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border text-xs font-bold text-[#c9d1d9] border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.04)] no-underline shrink-0">
+          <Link href="/dashboard" className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border text-xs font-bold text-[#c9d1d9] border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.04)] no-underline shrink-0">
             <LayoutDashboard className="w-3.5 h-3.5" aria-hidden />
             Dashboard
           </Link>

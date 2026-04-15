@@ -9,16 +9,17 @@ const EMERALD = '#10b981'
 type Props = {
   /** Shows a small INSTITUTIONAL pill (Pro terminal only). */
   variant?: 'default' | 'institutional'
+  /** Defaults to `/` (marketing). Use `/dashboard` for the developer control plane when the user is in-app. */
+  href?: string
 }
 
 /**
  * Official CryptoCheck AI wordmark: `/logo.jpg` + Geist + emerald "AI".
- * Always links to `/` (landing).
  */
-export function CryptoCheckLogo({ variant = 'default' }: Props) {
+export function CryptoCheckLogo({ variant = 'default', href = '/' }: Props) {
   return (
     <Link
-      href="/"
+      href={href}
       className={GeistSans.className}
       style={{
         display: 'flex',

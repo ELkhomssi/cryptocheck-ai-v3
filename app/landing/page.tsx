@@ -61,13 +61,15 @@ export default function LandingPage() {
           <a href="#features" className="lp-nav-link" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.05em' }}>Features</a>
           <a href="#institutional" className="lp-nav-link" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.05em' }}>Institutional</a>
           <a href="#demo" className="lp-nav-link" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.05em' }}>Demo</a>
+          <a href="/dashboard" style={{ fontSize:11,color:'#e2e8f0',textDecoration:'none',letterSpacing:'0.06em',fontWeight:600 }}>Dashboard</a>
           <a href="/pro/dashboard" style={{ fontSize:11,color:'#a5b4fc',textDecoration:'none',letterSpacing:'0.06em',fontWeight:600 }}>Institutional Terminal</a>
           <a href="/app" style={{ padding:'7px 16px',fontSize:11,fontWeight:700,background:'linear-gradient(135deg,#20b2aa,#00d4aa)',color:'#000',borderRadius:6,textDecoration:'none',letterSpacing:'0.04em' }}>Launch App →</a>
         </div>
         <div className="lp-mobile-nav" style={{ width:'100%',display:'none',flexWrap:'wrap',gap:10,paddingTop:6,alignItems:'center',justifyContent:'flex-start',borderTop:'1px solid rgba(255,255,255,0.06)' }}>
           <Link href="/" style={{ fontSize:11,color:'#e2e8f0',textDecoration:'none',letterSpacing:'0.04em',padding:'6px 10px',borderRadius:6,border:'0.5px solid rgba(255,255,255,0.12)' }}>Home</Link>
           <a href="/app" style={{ fontSize:11,color:'#20b2aa',textDecoration:'none',letterSpacing:'0.04em' }}>App</a>
-          <a href="/pro/dashboard" style={{ fontSize:11,color:'#a5b4fc',textDecoration:'none',letterSpacing:'0.04em' }}>Institutional</a>
+          <a href="/dashboard" style={{ fontSize:11,color:'#e2e8f0',textDecoration:'none',letterSpacing:'0.04em',fontWeight:600 }}>Dashboard</a>
+          <a href="/pro/dashboard" style={{ fontSize:11,color:'#a5b4fc',textDecoration:'none',letterSpacing:'0.04em' }}>Terminal</a>
           <a href="/landing" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.04em' }}>Landing page</a>
         </div>
       </nav>
