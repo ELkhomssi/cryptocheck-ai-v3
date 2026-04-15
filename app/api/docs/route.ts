@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { SCAN_API_DOCS_DEV_SIGNING_SALT } from '@/lib/api/scan-request-security'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,6 +31,16 @@ const HTML = `<!DOCTYPE html>
   <pre>Authorization: Bearer cc_live_…
 X-API-Key: cc_live_…</pre>
   <p class="muted">API keys are created via the developer console / keys endpoint. Free tier keys are limited to 10 requests/day; Pro 1,000/day; Enterprise high cap.</p>
+
+  <h2>Request signing (optional)</h2>
+  <p>For <code>X-CryptoCheck-Signature</code>, your API key is the <strong>root credential</strong>, but the server never uses the raw key string as the HMAC key. Both sides derive the same signing key and then compute the request MAC.</p>
+  <ol style="margin-top:12px;padding-left:20px;">
+    <li><strong>Signing salt</strong> — same UTF-8 string as the server env <code>API_SIGNING_SALT</code> (required in production).</li>
+    <li><strong>Derived key</strong> — <code>SHA256( api_key + signing_salt )</code> (string concatenation, UTF-8 in / SHA-256 out → 32-byte key). The raw API key is not passed to HMAC directly.</li>
+    <li><strong>Message</strong> — <code>timestamp + "\\n" + raw_request_body</code> (exact bytes you send; use the same timestamp as <code>X-CryptoCheck-Timestamp</code>).</li>
+    <li><strong>Signature</strong> — <code>HMAC-SHA256( derived_key, message_utf8 )</code>; send hex or base64 in <code>X-CryptoCheck-Signature</code>.</li>
+  </ol>
+  <p class="muted">Development only: if <code>API_SIGNING_SALT</code> is not set, the server uses fallback <code>${SCAN_API_DOCS_DEV_SIGNING_SALT}</code> — use that salt when signing against a local dev server.</p>
 
   <h2>POST /api/v1/scan</h2>
   <p>Full institutional payload (default) or compact <strong>platform</strong> JSON for integrations.</p>

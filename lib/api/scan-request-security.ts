@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'crypto'
+import { createHash, createHmac, timingSafeEqual } from 'crypto'
 import type { NextRequest } from 'next/server'
 import { extractRawApiKey } from '@/lib/middleware/with-api-auth'
 import type { ScanAccessContext } from '@/lib/auth/scan-access'
@@ -7,6 +7,41 @@ import { scanClientIp } from '@/lib/auth/scan-access'
 
 const TIMESTAMP_HEADER = 'x-cryptocheck-timestamp'
 const SIGNATURE_HEADER = 'x-cryptocheck-signature'
+
+/**
+ * Dev-only fallback when `API_SIGNING_SALT` is unset (never use in production without setting the env).
+ * Exported so `/api/docs` can reference the same string for local integration tests.
+ */
+export const SCAN_API_DOCS_DEV_SIGNING_SALT = 'cryptocheck_dev_api_signing_salt_v1'
+
+/**
+ * Same salt string the client must use with their API key to derive the HMAC key (see /api/docs).
+ * Raw API keys are never used as the HMAC key material; only this SHA-256 digest is.
+ */
+function apiSigningSalt(): string {
+  const s = process.env.API_SIGNING_SALT?.trim()
+  if (s) return s
+  if (process.env.NODE_ENV === 'production') {
+    throw new ScanServiceError(
+      'Request signing is not configured on the server (missing API_SIGNING_SALT).',
+      'SIGNING_MISCONFIGURED',
+      500,
+      undefined,
+      'SIGNING_MISCONFIGURED',
+      'high'
+    )
+  }
+  return SCAN_API_DOCS_DEV_SIGNING_SALT
+}
+
+/**
+ * Derived_Secret = SHA256(Raw_API_Key + Server_Salt) — UTF-8 string concat, then SHA-256.
+ * Used as the HMAC key (not the raw API key string).
+ */
+export function deriveApiHmacSigningKey(rawApiKey: string): Buffer {
+  const salt = apiSigningSalt()
+  return createHash('sha256').update(rawApiKey + salt, 'utf8').digest()
+}
 /** API key requests must include a Unix timestamp (seconds); max skew vs server time. */
 const MAX_CLOCK_SKEW_SEC = 300
 
@@ -68,7 +103,9 @@ export function assertScanTimestamp(req: NextRequest, ctx: ScanAccessContext): v
 
 /**
  * Optional HMAC-SHA256 integrity check (Enterprise / institutional API keys).
- * When present, must match HMAC(secret, `${timestamp}\\n${rawBody}`) with secret = raw API key bytes.
+ * When present, must match:
+ *   HMAC_SHA256( Derived_Secret, `${timestamp}\n${rawBody}` )
+ * where Derived_Secret = SHA256(Raw_API_Key + Server_Salt); see `deriveApiHmacSigningKey`.
  */
 export function assertScanSignature(req: NextRequest, rawBody: string, ctx: ScanAccessContext): void {
   const sigHeader = req.headers.get(SIGNATURE_HEADER)?.trim()
@@ -97,9 +134,24 @@ export function assertScanSignature(req: NextRequest, rawBody: string, ctx: Scan
     )
   }
 
+  let derivedKey: Buffer
+  try {
+    derivedKey = deriveApiHmacSigningKey(rawKey)
+  } catch (e) {
+    if (e instanceof ScanServiceError) throw e
+    throw new ScanServiceError(
+      'Request signing configuration error.',
+      'SIGNING_MISCONFIGURED',
+      500,
+      e,
+      'SIGNING_MISCONFIGURED',
+      'high'
+    )
+  }
+
   const ts = req.headers.get(TIMESTAMP_HEADER)?.trim() ?? ''
   const payload = `${ts}\n${rawBody}`
-  const expected = createHmac('sha256', Buffer.from(rawKey, 'utf8')).update(payload, 'utf8').digest()
+  const expected = createHmac('sha256', derivedKey).update(payload, 'utf8').digest()
 
   let provided: Buffer
   try {
