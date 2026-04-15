@@ -8,6 +8,10 @@ import { mergeWithRateLimitHeaders, scanApiErrorPayload } from '@/lib/api/scan-a
 /** Extends dashboard context with optional API key id for usage logging. */
 export type ScanAccessContext = ProFeatureContext & {
   apiKeyId?: string
+  /** Present when using Bearer / X-API-Key (v1 `cc_live_*` or v2 `cc_sentinel_*`). */
+  keySchema?: 'v1' | 'v2'
+  keyVersion?: number
+  institutionalKeyPublicId?: string
   /** Present after successful `resolveScanAccess` (daily quota applied). */
   rateLimitDaily?: { limit: number; remaining: number; reset: number }
 }
@@ -29,7 +33,15 @@ export async function resolveScanAuthOnly(req: NextRequest): Promise<
   if (api.kind === 'ok') {
     return {
       ok: true,
-      ctx: { userId: api.ctx.userId, tier: api.ctx.tier, via: 'api_key', apiKeyId: api.ctx.apiKeyId },
+      ctx: {
+        userId: api.ctx.userId,
+        tier: api.ctx.tier,
+        via: 'api_key',
+        apiKeyId: api.ctx.apiKeyId,
+        keySchema: api.ctx.keySchema,
+        keyVersion: api.ctx.keyVersion,
+        institutionalKeyPublicId: api.ctx.institutionalKeyPublicId,
+      },
     }
   }
 
@@ -105,6 +117,9 @@ export async function resolveScanAccess(req: NextRequest): Promise<
         tier: api.ctx.tier,
         via: 'api_key',
         apiKeyId: api.ctx.apiKeyId,
+        keySchema: api.ctx.keySchema,
+        keyVersion: api.ctx.keyVersion,
+        institutionalKeyPublicId: api.ctx.institutionalKeyPublicId,
         rateLimitDaily: { limit: daily.limit, remaining: daily.remaining, reset: daily.reset },
       },
     }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { createApiKey, listApiKeys, revokeApiKey } from '@/lib/services/api-key.service'
+import { createInstitutionalApiKey } from '@/lib/services/api-key-v2.service'
 import { logSecurityEvent } from '@/lib/services/security-log.service'
 
 async function getSessionUser(req: NextRequest) {
@@ -39,8 +40,31 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await getSessionUser(req)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const body = await req.json().catch(() => ({}))
+  const body = await req.json().catch(() => ({})) as { name?: string; schema?: string }
   const name = typeof body.name === 'string' && body.name.trim() ? body.name.trim() : 'Default'
+  const useSentinelV2 = body.schema === 'v2' || body.schema === 'sentinel'
+
+  if (useSentinelV2) {
+    const created = await createInstitutionalApiKey(user.id, name)
+    await logSecurityEvent({
+      userId: user.id,
+      apiKeyV2Id: created.id,
+      action: 'api_key_v2_created',
+      ip: clientIp(req),
+      userAgent: req.headers.get('user-agent'),
+      metadata: { name, key_id: created.key_id, schema: 'v2' },
+    })
+    return NextResponse.json({
+      schema: 'v2',
+      id: created.id,
+      key_id: created.key_id,
+      name: created.name,
+      key_prefix: created.key_prefix,
+      created_at: created.created_at,
+      secret: created.rawKey,
+    })
+  }
+
   const created = await createApiKey(user.id, name)
   await logSecurityEvent({
     userId: user.id,
@@ -51,6 +75,7 @@ export async function POST(req: NextRequest) {
     metadata: { name },
   })
   return NextResponse.json({
+    schema: 'v1',
     id: created.id,
     name: created.name,
     key_prefix: created.key_prefix,

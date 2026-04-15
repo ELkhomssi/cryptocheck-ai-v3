@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { SubscriptionTier } from '@/lib/types/tier'
-import { verifyApiKey, touchApiKeyLastUsed } from '@/lib/services/api-key.service'
+import { verifyApiKey, touchVerifiedApiKeyLastUsed } from '@/lib/services/api-key.service'
 import { enforceRateLimit } from '@/lib/services/rate-limit.service'
 import { subscriptionService } from '@/lib/services/subscription.service'
 import { logSecurityEvent } from '@/lib/services/security-log.service'
@@ -10,6 +10,10 @@ export type ApiAuthContext = {
   userId: string
   apiKeyId: string
   tier: SubscriptionTier
+  keySchema: 'v1' | 'v2'
+  /** v2 Sentinel public `key_id` (not the secret). */
+  institutionalKeyPublicId?: string
+  keyVersion?: number
 }
 
 export function extractRawApiKey(req: NextRequest): string | null {
@@ -31,7 +35,7 @@ async function authenticateRawApiKey(
   req: NextRequest,
   raw: string
 ): Promise<{ ok: true; ctx: ApiAuthContext } | { ok: false; response: NextResponse }> {
-  const verified = await verifyApiKey(raw)
+  const verified = await verifyApiKey(raw.trim())
   if (!verified) {
     await logSecurityEvent({
       action: 'api_key_denied',
@@ -52,7 +56,8 @@ async function authenticateRawApiKey(
   }
 
   const tier = await subscriptionService.getTierForUser(verified.userId)
-  const rate = await enforceRateLimit(`key:${verified.keyId}`, tier)
+  const rateKeyId = verified.schema === 'v2' ? verified.keyUuid : verified.keyId
+  const rate = await enforceRateLimit(`key:${rateKeyId}`, tier)
   if (!rate.ok) {
     const retrySec = Math.max(1, Math.ceil((rate.reset - Date.now()) / 1000))
     return {
@@ -73,11 +78,21 @@ async function authenticateRawApiKey(
     }
   }
 
-  void touchApiKeyLastUsed(verified.keyId)
+  void touchVerifiedApiKeyLastUsed(verified)
+
+  const ctx: ApiAuthContext = {
+    userId: verified.userId,
+    apiKeyId: rateKeyId,
+    tier,
+    keySchema: verified.schema,
+    ...(verified.schema === 'v2'
+      ? { keyVersion: verified.keyVersion, institutionalKeyPublicId: verified.keyId }
+      : {}),
+  }
 
   return {
     ok: true,
-    ctx: { userId: verified.userId, apiKeyId: verified.keyId, tier },
+    ctx,
   }
 }
 
