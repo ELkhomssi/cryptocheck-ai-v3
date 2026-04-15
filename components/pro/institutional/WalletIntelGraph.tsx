@@ -7,8 +7,47 @@ type Props = {
   reasoning: ReasoningObject
 }
 
+const EM = {
+  fill: 'rgba(16,185,129,0.22)',
+  stroke: '#10b981',
+  edge: 'rgba(16,185,129,0.55)',
+}
+const RD = {
+  fill: 'rgba(248,113,113,0.22)',
+  stroke: '#ef4444',
+  edge: 'rgba(248,113,113,0.65)',
+}
+
+/** Hardcoded node layout (hub + 5 satellites). Order: first N marked suspicious from evidence. */
+const NODES = [
+  { key: 'nw', cx: 42, cy: 34, r: 9 },
+  { key: 'ne', cx: 198, cy: 34, r: 9 },
+  { key: 'sw', cx: 34, cy: 118, r: 8 },
+  { key: 'se', cx: 206, cy: 118, r: 8 },
+  { key: 's', cx: 120, cy: 138, r: 7 },
+] as const
+
+const HUB = { cx: 120, cy: 82, r: 15 }
+
 /**
- * Wallet intelligence: SVG graph + distribution + mandatory insight panel (no heavy libs).
+ * Maps evidence → how many satellite nodes render as suspicious (red) vs healthy (emerald).
+ */
+function suspiciousSatelliteCount(reasoning: ReasoningObject): number {
+  const risk = reasoning.clusterAnalysis.linkedCreatorRisk
+  const hits = reasoning.clusterAnalysis.scamLinkedFundingHits
+  if (risk === 'high' || hits >= 2) return 3
+  if (risk === 'medium' || hits === 1) return 2
+  return 0
+}
+
+function hubStrokeFromEvidence(topPct: number, suspiciousCount: number): string {
+  if (suspiciousCount >= 2) return '#34d399'
+  if (topPct > 40) return '#6ee7b7'
+  return '#10b981'
+}
+
+/**
+ * Wallet intelligence: hardcoded SVG graph (emerald = healthy, red = suspicious cluster) + 3-metric insight panel.
  */
 export function WalletIntelGraph({ reasoning }: Props) {
   const top = extractTopHolderPct(reasoning)
@@ -17,15 +56,12 @@ export function WalletIntelGraph({ reasoning }: Props) {
 
   const risk = reasoning.clusterAnalysis.linkedCreatorRisk
   const hits = reasoning.clusterAnalysis.scamLinkedFundingHits
-  const suspicious = risk === 'high' || hits >= 2
 
-  const edgeDefault = 'rgba(16,185,129,0.35)'
-  const edgeAlert = 'rgba(248,113,113,0.75)'
-  const nodeAlert = 'rgba(248,113,113,0.35)'
-  const strokeAlert = '#f87171'
+  const susN = suspiciousSatelliteCount(reasoning)
+  const hubStroke = hubStrokeFromEvidence(top, susN)
 
   const clusterRiskLabel = risk === 'high' ? 'High' : risk === 'medium' ? 'Medium' : 'Low'
-  const scamLabel = hits === 0 ? 'None detected' : `${hits} flagged in model`
+  const metricScam = hits === 0 ? 'None' : `${hits} flagged`
 
   return (
     <div
@@ -38,70 +74,97 @@ export function WalletIntelGraph({ reasoning }: Props) {
       }}
     >
       <div style={{ fontSize: 10, letterSpacing: '0.16em', color: '#6ee7b7', fontWeight: 700, marginBottom: 4 }}>
-        WALLET INTELLIGENCE
+        WALLET INTELLIGENCE 2.0
       </div>
-      <div style={{ fontSize: 11, color: '#64748b', marginBottom: 16 }}>On-chain relationships & supply shape (model view)</div>
+      <div style={{ fontSize: 11, color: '#64748b', marginBottom: 16 }}>Graph state is driven by cluster risk, scam-link hits, and holder concentration from the active scan.</div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.1fr)', gap: 18, alignItems: 'start' }} className="wi-grid">
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.05fr) minmax(0,1fr)', gap: 20, alignItems: 'start' }} className="wi-grid">
         <style>{`
           @media (max-width: 720px) { .wi-grid { grid-template-columns: 1fr !important; } }
         `}</style>
 
         <div>
-          <div style={{ fontSize: 10, color: '#64748b', marginBottom: 8 }}>GRAPH</div>
-          <svg width="100%" height="140" viewBox="0 0 200 140" aria-hidden style={{ display: 'block' }}>
-            {/* Center — creator / deployer hub */}
-            <circle cx="100" cy="72" r="14" fill="rgba(16,185,129,0.25)" stroke="#10b981" strokeWidth="1.8" />
-            <text x="100" y="76" textAnchor="middle" fill="#94a3b8" fontSize="8" fontFamily="system-ui,sans-serif">
-              Hub
+          <div style={{ fontSize: 10, color: '#64748b', marginBottom: 8 }}>RELATIONSHIP GRAPH</div>
+          <svg width="100%" height="168" viewBox="0 0 240 168" aria-label="Wallet cluster graph" style={{ display: 'block' }}>
+            <defs>
+              <filter id="wi-glow-em" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur stdDeviation="1.2" result="b" />
+                <feMerge>
+                  <feMergeNode in="b" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            {/* Edges: hub → each satellite — color matches destination node */}
+            {NODES.map((n, i) => {
+              const suspicious = i < susN
+              const pal = suspicious ? RD : EM
+              return (
+                <line
+                  key={`e-${n.key}`}
+                  x1={HUB.cx}
+                  y1={HUB.cy}
+                  x2={n.cx}
+                  y2={n.cy}
+                  stroke={pal.edge}
+                  strokeWidth={suspicious ? 1.6 : 1.25}
+                  strokeLinecap="round"
+                />
+              )
+            })}
+
+            {/* Hub */}
+            <circle
+              cx={HUB.cx}
+              cy={HUB.cy}
+              r={HUB.r}
+              fill="rgba(16,185,129,0.18)"
+              stroke={hubStroke}
+              strokeWidth="2"
+              filter="url(#wi-glow-em)"
+            />
+            <text x={HUB.cx} y={HUB.cy + 4} textAnchor="middle" fill="#cbd5e1" fontSize="9" fontWeight={600} fontFamily="ui-sans-serif,system-ui,sans-serif">
+              Core
             </text>
 
-            {/* Edges */}
-            <line x1="100" y1="72" x2="40" y2="28" stroke={suspicious ? edgeAlert : edgeDefault} strokeWidth="1.3" />
-            <line x1="100" y1="72" x2="160" y2="28" stroke={suspicious ? edgeAlert : edgeDefault} strokeWidth="1.3" />
-            <line x1="100" y1="72" x2="32" y2="100" stroke={suspicious ? edgeAlert : edgeDefault} strokeWidth="1.3" />
-            <line x1="100" y1="72" x2="168" y2="100" stroke={edgeDefault} strokeWidth="1.2" />
-            <line x1="100" y1="72" x2="100" y2="124" stroke="rgba(148,163,184,0.35)" strokeWidth="1.2" />
+            {/* Satellites */}
+            {NODES.map((n, i) => {
+              const suspicious = i < susN
+              const pal = suspicious ? RD : EM
+              return (
+                <g key={n.key}>
+                  <circle cx={n.cx} cy={n.cy} r={n.r} fill={pal.fill} stroke={pal.stroke} strokeWidth="1.6" />
+                  <text
+                    x={n.cx}
+                    y={n.cy + 3}
+                    textAnchor="middle"
+                    fill={suspicious ? '#fecaca' : '#a7f3d0'}
+                    fontSize="7"
+                    fontWeight={600}
+                    fontFamily="ui-sans-serif,system-ui,sans-serif"
+                  >
+                    {suspicious ? '!' : '·'}
+                  </text>
+                </g>
+              )
+            })}
 
-            {/* Satellite wallets — top pair suspicious when cluster elevated */}
-            <circle
-              cx="40"
-              cy="28"
-              r="8"
-              fill={suspicious ? nodeAlert : 'rgba(56,189,248,0.2)'}
-              stroke={suspicious ? strokeAlert : '#22d3ee'}
-              strokeWidth="1.4"
-            />
-            <circle
-              cx="160"
-              cy="28"
-              r="8"
-              fill={suspicious ? nodeAlert : 'rgba(167,139,250,0.2)'}
-              stroke={suspicious ? strokeAlert : '#a78bfa'}
-              strokeWidth="1.4"
-            />
-            <circle cx="32" cy="100" r="7" fill="rgba(16,185,129,0.15)" stroke="#34d399" strokeWidth="1.2" />
-            <circle cx="168" cy="100" r="7" fill="rgba(148,163,184,0.15)" stroke="#94a3b8" strokeWidth="1.2" />
-            <circle cx="100" cy="124" r="7" fill="rgba(16,185,129,0.12)" stroke="#64748b" strokeWidth="1.2" />
-
-            {suspicious ? (
-              <text x="100" y="16" textAnchor="middle" fill="#f87171" fontSize="9" fontWeight="700" fontFamily="system-ui,sans-serif">
-                Elevated ties
-              </text>
-            ) : null}
+            <text x={120} y={14} textAnchor="middle" fill="#64748b" fontSize="8" fontFamily="ui-sans-serif,system-ui,sans-serif" letterSpacing="0.12em">
+              {susN > 0 ? `${susN} cluster${susN > 1 ? 's' : ''} flagged` : 'All links clear vs model'}
+            </text>
           </svg>
           <p style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.5, marginTop: 10, marginBottom: 0 }}>
-            {suspicious
-              ? 'Red-highlighted nodes indicate counterparties or paths that cluster with elevated behavioral risk.'
-              : 'Green paths show clean relationships versus known scam-linked funding in this model pass.'}
+            <span style={{ color: '#6ee7b7' }}>Emerald</span> nodes and edges are healthy paths;{' '}
+            <span style={{ color: '#f87171' }}>red</span> marks satellites that align with suspicious cluster or scam-link evidence.
           </p>
         </div>
 
         <div>
-          <div style={{ fontSize: 10, color: '#64748b', marginBottom: 8 }}>DISTRIBUTION</div>
+          <div style={{ fontSize: 10, color: '#64748b', marginBottom: 8 }}>SUPPLY DISTRIBUTION</div>
           <div style={{ fontSize: 12, color: '#cbd5e1', marginBottom: 8 }}>
-            <strong style={{ color: '#e2e8f0' }}>Top holders</strong> ~{top}% · Mid-tier{' '}
-            <strong style={{ color: '#e2e8f0' }}>wallets</strong> ~{mid}% · Long tail ~{rest}%
+            Top <strong style={{ color: '#e2e8f0' }}>{top.toFixed(1)}%</strong> · Mid{' '}
+            <strong style={{ color: '#e2e8f0' }}>{mid}%</strong> · Tail <strong style={{ color: '#e2e8f0' }}>{rest}%</strong>
           </div>
           <div
             style={{
@@ -110,14 +173,13 @@ export function WalletIntelGraph({ reasoning }: Props) {
               borderRadius: 5,
               overflow: 'hidden',
               background: 'rgba(255,255,255,0.05)',
-              marginBottom: 4,
             }}
           >
             <div style={{ width: `${top}%`, background: 'linear-gradient(90deg,#10b981,#34d399)' }} />
             <div style={{ width: `${mid}%`, background: 'linear-gradient(90deg,#22d3ee,#06b6d4)' }} />
             <div style={{ width: `${rest}%`, background: 'rgba(148,163,184,0.35)' }} />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#64748b' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#64748b', marginTop: 4 }}>
             <span>Top</span>
             <span>Mid</span>
             <span>Tail</span>
@@ -125,6 +187,7 @@ export function WalletIntelGraph({ reasoning }: Props) {
         </div>
       </div>
 
+      {/* Exactly 3 metrics — aligned to graph + distribution */}
       <div
         style={{
           marginTop: 18,
@@ -132,26 +195,55 @@ export function WalletIntelGraph({ reasoning }: Props) {
           borderTop: '0.5px solid rgba(255,255,255,0.06)',
         }}
       >
-        <div style={{ fontSize: 10, letterSpacing: '0.12em', color: '#64748b', marginBottom: 10 }}>INSIGHT PANEL</div>
+        <div style={{ fontSize: 10, letterSpacing: '0.12em', color: '#64748b', marginBottom: 12 }}>INSIGHT PANEL</div>
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-            gap: 12,
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gap: 10,
             fontSize: 12,
           }}
+          className="wi-insight-3"
         >
-          <div style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(0,0,0,0.35)', border: '0.5px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ color: '#64748b', fontSize: 10, marginBottom: 4 }}>Cluster risk</div>
-            <div style={{ color: '#f1f5f9', fontWeight: 700 }}>{clusterRiskLabel}</div>
+          <style>{`
+            @media (max-width: 520px) {
+              .wi-insight-3 { grid-template-columns: 1fr !important; }
+            }
+          `}</style>
+          <div
+            style={{
+              padding: '12px 14px',
+              borderRadius: 10,
+              background: 'rgba(0,0,0,0.38)',
+              border: `0.5px solid ${risk === 'high' ? 'rgba(248,113,113,0.35)' : 'rgba(255,255,255,0.06)'}`,
+            }}
+          >
+            <div style={{ color: '#64748b', fontSize: 10, marginBottom: 6, letterSpacing: '0.06em' }}>1 · Cluster risk</div>
+            <div style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 18 }}>{clusterRiskLabel}</div>
+            <div style={{ color: '#64748b', fontSize: 10, marginTop: 6, lineHeight: 1.4 }}>
+              Matches red nodes in the graph ({susN} elevated).
+            </div>
           </div>
-          <div style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(0,0,0,0.35)', border: '0.5px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ color: '#64748b', fontSize: 10, marginBottom: 4 }}>Top holder concentration</div>
-            <div style={{ color: '#f1f5f9', fontWeight: 700 }}>{top.toFixed(1)}%</div>
+          <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(0,0,0,0.38)', border: '0.5px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ color: '#64748b', fontSize: 10, marginBottom: 6, letterSpacing: '0.06em' }}>2 · Top holder concentration</div>
+            <div style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 18 }}>{top.toFixed(1)}%</div>
+            <div style={{ color: '#64748b', fontSize: 10, marginTop: 6, lineHeight: 1.4 }}>
+              Same figure as the distribution bar above.
+            </div>
           </div>
-          <div style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(0,0,0,0.35)', border: '0.5px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ color: '#64748b', fontSize: 10, marginBottom: 4 }}>Linked scam wallets</div>
-            <div style={{ color: '#f1f5f9', fontWeight: 700 }}>{scamLabel}</div>
+          <div
+            style={{
+              padding: '12px 14px',
+              borderRadius: 10,
+              background: 'rgba(0,0,0,0.38)',
+              border: `0.5px solid ${hits > 0 ? 'rgba(248,113,113,0.3)' : 'rgba(255,255,255,0.06)'}`,
+            }}
+          >
+            <div style={{ color: '#64748b', fontSize: 10, marginBottom: 6, letterSpacing: '0.06em' }}>3 · Linked scam signals</div>
+            <div style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 18 }}>{metricScam}</div>
+            <div style={{ color: '#64748b', fontSize: 10, marginTop: 6, lineHeight: 1.4 }}>
+              Drives additional red nodes when hits ≥ 1.
+            </div>
           </div>
         </div>
       </div>
