@@ -8,8 +8,8 @@ export default function ProLayout({ children }: { children: React.ReactNode }) {
       style={{
         minHeight: '100vh',
         background:
-          'radial-gradient(ellipse 90% 60% at 50% -15%, rgba(99, 102, 241, 0.07), transparent), radial-gradient(ellipse 60% 40% at 100% 50%, rgba(16, 185, 129, 0.04), transparent), #06060a',
-        color: '#e4e4eb',
+          'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(16, 185, 129, 0.09), transparent), radial-gradient(ellipse 55% 45% at 100% 20%, rgba(16, 185, 129, 0.05), transparent), #0a0a0f',
+        color: '#e8e8ef',
         fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
       }}
     >

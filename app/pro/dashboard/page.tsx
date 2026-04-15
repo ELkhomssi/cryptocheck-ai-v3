@@ -1,5 +1,7 @@
 import { getProDashboardSession } from '@/lib/auth/pro-dashboard'
 import { ScannerEngine } from '@/lib/services/scanner-engine'
+import { buildWeightedSecurityScore } from '@/lib/services/scanner/weighted-score'
+import { getPrimaryConnection } from '@/lib/services/scanner/RpcProviderManager'
 import { ProDashboardClient } from './pro-dashboard-client'
 
 export const dynamic = 'force-dynamic'
@@ -17,5 +19,15 @@ export default async function ProDashboardPage() {
     creatorScamLinkedFundingCount: 0,
   })
 
-  return <ProDashboardClient session={session} demoReasoning={demoReasoning} />
+  const demoWeighted = buildWeightedSecurityScore(demoReasoning)
+  const demoRpcLabel = getPrimaryConnection().label
+
+  return (
+    <ProDashboardClient
+      session={session}
+      demoReasoning={demoReasoning}
+      demoWeighted={demoWeighted}
+      demoRpcLabel={demoRpcLabel}
+    />
+  )
 }

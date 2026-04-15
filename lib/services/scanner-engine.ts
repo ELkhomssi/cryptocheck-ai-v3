@@ -143,7 +143,8 @@ function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
 /**
  * Derive abstract "deployment signals" from numeric + boolean inputs for fingerprint overlap.
  */
-function deriveTokenSignals(input: ScannerEngineInput): Set<string> {
+/** Exported for institutional pipeline / tests — derives abstract deployment signals. */
+export function deriveTokenSignals(input: ScannerEngineInput): Set<string> {
   const s = new Set<string>()
   const liq = input.liquidityUsd ?? 0
   const top = input.topHolderPct ?? 0
@@ -172,7 +173,8 @@ function deriveTokenSignals(input: ScannerEngineInput): Set<string> {
   return s
 }
 
-function matchFingerprints(tokenSignals: Set<string>): FingerprintMatchResult | null {
+/** Exported for institutional pipeline / tests — rug fingerprint similarity. */
+export function matchFingerprints(tokenSignals: Set<string>): FingerprintMatchResult | null {
   let best: FingerprintMatchResult | null = null
 
   for (const fp of KNOWN_RUGPULL_FINGERPRINTS) {

@@ -1,15 +1,7 @@
-import { Connection } from '@solana/web3.js'
-import { HELIUS_KEY, HELIUS_RPC } from '@/lib/helius'
+import type { Connection } from '@solana/web3.js'
+import { getPrimaryConnection } from '@/lib/services/scanner/RpcProviderManager'
 
-let _conn: Connection | null = null
-
-/** Primary RPC for simulations (Helius env or bundled fallback). */
+/** Primary RPC for simulations — delegated to institutional RpcProviderManager (Helius-first). */
 export function getSolanaConnection(): Connection {
-  if (_conn) return _conn
-  const key = process.env.HELIUS_KEY || HELIUS_KEY
-  const url = `https://mainnet.helius-rpc.com/?api-key=${key}`
-  _conn = new Connection(url || HELIUS_RPC, {
-    commitment: 'processed',
-  })
-  return _conn
+  return getPrimaryConnection().connection
 }
