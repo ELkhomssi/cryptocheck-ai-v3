@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
+import { mapWithConcurrency } from '@/lib/concurrency/pool'
 import { resolveScanAuthOnly, scanClientIp, type ScanAccessContext } from '@/lib/auth/scan-access'
 import { enforceDailyApiLimitCount } from '@/lib/services/api-daily-limit.service'
 import { runInstitutionalScan } from '@/lib/services/scanner/execute-scan'
 import { normalizeScanBody } from '@/lib/services/scanner/normalize-scan-body'
 import { mapSnapshotToPlatformResponse } from '@/lib/services/scanner/map-platform-response'
 import { logApiUsageEvent } from '@/lib/services/api-usage.service'
+import { logSecurityEvent } from '@/lib/services/security-log.service'
 import { ScanServiceError } from '@/lib/services/scanner/ErrorHandler'
 import type { ProFeatureContext } from '@/lib/auth/pro-feature-access'
 import type { PlatformScanResponse } from '@/lib/types/platform-scan-api'
@@ -15,6 +17,8 @@ import { mergeWithRateLimitHeaders } from '@/lib/api/scan-api-errors'
 import { securityLogUserIdForContext } from '@/lib/config/sentinel-qa-bypass'
 
 export const dynamic = 'force-dynamic'
+
+const BATCH_CONCURRENCY = 10
 
 /** SENTINEL batch caps: Free 5, Pro 20, Enterprise 100 */
 function maxBatchForTier(tier: SubscriptionTier): number {
@@ -94,18 +98,35 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const results: ItemResult[] = []
-  let okCount = 0
-
-  for (let index = 0; index < items.length; index++) {
-    const raw = { ...items[index], chain: (items[index].chain as string) ?? body.chain ?? 'solana' }
+  const results = await mapWithConcurrency(items, BATCH_CONCURRENCY, async (item, index) => {
+    const raw = { ...item, chain: (item.chain as string) ?? body.chain ?? 'solana' }
+    const t0 = Date.now()
+    let mintForLog = ''
     try {
       const normalized = normalizeScanBody(raw)
-      const result = await runInstitutionalScan(req, ctx as ProFeatureContext, normalized)
+      mintForLog = String(normalized.mint ?? normalized.tokenAddress ?? '')
+      const result = await runInstitutionalScan(req, ctx as ProFeatureContext, normalized, {
+        suppressAudit: true,
+      })
       if (result.ok === false) {
         const err = result.error
-        results.push({ index, ok: false, error: err.message, code: err.httpStatus, reason: err.code })
-        continue
+        void logSecurityEvent({
+          userId: securityLogUserIdForContext(ctx),
+          action: 'scan_item',
+          resource: '/api/v1/scan/batch',
+          ip: scanClientIp(req),
+          userAgent: req.headers.get('user-agent'),
+          metadata: {
+            request_id: requestId,
+            index,
+            mint: mintForLog,
+            ok: false,
+            error: err.message,
+            code: err.code,
+            latency_ms: Date.now() - t0,
+          },
+        })
+        return { index, ok: false as const, error: err.message, code: err.httpStatus, reason: err.code }
       }
       const { snapshot, meta } = result
       const platform = mapSnapshotToPlatformResponse(snapshot, {
@@ -115,13 +136,46 @@ export async function POST(req: NextRequest) {
         environment: 'live',
         requestId: `${requestId}:${index}`,
       })
-      results.push({ index, ok: true, data: platform })
-      okCount++
+      void logSecurityEvent({
+        userId: securityLogUserIdForContext(ctx),
+        action: 'scan_item',
+        resource: '/api/v1/scan/batch',
+        ip: scanClientIp(req),
+        userAgent: req.headers.get('user-agent'),
+        metadata: {
+          request_id: requestId,
+          index,
+          mint: mintForLog,
+          ok: true,
+          score: platform.score,
+          verdict: snapshot.reasoning.verdict,
+          latency_ms: Date.now() - t0,
+          cache: meta.cache,
+        },
+      })
+      return { index, ok: true as const, data: platform }
     } catch (e) {
       const err = e instanceof ScanServiceError ? e : new ScanServiceError('Scan failed', 'UNKNOWN', 500)
-      results.push({ index, ok: false, error: err.message, code: err.httpStatus, reason: err.code })
+      void logSecurityEvent({
+        userId: securityLogUserIdForContext(ctx),
+        action: 'scan_item',
+        resource: '/api/v1/scan/batch',
+        ip: scanClientIp(req),
+        userAgent: req.headers.get('user-agent'),
+        metadata: {
+          request_id: requestId,
+          index,
+          mint: mintForLog,
+          ok: false,
+          error: err.message,
+          code: err.code,
+          latency_ms: Date.now() - t0,
+        },
+      })
+      return { index, ok: false as const, error: err.message, code: err.httpStatus, reason: err.code }
     }
-  }
+  })
+  const okCount = results.filter((r) => r.ok).length
 
   await logApiUsageEvent({
     userId: securityLogUserIdForContext(ctx),

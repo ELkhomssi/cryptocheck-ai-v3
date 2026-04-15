@@ -69,6 +69,15 @@ export type ScannerEngineInput = {
   pairAgeMinutes?: number | null
   /** Mint authority still set? */
   mintAuthorityActive?: boolean | null
+  /** Freeze authority still set — accounts can be frozen by issuer. */
+  freezeAuthorityActive?: boolean | null
+  /**
+   * Curated major / regulated asset — mint authority may exist for operational issuance;
+   * do not apply retail “unrenounced mint” rug heuristics (USDC-class).
+   */
+  regulatedIssuer?: boolean | null
+  /** Optional 18–100 from chain enrichment — anchors dynamic confidence. */
+  enrichmentConfidenceHint?: number | null
   /** Creator / deployer wallet (base58). */
   creatorWallet?: string | null
   /**
@@ -153,7 +162,7 @@ export function deriveTokenSignals(input: ScannerEngineInput): Set<string> {
   if (liq < 25_000) s.add('thin_liquidity')
   if (age < 120) s.add('fresh_pool')
   if (top > 35) s.add('high_creator_allocation')
-  if (input.mintAuthorityActive) s.add('mint_authority_retained')
+  if (input.mintAuthorityActive === true && input.regulatedIssuer !== true) s.add('mint_authority_retained')
 
   const sig = input.signals
   if (sig?.suspicious_router) s.add('suspicious_router')
@@ -365,7 +374,7 @@ export class ScannerEngine {
       })
     }
 
-    if (input.mintAuthorityActive === true) {
+    if (input.mintAuthorityActive === true && !input.regulatedIssuer) {
       const maxW = 15
       const rc = 12
       score -= rc
@@ -387,7 +396,52 @@ export class ScannerEngine {
         maxWeight: 15,
         detail: 'Mint authority appears renounced or fixed-supply — reduces inflation rug vector.',
       })
+    } else if (input.regulatedIssuer && input.mintAuthorityActive === true) {
+      evidence.push({
+        id: 'ev_mint_regulated',
+        category: 'authority',
+        label: 'Mint authority',
+        riskContribution: 0,
+        maxWeight: 15,
+        detail:
+          'Operational mint authority on a regulated / curated major — not scored as retail inflation risk.',
+      })
     }
+
+    if (input.freezeAuthorityActive === true && !input.regulatedIssuer) {
+      const maxW = 10
+      const rc = 7
+      score -= rc
+      evidence.push({
+        id: 'ev_freeze_auth',
+        category: 'authority',
+        label: 'Freeze authority',
+        riskContribution: rc,
+        maxWeight: maxW,
+        detail: 'Freeze authority is set — issuer can freeze holder token accounts (centralization / policy risk).',
+      })
+      flags.push('freeze_authority_active')
+    } else if (input.freezeAuthorityActive === true && input.regulatedIssuer) {
+      evidence.push({
+        id: 'ev_freeze_regulated',
+        category: 'authority',
+        label: 'Freeze authority',
+        riskContribution: 0,
+        maxWeight: 10,
+        detail:
+          'Freeze authority present on a curated major — typical for compliance-grade issuance; not treated as meme-token freeze risk.',
+      })
+    } else if (input.freezeAuthorityActive === false) {
+      evidence.push({
+        id: 'ev_freeze_none',
+        category: 'authority',
+        label: 'Freeze authority',
+        riskContribution: 0,
+        maxWeight: 10,
+        detail: 'No freeze authority on mint — accounts cannot be frozen by issuer.',
+      })
+    }
+
 
     const cluster = evaluateLinkedCreatorWallets({
       creatorWallet: input.creatorWallet,
@@ -452,7 +506,10 @@ export class ScannerEngine {
 
     score = clamp(score, 0, 100)
 
-    let confidence = 72
+    let confidence =
+      input.enrichmentConfidenceHint != null
+        ? clamp(input.enrichmentConfidenceHint, 18, 100)
+        : 72
     if (liq == null) confidence -= 10
     if (top == null) confidence -= 8
     if (age == null) confidence -= 5

@@ -1,3 +1,4 @@
+import { enrichScanBodyFromChain } from '@/lib/services/scanner/solana-token-enrichment'
 import { runInstitutionalPipeline } from '@/lib/services/scanner/pipeline/run-institutional-scan'
 import type { InstitutionalScanSnapshot } from '@/lib/services/scanner/types'
 
@@ -16,5 +17,6 @@ export async function buildSandboxSnapshot(overrides: Record<string, unknown> = 
     creatorScamLinkedFundingCount: 0,
     ...overrides,
   }
-  return runInstitutionalPipeline(body)
+  const prepared = await enrichScanBodyFromChain(body)
+  return runInstitutionalPipeline(prepared)
 }

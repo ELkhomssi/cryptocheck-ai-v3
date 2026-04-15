@@ -26,12 +26,17 @@ export function deriveRiskAssessment(snapshot: InstitutionalScanSnapshot): RiskA
   const flags = new Set(reasoning.flags)
   const liqRisk = weighted.risk_breakdown.liquidity_risk
 
+  const liqLine = reasoning.evidence.find((e) => e.id === 'ev_liquidity' || e.id === 'ev_liquidity_unknown')
+  const liqDetail = liqLine?.detail ?? ''
+
   let liquidity_status: LiquidityStatus = 'Safe'
-  if (flags.has('thin_liquidity') || flags.has('missing_liquidity')) {
+  if (flags.has('missing_liquidity') || liqDetail.includes('not available')) {
     liquidity_status = 'Thin'
-  } else if (liqRisk >= 50) {
+  } else if (flags.has('thin_liquidity')) {
+    liquidity_status = 'Thin'
+  } else if (liqRisk >= 50 || liqDetail.includes('very thin')) {
     liquidity_status = 'Volatile'
-  } else if (liqRisk >= 28) {
+  } else if (liqRisk >= 24 || liqDetail.includes('below typical institutional')) {
     liquidity_status = 'Thin'
   }
 

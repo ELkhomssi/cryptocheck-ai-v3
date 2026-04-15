@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server'
 import type { ProFeatureContext } from '@/lib/auth/pro-feature-access'
+import { enrichScanBodyFromChain } from '@/lib/services/scanner/solana-token-enrichment'
 import { runInstitutionalPipeline } from '@/lib/services/scanner/pipeline/run-institutional-scan'
 import {
   getInstitutionalScan,
@@ -26,16 +27,25 @@ export type InstitutionalScanResult =
     }
   | { ok: false; error: ScanServiceError }
 
+export type RunInstitutionalScanOptions = {
+  /** When true (e.g. batch inner items), skip `scan_v1` audit lines — caller logs `scan_item` per mint. */
+  suppressAudit?: boolean
+}
+
 /**
  * Shared execution path for POST `/api/v1/scan` and `/api/v1/scan/reasoning` (same cache & audit semantics).
  */
 export async function runInstitutionalScan(
   req: NextRequest,
   ctx: ProFeatureContext,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
+  options?: RunInstitutionalScanOptions
 ): Promise<InstitutionalScanResult> {
   const started = Date.now()
-  const cacheKey = scanBodyCacheKey(body)
+  const prepared = await enrichScanBodyFromChain(body)
+  const cacheKey = scanBodyCacheKey(prepared)
+  const suppressAudit = options?.suppressAudit === true
+  const mintLabel = String(prepared.mint ?? body.mint ?? body.tokenAddress ?? '')
 
   /**
    * API-key requests are already tier-limited in `authenticateApiRequestOptional`.
@@ -64,20 +74,22 @@ export async function runInstitutionalScan(
 
   const cached = await getInstitutionalScan(cacheKey)
   if (cached) {
-    void logSecurityEvent({
-      userId: securityLogUserIdForContext(ctx),
-      action: 'scan_v1',
-      resource: '/api/v1/scan',
-      ip: clientIp(req),
-      userAgent: req.headers.get('user-agent'),
-      metadata: {
-        mint: body.mint,
-        cache: 'hit',
-        verdict: cached.reasoning.verdict,
-        score: cached.reasoning.aggregateScore,
-        authVia: ctx.via,
-      },
-    })
+    if (!suppressAudit) {
+      void logSecurityEvent({
+        userId: securityLogUserIdForContext(ctx),
+        action: 'scan_v1',
+        resource: '/api/v1/scan',
+        ip: clientIp(req),
+        userAgent: req.headers.get('user-agent'),
+        metadata: {
+          mint: mintLabel,
+          cache: 'hit',
+          verdict: cached.reasoning.verdict,
+          score: cached.reasoning.aggregateScore,
+          authVia: ctx.via,
+        },
+      })
+    }
     return {
       ok: true,
       snapshot: cached,
@@ -91,39 +103,41 @@ export async function runInstitutionalScan(
   }
 
   try {
-    const snapshot = await runInstitutionalPipeline(body)
+    const snapshot = await runInstitutionalPipeline(prepared)
     await setInstitutionalScan(cacheKey, snapshot)
 
-    void logSecurityEvent({
-      userId: securityLogUserIdForContext(ctx),
-      action: 'scan_v1',
-      resource: '/api/v1/scan',
-      ip: clientIp(req),
-      userAgent: req.headers.get('user-agent'),
-      metadata: {
-        mint: body.mint,
-        cache: 'miss',
-        verdict: snapshot.reasoning.verdict,
-        score: snapshot.reasoning.aggregateScore,
-        rpcProvider: snapshot.rpcProviderLabel,
-        authVia: ctx.via,
-      },
-    })
-
-    void pushPulseEntry({
-      mint: String(body.mint ?? ''),
-      aggregateScore: snapshot.reasoning.aggregateScore,
-      verdict: snapshot.reasoning.verdict,
-      institutionalGrade: snapshot.reasoning.institutionalGrade,
-      ts: new Date().toISOString(),
-    })
-
-    if (snapshot.reasoning.aggregateScore >= 85 && snapshot.reasoning.verdict === 'SAFE') {
-      void WebhookService.dispatch(ctx.userId, 'high_safety_token', {
-        mint: String(body.mint ?? ''),
-        score: snapshot.reasoning.aggregateScore,
-        grade: snapshot.reasoning.institutionalGrade,
+    if (!suppressAudit) {
+      void logSecurityEvent({
+        userId: securityLogUserIdForContext(ctx),
+        action: 'scan_v1',
+        resource: '/api/v1/scan',
+        ip: clientIp(req),
+        userAgent: req.headers.get('user-agent'),
+        metadata: {
+          mint: mintLabel,
+          cache: 'miss',
+          verdict: snapshot.reasoning.verdict,
+          score: snapshot.reasoning.aggregateScore,
+          rpcProvider: snapshot.rpcProviderLabel,
+          authVia: ctx.via,
+        },
       })
+
+      void pushPulseEntry({
+        mint: mintLabel,
+        aggregateScore: snapshot.reasoning.aggregateScore,
+        verdict: snapshot.reasoning.verdict,
+        institutionalGrade: snapshot.reasoning.institutionalGrade,
+        ts: new Date().toISOString(),
+      })
+
+      if (snapshot.reasoning.aggregateScore >= 85 && snapshot.reasoning.verdict === 'SAFE') {
+        void WebhookService.dispatch(ctx.userId, 'high_safety_token', {
+          mint: mintLabel,
+          score: snapshot.reasoning.aggregateScore,
+          grade: snapshot.reasoning.institutionalGrade,
+        })
+      }
     }
 
     return {
@@ -138,14 +152,16 @@ export async function runInstitutionalScan(
     }
   } catch (e) {
     const err = e instanceof ScanServiceError ? e : normalizeScanError(e)
-    void logSecurityEvent({
-      userId: securityLogUserIdForContext(ctx),
-      action: 'scan_v1_error',
-      resource: '/api/v1/scan',
-      ip: clientIp(req),
-      userAgent: req.headers.get('user-agent'),
-      metadata: { error: err.message, code: err.code },
-    })
+    if (!suppressAudit) {
+      void logSecurityEvent({
+        userId: securityLogUserIdForContext(ctx),
+        action: 'scan_v1_error',
+        resource: '/api/v1/scan',
+        ip: clientIp(req),
+        userAgent: req.headers.get('user-agent'),
+        metadata: { error: err.message, code: err.code },
+      })
+    }
     return { ok: false, error: err }
   }
 }

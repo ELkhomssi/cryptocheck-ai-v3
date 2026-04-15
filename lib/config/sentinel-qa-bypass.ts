@@ -2,7 +2,7 @@ import type { VerifiedApiKeyV2 } from '@/lib/services/api-key-v2.service'
 
 /**
  * Local/QA bypass for the fixed Sentinel test key (no `api_keys_v2` row).
- * Disabled in production unless `SENTINEL_QA_BYPASS_ENABLED=true`.
+ * Disabled when `NODE_ENV === 'production'` or `SENTINEL_QA_BYPASS_ENABLED=false`.
  */
 export const SENTINEL_QA_BYPASS_RAW_KEY = 'cc_sentinel_test_khomssi_2026'
 
@@ -14,9 +14,10 @@ export const SENTINEL_QA_BYPASS_USER_ID = 'ffffffff-ffff-4fff-8fff-ffffffff0002'
 
 const SENTINEL_QA_BYPASS_PUBLIC_KID = 'kid_qa_khomssi_2026'
 
+/** QA synthetic key is **never** honored in production builds. */
 export function sentinelQaBypassEnabled(): boolean {
   if (process.env.SENTINEL_QA_BYPASS_ENABLED === 'false') return false
-  return process.env.NODE_ENV !== 'production' || process.env.SENTINEL_QA_BYPASS_ENABLED === 'true'
+  return process.env.NODE_ENV !== 'production'
 }
 
 export function isSentinelQaBypassRawKey(raw: string): boolean {
@@ -32,11 +33,6 @@ export function isSentinelQaBypassKeyUuid(id: string | undefined): boolean {
 export function isSentinelQaBypassUserId(userId: string): boolean {
   if (!sentinelQaBypassEnabled()) return false
   return userId === SENTINEL_QA_BYPASS_USER_ID
-}
-
-/** Matches `dedupe` keys like `apikey:<uuid>` used by daily batch limits. */
-export function isSentinelQaBypassDedupeKey(dedupeKey: string): boolean {
-  return sentinelQaBypassEnabled() && dedupeKey === `apikey:${SENTINEL_QA_BYPASS_KEY_UUID}`
 }
 
 export function sentinelQaBypassVerification(): VerifiedApiKeyV2 {
