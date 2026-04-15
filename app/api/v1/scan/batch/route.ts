@@ -10,9 +10,11 @@ import { ScanServiceError } from '@/lib/services/scanner/ErrorHandler'
 import type { ProFeatureContext } from '@/lib/auth/pro-feature-access'
 import type { PlatformScanResponse } from '@/lib/types/platform-scan-api'
 import type { SubscriptionTier } from '@/lib/types/tier'
+import { getUserSubscription } from '@/lib/services/user-subscription.service'
 
 export const dynamic = 'force-dynamic'
 
+/** SENTINEL batch caps: Free 5, Pro 20, Enterprise 100 */
 function maxBatchForTier(tier: SubscriptionTier): number {
   if (tier === 'institutional') return 100
   if (tier === 'pro') return 20
@@ -31,6 +33,9 @@ export async function POST(req: NextRequest) {
   const auth = await resolveScanAuthOnly(req)
   if (auth.ok === false) return auth.response
   const ctx: ScanAccessContext = auth.ctx
+
+  const subscription = await getUserSubscription(ctx.userId)
+  const sentinelTier = subscription.runtimeTier
 
   const body = (await req.json().catch(() => ({}))) as {
     items?: unknown[]
@@ -52,7 +57,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const max = maxBatchForTier(ctx.tier)
+  const max = maxBatchForTier(sentinelTier)
   if (items.length > max) {
     return NextResponse.json(
       {
@@ -66,7 +71,7 @@ export async function POST(req: NextRequest) {
   }
 
   const dedupe = ctx.via === 'api_key' ? `apikey:${ctx.apiKeyId}` : `session:${ctx.userId}`
-  const daily = await enforceDailyApiLimitCount(items.length, dedupe, ctx.tier)
+  const daily = await enforceDailyApiLimitCount(items.length, dedupe, sentinelTier)
   if (!daily.ok) {
     const retrySec = Math.max(1, Math.ceil((daily.reset - Date.now()) / 1000))
     return NextResponse.json(
@@ -101,7 +106,7 @@ export async function POST(req: NextRequest) {
       const platform = mapSnapshotToPlatformResponse(snapshot, {
         responseTimeMs: meta.responseTimeMs,
         cache: meta.cache,
-        tier: ctx.tier,
+        tier: sentinelTier,
         environment: 'live',
         requestId: `${requestId}:${index}`,
       })
