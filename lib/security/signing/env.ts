@@ -9,6 +9,9 @@ export const SCAN_API_SECURITY_DOCS_URL = 'https://cryptocheckai.com/api/docs#se
 /**
  * Dev-only fallback when `API_SIGNING_SALT` is unset outside production.
  * MUST NOT be used in production (enforced at startup and per-request).
+ *
+ * Client SDKs may also read `CRYPTOCHECK_SIGNING_SALT` (see `lib/sdk/cryptocheck-sdk.ts`) but the server
+ * only uses `API_SIGNING_SALT` here — keep them identical in production.
  */
 export const SCAN_API_DOCS_DEV_SIGNING_SALT = 'cryptocheck_dev_api_signing_salt_v1'
 
@@ -85,5 +88,6 @@ export function getSigningSaltOrThrow(): string {
   if (process.env.NODE_ENV === 'production') {
     return process.env.API_SIGNING_SALT!.trim()
   }
+  // Local dev: explicit salt, or documented dev fallback (matches SDK default).
   return process.env.API_SIGNING_SALT?.trim() || SCAN_API_DOCS_DEV_SIGNING_SALT
 }

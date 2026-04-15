@@ -1,7 +1,9 @@
 'use client'
 
+import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { GlassCard } from '@/components/Dashboard/GlassCard'
+import { copyToClipboard } from '@/lib/utils'
 
 type KeyRow = {
   schema: 'v1' | 'v2'
@@ -21,6 +23,7 @@ export default function ApiKeysPage() {
   const [name, setName] = useState('Production')
   const [schema, setSchema] = useState<'v1' | 'v2'>('v1')
   const [secretOnce, setSecretOnce] = useState<string | null>(null)
+  const [copiedKey, setCopiedKey] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -51,7 +54,14 @@ export default function ApiKeysPage() {
       return
     }
     setSecretOnce(j.rawKey || j.secret || null)
+    setCopiedKey(false)
     void load()
+  }
+
+  async function copySecretOnce() {
+    if (!secretOnce) return
+    const ok = await copyToClipboard(secretOnce)
+    setCopiedKey(ok)
   }
 
   async function revokeKey(k: KeyRow) {
@@ -64,8 +74,18 @@ export default function ApiKeysPage() {
   return (
     <div className="space-y-10">
       <header className="max-w-2xl">
-        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Credentials</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-200">API keys</h1>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Credentials</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-200">API keys</h1>
+          </div>
+          <Link
+            href="/docs"
+            className="shrink-0 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-300 transition-all hover:border-cyan-500/25 hover:bg-cyan-500/[0.06] hover:text-cyan-200/95"
+          >
+            View documentation
+          </Link>
+        </div>
         <p className="mt-2 text-sm font-medium leading-relaxed text-slate-400">
           <span className="text-slate-300">v1</span> (<code className="text-emerald-400/90">cc_live_*</code>) — standard
           access.
@@ -112,7 +132,24 @@ export default function ApiKeysPage() {
           {err && <p className="mt-4 text-sm font-medium text-rose-300/95">{err}</p>}
           {secretOnce && (
             <div className="mt-5 rounded-lg border border-amber-500/25 bg-amber-500/[0.08] p-4 font-mono text-xs text-amber-100/95">
-              Copy now — shown once:
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span>Copy now — shown once</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void copySecretOnce()}
+                    className="rounded-md border border-amber-400/30 bg-amber-950/30 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-amber-100 hover:bg-amber-950/50"
+                  >
+                    {copiedKey ? 'Copied' : 'Copy key'}
+                  </button>
+                  <Link
+                    href="/docs"
+                    className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-cyan-300/95 underline decoration-cyan-500/40 underline-offset-2 hover:text-cyan-200"
+                  >
+                    View documentation
+                  </Link>
+                </div>
+              </div>
               <div className="mt-2 break-all text-amber-50/95">{secretOnce}</div>
             </div>
           )}
