@@ -1,10 +1,19 @@
+'use client'
+
 import type { Verdict } from '@/lib/services/scanner-engine'
+import { ConfidenceMeter } from '@/components/pro/institutional/ConfidenceMeter'
 
 type Props = {
   score: number
   verdict: Verdict
   confidence: number
   subtitle?: string
+  primaryCta?: {
+    label: string
+    onClick: () => void
+    disabled?: boolean
+    loading?: boolean
+  }
 }
 
 function verdictLabel(v: Verdict): 'SAFE' | 'CAUTION' | 'DANGER' {
@@ -19,9 +28,8 @@ function badgeColors(verdict: Verdict): { bg: string; border: string; fg: string
   return { bg: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.45)', fg: '#f87171' }
 }
 
-export function InstitutionalHero({ score, verdict, confidence, subtitle }: Props) {
+export function InstitutionalHero({ score, verdict, confidence, subtitle, primaryCta }: Props) {
   const badge = badgeColors(verdict)
-  const pct = Math.round(confidence * 100)
   const label = verdictLabel(verdict)
 
   return (
@@ -85,28 +93,69 @@ export function InstitutionalHero({ score, verdict, confidence, subtitle }: Prop
           >
             {label}
           </span>
-          <span
+        </div>
+
+        <ConfidenceMeter value01={confidence} />
+
+        {primaryCta ? (
+          <div style={{ marginTop: 24 }}>
+            <button
+              type="button"
+              onClick={primaryCta.onClick}
+              disabled={primaryCta.disabled || primaryCta.loading}
+              className="cc-pro-primary-cta"
+              style={{
+                fontSize: 14,
+                fontWeight: 700,
+                letterSpacing: '0.06em',
+                padding: '14px 32px',
+                borderRadius: 12,
+                border: 'none',
+                cursor: primaryCta.disabled || primaryCta.loading ? 'not-allowed' : 'pointer',
+                color: '#020617',
+                background:
+                  primaryCta.disabled || primaryCta.loading
+                    ? 'rgba(16,185,129,0.35)'
+                    : 'linear-gradient(135deg, #10b981 0%, #059669 55%, #047857 100%)',
+                boxShadow:
+                  primaryCta.disabled || primaryCta.loading
+                    ? 'none'
+                    : '0 0 0 1px rgba(16,185,129,0.4), 0 12px 40px rgba(16,185,129,0.35)',
+                opacity: primaryCta.disabled && !primaryCta.loading ? 0.65 : 1,
+                transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+              }}
+            >
+              {primaryCta.loading ? 'Running scan…' : primaryCta.label}
+            </button>
+          </div>
+        ) : null}
+
+        {subtitle ? (
+          <p
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              padding: '8px 18px',
-              borderRadius: 999,
-              fontSize: 12,
-              fontWeight: 600,
+              marginTop: 20,
+              fontSize: 13,
               color: '#94a3b8',
-              border: '0.5px solid rgba(148,163,184,0.25)',
-              background: 'rgba(15,23,42,0.5)',
+              maxWidth: 520,
+              marginLeft: 'auto',
+              marginRight: 'auto',
+              lineHeight: 1.5,
             }}
           >
-            Confidence {pct}%
-          </span>
-        </div>
-        {subtitle ? (
-          <p style={{ marginTop: 18, fontSize: 13, color: '#94a3b8', maxWidth: 520, marginLeft: 'auto', marginRight: 'auto' }}>
             {subtitle}
           </p>
         ) : null}
       </div>
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+        .cc-pro-primary-cta:not(:disabled):hover {
+          transform: translateY(-1px);
+          box-shadow: 0 0 0 1px rgba(16,185,129,0.55), 0 16px 48px rgba(16,185,129,0.45) !important;
+        }
+      `,
+        }}
+      />
     </section>
   )
 }
