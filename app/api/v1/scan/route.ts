@@ -8,6 +8,7 @@ import { logApiUsageEvent } from '@/lib/services/api-usage.service'
 import { ScanServiceError } from '@/lib/services/scanner/ErrorHandler'
 import type { ProFeatureContext } from '@/lib/auth/pro-feature-access'
 import { mergeWithRateLimitHeaders } from '@/lib/api/scan-api-errors'
+import { securityLogUserIdForContext } from '@/lib/config/sentinel-qa-bypass'
 import {
   assertEnterpriseIpAllowlist,
   assertScanSignature,
@@ -52,7 +53,7 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
   } catch (e) {
     if (e instanceof SentinelServerMisconfigurationError) {
       await logApiUsageEvent({
-        userId: ctx.userId,
+        userId: securityLogUserIdForContext(ctx),
         apiKeyId: ctx.apiKeyId,
         endpoint: '/api/v1/scan',
         method: 'POST',
@@ -66,7 +67,7 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
     }
     const err = e instanceof ScanServiceError ? e : new ScanServiceError('Invalid request', 'INVALID_INPUT', 400)
     await logApiUsageEvent({
-      userId: ctx.userId,
+      userId: securityLogUserIdForContext(ctx),
       apiKeyId: ctx.apiKeyId,
       endpoint: '/api/v1/scan',
       method: 'POST',
@@ -92,7 +93,7 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
   } catch (e) {
     const err = e instanceof ScanServiceError ? e : new ScanServiceError('Invalid request', 'INVALID_INPUT', 400)
     await logApiUsageEvent({
-      userId: ctx.userId,
+      userId: securityLogUserIdForContext(ctx),
       apiKeyId: ctx.apiKeyId,
       endpoint: '/api/v1/scan',
       method: 'POST',
@@ -111,7 +112,7 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
   if (result.ok === false) {
     const err = result.error
     await logApiUsageEvent({
-      userId: ctx.userId,
+      userId: securityLogUserIdForContext(ctx),
       apiKeyId: ctx.apiKeyId,
       endpoint: '/api/v1/scan',
       method: 'POST',
@@ -128,7 +129,7 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
   const responseTimeMs = Date.now() - started
 
   await logApiUsageEvent({
-    userId: ctx.userId,
+    userId: securityLogUserIdForContext(ctx),
     apiKeyId: ctx.apiKeyId,
     endpoint: '/api/v1/scan',
     method: 'POST',

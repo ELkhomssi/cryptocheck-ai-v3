@@ -8,6 +8,7 @@ import {
 } from '@/lib/services/scanner/ScannerCache'
 import { pushPulseEntry } from '@/lib/services/pulse-feed.service'
 import { WebhookService } from '@/lib/services/webhook.service'
+import { securityLogUserIdForContext } from '@/lib/config/sentinel-qa-bypass'
 import { logSecurityEvent } from '@/lib/services/security-log.service'
 import { enforceRateLimit } from '@/lib/services/rate-limit.service'
 import { normalizeScanError, ScanServiceError } from '@/lib/services/scanner/ErrorHandler'
@@ -64,7 +65,7 @@ export async function runInstitutionalScan(
   const cached = await getInstitutionalScan(cacheKey)
   if (cached) {
     void logSecurityEvent({
-      userId: ctx.userId,
+      userId: securityLogUserIdForContext(ctx),
       action: 'scan_v1',
       resource: '/api/v1/scan',
       ip: clientIp(req),
@@ -94,7 +95,7 @@ export async function runInstitutionalScan(
     await setInstitutionalScan(cacheKey, snapshot)
 
     void logSecurityEvent({
-      userId: ctx.userId,
+      userId: securityLogUserIdForContext(ctx),
       action: 'scan_v1',
       resource: '/api/v1/scan',
       ip: clientIp(req),
@@ -138,7 +139,7 @@ export async function runInstitutionalScan(
   } catch (e) {
     const err = e instanceof ScanServiceError ? e : normalizeScanError(e)
     void logSecurityEvent({
-      userId: ctx.userId,
+      userId: securityLogUserIdForContext(ctx),
       action: 'scan_v1_error',
       resource: '/api/v1/scan',
       ip: clientIp(req),

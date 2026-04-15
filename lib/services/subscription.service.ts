@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { isSentinelQaBypassUserId } from '@/lib/config/sentinel-qa-bypass'
 import type { SubscriptionTier } from '@/lib/types/tier'
 import { getActiveSaasSubscription, mapSaasTierToRuntime } from '@/lib/services/saas-subscription.service'
 import type { SaasTier } from '@/lib/types/saas-subscription'
@@ -25,6 +26,7 @@ export class SubscriptionService {
   }
 
   async getTierForUser(userId: string): Promise<SubscriptionTier> {
+    if (isSentinelQaBypassUserId(userId)) return 'institutional'
     const saas = await getActiveSaasSubscription(userId)
     if (saas?.tier) {
       return mapSaasTierToRuntime(saas.tier as SaasTier)

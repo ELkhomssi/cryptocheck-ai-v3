@@ -35,6 +35,8 @@ export type ProFeatureContext = {
   userId: string
   tier: SubscriptionTier
   via: 'api_key' | 'session'
+  /** Present for API-key auth — used for QA bypass logging. */
+  apiKeyId?: string
 }
 
 /**

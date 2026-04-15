@@ -1,7 +1,8 @@
 import { logSecurityEvent } from '@/lib/services/security-log.service'
 
 export type ApiUsageInput = {
-  userId: string
+  /** null when synthetic QA user would violate `security_logs` FK */
+  userId: string | null
   apiKeyId?: string | null
   endpoint: string
   method: string

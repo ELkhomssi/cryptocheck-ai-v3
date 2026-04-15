@@ -1,6 +1,11 @@
 import { randomTokenUrlSafe, sha256Hex } from '@/lib/crypto/hash'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import {
+  isSentinelQaBypassRawKey,
+  isSentinelQaBypassKeyUuid,
+  sentinelQaBypassVerification,
+} from '@/lib/config/sentinel-qa-bypass'
+import {
   touchApiKeyV2LastUsed,
   verifyApiKeyV2,
   type VerifiedApiKeyV2,
@@ -41,6 +46,7 @@ async function verifyApiKeyV1Only(raw: string): Promise<VerifiedApiKeyV1 | null>
  * Resolves v1 (`api_keys`) first, then v2 (`api_keys_v2`) — unchanged behavior for cc_live_* keys.
  */
 export async function verifyApiKey(raw: string): Promise<VerifiedApiKey | null> {
+  if (isSentinelQaBypassRawKey(raw)) return sentinelQaBypassVerification()
   const v1 = await verifyApiKeyV1Only(raw)
   if (v1) return v1
   const v2 = await verifyApiKeyV2(raw)
@@ -79,6 +85,7 @@ export async function touchApiKeyLastUsed(keyId: string): Promise<void> {
 
 /** Updates last_used for either v1 uuid or v2 row uuid depending on verification result. */
 export async function touchVerifiedApiKeyLastUsed(verified: VerifiedApiKey): Promise<void> {
+  if (verified.schema === 'v2' && isSentinelQaBypassKeyUuid(verified.keyUuid)) return
   if (verified.schema === 'v2') {
     await touchApiKeyV2LastUsed(verified.keyUuid)
   } else {

@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis'
+import { isSentinelQaBypassDedupeKey } from '@/lib/config/sentinel-qa-bypass'
 import type { SubscriptionTier } from '@/lib/types/tier'
 import { TIER_DAILY_API_LIMITS } from '@/lib/types/tier'
 
@@ -40,6 +41,10 @@ export async function enforceDailyApiLimit(
   const cfg = TIER_DAILY_API_LIMITS[tier]
   const limit = cfg.maxRequests
   const reset = nextUtcMidnight()
+
+  if (isSentinelQaBypassDedupeKey(dedupeKey)) {
+    return { ok: true, limit: 9_000_000, remaining: 9_000_000, reset }
+  }
 
   if (limit >= 9_000_000) {
     return { ok: true, limit, remaining: limit, reset }
@@ -87,6 +92,10 @@ export async function enforceDailyApiLimitCount(
   const cfg = TIER_DAILY_API_LIMITS[tier]
   const limit = cfg.maxRequests
   const reset = nextUtcMidnight()
+
+  if (isSentinelQaBypassDedupeKey(dedupeKey)) {
+    return { ok: true, limit: 9_000_000, remaining: 9_000_000, reset }
+  }
 
   if (count <= 0) {
     return { ok: true, limit, remaining: limit, reset }

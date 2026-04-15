@@ -12,6 +12,7 @@ import type { PlatformScanResponse } from '@/lib/types/platform-scan-api'
 import type { SubscriptionTier } from '@/lib/types/tier'
 import { getUserSubscription } from '@/lib/services/user-subscription.service'
 import { mergeWithRateLimitHeaders } from '@/lib/api/scan-api-errors'
+import { securityLogUserIdForContext } from '@/lib/config/sentinel-qa-bypass'
 
 export const dynamic = 'force-dynamic'
 
@@ -123,7 +124,7 @@ export async function POST(req: NextRequest) {
   }
 
   await logApiUsageEvent({
-    userId: ctx.userId,
+    userId: securityLogUserIdForContext(ctx),
     apiKeyId: ctx.apiKeyId,
     endpoint: '/api/v1/scan/batch',
     method: 'POST',

@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { isSentinelQaBypassUserId } from '@/lib/config/sentinel-qa-bypass'
 import type { SubscriptionTier } from '@/lib/types/tier'
 import type { SaasSubscriptionRow, SaasTier, SaasSubscriptionStatus } from '@/lib/types/saas-subscription'
 import { mapSaasTierToRuntime } from '@/lib/services/saas-subscription.service'
@@ -27,6 +28,16 @@ export type UserSubscription = {
  * Fetches the user's subscription record. Defaults to **FREE** when absent or not entitled.
  */
 export async function getUserSubscription(userId: string): Promise<UserSubscription> {
+  if (isSentinelQaBypassUserId(userId)) {
+    return {
+      userId,
+      record: null,
+      effectiveTier: 'ENTERPRISE',
+      runtimeTier: 'institutional',
+      isDefaultFree: false,
+    }
+  }
+
   const sb = getSupabaseAdmin()
   const { data, error } = await sb
     .from('saas_subscriptions')
