@@ -26,6 +26,18 @@ type Props = {
   demoRpcLabel: string
 }
 
+function scanApiErrorMessage(data: unknown): string {
+  if (!data || typeof data !== 'object') return 'Request failed'
+  const o = data as Record<string, unknown>
+  if (typeof o.message === 'string') return o.message
+  const err = o.error
+  if (typeof err === 'string') return err
+  if (err && typeof err === 'object' && err !== null && 'message' in err) {
+    return String((err as { message?: unknown }).message ?? 'Request failed')
+  }
+  return 'Request failed'
+}
+
 function verdictColor(v: ReasoningObject['verdict']): string {
   if (v === 'CRITICAL_RISK') return '#f87171'
   if (v === 'HIGH_RISK') return '#fb923c'
@@ -159,10 +171,9 @@ function ProDashboardClientInner({
           creatorScamLinkedFundingCount: 0,
         }),
       })
-      const j = (await r.json()) as ScanV1ApiResponse | { error?: string }
+      const j = (await r.json()) as ScanV1ApiResponse | Record<string, unknown>
       if (!r.ok) {
-        const msg = typeof (j as { error?: string }).error === 'string' ? (j as { error: string }).error : `HTTP ${r.status}`
-        throw new Error(msg)
+        throw new Error(scanApiErrorMessage(j))
       }
       setScanResponse(j as ScanV1ApiResponse)
     } catch (e: unknown) {
@@ -189,7 +200,7 @@ function ProDashboardClientInner({
       })
       if (!r.ok) {
         const j = await r.json().catch(() => ({}))
-        throw new Error((j as { error?: string }).error || `HTTP ${r.status}`)
+        throw new Error(scanApiErrorMessage(j))
       }
       const blob = await r.blob()
       const ext = format === 'pdf' ? 'pdf' : 'json'

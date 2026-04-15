@@ -6,6 +6,7 @@ import { buildSandboxSnapshot } from '@/lib/services/scanner/sandbox-snapshot'
 import { normalizeScanBody } from '@/lib/services/scanner/normalize-scan-body'
 import { logApiUsageEvent } from '@/lib/services/api-usage.service'
 import { ScanServiceError } from '@/lib/services/scanner/ErrorHandler'
+import { mergeWithRateLimitHeaders } from '@/lib/api/scan-api-errors'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,7 +44,10 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
       userAgent: req.headers.get('user-agent'),
       priority,
     })
-    return NextResponse.json(err.toJSON(), { status: err.httpStatus })
+    return NextResponse.json(err.toJSON(), {
+      status: err.httpStatus,
+      headers: mergeWithRateLimitHeaders(ctx.rateLimitDaily),
+    })
   }
 
   const snapshot = await buildSandboxSnapshot(overrides)
@@ -70,10 +74,10 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
   })
 
   return NextResponse.json(platform, {
-    headers: {
+    headers: mergeWithRateLimitHeaders(ctx.rateLimitDaily, {
       'X-Environment': 'sandbox',
       'X-Response-Time-Ms': String(responseTimeMs),
       'X-Request-Id': requestId,
-    },
+    }),
   })
 })

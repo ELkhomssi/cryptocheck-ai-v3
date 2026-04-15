@@ -1,3 +1,5 @@
+import type { RiskAssessment } from '@/lib/services/scanner/risk-assessment'
+
 /**
  * Public developer-facing scan payload (B2B / integrations).
  * Distinct from the full institutional `ScanV1ApiResponse` used by the Pro dashboard.
@@ -6,6 +8,8 @@ export type PlatformScanResponse = {
   score: number
   decision: 'Low Risk' | 'Moderate Risk' | 'High Risk'
   confidence: number
+  /** Flat Bloomberg-style risk block for terminals and OMS integrations. */
+  risk_assessment: RiskAssessment
   risk_breakdown: {
     liquidity: number
     wallet: number

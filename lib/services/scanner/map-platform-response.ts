@@ -1,6 +1,7 @@
 import type { ReasoningObject, Verdict } from '@/lib/services/scanner-engine'
 import type { InstitutionalScanSnapshot } from '@/lib/services/scanner/types'
 import type { PlatformScanResponse } from '@/lib/types/platform-scan-api'
+import { deriveRiskAssessment } from '@/lib/services/scanner/risk-assessment'
 
 function extractTopHolderPct(r: ReasoningObject): number {
   const line = r.evidence.find((e) => e.id === 'ev_concentration')
@@ -45,6 +46,7 @@ export function mapSnapshotToPlatformResponse(
     score: Math.round(weighted.score),
     decision: verdictToDecision(reasoning.verdict),
     confidence: Math.round(weighted.confidence * 1000) / 1000,
+    risk_assessment: deriveRiskAssessment(snapshot),
     risk_breakdown: {
       liquidity: Math.round(weighted.risk_breakdown.liquidity_risk),
       wallet: Math.round(weighted.risk_breakdown.wallet_risk),

@@ -46,7 +46,14 @@ export async function runInstitutionalScan(
       if (!rate.ok) {
         return {
           ok: false,
-          error: new ScanServiceError('Rate limit exceeded', 'INVALID_INPUT', 429),
+          error: new ScanServiceError(
+            'Rate limit exceeded',
+            'RATE_LIMIT',
+            429,
+            undefined,
+            'RATE_LIMIT',
+            'medium'
+          ),
         }
       }
     } catch {

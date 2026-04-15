@@ -3,9 +3,14 @@ import { authenticateApiRequestOptional } from '@/lib/middleware/with-api-auth'
 import { enforceDailyApiLimit } from '@/lib/services/api-daily-limit.service'
 import type { ProFeatureContext } from '@/lib/auth/pro-feature-access'
 import { getSessionUserIdAndTier, isProOrInstitutional } from '@/lib/auth/pro-feature-access'
+import { mergeWithRateLimitHeaders, scanApiErrorPayload } from '@/lib/api/scan-api-errors'
 
 /** Extends dashboard context with optional API key id for usage logging. */
-export type ScanAccessContext = ProFeatureContext & { apiKeyId?: string }
+export type ScanAccessContext = ProFeatureContext & {
+  apiKeyId?: string
+  /** Present after successful `resolveScanAccess` (daily quota applied). */
+  rateLimitDaily?: { limit: number; remaining: number; reset: number }
+}
 
 function clientIp(req: NextRequest): string | null {
   return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || null
@@ -33,11 +38,12 @@ export async function resolveScanAuthOnly(req: NextRequest): Promise<
     return {
       ok: false,
       response: NextResponse.json(
-        {
-          error: 'Authentication required. Send Authorization: Bearer <api_key> or sign in.',
-          code: 401,
-          reason: 'UNAUTHORIZED',
-        },
+        scanApiErrorPayload(
+          'Authentication required. Send Authorization: Bearer <api_key> or sign in.',
+          401,
+          'UNAUTHORIZED',
+          { reason: 'UNAUTHORIZED', severity: 'medium' }
+        ),
         { status: 401 }
       ),
     }
@@ -46,11 +52,12 @@ export async function resolveScanAuthOnly(req: NextRequest): Promise<
     return {
       ok: false,
       response: NextResponse.json(
-        {
-          error: 'Pro or Institutional subscription required for browser session access. Use an API key for free-tier developer access.',
-          code: 403,
-          reason: 'FORBIDDEN',
-        },
+        scanApiErrorPayload(
+          'Pro or Institutional subscription required for browser session access. Use an API key for free-tier developer access.',
+          403,
+          'FORBIDDEN',
+          { reason: 'FORBIDDEN', severity: 'medium' }
+        ),
         { status: 403 }
       ),
     }
@@ -74,31 +81,32 @@ export async function resolveScanAccess(req: NextRequest): Promise<
     const daily = await enforceDailyApiLimit(`apikey:${api.ctx.apiKeyId}`, api.ctx.tier)
     if (!daily.ok) {
       const retrySec = Math.max(1, Math.ceil((daily.reset - Date.now()) / 1000))
+      const body = scanApiErrorPayload(
+        'Daily API quota exceeded for your plan',
+        429,
+        'DAILY_QUOTA',
+        { reason: 'DAILY_QUOTA', severity: 'medium' }
+      )
       return {
         ok: false,
-        response: NextResponse.json(
-          {
-            error: 'Daily API quota exceeded for your plan',
-            code: 429,
-            reason: 'DAILY_QUOTA',
-            limit: daily.limit,
-            reset: daily.reset,
+        response: NextResponse.json(body, {
+          status: 429,
+          headers: {
+            'Retry-After': String(retrySec),
+            ...mergeWithRateLimitHeaders({ limit: daily.limit, remaining: daily.remaining, reset: daily.reset }),
           },
-          {
-            status: 429,
-            headers: {
-              'Retry-After': String(retrySec),
-              'X-RateLimit-Limit': String(daily.limit),
-              'X-RateLimit-Remaining': String(daily.remaining),
-              'X-RateLimit-Reset': String(daily.reset),
-            },
-          }
-        ),
+        }),
       }
     }
     return {
       ok: true,
-      ctx: { userId: api.ctx.userId, tier: api.ctx.tier, via: 'api_key', apiKeyId: api.ctx.apiKeyId },
+      ctx: {
+        userId: api.ctx.userId,
+        tier: api.ctx.tier,
+        via: 'api_key',
+        apiKeyId: api.ctx.apiKeyId,
+        rateLimitDaily: { limit: daily.limit, remaining: daily.remaining, reset: daily.reset },
+      },
     }
   }
 
@@ -107,11 +115,12 @@ export async function resolveScanAccess(req: NextRequest): Promise<
     return {
       ok: false,
       response: NextResponse.json(
-        {
-          error: 'Authentication required. Send Authorization: Bearer <api_key> or sign in.',
-          code: 401,
-          reason: 'UNAUTHORIZED',
-        },
+        scanApiErrorPayload(
+          'Authentication required. Send Authorization: Bearer <api_key> or sign in.',
+          401,
+          'UNAUTHORIZED',
+          { reason: 'UNAUTHORIZED', severity: 'medium' }
+        ),
         { status: 401 }
       ),
     }
@@ -120,11 +129,12 @@ export async function resolveScanAccess(req: NextRequest): Promise<
     return {
       ok: false,
       response: NextResponse.json(
-        {
-          error: 'Pro or Institutional subscription required for browser session access. Use an API key for free-tier developer access.',
-          code: 403,
-          reason: 'FORBIDDEN',
-        },
+        scanApiErrorPayload(
+          'Pro or Institutional subscription required for browser session access. Use an API key for free-tier developer access.',
+          403,
+          'FORBIDDEN',
+          { reason: 'FORBIDDEN', severity: 'medium' }
+        ),
         { status: 403 }
       ),
     }
@@ -133,25 +143,33 @@ export async function resolveScanAccess(req: NextRequest): Promise<
   const daily = await enforceDailyApiLimit(`session:${sess.userId}`, sess.tier)
   if (!daily.ok) {
     const retrySec = Math.max(1, Math.ceil((daily.reset - Date.now()) / 1000))
+    const body = scanApiErrorPayload(
+      'Daily API quota exceeded for your plan',
+      429,
+      'DAILY_QUOTA',
+      { reason: 'DAILY_QUOTA', severity: 'medium' }
+    )
     return {
       ok: false,
-      response: NextResponse.json(
-        {
-          error: 'Daily API quota exceeded for your plan',
-          code: 429,
-          reason: 'DAILY_QUOTA',
-          limit: daily.limit,
-          reset: daily.reset,
+      response: NextResponse.json(body, {
+        status: 429,
+        headers: {
+          'Retry-After': String(retrySec),
+          ...mergeWithRateLimitHeaders({ limit: daily.limit, remaining: daily.remaining, reset: daily.reset }),
         },
-        {
-          status: 429,
-          headers: { 'Retry-After': String(retrySec) },
-        }
-      ),
+      }),
     }
   }
 
-  return { ok: true, ctx: { userId: sess.userId, tier: sess.tier, via: 'session' } }
+  return {
+    ok: true,
+    ctx: {
+      userId: sess.userId,
+      tier: sess.tier,
+      via: 'session',
+      rateLimitDaily: { limit: daily.limit, remaining: daily.remaining, reset: daily.reset },
+    },
+  }
 }
 
 export type ScanAccessHandler = (req: NextRequest, ctx: ScanAccessContext) => Promise<Response> | Response

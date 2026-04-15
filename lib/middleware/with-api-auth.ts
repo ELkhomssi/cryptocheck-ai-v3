@@ -4,6 +4,7 @@ import { verifyApiKey, touchApiKeyLastUsed } from '@/lib/services/api-key.servic
 import { enforceRateLimit } from '@/lib/services/rate-limit.service'
 import { subscriptionService } from '@/lib/services/subscription.service'
 import { logSecurityEvent } from '@/lib/services/security-log.service'
+import { mergeWithRateLimitHeaders, scanApiErrorPayload } from '@/lib/api/scan-api-errors'
 
 export type ApiAuthContext = {
   userId: string
@@ -40,7 +41,13 @@ async function authenticateRawApiKey(
     })
     return {
       ok: false,
-      response: NextResponse.json({ error: 'Invalid API key', code: 401, reason: 'INVALID_API_KEY' }, { status: 401 }),
+      response: NextResponse.json(
+        scanApiErrorPayload('Invalid API key', 401, 'INVALID_API_KEY', {
+          reason: 'INVALID_API_KEY',
+          severity: 'high',
+        }),
+        { status: 401 }
+      ),
     }
   }
 
@@ -51,16 +58,16 @@ async function authenticateRawApiKey(
     return {
       ok: false,
       response: NextResponse.json(
-        {
-          error: 'Rate limit exceeded',
-          code: 429,
+        scanApiErrorPayload('Rate limit exceeded', 429, 'RATE_LIMIT', {
           reason: 'RATE_LIMIT',
-          limit: rate.limit,
-          reset: rate.reset,
-        },
+          severity: 'medium',
+        }),
         {
           status: 429,
-          headers: { 'Retry-After': String(retrySec), 'X-RateLimit-Remaining': String(rate.remaining) },
+          headers: {
+            'Retry-After': String(retrySec),
+            ...mergeWithRateLimitHeaders({ limit: rate.limit, remaining: rate.remaining, reset: rate.reset }),
+          },
         }
       ),
     }
@@ -101,7 +108,10 @@ export async function authenticateApiRequest(req: NextRequest): Promise<
     return {
       ok: false,
       response: NextResponse.json(
-        { error: 'Missing API key', code: 401, reason: 'MISSING_API_KEY' },
+        scanApiErrorPayload('Missing API key', 401, 'MISSING_API_KEY', {
+          reason: 'MISSING_API_KEY',
+          severity: 'medium',
+        }),
         { status: 401 }
       ),
     }

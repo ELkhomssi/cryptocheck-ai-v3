@@ -7,6 +7,12 @@ import { mapSnapshotToPlatformResponse } from '@/lib/services/scanner/map-platfo
 import { logApiUsageEvent } from '@/lib/services/api-usage.service'
 import { ScanServiceError } from '@/lib/services/scanner/ErrorHandler'
 import type { ProFeatureContext } from '@/lib/auth/pro-feature-access'
+import { mergeWithRateLimitHeaders } from '@/lib/api/scan-api-errors'
+import {
+  assertEnterpriseIpAllowlist,
+  assertScanSignature,
+  assertScanTimestamp,
+} from '@/lib/middleware/scan-v1-security'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,14 +26,47 @@ function inferResponseMode(body: Record<string, unknown>, req: NextRequest): 'fu
   return 'full'
 }
 
+function jsonWithScanHeaders(
+  ctx: ScanAccessContext,
+  body: unknown,
+  status: number,
+  extraHeaders?: Record<string, string>
+) {
+  return NextResponse.json(body, {
+    status,
+    headers: mergeWithRateLimitHeaders(ctx.rateLimitDaily, extraHeaders),
+  })
+}
+
 export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessContext) => {
   const started = Date.now()
   const requestId = randomUUID()
   const priority = req.headers.get('x-cryptocheck-priority')?.toLowerCase() === PRIORITY_HEADER
 
+  const rawText = await req.text()
+  try {
+    assertEnterpriseIpAllowlist(req, ctx)
+    assertScanTimestamp(req, ctx)
+    assertScanSignature(req, rawText, ctx)
+  } catch (e) {
+    const err = e instanceof ScanServiceError ? e : new ScanServiceError('Invalid request', 'INVALID_INPUT', 400)
+    await logApiUsageEvent({
+      userId: ctx.userId,
+      apiKeyId: ctx.apiKeyId,
+      endpoint: '/api/v1/scan',
+      method: 'POST',
+      statusCode: err.httpStatus,
+      durationMs: Date.now() - started,
+      ip: scanClientIp(req),
+      userAgent: req.headers.get('user-agent'),
+      priority,
+    })
+    return jsonWithScanHeaders(ctx, err.toJSON(), err.httpStatus)
+  }
+
   let rawBody: Record<string, unknown> = {}
   try {
-    rawBody = (await req.json().catch(() => ({}))) as Record<string, unknown>
+    rawBody = rawText ? (JSON.parse(rawText) as Record<string, unknown>) : {}
   } catch {
     rawBody = {}
   }
@@ -48,7 +87,7 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
       userAgent: req.headers.get('user-agent'),
       priority,
     })
-    return NextResponse.json(err.toJSON(), { status: err.httpStatus })
+    return jsonWithScanHeaders(ctx, err.toJSON(), err.httpStatus)
   }
 
   const mode = inferResponseMode(rawBody, req)
@@ -67,7 +106,7 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
       userAgent: req.headers.get('user-agent'),
       priority,
     })
-    return NextResponse.json(err.toJSON(), { status: err.httpStatus })
+    return jsonWithScanHeaders(ctx, err.toJSON(), err.httpStatus)
   }
 
   const { snapshot, meta } = result
@@ -93,14 +132,12 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
       environment: 'live',
       requestId,
     })
-    return NextResponse.json(platform, {
-      headers: {
-        'X-Cache': meta.cache === 'hit' ? 'HIT' : 'MISS',
-        'X-Response-Time-Ms': String(responseTimeMs),
-        'X-RPC-Provider': snapshot.rpcProviderLabel,
-        'X-Request-Id': requestId,
-        'X-RateLimit-Tier': ctx.tier,
-      },
+    return jsonWithScanHeaders(ctx, platform, 200, {
+      'X-Cache': meta.cache === 'hit' ? 'HIT' : 'MISS',
+      'X-Response-Time-Ms': String(responseTimeMs),
+      'X-RPC-Provider': snapshot.rpcProviderLabel,
+      'X-Request-Id': requestId,
+      'X-RateLimit-Tier': ctx.tier,
     })
   }
 
@@ -124,12 +161,10 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
     },
   }
 
-  return NextResponse.json(payload, {
-    headers: {
-      'X-Cache': meta.cache === 'hit' ? 'HIT' : 'MISS',
-      'X-Response-Time-Ms': String(responseTimeMs),
-      'X-RPC-Provider': snapshot.rpcProviderLabel,
-      'X-Request-Id': requestId,
-    },
+  return jsonWithScanHeaders(ctx, payload, 200, {
+    'X-Cache': meta.cache === 'hit' ? 'HIT' : 'MISS',
+    'X-Response-Time-Ms': String(responseTimeMs),
+    'X-RPC-Provider': snapshot.rpcProviderLabel,
+    'X-Request-Id': requestId,
   })
 })

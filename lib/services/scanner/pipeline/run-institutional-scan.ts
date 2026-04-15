@@ -84,7 +84,14 @@ export async function runInstitutionalPipeline(
     const s = Date.now()
     input = buildInput(body)
     if (!input.mint || input.mint.length < 32) {
-      throw new ScanServiceError('Invalid mint', 'INVALID_INPUT', 400)
+      throw new ScanServiceError(
+        'The provided Solana address is malformed.',
+        'INVALID_MINT_ADDRESS',
+        400,
+        undefined,
+        'INVALID_MINT_ADDRESS',
+        'high'
+      )
     }
     stages.push(stage('token_data_fetch', Date.now() - s, true, 'Mint and metrics normalized'))
   } catch (e) {
