@@ -273,7 +273,7 @@ function ProDashboardClientInner({
             borderBottom: '0.5px solid rgba(255,255,255,0.08)',
           }}
         >
-          <CryptoCheckLogo variant="institutional" />
+          <CryptoCheckLogo variant="institutional" href="/dashboard" />
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
             <LocaleSwitcher />
             <Link
@@ -295,7 +295,7 @@ function ProDashboardClientInner({
               {t('institutional.nav.home')}
             </Link>
             <Link
-              href="/app"
+              href="/dashboard"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
