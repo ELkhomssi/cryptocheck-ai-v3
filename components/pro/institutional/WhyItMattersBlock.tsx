@@ -2,7 +2,8 @@
 
 import type { ReasoningObject, Verdict } from '@/lib/services/scanner-engine'
 import type { WeightedSecurityScore } from '@/lib/services/scanner/types'
-import { generateWhyBullets, whyBlockTitle } from '@/components/pro/institutional/why-insights'
+import { useInstitutionalTranslation } from '@/lib/i18n/institutional-context'
+import { generateWhyBulletRefs, whyBlockTitleKey } from '@/components/pro/institutional/why-insights'
 
 type Props = {
   verdict: Verdict
@@ -11,8 +12,9 @@ type Props = {
 }
 
 export function WhyItMattersBlock({ verdict, reasoning, weighted }: Props) {
-  const bullets = generateWhyBullets(reasoning, weighted)
-  const title = whyBlockTitle(verdict)
+  const { t } = useInstitutionalTranslation()
+  const bullets = generateWhyBulletRefs(reasoning, weighted)
+  const title = t(whyBlockTitleKey(verdict))
 
   return (
     <section
@@ -26,10 +28,10 @@ export function WhyItMattersBlock({ verdict, reasoning, weighted }: Props) {
       }}
     >
       <div style={{ fontSize: 11, letterSpacing: '0.14em', color: '#6ee7b7', fontWeight: 700, marginBottom: 12 }}>{title}</div>
-      <ul style={{ margin: 0, paddingLeft: 18, color: '#e2e8f0', fontSize: 14, lineHeight: 1.65 }}>
+      <ul style={{ margin: 0, paddingInlineStart: 18, color: '#e2e8f0', fontSize: 14, lineHeight: 1.65 }}>
         {bullets.map((b, i) => (
           <li key={i} style={{ marginBottom: 8 }}>
-            {b}
+            {t(b.key, b.vars)}
           </li>
         ))}
       </ul>

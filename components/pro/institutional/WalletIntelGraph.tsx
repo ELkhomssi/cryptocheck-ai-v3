@@ -2,6 +2,7 @@
 
 import type { ReasoningObject } from '@/lib/services/scanner-engine'
 import { extractTopHolderPct } from '@/components/pro/institutional/model-helpers'
+import { useInstitutionalTranslation } from '@/lib/i18n/institutional-context'
 
 type Props = {
   reasoning: ReasoningObject
@@ -18,7 +19,6 @@ const RD = {
   edge: 'rgba(248,113,113,0.65)',
 }
 
-/** Hardcoded node layout (hub + 5 satellites). Order: first N marked suspicious from evidence. */
 const NODES = [
   { key: 'nw', cx: 42, cy: 34, r: 9 },
   { key: 'ne', cx: 198, cy: 34, r: 9 },
@@ -29,9 +29,6 @@ const NODES = [
 
 const HUB = { cx: 120, cy: 82, r: 15 }
 
-/**
- * Maps evidence → how many satellite nodes render as suspicious (red) vs healthy (emerald).
- */
 function suspiciousSatelliteCount(reasoning: ReasoningObject): number {
   const risk = reasoning.clusterAnalysis.linkedCreatorRisk
   const hits = reasoning.clusterAnalysis.scamLinkedFundingHits
@@ -46,10 +43,8 @@ function hubStrokeFromEvidence(topPct: number, suspiciousCount: number): string 
   return '#10b981'
 }
 
-/**
- * Wallet intelligence: hardcoded SVG graph (emerald = healthy, red = suspicious cluster) + 3-metric insight panel.
- */
 export function WalletIntelGraph({ reasoning }: Props) {
+  const { t } = useInstitutionalTranslation()
   const top = extractTopHolderPct(reasoning)
   const mid = Math.min(48, Math.max(18, Math.round((100 - top) * 0.35)))
   const rest = Math.max(0, 100 - top - mid)
@@ -60,8 +55,18 @@ export function WalletIntelGraph({ reasoning }: Props) {
   const susN = suspiciousSatelliteCount(reasoning)
   const hubStroke = hubStrokeFromEvidence(top, susN)
 
-  const clusterRiskLabel = risk === 'high' ? 'High' : risk === 'medium' ? 'Medium' : 'Low'
-  const metricScam = hits === 0 ? 'None' : `${hits} flagged`
+  const clusterRiskLabel =
+    risk === 'high'
+      ? t('institutional.wallet.cluster_risk.high')
+      : risk === 'medium'
+        ? t('institutional.wallet.cluster_risk.medium')
+        : t('institutional.wallet.cluster_risk.low')
+
+  const metricScam =
+    hits === 0 ? t('institutional.wallet.metric3_value_none') : t('institutional.wallet.metric3_value_flagged', { count: hits })
+
+  const graphCaption =
+    susN > 0 ? t('institutional.wallet.graph_caption_flagged', { count: susN }) : t('institutional.wallet.graph_caption_clear')
 
   return (
     <div
@@ -74,9 +79,9 @@ export function WalletIntelGraph({ reasoning }: Props) {
       }}
     >
       <div style={{ fontSize: 10, letterSpacing: '0.16em', color: '#6ee7b7', fontWeight: 700, marginBottom: 4 }}>
-        WALLET INTELLIGENCE 2.0
+        {t('institutional.wallet.title')}
       </div>
-      <div style={{ fontSize: 11, color: '#64748b', marginBottom: 16 }}>Graph state is driven by cluster risk, scam-link hits, and holder concentration from the active scan.</div>
+      <div style={{ fontSize: 11, color: '#64748b', marginBottom: 16 }}>{t('institutional.wallet.subtitle')}</div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.05fr) minmax(0,1fr)', gap: 20, alignItems: 'start' }} className="wi-grid">
         <style>{`
@@ -84,110 +89,112 @@ export function WalletIntelGraph({ reasoning }: Props) {
         `}</style>
 
         <div>
-          <div style={{ fontSize: 10, color: '#64748b', marginBottom: 8 }}>RELATIONSHIP GRAPH</div>
-          <svg width="100%" height="168" viewBox="0 0 240 168" aria-label="Wallet cluster graph" style={{ display: 'block' }}>
-            <defs>
-              <filter id="wi-glow-em" x="-40%" y="-40%" width="180%" height="180%">
-                <feGaussianBlur stdDeviation="1.2" result="b" />
-                <feMerge>
-                  <feMergeNode in="b" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
+          <div style={{ fontSize: 10, color: '#64748b', marginBottom: 8 }}>{t('institutional.wallet.graph_title')}</div>
+          <div dir="ltr" style={{ unicodeBidi: 'isolate' }}>
+            <svg width="100%" height="168" viewBox="0 0 240 168" aria-label={t('institutional.wallet.graph_title')} style={{ display: 'block' }}>
+              <defs>
+                <filter id="wi-glow-em" x="-40%" y="-40%" width="180%" height="180%">
+                  <feGaussianBlur stdDeviation="1.2" result="b" />
+                  <feMerge>
+                    <feMergeNode in="b" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
 
-            {/* Edges: hub → each satellite — color matches destination node */}
-            {NODES.map((n, i) => {
-              const suspicious = i < susN
-              const pal = suspicious ? RD : EM
-              return (
-                <line
-                  key={`e-${n.key}`}
-                  x1={HUB.cx}
-                  y1={HUB.cy}
-                  x2={n.cx}
-                  y2={n.cy}
-                  stroke={pal.edge}
-                  strokeWidth={suspicious ? 1.6 : 1.25}
-                  strokeLinecap="round"
-                />
-              )
-            })}
+              {NODES.map((n, i) => {
+                const suspicious = i < susN
+                const pal = suspicious ? RD : EM
+                return (
+                  <line
+                    key={`e-${n.key}`}
+                    x1={HUB.cx}
+                    y1={HUB.cy}
+                    x2={n.cx}
+                    y2={n.cy}
+                    stroke={pal.edge}
+                    strokeWidth={suspicious ? 1.6 : 1.25}
+                    strokeLinecap="round"
+                  />
+                )
+              })}
 
-            {/* Hub */}
-            <circle
-              cx={HUB.cx}
-              cy={HUB.cy}
-              r={HUB.r}
-              fill="rgba(16,185,129,0.18)"
-              stroke={hubStroke}
-              strokeWidth="2"
-              filter="url(#wi-glow-em)"
-            />
-            <text x={HUB.cx} y={HUB.cy + 4} textAnchor="middle" fill="#cbd5e1" fontSize="9" fontWeight={600} fontFamily="ui-sans-serif,system-ui,sans-serif">
-              Core
-            </text>
+              <circle
+                cx={HUB.cx}
+                cy={HUB.cy}
+                r={HUB.r}
+                fill="rgba(16,185,129,0.18)"
+                stroke={hubStroke}
+                strokeWidth="2"
+                filter="url(#wi-glow-em)"
+              />
+              <text x={HUB.cx} y={HUB.cy + 4} textAnchor="middle" fill="#cbd5e1" fontSize="9" fontWeight={600} fontFamily="ui-sans-serif,system-ui,sans-serif">
+                {t('institutional.wallet.hub')}
+              </text>
 
-            {/* Satellites */}
-            {NODES.map((n, i) => {
-              const suspicious = i < susN
-              const pal = suspicious ? RD : EM
-              return (
-                <g key={n.key}>
-                  <circle cx={n.cx} cy={n.cy} r={n.r} fill={pal.fill} stroke={pal.stroke} strokeWidth="1.6" />
-                  <text
-                    x={n.cx}
-                    y={n.cy + 3}
-                    textAnchor="middle"
-                    fill={suspicious ? '#fecaca' : '#a7f3d0'}
-                    fontSize="7"
-                    fontWeight={600}
-                    fontFamily="ui-sans-serif,system-ui,sans-serif"
-                  >
-                    {suspicious ? '!' : '·'}
-                  </text>
-                </g>
-              )
-            })}
+              {NODES.map((n, i) => {
+                const suspicious = i < susN
+                const pal = suspicious ? RD : EM
+                return (
+                  <g key={n.key}>
+                    <circle cx={n.cx} cy={n.cy} r={n.r} fill={pal.fill} stroke={pal.stroke} strokeWidth="1.6" />
+                    <text
+                      x={n.cx}
+                      y={n.cy + 3}
+                      textAnchor="middle"
+                      fill={suspicious ? '#fecaca' : '#a7f3d0'}
+                      fontSize="7"
+                      fontWeight={600}
+                      fontFamily="ui-sans-serif,system-ui,sans-serif"
+                    >
+                      {suspicious ? '!' : '·'}
+                    </text>
+                  </g>
+                )
+              })}
 
-            <text x={120} y={14} textAnchor="middle" fill="#64748b" fontSize="8" fontFamily="ui-sans-serif,system-ui,sans-serif" letterSpacing="0.12em">
-              {susN > 0 ? `${susN} cluster${susN > 1 ? 's' : ''} flagged` : 'All links clear vs model'}
-            </text>
-          </svg>
+              <text x={120} y={14} textAnchor="middle" fill="#64748b" fontSize="8" fontFamily="ui-sans-serif,system-ui,sans-serif" letterSpacing="0.12em">
+                {graphCaption}
+              </text>
+            </svg>
+          </div>
           <p style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.5, marginTop: 10, marginBottom: 0 }}>
-            <span style={{ color: '#6ee7b7' }}>Emerald</span> nodes and edges are healthy paths;{' '}
-            <span style={{ color: '#f87171' }}>red</span> marks satellites that align with suspicious cluster or scam-link evidence.
+            {t('institutional.wallet.graph_legend')}
           </p>
         </div>
 
         <div>
-          <div style={{ fontSize: 10, color: '#64748b', marginBottom: 8 }}>SUPPLY DISTRIBUTION</div>
-          <div style={{ fontSize: 12, color: '#cbd5e1', marginBottom: 8 }}>
-            Top <strong style={{ color: '#e2e8f0' }}>{top.toFixed(1)}%</strong> · Mid{' '}
-            <strong style={{ color: '#e2e8f0' }}>{mid}%</strong> · Tail <strong style={{ color: '#e2e8f0' }}>{rest}%</strong>
+          <div style={{ fontSize: 10, color: '#64748b', marginBottom: 8 }}>{t('institutional.wallet.distribution_title')}</div>
+          <div style={{ fontSize: 12, color: '#cbd5e1', marginBottom: 8 }} dir="ltr">
+            {t('institutional.wallet.distribution_line', {
+              top: top.toFixed(1),
+              mid,
+              tail: rest,
+            })}
           </div>
-          <div
-            style={{
-              display: 'flex',
-              height: 10,
-              borderRadius: 5,
-              overflow: 'hidden',
-              background: 'rgba(255,255,255,0.05)',
-            }}
-          >
-            <div style={{ width: `${top}%`, background: 'linear-gradient(90deg,#10b981,#34d399)' }} />
-            <div style={{ width: `${mid}%`, background: 'linear-gradient(90deg,#22d3ee,#06b6d4)' }} />
-            <div style={{ width: `${rest}%`, background: 'rgba(148,163,184,0.35)' }} />
+          <div dir="ltr" style={{ unicodeBidi: 'isolate' }}>
+            <div
+              style={{
+                display: 'flex',
+                height: 10,
+                borderRadius: 5,
+                overflow: 'hidden',
+                background: 'rgba(255,255,255,0.05)',
+              }}
+            >
+              <div style={{ width: `${top}%`, background: 'linear-gradient(90deg,#10b981,#34d399)' }} />
+              <div style={{ width: `${mid}%`, background: 'linear-gradient(90deg,#22d3ee,#06b6d4)' }} />
+              <div style={{ width: `${rest}%`, background: 'rgba(148,163,184,0.35)' }} />
+            </div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#64748b', marginTop: 4 }}>
-            <span>Top</span>
-            <span>Mid</span>
-            <span>Tail</span>
+            <span>{t('institutional.wallet.distribution_top')}</span>
+            <span>{t('institutional.wallet.distribution_mid')}</span>
+            <span>{t('institutional.wallet.distribution_tail')}</span>
           </div>
         </div>
       </div>
 
-      {/* Exactly 3 metrics — aligned to graph + distribution */}
       <div
         style={{
           marginTop: 18,
@@ -195,7 +202,7 @@ export function WalletIntelGraph({ reasoning }: Props) {
           borderTop: '0.5px solid rgba(255,255,255,0.06)',
         }}
       >
-        <div style={{ fontSize: 10, letterSpacing: '0.12em', color: '#64748b', marginBottom: 12 }}>INSIGHT PANEL</div>
+        <div style={{ fontSize: 10, letterSpacing: '0.12em', color: '#64748b', marginBottom: 12 }}>{t('institutional.wallet.insight_title')}</div>
         <div
           style={{
             display: 'grid',
@@ -218,18 +225,18 @@ export function WalletIntelGraph({ reasoning }: Props) {
               border: `0.5px solid ${risk === 'high' ? 'rgba(248,113,113,0.35)' : 'rgba(255,255,255,0.06)'}`,
             }}
           >
-            <div style={{ color: '#64748b', fontSize: 10, marginBottom: 6, letterSpacing: '0.06em' }}>1 · Cluster risk</div>
+            <div style={{ color: '#64748b', fontSize: 10, marginBottom: 6, letterSpacing: '0.06em' }}>{t('institutional.wallet.metric1_title')}</div>
             <div style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 18 }}>{clusterRiskLabel}</div>
             <div style={{ color: '#64748b', fontSize: 10, marginTop: 6, lineHeight: 1.4 }}>
-              Matches red nodes in the graph ({susN} elevated).
+              {t('institutional.wallet.metric1_foot', { count: susN })}
             </div>
           </div>
           <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(0,0,0,0.38)', border: '0.5px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ color: '#64748b', fontSize: 10, marginBottom: 6, letterSpacing: '0.06em' }}>2 · Top holder concentration</div>
-            <div style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 18 }}>{top.toFixed(1)}%</div>
-            <div style={{ color: '#64748b', fontSize: 10, marginTop: 6, lineHeight: 1.4 }}>
-              Same figure as the distribution bar above.
+            <div style={{ color: '#64748b', fontSize: 10, marginBottom: 6, letterSpacing: '0.06em' }}>{t('institutional.wallet.metric2_title')}</div>
+            <div style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 18 }} dir="ltr">
+              {top.toFixed(1)}%
             </div>
+            <div style={{ color: '#64748b', fontSize: 10, marginTop: 6, lineHeight: 1.4 }}>{t('institutional.wallet.metric2_foot')}</div>
           </div>
           <div
             style={{
@@ -239,11 +246,11 @@ export function WalletIntelGraph({ reasoning }: Props) {
               border: `0.5px solid ${hits > 0 ? 'rgba(248,113,113,0.3)' : 'rgba(255,255,255,0.06)'}`,
             }}
           >
-            <div style={{ color: '#64748b', fontSize: 10, marginBottom: 6, letterSpacing: '0.06em' }}>3 · Linked scam signals</div>
-            <div style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 18 }}>{metricScam}</div>
-            <div style={{ color: '#64748b', fontSize: 10, marginTop: 6, lineHeight: 1.4 }}>
-              Drives additional red nodes when hits ≥ 1.
+            <div style={{ color: '#64748b', fontSize: 10, marginBottom: 6, letterSpacing: '0.06em' }}>{t('institutional.wallet.metric3_title')}</div>
+            <div style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 18 }} dir="ltr">
+              {metricScam}
             </div>
+            <div style={{ color: '#64748b', fontSize: 10, marginTop: 6, lineHeight: 1.4 }}>{t('institutional.wallet.metric3_foot')}</div>
           </div>
         </div>
       </div>

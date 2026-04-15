@@ -1,24 +1,28 @@
 'use client'
 
-function formatRelativeTime(iso: string): string {
+import { useInstitutionalTranslation } from '@/lib/i18n/institutional-context'
+import type { InstitutionalLocale } from '@/lib/i18n/institutional-catalog'
+
+function formatRelativeTime(iso: string, locale: InstitutionalLocale, justNowLabel: string): string {
   const t = new Date(iso).getTime()
   if (Number.isNaN(t)) return '—'
-  const diff = Math.max(0, Date.now() - t)
-  const sec = Math.floor(diff / 1000)
-  if (sec < 45) return 'just now'
-  const min = Math.floor(sec / 60)
-  if (min < 60) return `${min}m ago`
+  const diffSec = Math.floor(Math.max(0, Date.now() - t) / 1000)
+  if (diffSec < 45) return justNowLabel
+  const loc = locale === 'ar' ? 'ar' : locale === 'fr' ? 'fr' : 'en'
+  const rtf = new Intl.RelativeTimeFormat(loc, { numeric: 'auto' })
+  const min = Math.floor(diffSec / 60)
+  if (min < 60) return rtf.format(-min, 'minute')
   const h = Math.floor(min / 60)
-  if (h < 24) return `${h}h ago`
+  if (h < 24) return rtf.format(-h, 'hour')
   const d = Math.floor(h / 24)
-  return `${d}d ago`
+  return rtf.format(-d, 'day')
 }
 
-function confidenceWord(c01: number): string {
+function confidenceWord(c01: number, t: (k: string) => string): string {
   const p = Math.round(c01 * 100)
-  if (p >= 80) return 'High'
-  if (p >= 50) return 'Medium'
-  return 'Low'
+  if (p >= 80) return t('institutional.trust_strip.confidence_high')
+  if (p >= 50) return t('institutional.trust_strip.confidence_medium')
+  return t('institutional.trust_strip.confidence_low')
 }
 
 type Props = {
@@ -32,8 +36,9 @@ type Props = {
  * Thin institutional trust row — complements technical RPC telemetry elsewhere.
  */
 export function EnterpriseTrustStrip({ rpcProvider, lastUpdatedIso, confidence01, cache }: Props) {
-  const rel = formatRelativeTime(lastUpdatedIso)
-  const conf = confidenceWord(confidence01)
+  const { locale, t } = useInstitutionalTranslation()
+  const rel = formatRelativeTime(lastUpdatedIso, locale, t('institutional.trust_strip.time_just_now'))
+  const conf = confidenceWord(confidence01, t)
 
   return (
     <div
@@ -54,28 +59,34 @@ export function EnterpriseTrustStrip({ rpcProvider, lastUpdatedIso, confidence01
         color: '#94a3b8',
       }}
     >
-      <span style={{ color: '#cbd5e1', fontWeight: 600 }}>Audit Ready</span>
+      <span style={{ color: '#cbd5e1', fontWeight: 600 }}>{t('institutional.trust_strip.audit_ready')}</span>
       <span style={{ opacity: 0.35 }}>·</span>
-      <span style={{ color: '#cbd5e1', fontWeight: 600 }}>API Verified</span>
+      <span style={{ color: '#cbd5e1', fontWeight: 600 }}>{t('institutional.trust_strip.api_verified')}</span>
       <span style={{ opacity: 0.35 }}>·</span>
-      <span style={{ color: '#cbd5e1', fontWeight: 600 }}>Real-time Scan</span>
+      <span style={{ color: '#cbd5e1', fontWeight: 600 }}>{t('institutional.trust_strip.realtime_scan')}</span>
       <span style={{ opacity: 0.35 }}>|</span>
       <span>
-        Source <span style={{ color: '#6ee7b7', fontFamily: 'ui-monospace, monospace' }}>{rpcProvider}</span>
+        {t('institutional.trust_strip.source')}{' '}
+        <span style={{ color: '#6ee7b7', fontFamily: 'ui-monospace, monospace' }} dir="ltr">
+          {rpcProvider}
+        </span>
       </span>
       <span style={{ opacity: 0.35 }}>|</span>
       <span>
-        Updated <span style={{ color: '#e2e8f0' }}>{rel}</span>
+        {t('institutional.trust_strip.updated')} <span style={{ color: '#e2e8f0' }}>{rel}</span>
       </span>
       <span style={{ opacity: 0.35 }}>|</span>
       <span>
-        Confidence <span style={{ color: '#6ee7b7' }}>{conf}</span>
+        {t('institutional.trust_strip.confidence_label')} <span style={{ color: '#6ee7b7' }}>{conf}</span>
       </span>
       {cache ? (
         <>
           <span style={{ opacity: 0.35 }}>|</span>
           <span>
-            Cache <span style={{ color: cache === 'hit' ? '#34d399' : '#fbbf24' }}>{cache === 'hit' ? 'warm' : 'fresh'}</span>
+            {t('institutional.trust_strip.cache_prefix')}{' '}
+            <span style={{ color: cache === 'hit' ? '#34d399' : '#fbbf24' }}>
+              {cache === 'hit' ? t('institutional.trust_strip.cache_warm') : t('institutional.trust_strip.cache_fresh')}
+            </span>
           </span>
         </>
       ) : null}

@@ -16,6 +16,8 @@ import { InstitutionalHero } from '@/components/pro/institutional/InstitutionalH
 import { RiskBreakdownPanel } from '@/components/pro/institutional/RiskBreakdownPanel'
 import { WhyItMattersBlock } from '@/components/pro/institutional/WhyItMattersBlock'
 import { WalletIntelGraph } from '@/components/pro/institutional/WalletIntelGraph'
+import { InstitutionalI18nProvider, useInstitutionalTranslation } from '@/lib/i18n/institutional-context'
+import type { InstitutionalLocale } from '@/lib/i18n/institutional-catalog'
 
 type Props = {
   session: ProDashboardSession
@@ -31,37 +33,83 @@ function verdictColor(v: ReasoningObject['verdict']): string {
   return '#34d399'
 }
 
-function sanitizeEvidenceDetail(line: EvidenceLine): string {
+function sanitizeEvidenceDetail(
+  line: EvidenceLine,
+  t: (key: string, vars?: Record<string, string | number>) => string
+): string {
   const d = line.detail
   if (line.id !== 'ev_live_simulation' && line.category !== 'simulation') return d
   if (/placeholder OK/i.test(d)) {
-    return 'Simulation executed via RPC sandbox — path verified under read-only validation. Add a serialized swap for full exit-path confirmation.'
+    return t('institutional.evidence.simulation_detail_placeholder_ok')
   }
   if (/simulateTransaction.*failure|honeypot|revert/i.test(d)) {
-    return 'Simulation executed via RPC sandbox — exit path did not complete; elevated honeypot / blacklist risk.'
+    return t('institutional.evidence.simulation_detail_honeypot')
   }
-  return d.replace(/placeholder/gi, 'sandbox evaluation')
+  return d.replace(/placeholder/gi, t('institutional.evidence.simulation_detail_sandbox'))
 }
 
-function sanitizeDynamicSummary(raw: string): string {
-  return raw.replace(/placeholder/gi, 'RPC sandbox')
+function sanitizeDynamicSummary(
+  raw: string,
+  t: (key: string, vars?: Record<string, string | number>) => string
+): string {
+  return raw.replace(/placeholder/gi, t('institutional.evidence.dynamic_rpc_placeholder'))
 }
 
-function buildSimulationNarrative(scan: ScanV1ApiResponse | null): string {
+function buildSimulationNarrative(
+  scan: ScanV1ApiResponse | null,
+  t: (key: string, vars?: Record<string, string | number>) => string
+): string {
   if (!scan) {
-    return 'Simulation executed via RPC sandbox. Routes are composed and validated without broadcasting transactions. Institutional access enables full chain-attested buy/sell paths.'
+    return t('institutional.simulation.narrative_empty')
   }
   const sellOk = scan.simulator.sell.ok
   const hp = scan.simulator.honeypotLikelihood
-  return `Simulation executed via RPC sandbox. Buy path composed and liquidity screened. Sell path ${sellOk ? 'cleared' : 'flagged'} for exit safety. Honeypot assessment: ${hp}.`
+  return t('institutional.simulation.narrative_live', {
+    sellState: sellOk ? t('institutional.simulation.sell_cleared') : t('institutional.simulation.sell_flagged'),
+    honeypot: String(hp),
+  })
 }
 
-export function ProDashboardClient({
+function LocaleSwitcher() {
+  const { locale, setLocale, t } = useInstitutionalTranslation()
+  const opts: { id: InstitutionalLocale; label: string }[] = [
+    { id: 'en', label: 'EN' },
+    { id: 'fr', label: 'FR' },
+    { id: 'ar', label: 'AR' },
+  ]
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+      <span style={{ fontSize: 11, color: '#64748b', marginInlineEnd: 4 }}>{t('institutional.locale_switch.label')}</span>
+      {opts.map(({ id, label }) => (
+        <button
+          key={id}
+          type="button"
+          onClick={() => setLocale(id)}
+          style={{
+            fontSize: 11,
+            fontWeight: locale === id ? 700 : 500,
+            padding: '4px 10px',
+            borderRadius: 6,
+            border: `0.5px solid ${locale === id ? 'rgba(16,185,129,0.45)' : 'rgba(255,255,255,0.12)'}`,
+            background: locale === id ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)',
+            color: locale === id ? '#6ee7b7' : '#94a3b8',
+            cursor: 'pointer',
+          }}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function ProDashboardClientInner({
   session,
   demoReasoning,
   demoWeighted,
   demoRpcLabel,
 }: Props) {
+  const { t, locale } = useInstitutionalTranslation()
   const [scanResponse, setScanResponse] = useState<ScanV1ApiResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
@@ -71,10 +119,10 @@ export function ProDashboardClient({
   const canUseDeepApi = session.hasDeepAccess
 
   const tierHint = useMemo(() => {
-    if (!session.userId) return 'Sign in to sync institutional entitlements.'
-    if (!session.hasDeepAccess) return 'Upgrade to Pro or Institutional for live API, exports, and full simulation.'
+    if (!session.userId) return t('institutional.page.tier_hint_signed_out')
+    if (!session.hasDeepAccess) return t('institutional.page.tier_hint_upgrade')
     return null
-  }, [session])
+  }, [session, t])
 
   const reasoning = scanResponse?.reasoning ?? demoReasoning
   const weighted: WeightedSecurityScore = scanResponse
@@ -170,6 +218,7 @@ export function ProDashboardClient({
 
   const rpcDisplay = scanResponse?.rpc_provider ?? demoRpcLabel
   const lastUpdated = scanResponse?.last_updated ?? new Date().toISOString()
+  const dir = locale === 'ar' ? 'rtl' : 'ltr'
 
   return (
     <>
@@ -191,6 +240,8 @@ export function ProDashboardClient({
       />
 
       <div
+        dir={dir}
+        lang={locale}
         className={GeistSans.className}
         style={{
           maxWidth: 1180,
@@ -213,6 +264,7 @@ export function ProDashboardClient({
         >
           <CryptoCheckLogo variant="institutional" />
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+            <LocaleSwitcher />
             <Link
               href="/"
               style={{
@@ -229,7 +281,7 @@ export function ProDashboardClient({
               }}
             >
               <Home size={16} strokeWidth={2} aria-hidden />
-              Home
+              {t('institutional.nav.home')}
             </Link>
             <Link
               href="/app"
@@ -247,7 +299,7 @@ export function ProDashboardClient({
               }}
             >
               <LayoutDashboard size={16} strokeWidth={2} aria-hidden />
-              Dashboard
+              {t('institutional.nav.dashboard')}
             </Link>
             <button
               type="button"
@@ -264,15 +316,13 @@ export function ProDashboardClient({
                 cursor: 'pointer',
               }}
             >
-              {isConnecting ? 'Connecting…' : isConnected ? `✓ ${shortAddr}` : 'Connect Wallet'}
+              {isConnecting ? t('institutional.nav.connecting') : isConnected ? `✓ ${shortAddr}` : t('institutional.nav.connect_wallet')}
             </button>
           </div>
         </nav>
 
         <header style={{ marginBottom: 'clamp(16px,3vw,24px)' }}>
-          <div style={{ fontSize: 11, letterSpacing: '0.16em', color: '#64748b', marginBottom: 8 }}>
-            SECURITY INTELLIGENCE INFRASTRUCTURE
-          </div>
+          <div style={{ fontSize: 11, letterSpacing: '0.16em', color: '#64748b', marginBottom: 8 }}>{t('institutional.page.kicker')}</div>
           <h1
             style={{
               fontSize: 'clamp(26px,4.5vw,36px)',
@@ -283,7 +333,7 @@ export function ProDashboardClient({
               lineHeight: 1.15,
             }}
           >
-            AI Security Intelligence Terminal
+            {t('institutional.page.title')}
           </h1>
           <p
             style={{
@@ -295,15 +345,16 @@ export function ProDashboardClient({
               lineHeight: 1.45,
             }}
           >
-            Detect rugs, honeypots & insider wallets in real-time
+            {t('institutional.page.subtitle')}
           </p>
           <p style={{ color: '#94a3b8', fontSize: 'clamp(12px,2.2vw,13px)', marginTop: 10, maxWidth: 680, lineHeight: 1.55 }}>
-            Explainable scoring, pipeline transparency, and RPC-attested simulation — unified on{' '}
-            <code style={{ fontSize: 12, color: '#6ee7b7' }}>POST /api/v1/scan</code>.
+            {t('institutional.page.description')}{' '}
+            <code style={{ fontSize: 12, color: '#6ee7b7' }} dir="ltr">
+              POST /api/v1/scan
+            </code>
+            .
           </p>
-          {tierHint ? (
-            <p style={{ marginTop: 8, fontSize: 12, color: '#64748b' }}>{tierHint}</p>
-          ) : null}
+          {tierHint ? <p style={{ marginTop: 8, fontSize: 12, color: '#64748b' }}>{tierHint}</p> : null}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 18, alignItems: 'center' }}>
             <Link
               href="/app"
@@ -317,7 +368,7 @@ export function ProDashboardClient({
                 textDecoration: 'none',
               }}
             >
-              Consumer app
+              {t('institutional.page.consumer_app')}
             </Link>
             {!session.userId && (
               <Link
@@ -331,11 +382,11 @@ export function ProDashboardClient({
                   textDecoration: 'none',
                 }}
               >
-                Sign in
+                {t('institutional.page.sign_in')}
               </Link>
             )}
             {session.userId && !session.hasDeepAccess && (
-              <span style={{ fontSize: 12, color: '#fbbf24' }}>🔒 Live API & exports require Pro / Institutional tier.</span>
+              <span style={{ fontSize: 12, color: '#fbbf24' }}>{t('institutional.page.pro_lock')}</span>
             )}
           </div>
         </header>
@@ -352,9 +403,9 @@ export function ProDashboardClient({
             pipelineMs: scanResponse?.pipeline_ms,
             responseTimeMs: scanResponse?.meta?.response_time_ms,
           }}
-          urgencyLine="Real-time analysis — on-chain conditions change every block."
+          urgencyLine={t('institutional.hero.urgency')}
           primaryCta={{
-            label: 'Run New Scan',
+            label: t('institutional.cta.run_scan'),
             onClick: () => {
               if (!canUseDeepApi) {
                 if (!session.userId && typeof window !== 'undefined') window.location.href = '/landing'
@@ -396,12 +447,12 @@ export function ProDashboardClient({
               backdropFilter: 'blur(12px)',
             }}
           >
-            <div style={{ fontSize: 10, letterSpacing: '0.14em', color: '#64748b', marginBottom: 10 }}>SIMULATION LAYER</div>
-            <p style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.55, margin: 0 }}>
-              {buildSimulationNarrative(scanResponse)}
-            </p>
+            <div style={{ fontSize: 10, letterSpacing: '0.14em', color: '#64748b', marginBottom: 10 }}>
+              {t('institutional.simulation.layer_title')}
+            </div>
+            <p style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.55, margin: 0 }}>{buildSimulationNarrative(scanResponse, t)}</p>
             {!canUseDeepApi ? (
-              <p style={{ marginTop: 10, fontSize: 11, color: '#64748b' }}>🔒 Upgrade for full simulation + audit export.</p>
+              <p style={{ marginTop: 10, fontSize: 11, color: '#64748b' }}>{t('institutional.simulation.upgrade_hint')}</p>
             ) : null}
           </div>
         </div>
@@ -423,8 +474,8 @@ export function ProDashboardClient({
               background: 'rgba(16,185,129,0.04)',
             }}
           >
-            <strong style={{ color: '#6ee7b7' }}>Wallet reputation</strong> — {scanResponse.wallet_reputation.summary} (score{' '}
-            {scanResponse.wallet_reputation.score0to100}/100)
+            <strong style={{ color: '#6ee7b7' }}>{t('institutional.wallet_reputation.prefix')}</strong> — {scanResponse.wallet_reputation.summary}{' '}
+            {t('institutional.wallet_reputation.score', { score: scanResponse.wallet_reputation.score0to100 })}
           </div>
         ) : null}
 
@@ -453,12 +504,13 @@ export function ProDashboardClient({
             }}
           >
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 10, letterSpacing: '0.12em', color: '#64748b' }}>EVIDENCE & LOGS · TERMINAL</div>
-              <div style={{ fontSize: 'clamp(12px,2.5vw,13px)', color: '#cbd5e1', marginTop: 6, lineHeight: 1.5 }}>
-                Grade{' '}
-                <span style={{ color: '#6ee7b7', fontWeight: 600 }}>{reasoning.institutionalGrade}</span> · Verdict{' '}
-                <span style={{ color: verdictColor(reasoning.verdict), fontWeight: 600 }}>{reasoning.verdict}</span> · Model
-                confidence {reasoning.confidenceScore}%
+              <div style={{ fontSize: 10, letterSpacing: '0.12em', color: '#64748b' }}>{t('institutional.evidence.section_label')}</div>
+              <div style={{ fontSize: 'clamp(12px,2.5vw,13px)', color: '#cbd5e1', marginTop: 6, lineHeight: 1.5 }} dir="ltr">
+                {t('institutional.evidence.grade_line', {
+                  grade: reasoning.institutionalGrade,
+                  verdict: reasoning.verdict,
+                  confidence: reasoning.confidenceScore,
+                })}
               </div>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end' }}>
@@ -477,7 +529,7 @@ export function ProDashboardClient({
                   cursor: canUseDeepApi ? 'pointer' : 'not-allowed',
                 }}
               >
-                {dlBusy === 'pdf' ? '…' : 'PDF audit'}
+                {dlBusy === 'pdf' ? '…' : t('institutional.evidence.pdf_audit')}
               </button>
               <button
                 type="button"
@@ -494,7 +546,7 @@ export function ProDashboardClient({
                   cursor: canUseDeepApi ? 'pointer' : 'not-allowed',
                 }}
               >
-                {dlBusy === 'json' ? '…' : 'Export JSON (API)'}
+                {dlBusy === 'json' ? '…' : t('institutional.evidence.export_json')}
               </button>
               <button
                 type="button"
@@ -510,15 +562,15 @@ export function ProDashboardClient({
                   cursor: 'pointer',
                 }}
               >
-                Download JSON (local)
+                {t('institutional.evidence.download_json_local')}
               </button>
             </div>
           </div>
 
           {!canUseDeepApi ? (
             <div style={{ marginTop: 12, fontSize: 11, color: '#94a3b8' }}>
-              🔒 API keys, usage analytics, and server-side export unlock with Pro —{' '}
-              <span style={{ color: '#6ee7b7' }}>Upgrade to Pro</span> for institutional demo readiness.
+              {t('institutional.evidence.upgrade_pro_block')}{' '}
+              <span style={{ color: '#6ee7b7' }}>{t('institutional.evidence.upgrade_pro')}</span> {t('institutional.evidence.upgrade_pro_suffix')}
             </div>
           ) : null}
 
@@ -536,10 +588,13 @@ export function ProDashboardClient({
                 color: '#fecaca',
               }}
             >
-              <strong style={{ color: '#fca5a5' }}>Dynamic simulation</strong> —{' '}
-              {sanitizeDynamicSummary(reasoning.dynamicSimulation.summary)}
+              <strong style={{ color: '#fca5a5' }}>{t('institutional.evidence.dynamic_simulation')}</strong> —{' '}
+              {sanitizeDynamicSummary(reasoning.dynamicSimulation.summary, t)}
               {reasoning.dynamicSimulation.realizedTaxOrSlippagePct != null ? (
-                <span> · Tax/slippage est. {reasoning.dynamicSimulation.realizedTaxOrSlippagePct.toFixed(2)}%</span>
+                <span dir="ltr">
+                  {' '}
+                  · {t('institutional.evidence.tax_est')} {reasoning.dynamicSimulation.realizedTaxOrSlippagePct.toFixed(2)}%
+                </span>
               ) : null}
             </div>
           ) : null}
@@ -559,34 +614,38 @@ export function ProDashboardClient({
               WebkitOverflowScrolling: 'touch',
             }}
           >
-            <div style={{ color: '#64748b', marginBottom: 8 }}>{'// RAW EVIDENCE (primary lines)'}</div>
+            <div style={{ color: '#64748b', marginBottom: 8 }}>{t('institutional.evidence.raw_evidence')}</div>
             {orderedEvidence.map((line) => (
               <div key={line.id} style={{ marginBottom: 10 }}>
                 <span style={{ color: '#6ee7b7' }}>[{line.category}]</span>{' '}
                 <span style={{ color: '#f1f5f9' }}>{line.label}</span>
                 {line.riskContribution > 0 ? (
-                  <span style={{ color: '#fb923c' }}> · risk −{line.riskContribution.toFixed(0)}</span>
+                  <span style={{ color: '#fb923c' }}>
+                    {' '}
+                    {t('institutional.evidence.risk_prefix')}
+                    {line.riskContribution.toFixed(0)}
+                  </span>
                 ) : null}
-                <div style={{ color: '#94a3b8', marginTop: 2 }}>{sanitizeEvidenceDetail(line)}</div>
+                <div style={{ color: '#94a3b8', marginTop: 2 }}>{sanitizeEvidenceDetail(line, t)}</div>
               </div>
             ))}
-            <div style={{ marginTop: 14, color: '#64748b' }}>{'// FLAGS'}</div>
-            <div style={{ color: '#fbbf24' }}>{reasoning.flags.length ? reasoning.flags.join(' · ') : '— none —'}</div>
-            <div style={{ marginTop: 14, color: '#64748b' }}>{'// PIPELINE STAGES'}</div>
-            <div style={{ color: '#a7f3d0' }}>
+            <div style={{ marginTop: 14, color: '#64748b' }}>{t('institutional.evidence.flags')}</div>
+            <div style={{ color: '#fbbf24' }}>{reasoning.flags.length ? reasoning.flags.join(' · ') : t('institutional.evidence.none_flags')}</div>
+            <div style={{ marginTop: 14, color: '#64748b' }}>{t('institutional.evidence.pipeline')}</div>
+            <div style={{ color: '#a7f3d0' }} dir="ltr">
               {scanResponse?.pipeline_stages?.length
                 ? scanResponse.pipeline_stages.map((s) => `${s.name}:${s.durationMs}ms`).join(' · ')
-                : 'Run a live scan to record stage timings.'}
+                : t('institutional.evidence.pipeline_empty')}
             </div>
-            <div style={{ marginTop: 14, color: '#64748b' }}>{'// FINGERPRINT BEST MATCH'}</div>
-            <div style={{ color: '#6ee7b7' }}>
+            <div style={{ marginTop: 14, color: '#64748b' }}>{t('institutional.evidence.fingerprint')}</div>
+            <div style={{ color: '#6ee7b7' }} dir="ltr">
               {reasoning.fingerprintBestMatch
                 ? `${reasoning.fingerprintBestMatch.fingerprint.label} · sim ${(
                     reasoning.fingerprintBestMatch.similarity * 100
                   ).toFixed(1)}% · [${reasoning.fingerprintBestMatch.matchedSignals.join(', ')}]`
-                : '— no significant overlap —'}
+                : t('institutional.evidence.fingerprint_none')}
             </div>
-            <div style={{ marginTop: 14, color: '#64748b' }}>{'// CREATOR CLUSTER'}</div>
+            <div style={{ marginTop: 14, color: '#64748b' }}>{t('institutional.evidence.cluster')}</div>
             <div style={{ color: '#e2e8f0' }}>
               {reasoning.clusterAnalysis.summary} ({reasoning.clusterAnalysis.linkedCreatorRisk})
             </div>
@@ -595,10 +654,18 @@ export function ProDashboardClient({
 
         {!canUseDeepApi ? (
           <p style={{ marginTop: 22, fontSize: 12, color: '#64748b' }}>
-            Session: {session.email ?? 'anonymous'} · tier: {session.tier}
+            {t('institutional.session_footer', { email: session.email ?? 'anonymous', tier: session.tier })}
           </p>
         ) : null}
       </div>
     </>
+  )
+}
+
+export function ProDashboardClient(props: Props) {
+  return (
+    <InstitutionalI18nProvider>
+      <ProDashboardClientInner {...props} />
+    </InstitutionalI18nProvider>
   )
 }

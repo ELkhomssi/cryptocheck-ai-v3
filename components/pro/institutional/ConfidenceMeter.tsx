@@ -1,9 +1,12 @@
 'use client'
 
+import { useInstitutionalTranslation } from '@/lib/i18n/institutional-context'
+
 /**
  * Visual confidence (0–1) — instant read: green ≥80%, amber 50–79%, red <50%.
  */
 export function ConfidenceMeter({ value01 }: { value01: number }) {
+  const { t } = useInstitutionalTranslation()
   const pct = Math.round(Math.min(1, Math.max(0, value01)) * 100)
   const tier = pct >= 80 ? 'high' : pct >= 50 ? 'mid' : 'low'
   const barColor =
@@ -19,7 +22,12 @@ export function ConfidenceMeter({ value01 }: { value01: number }) {
         ? 'rgba(234,179,8,0.15)'
         : 'rgba(248,113,113,0.15)'
   const badgeFg = tier === 'high' ? '#6ee7b7' : tier === 'mid' ? '#fde047' : '#fca5a5'
-  const label = tier === 'high' ? 'Strong signal' : tier === 'mid' ? 'Moderate signal' : 'Limited signal'
+  const label =
+    tier === 'high'
+      ? t('institutional.confidence.strong_signal')
+      : tier === 'mid'
+        ? t('institutional.confidence.moderate_signal')
+        : t('institutional.confidence.limited_signal')
 
   return (
     <div style={{ width: '100%', maxWidth: 420, margin: '0 auto', marginTop: 20 }}>
@@ -34,7 +42,7 @@ export function ConfidenceMeter({ value01 }: { value01: number }) {
           color: '#94a3b8',
         }}
       >
-        <span>DATA CONFIDENCE</span>
+        <span>{t('institutional.confidence.data_confidence')}</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span
             style={{
@@ -49,28 +57,32 @@ export function ConfidenceMeter({ value01 }: { value01: number }) {
           >
             {label}
           </span>
-          <span style={{ fontFamily: 'ui-monospace, monospace', color: '#f1f5f9', fontWeight: 700 }}>{pct}%</span>
+          <span style={{ fontFamily: 'ui-monospace, monospace', color: '#f1f5f9', fontWeight: 700 }} dir="ltr">
+            {pct}%
+          </span>
         </span>
       </div>
-      <div
-        style={{
-          height: 10,
-          borderRadius: 999,
-          background: 'rgba(255,255,255,0.06)',
-          overflow: 'hidden',
-          border: '0.5px solid rgba(255,255,255,0.08)',
-        }}
-      >
+      <div dir="ltr" style={{ unicodeBidi: 'isolate' }}>
         <div
           style={{
-            width: `${pct}%`,
-            height: '100%',
+            height: 10,
             borderRadius: 999,
-            background: barColor,
-            boxShadow: tier === 'high' ? '0 0 20px rgba(16,185,129,0.35)' : undefined,
-            transition: 'width 0.5s ease',
+            background: 'rgba(255,255,255,0.06)',
+            overflow: 'hidden',
+            border: '0.5px solid rgba(255,255,255,0.08)',
           }}
-        />
+        >
+          <div
+            style={{
+              width: `${pct}%`,
+              height: '100%',
+              borderRadius: 999,
+              background: barColor,
+              boxShadow: tier === 'high' ? '0 0 20px rgba(16,185,129,0.35)' : undefined,
+              transition: 'width 0.5s ease',
+            }}
+          />
+        </div>
       </div>
     </div>
   )

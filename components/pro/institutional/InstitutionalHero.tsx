@@ -1,9 +1,9 @@
 'use client'
 
 import type { Verdict } from '@/lib/services/scanner-engine'
+import { useInstitutionalTranslation } from '@/lib/i18n/institutional-context'
 import { ConfidenceMeter } from '@/components/pro/institutional/ConfidenceMeter'
 import { EnterpriseTrustStrip } from '@/components/pro/institutional/EnterpriseTrustStrip'
-import { mapVerdictToDecision } from '@/components/pro/institutional/decision-engine'
 
 type Props = {
   score: number
@@ -34,10 +34,32 @@ function badgeColors(verdict: Verdict): { bg: string; border: string; fg: string
   return { bg: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.45)', fg: '#f87171' }
 }
 
+function verdictStatusKey(verdict: Verdict): string {
+  if (verdict === 'SAFE') return 'institutional.status.safe'
+  if (verdict === 'CAUTION') return 'institutional.status.caution'
+  return 'institutional.status.danger'
+}
+
+function verdictRiskTierKey(verdict: Verdict): string {
+  if (verdict === 'SAFE') return 'institutional.decision.risk_tier.low'
+  if (verdict === 'CAUTION') return 'institutional.decision.risk_tier.moderate'
+  return 'institutional.decision.risk_tier.high'
+}
+
+function verdictAssetKey(verdict: Verdict): string {
+  if (verdict === 'SAFE') return 'institutional.decision.assets.low'
+  if (verdict === 'CAUTION') return 'institutional.decision.assets.moderate'
+  return 'institutional.decision.assets.high'
+}
+
 export function InstitutionalHero({ score, verdict, confidence, primaryCta, trustContext, urgencyLine }: Props) {
-  const decision = mapVerdictToDecision(verdict)
+  const { t } = useInstitutionalTranslation()
   const badge = badgeColors(verdict)
   const { pipelineMs, responseTimeMs, ...stripProps } = trustContext
+
+  const statusLabel = t(verdictStatusKey(verdict))
+  const riskTierLabel = t(verdictRiskTierKey(verdict))
+  const decisionLabel = t(verdictAssetKey(verdict))
 
   return (
     <section
@@ -74,7 +96,7 @@ export function InstitutionalHero({ score, verdict, confidence, primaryCta, trus
               marginBottom: 4,
             }}
           >
-            SECURITY SCORE
+            {t('institutional.hero.security_score')}
           </div>
           <div
             style={{
@@ -97,7 +119,7 @@ export function InstitutionalHero({ score, verdict, confidence, primaryCta, trus
             gap: 10,
             maxWidth: 420,
             margin: '0 auto 18px',
-            textAlign: 'left',
+            textAlign: 'start',
           }}
         >
           <div
@@ -112,7 +134,9 @@ export function InstitutionalHero({ score, verdict, confidence, primaryCta, trus
               background: 'rgba(0,0,0,0.25)',
             }}
           >
-            <span style={{ fontSize: 12, letterSpacing: '0.14em', color: '#64748b', fontWeight: 600 }}>STATUS</span>
+            <span style={{ fontSize: 12, letterSpacing: '0.14em', color: '#64748b', fontWeight: 600 }}>
+              {t('institutional.hero.status')}
+            </span>
             <span
               style={{
                 fontSize: 12,
@@ -123,7 +147,7 @@ export function InstitutionalHero({ score, verdict, confidence, primaryCta, trus
                 ...badge,
               }}
             >
-              {decision.statusChip}
+              {statusLabel}
             </span>
           </div>
           <div
@@ -138,10 +162,14 @@ export function InstitutionalHero({ score, verdict, confidence, primaryCta, trus
               background: 'rgba(16,185,129,0.06)',
             }}
           >
-            <span style={{ fontSize: 12, letterSpacing: '0.14em', color: '#64748b', fontWeight: 600 }}>DECISION</span>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#6ee7b7', textAlign: 'right' }}>{decision.decisionLabel}</span>
+            <span style={{ fontSize: 12, letterSpacing: '0.14em', color: '#64748b', fontWeight: 600 }}>
+              {t('institutional.hero.decision')}
+            </span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#6ee7b7', textAlign: 'end' }}>{decisionLabel}</span>
           </div>
-          <div style={{ fontSize: 11, color: '#64748b', paddingLeft: 2 }}>Risk tier: {decision.riskTier}</div>
+          <div style={{ fontSize: 11, color: '#64748b', paddingInlineStart: 2 }}>
+            {t('institutional.hero.risk_tier_prefix')} {riskTierLabel}
+          </div>
         </div>
 
         {(pipelineMs != null || responseTimeMs != null) && (
@@ -157,8 +185,8 @@ export function InstitutionalHero({ score, verdict, confidence, primaryCta, trus
               color: '#64748b',
             }}
           >
-            {pipelineMs != null ? <span>Pipeline {pipelineMs}ms</span> : null}
-            {responseTimeMs != null ? <span>API {responseTimeMs}ms</span> : null}
+            {pipelineMs != null ? <span dir="ltr">{t('institutional.hero.pipeline_ms', { ms: pipelineMs })}</span> : null}
+            {responseTimeMs != null ? <span dir="ltr">{t('institutional.hero.api_ms', { ms: responseTimeMs })}</span> : null}
           </div>
         )}
 
@@ -192,7 +220,7 @@ export function InstitutionalHero({ score, verdict, confidence, primaryCta, trus
                 transition: 'transform 0.15s ease, box-shadow 0.15s ease',
               }}
             >
-              {primaryCta.loading ? 'Running scan…' : primaryCta.label}
+              {primaryCta.loading ? t('institutional.cta.running') : primaryCta.label}
             </button>
             {urgencyLine ? (
               <p
@@ -202,8 +230,7 @@ export function InstitutionalHero({ score, verdict, confidence, primaryCta, trus
                   color: '#64748b',
                   letterSpacing: '0.04em',
                   maxWidth: 360,
-                  marginLeft: 'auto',
-                  marginRight: 'auto',
+                  marginInline: 'auto',
                   lineHeight: 1.5,
                 }}
               >
