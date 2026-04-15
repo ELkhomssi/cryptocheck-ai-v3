@@ -1,0 +1,33 @@
+import { logSecurityEvent } from '@/lib/services/security-log.service'
+
+export type ApiUsageInput = {
+  userId: string
+  apiKeyId?: string | null
+  endpoint: string
+  method: string
+  statusCode: number
+  durationMs: number
+  ip?: string | null
+  userAgent?: string | null
+  priority?: boolean
+}
+
+/**
+ * Structured API usage line for billing / analytics (stored in `security_logs`).
+ */
+export async function logApiUsageEvent(input: ApiUsageInput): Promise<void> {
+  await logSecurityEvent({
+    userId: input.userId,
+    apiKeyId: input.apiKeyId ?? null,
+    action: 'api_usage',
+    resource: input.endpoint,
+    ip: input.ip,
+    userAgent: input.userAgent,
+    metadata: {
+      method: input.method,
+      status: input.statusCode,
+      duration_ms: input.durationMs,
+      priority: input.priority ?? false,
+    },
+  })
+}
