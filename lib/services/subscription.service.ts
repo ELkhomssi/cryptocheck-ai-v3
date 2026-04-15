@@ -1,5 +1,7 @@
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import type { SubscriptionTier } from '@/lib/types/tier'
+import { getActiveSaasSubscription, mapSaasTierToRuntime } from '@/lib/services/saas-subscription.service'
+import type { SaasTier } from '@/lib/types/saas-subscription'
 
 export type ProfileRow = {
   is_pro?: boolean | null
@@ -10,7 +12,8 @@ export type ProfileRow = {
 
 /**
  * Tier resolution & credit semantics for monetization.
- * Stripe/webhooks should keep `profiles.plan` / `is_pro` in sync (see stripe-webhook).
+ * **SENTINEL:** `saas_subscriptions` is the source of truth when an entitled row exists;
+ * otherwise falls back to `profiles` (legacy SOL checkout / older flows).
  */
 export class SubscriptionService {
   resolveTier(row: ProfileRow | null | undefined): SubscriptionTier {
@@ -22,6 +25,11 @@ export class SubscriptionService {
   }
 
   async getTierForUser(userId: string): Promise<SubscriptionTier> {
+    const saas = await getActiveSaasSubscription(userId)
+    if (saas?.tier) {
+      return mapSaasTierToRuntime(saas.tier as SaasTier)
+    }
+
     const sb = getSupabaseAdmin()
     const { data, error } = await sb
       .from('profiles')

@@ -1,49 +1,197 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { upsertSaasSubscription } from '@/lib/services/saas-subscription.service'
+import type { SaasSubscriptionStatus, SaasTier } from '@/lib/types/saas-subscription'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+function resolveTierFromStripeMetadata(meta: Record<string, string> | undefined): SaasTier {
+  const p = String(meta?.tier || meta?.plan || '').toLowerCase()
+  if (p === 'enterprise' || p === 'institutional') return 'ENTERPRISE'
+  if (p === 'pro') return 'PRO'
+  return 'PRO'
+}
+
+async function syncProfileAndSaas(params: {
+  email: string
+  tier: SaasTier
+  status: SaasSubscriptionStatus
+  currentPeriodStart: Date | null
+  currentPeriodEnd: Date | null
+  cancelAtPeriodEnd: boolean
+  stripeCustomerId: string | null
+  stripeSubscriptionId: string | null
+}) {
+  const isPro = params.tier !== 'FREE'
+  const plan = params.tier === 'ENTERPRISE' ? 'institutional' : params.tier === 'PRO' ? 'pro' : 'free'
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ is_pro: isPro, plan })
+    .eq('email', params.email)
+
+  if (error) console.error('Supabase profile update error:', error)
+
+  const { data: profile } = await supabase.from('profiles').select('id').eq('email', params.email).maybeSingle()
+  if (!profile?.id) return
+
+  try {
+    await upsertSaasSubscription({
+      userId: profile.id,
+      tier: params.tier,
+      status: params.status,
+      currentPeriodStart: params.currentPeriodStart,
+      currentPeriodEnd: params.currentPeriodEnd,
+      cancelAtPeriodEnd: params.cancelAtPeriodEnd,
+      stripeCustomerId: params.stripeCustomerId,
+      stripeSubscriptionId: params.stripeSubscriptionId,
+    })
+  } catch (e) {
+    console.error('[stripe-webhook] saas_subscriptions upsert:', e)
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.text()
-    const sig  = req.headers.get('stripe-signature') || ''
+    const _sig = req.headers.get('stripe-signature') || ''
 
     // Parse event (add Stripe signature verification in production)
     const event = JSON.parse(body)
 
-    if (event.type === 'checkout.session.completed' || 
-        event.type === 'customer.subscription.created' ||
-        event.type === 'invoice.payment_succeeded') {
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Record<string, unknown>
+      const email =
+        (session.customer_email as string) ||
+        (session.customer_details as { email?: string } | undefined)?.email ||
+        (session.metadata as { email?: string } | undefined)?.email
 
-      const session = event.data.object
-      const email   = session.customer_email || 
-                      session.customer_details?.email ||
-                      session.metadata?.email
+      if (email && typeof email === 'string') {
+        const meta = session.metadata as Record<string, string> | undefined
+        const tier = resolveTierFromStripeMetadata(meta)
 
+        const subRef = session.subscription as string | { id?: string } | null | undefined
+        const stripeSubscriptionId =
+          typeof subRef === 'string' ? subRef : typeof subRef === 'object' && subRef?.id ? subRef.id : null
+
+        const custRef = session.customer as string | { id?: string } | null | undefined
+        const stripeCustomerId =
+          typeof custRef === 'string' ? custRef : typeof custRef === 'object' && custRef?.id ? custRef.id : null
+
+        const cps = session.current_period_start as number | undefined
+        const cpe = session.current_period_end as number | undefined
+        const start = cps ? new Date(cps * 1000) : new Date()
+        const end = cpe ? new Date(cpe * 1000) : new Date(Date.now() + 30 * 86400000)
+
+        await syncProfileAndSaas({
+          email,
+          tier,
+          status: 'active',
+          currentPeriodStart: start,
+          currentPeriodEnd: end,
+          cancelAtPeriodEnd: !!(session.cancel_at_period_end as boolean),
+          stripeCustomerId,
+          stripeSubscriptionId,
+        })
+        console.log('✅ SENTINEL SaaS sync (checkout) for:', email, tier)
+      }
+    }
+
+    if (event.type === 'customer.subscription.created') {
+      const sub = event.data.object as Record<string, unknown>
+      const meta = sub.metadata as Record<string, string> | undefined
+      const email = meta?.email
+      if (email && typeof email === 'string') {
+        const tier = resolveTierFromStripeMetadata(meta)
+        const cps = sub.current_period_start as number | undefined
+        const cpe = sub.current_period_end as number | undefined
+        const start = cps ? new Date(cps * 1000) : new Date()
+        const end = cpe ? new Date(cpe * 1000) : new Date(Date.now() + 30 * 86400000)
+        const stripeSubscriptionId = typeof sub.id === 'string' ? sub.id : null
+        const stripeCustomerId = typeof sub.customer === 'string' ? sub.customer : null
+
+        await syncProfileAndSaas({
+          email,
+          tier,
+          status: 'active',
+          currentPeriodStart: start,
+          currentPeriodEnd: end,
+          cancelAtPeriodEnd: !!(sub.cancel_at_period_end as boolean),
+          stripeCustomerId,
+          stripeSubscriptionId,
+        })
+        console.log('✅ SENTINEL SaaS sync (subscription.created) for:', email, tier)
+      }
+    }
+
+    if (event.type === 'invoice.payment_succeeded') {
+      const inv = event.data.object as Record<string, unknown>
+      const email = inv.customer_email as string | undefined
       if (email) {
-        // Set is_pro = true in Supabase
-        const { error } = await supabase
-          .from('profiles')
-          .update({ is_pro: true, plan: 'pro' })
-          .eq('email', email)
-
-        if (error) console.error('Supabase update error:', error)
-        else console.log('✅ PRO activated for:', email)
+        const tier = resolveTierFromStripeMetadata(inv.metadata as Record<string, string> | undefined)
+        const lines = inv.lines as { data?: Array<{ period?: { end?: number; start?: number } }> } | undefined
+        const periodEnd = lines?.data?.[0]?.period?.end
+        const periodStart = lines?.data?.[0]?.period?.start
+        const subId = inv.subscription as string | undefined
+        const custId = inv.customer as string | undefined
+        await syncProfileAndSaas({
+          email,
+          tier,
+          status: 'active',
+          currentPeriodStart: periodStart ? new Date(periodStart * 1000) : new Date(),
+          currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : new Date(Date.now() + 30 * 86400000),
+          cancelAtPeriodEnd: false,
+          stripeCustomerId: custId ?? null,
+          stripeSubscriptionId: subId ?? null,
+        })
       }
     }
 
     if (event.type === 'customer.subscription.deleted') {
-      const session = event.data.object
-      const email   = session.customer_email || session.metadata?.email
+      const sub = event.data.object as Record<string, unknown>
+      const meta = sub.metadata as Record<string, string> | undefined
+      const email = meta?.email
+      const userId = meta?.user_id
 
-      if (email) {
-        await supabase
-          .from('profiles')
-          .update({ is_pro: false, plan: 'free' })
-          .eq('email', email)
+      if (typeof userId === 'string' && userId.length > 0) {
+        await supabase.from('profiles').update({ is_pro: false, plan: 'free' }).eq('id', userId)
+        try {
+          await upsertSaasSubscription({
+            userId,
+            tier: 'FREE',
+            status: 'canceled',
+            currentPeriodStart: null,
+            currentPeriodEnd: null,
+            cancelAtPeriodEnd: false,
+            stripeCustomerId: typeof sub.customer === 'string' ? sub.customer : null,
+            stripeSubscriptionId: typeof sub.id === 'string' ? sub.id : null,
+          })
+        } catch (e) {
+          console.error('[stripe-webhook] saas cancel:', e)
+        }
+        console.log('❌ Subscription deleted for user:', userId)
+      } else if (email) {
+        await supabase.from('profiles').update({ is_pro: false, plan: 'free' }).eq('email', email)
+        const { data: profile } = await supabase.from('profiles').select('id').eq('email', email).maybeSingle()
+        if (profile?.id) {
+          try {
+            await upsertSaasSubscription({
+              userId: profile.id,
+              tier: 'FREE',
+              status: 'canceled',
+              currentPeriodStart: null,
+              currentPeriodEnd: null,
+              cancelAtPeriodEnd: false,
+              stripeCustomerId: typeof sub.customer === 'string' ? sub.customer : null,
+              stripeSubscriptionId: typeof sub.id === 'string' ? sub.id : null,
+            })
+          } catch (e) {
+            console.error('[stripe-webhook] saas cancel:', e)
+          }
+        }
         console.log('❌ PRO cancelled for:', email)
       }
     }

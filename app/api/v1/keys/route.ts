@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { createApiKey, listApiKeys, revokeApiKey } from '@/lib/services/api-key.service'
 import { createInstitutionalApiKey } from '@/lib/services/api-key-v2.service'
+import { subscriptionService } from '@/lib/services/subscription.service'
 import { logSecurityEvent } from '@/lib/services/security-log.service'
 
 async function getSessionUser(req: NextRequest) {
@@ -45,7 +46,19 @@ export async function POST(req: NextRequest) {
   const useSentinelV2 = body.schema === 'v2' || body.schema === 'sentinel'
 
   if (useSentinelV2) {
-    const created = await createInstitutionalApiKey(user.id, name)
+    const tier = await subscriptionService.getTierForUser(user.id)
+    if (tier === 'free') {
+      return NextResponse.json(
+        {
+          error:
+            'SENTINEL (v2) keys require Pro or Enterprise. Upgrade or create a legacy cc_live_ (v1) key.',
+        },
+        { status: 403 }
+      )
+    }
+    const created = await createInstitutionalApiKey(user.id, name, {
+      tier: tier === 'institutional' ? 'institutional' : 'pro',
+    })
     await logSecurityEvent({
       userId: user.id,
       apiKeyV2Id: created.id,
