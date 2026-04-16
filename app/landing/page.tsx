@@ -6,6 +6,36 @@ import { GeistSans } from 'geist/font/sans'
 import { CryptoCheckLogo } from '@/components/brand/CryptoCheckLogo'
 import { supabase } from '@/lib/supabase'
 
+/** Injected as raw CSS to avoid hydration mismatches from React normalizing `<style>` text children. */
+const LANDING_PAGE_CSS = `
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700;800&display=swap');
+@keyframes fadeInUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+@keyframes lp-pulse { 0%,100% { opacity:1; box-shadow:0 0 0 0 rgba(32,178,170,0.4); } 50% { opacity:0.6; box-shadow:0 0 0 4px rgba(32,178,170,0); } }
+@keyframes lp-float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
+html { scroll-behavior:smooth; }
+.lp-cta:hover { transform:translateY(-2px); box-shadow:0 0 40px rgba(32,178,170,0.45),0 8px 30px rgba(0,0,0,0.4) !important; }
+.lp-feature-card:hover { border-color:rgba(32,178,170,0.3) !important; transform:translateY(-2px); }
+.lp-float-badge { animation:lp-float 3s ease-in-out infinite; }
+.lp-float-badge-delay { animation:lp-float 3s ease-in-out infinite 1.5s; }
+.lp-hero-grid { grid-template-columns:1fr 1fr; }
+.lp-steps-grid { grid-template-columns:repeat(3,1fr); }
+.lp-features-grid { grid-template-columns:repeat(3,1fr); }
+.lp-stats-grid { grid-template-columns:repeat(4,1fr); }
+@media (max-width:900px) {
+  .lp-hero-grid { grid-template-columns:1fr !important; }
+  .lp-steps-grid { grid-template-columns:1fr !important; }
+  .lp-features-grid { grid-template-columns:1fr !important; }
+  .lp-stats-grid { grid-template-columns:repeat(2,1fr) !important; }
+  .lp-institutional-grid { grid-template-columns:1fr !important; }
+  .lp-nav-link { display:none !important; }
+  .lp-mobile-nav { display:flex !important; }
+  .lp-float-badge,.lp-float-badge-delay { display:none !important; }
+}
+::-webkit-scrollbar { width:6px; }
+::-webkit-scrollbar-track { background:#000; }
+::-webkit-scrollbar-thumb { background:rgba(32,178,170,0.3); border-radius:3px; }
+`.trim()
+
 export default function LandingPage() {
   const [scrollY, setScrollY] = useState(0)
   useEffect(() => {
@@ -234,35 +264,7 @@ Authorization: Bearer cc_live_…
         </div>
       </footer>
 
-      {/* STYLES */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700;800&display=swap');
-        @keyframes fadeInUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes lp-pulse { 0%,100% { opacity:1; box-shadow:0 0 0 0 rgba(32,178,170,0.4); } 50% { opacity:0.6; box-shadow:0 0 0 4px rgba(32,178,170,0); } }
-        @keyframes lp-float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
-        html { scroll-behavior:smooth; }
-        .lp-cta:hover { transform:translateY(-2px); box-shadow:0 0 40px rgba(32,178,170,0.45),0 8px 30px rgba(0,0,0,0.4) !important; }
-        .lp-feature-card:hover { border-color:rgba(32,178,170,0.3) !important; transform:translateY(-2px); }
-        .lp-float-badge { animation:lp-float 3s ease-in-out infinite; }
-        .lp-float-badge-delay { animation:lp-float 3s ease-in-out infinite 1.5s; }
-        .lp-hero-grid { grid-template-columns:1fr 1fr; }
-        .lp-steps-grid { grid-template-columns:repeat(3,1fr); }
-        .lp-features-grid { grid-template-columns:repeat(3,1fr); }
-        .lp-stats-grid { grid-template-columns:repeat(4,1fr); }
-        @media (max-width:900px) {
-          .lp-hero-grid { grid-template-columns:1fr !important; }
-          .lp-steps-grid { grid-template-columns:1fr !important; }
-          .lp-features-grid { grid-template-columns:1fr !important; }
-          .lp-stats-grid { grid-template-columns:repeat(2,1fr) !important; }
-          .lp-institutional-grid { grid-template-columns:1fr !important; }
-          .lp-nav-link { display:none !important; }
-          .lp-mobile-nav { display:flex !important; }
-          .lp-float-badge,.lp-float-badge-delay { display:none !important; }
-        }
-        ::-webkit-scrollbar { width:6px; }
-        ::-webkit-scrollbar-track { background:#000; }
-        ::-webkit-scrollbar-thumb { background:rgba(32,178,170,0.3); border-radius:3px; }
-      `}</style>
+      <style dangerouslySetInnerHTML={{ __html: LANDING_PAGE_CSS }} />
     </div>
   )
 }
