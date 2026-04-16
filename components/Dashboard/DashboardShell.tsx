@@ -1,32 +1,17 @@
 'use client'
 
-import Link from 'next/link'
+import { Activity, Shield } from 'lucide-react'
 import { usePathname } from 'next/navigation'
-import {
-  Activity,
-  BarChart3,
-  CreditCard,
-  KeyRound,
-  LayoutDashboard,
-  Radar,
-  Shield,
-} from 'lucide-react'
-import { CryptoCheckLogo } from '@/components/brand/CryptoCheckLogo'
 import { useCallback, useEffect, useState } from 'react'
+import { DesktopSidebar } from '@/components/Dashboard/DesktopSidebar'
+import { MobileBottomNav } from '@/components/Dashboard/MobileBottomNav'
+import { MobileDrawer } from '@/components/Dashboard/MobileDrawer'
+import { MobileTopBar } from '@/components/Dashboard/MobileTopBar'
 
 type HealthPayload = {
   status?: string
   latency_ms?: number
 }
-
-const nav = [
-  { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
-  { href: '/dashboard/api-keys', label: 'Credentials', icon: KeyRound },
-  { href: '/dashboard/usage', label: 'Intelligence Ops', icon: BarChart3 },
-  { href: '/dashboard/security', label: 'SENTINEL', icon: Shield },
-  { href: '/dashboard/billing', label: 'Subscription', icon: CreditCard },
-  { href: '/pro/dashboard', label: 'Intelligence Terminal', icon: Radar },
-] as const
 
 function tierLabel(t: string): string {
   const u = t.toUpperCase()
@@ -47,6 +32,7 @@ export function DashboardShell({
 }) {
   const pathname = usePathname()
   const [health, setHealth] = useState<HealthPayload | null>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const sentinelMode = ['PRO', 'ENTERPRISE'].includes(effectiveTier.toUpperCase())
 
   const poll = useCallback(async () => {
@@ -69,7 +55,7 @@ export function DashboardShell({
   const latency = typeof health?.latency_ms === 'number' ? Math.round(health.latency_ms) : '—'
 
   return (
-    <div className="min-h-screen bg-[#050506] text-slate-200">
+    <div className="min-h-screen bg-[#0a0e1a] text-slate-200">
       {sentinelMode && (
         <div className="fixed left-0 right-0 top-0 z-[60] flex h-8 items-center justify-center gap-2 border-b border-emerald-500/20 bg-gradient-to-r from-emerald-950/90 via-[rgba(10,10,11,0.95)] to-cyan-950/80 px-4 text-[0.62rem] font-semibold uppercase tracking-[0.28em] text-emerald-200/95 shadow-[0_0_24px_rgba(16,185,129,0.12)]">
           <span className="relative flex h-2 w-2">
@@ -81,12 +67,13 @@ export function DashboardShell({
       )}
 
       <header
-        className={`fixed left-0 right-0 z-50 border-b border-white/[0.06] bg-[rgba(8,8,9,0.85)] backdrop-blur-xl ${
+        className={`fixed left-0 right-0 z-50 border-b border-white/[0.06] bg-[rgba(8,10,18,0.88)] backdrop-blur-xl ${
           sentinelMode ? 'top-8' : 'top-0'
         }`}
       >
-        <div className="flex h-10 items-center justify-between gap-4 px-4 md:px-6">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-5 gap-y-1 text-[0.68rem] font-medium tracking-wide text-slate-400">
+        <div className="flex min-h-12 items-center gap-2 px-3 py-1 md:h-10 md:min-h-[2.5rem] md:gap-4 md:px-6 md:py-0">
+          <MobileTopBar onOpenMenu={() => setDrawerOpen(true)} />
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 text-[0.68rem] font-medium tracking-wide text-slate-400 md:gap-x-5">
             <span className="inline-flex items-center gap-2">
               <span
                 className={`h-1.5 w-1.5 rounded-full ${operational ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'bg-amber-400'}`}
@@ -118,66 +105,23 @@ export function DashboardShell({
         </div>
       </header>
 
-      <aside
-        className={`fixed bottom-0 left-0 z-40 flex w-[300px] flex-col border-r border-white/[0.06] bg-[rgba(7,7,8,0.92)] backdrop-blur-[20px] ${
-          sentinelMode ? 'top-[4.5rem]' : 'top-10'
-        }`}
-      >
-        <div className="border-b border-white/[0.05] px-5 py-6">
-          <p className="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Control plane</p>
-          <div className="mt-2">
-            <CryptoCheckLogo href="/dashboard" />
-          </div>
-          <p className="mt-2 text-[0.65rem] font-medium text-slate-500">Intelligence operations</p>
-        </div>
-        <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
-          {nav.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-[0.72rem] font-medium tracking-wide transition-colors duration-150 ease-out ${
-                  active
-                    ? 'bg-white/[0.06] text-slate-100 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]'
-                    : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
-                }`}
-              >
-                {active && (
-                  <span
-                    className={`absolute left-0 top-1/2 h-7 w-0.5 -translate-y-1/2 rounded-full bg-gradient-to-b ${
-                      sentinelMode ? 'from-emerald-400 to-cyan-400' : 'from-slate-400 to-slate-600'
-                    } shadow-[0_0_12px_rgba(52,211,153,0.35)]`}
-                  />
-                )}
-                <Icon
-                  className={`h-4 w-4 shrink-0 transition-transform duration-150 ease-out group-hover:scale-[1.03] ${
-                    active ? 'text-slate-100' : 'text-slate-500 group-hover:text-slate-300'
-                  }`}
-                  strokeWidth={1.35}
-                />
-                <span className="text-[0.65rem] font-semibold uppercase tracking-[0.14em]">{label}</span>
-                {active && (
-                  <span className="pointer-events-none absolute inset-x-2 bottom-1 h-px bg-gradient-to-r from-transparent via-emerald-400/35 to-transparent opacity-90" />
-                )}
-              </Link>
-            )
-          })}
-        </nav>
-        <div className="border-t border-white/[0.05] px-4 py-4">
-          <p className="truncate text-[0.65rem] font-medium tracking-wide text-slate-500">{userEmail}</p>
-        </div>
-      </aside>
+      <DesktopSidebar pathname={pathname} sentinelMode={sentinelMode} userEmail={userEmail} />
+
+      <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} pathname={pathname} />
+
+      <MobileBottomNav pathname={pathname} />
 
       <main
-        className={`min-h-screen pl-[300px] ${sentinelMode ? 'pt-[4.5rem]' : 'pt-10'}`}
+        className={`min-h-screen pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] md:pb-10 md:pl-[280px] ${
+          sentinelMode ? 'pt-[5rem] md:pt-[4.5rem]' : 'pt-12 md:pt-10'
+        }`}
       >
-        <div className="relative mx-auto max-w-[1200px] px-6 py-9 md:px-8 md:py-10">
+        <div className="relative mx-auto max-w-[1200px] px-4 py-8 md:px-8 md:py-10">
           <div
             className="pointer-events-none absolute inset-0 -z-10 opacity-[0.35]"
             style={{
               backgroundImage:
-                'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59,130,246,0.08), transparent), radial-gradient(ellipse 60% 40% at 100% 0%, rgba(16,185,129,0.06), transparent)',
+                'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59,130,246,0.08), transparent), radial-gradient(ellipse 60% 40% at 100% 0%, rgba(0,212,170,0.06), transparent)',
             }}
           />
           {children}
