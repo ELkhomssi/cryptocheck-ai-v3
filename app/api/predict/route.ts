@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const HELIUS_KEY = process.env.HELIUS_KEY || '8948de2b-6114-45cd-839d-1a81eb273cd9'
+import { buildHeliusApiUrl } from '@/lib/helius-server'
 
 function predictScore(data: {
   volumeSpike: number, buySellRatio: number, smartMoney: number,
@@ -30,7 +29,9 @@ export async function POST(req: NextRequest) {
   try {
     const { mint } = await req.json()
     if (!mint) return NextResponse.json({ error: 'mint required' }, { status: 400 })
-    const txRes = await fetch(`https://api.helius.xyz/v0/addresses/${mint}/transactions?api-key=${HELIUS_KEY}&limit=20`).then(r => r.json()).catch(() => [])
+    const txRes = await fetch(buildHeliusApiUrl(`/addresses/${mint}/transactions`, { limit: 20 }))
+      .then((r) => r.json())
+      .catch(() => [])
     let buyCount = 0, sellCount = 0, whaleBuys = 0, whaleSells = 0, totalVolume = 0
     if (Array.isArray(txRes)) {
       for (const tx of txRes) {

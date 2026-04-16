@@ -48,13 +48,11 @@ import {
 } from 'recharts'
 import { useSolana } from '@/components/SolanaProvider'
 import {
-  scanToken,
-  fetchPortfolio,
-  getSlot,
   formatSupply,
   truncate,
   calcChartData,
   computeRisk,
+  PUBLIC_SOLANA_RPC_URL,
   type ScanData,
   type PortfolioHolding,
   NETWORK_LABEL,
@@ -910,7 +908,7 @@ function JupiterInlinePanel({ mint, sym, onFullScreen, enabled }: {
         w.Jupiter.init({
           displayMode: 'integrated',
           integratedTargetId: panelId,
-          endpoint: 'https://mainnet.helius-rpc.com/?api-key=35530e51-dad1-480b-af8f-11c8af2ab3fd',
+          endpoint: PUBLIC_SOLANA_RPC_URL,
           defaultExplorer: 'Solscan',
           strictTokenList: false,
           enableWalletPassthrough: !!(window as any).solana,
@@ -1478,7 +1476,6 @@ type Coin = 'SOL'|'USDC'
 
 const DEST_WALLET = '5jbWsijUWqXLyuaNtzkiu2JM1C5jNPUP9oRjKmmJx15i'
 const USDC_MINT   = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
-const HELIUS_RPC  = 'https://mainnet.helius-rpc.com/?api-key=35530e51-dad1-480b-af8f-11c8af2ab3fd'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DexQuote = any
@@ -1501,7 +1498,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
       const provider = (window as any).phantom?.solana || (window as any).solana
       if (!provider?.publicKey) { alert('Connect your Phantom wallet first'); setLoading(null); return }
       const web3 = await import('@solana/web3.js')
-      const connection = new web3.Connection(process.env.NEXT_PUBLIC_HELIUS_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=35530e51-dad1-480b-af8f-11c8af2ab3fd', 'confirmed')
+      const connection = new web3.Connection(PUBLIC_SOLANA_RPC_URL, 'confirmed')
       const plan = plans.find(p => p.id === planId)!
       const solAmount = plan.price / solPrice
       setTxStatus('Requesting wallet approval...')
@@ -2281,7 +2278,11 @@ export default function Dashboard() {
   useEffect(() => {
     let cancelled = false
     const tick = async () => {
-      try { const s = await getSlot(); if (!cancelled) setSlot(s.toLocaleString()) } catch {}
+      try {
+        const r = await fetch('/api/solana/slot', { cache: 'no-store' })
+        const j = (await r.json()) as { slot?: number }
+        if (!cancelled && typeof j.slot === 'number') setSlot(j.slot.toLocaleString())
+      } catch {}
     }
     tick()
     const iv = setInterval(tick, 60000)
@@ -2434,7 +2435,16 @@ export default function Dashboard() {
         }
       }
 
-      const data = await scanToken(mint)
+      const scanRes = await fetch('/api/solana/scan-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mint }),
+      })
+      const scanJson = (await scanRes.json().catch(() => ({}))) as ScanData & { error?: string }
+      if (!scanRes.ok) {
+        throw new Error(scanJson?.error || 'Scan failed')
+      }
+      const data = scanJson as ScanData
       setScanData(data)
       setScanState('done')
       setScanCount(c => c + 1)
@@ -2554,7 +2564,17 @@ export default function Dashboard() {
     setPfState('loading')
     setPfError('')
     try {
-      const holdings = await fetchPortfolio(walletAddress)
+      const pfRes = await fetch('/api/solana/portfolio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletAddress }),
+      })
+      const pfJson = (await pfRes.json().catch(() => [])) as PortfolioHolding[] | { error?: string }
+      if (!pfRes.ok) {
+        const err = pfJson && typeof pfJson === 'object' && 'error' in pfJson ? (pfJson as { error?: string }).error : undefined
+        throw new Error(err || 'Portfolio fetch failed')
+      }
+      const holdings = Array.isArray(pfJson) ? pfJson : []
       if (!holdings.length) throw new Error('No SPL token holdings found with non-zero balances.')
       setPfHoldings(holdings)
       setPfState('done')

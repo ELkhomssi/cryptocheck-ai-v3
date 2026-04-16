@@ -3,7 +3,7 @@
  * Uses Helius RPC + REST; optional Solscan Pro API when SOLSCAN_API_KEY is set.
  */
 
-import { HELIUS_API, HELIUS_KEY, HELIUS_RPC } from '@/lib/helius'
+import { buildHeliusRestUrl, getHeliusPrimaryRpcUrl } from '@/lib/helius-server'
 
 const TOKEN_PROGRAM = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
 const TOKEN_2022 = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
@@ -79,7 +79,7 @@ async function withHeliusRetry<T>(operation: () => Promise<T>): Promise<T> {
 
 async function rpcCallWithRetry<T>(method: string, params: unknown[] = []): Promise<T> {
   return withHeliusRetry(async () => {
-    const res = await fetch(HELIUS_RPC, {
+    const res = await fetch(getHeliusPrimaryRpcUrl(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
@@ -96,7 +96,7 @@ async function rpcCallWithRetry<T>(method: string, params: unknown[] = []): Prom
 
 async function heliusRestWithRetry<T>(path: string, body?: unknown): Promise<T> {
   return withHeliusRetry(async () => {
-    const url = `${HELIUS_API}${path}?api-key=${HELIUS_KEY}`
+    const url = buildHeliusRestUrl(path)
     const res = await fetch(url, {
       method: body ? 'POST' : 'GET',
       headers: { 'Content-Type': 'application/json' },

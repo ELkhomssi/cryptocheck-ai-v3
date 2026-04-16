@@ -1,30 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const HELIUS_KEY = process.env.HELIUS_KEY || '8948de2b-6114-45cd-839d-1a81eb273cd9'
-const HELIUS_RPC = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_KEY}`
-const HELIUS_API = `https://api.helius.xyz/v0`
-
-async function rpc(method: string, params: unknown[] = []) {
-  const r = await fetch(HELIUS_RPC, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-  })
-  const d = await r.json()
-  if (d.error) throw new Error(d.error.message)
-  return d.result
-}
-
-async function helius(path: string, body?: unknown) {
-  const url = `${HELIUS_API}${path}?api-key=${HELIUS_KEY}`
-  const r = await fetch(url, {
-    method: body ? 'POST' : 'GET',
-    headers: { 'Content-Type': 'application/json' },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  })
-  if (!r.ok) throw new Error(`Helius ${r.status}`)
-  return r.json()
-}
+import type { HeliusTx, HoldersResult, TokenMeta, TokenSupplyResult } from '@/lib/helius'
+import { heliusRest, rpcCall } from '@/lib/helius-server'
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,10 +8,10 @@ export async function POST(req: NextRequest) {
     if (!mint || mint.length < 32) return NextResponse.json({ error: 'Invalid mint' }, { status: 400 })
 
     const [metaArr, supply, holders, txs, dexRes] = await Promise.allSettled([
-      helius('/token-metadata', { mintAccounts: [mint] }),
-      rpc('getTokenSupply', [mint]),
-      rpc('getTokenLargestAccounts', [mint]),
-      helius(`/addresses/${mint}/transactions`),
+      heliusRest<TokenMeta[]>('/token-metadata', { mintAccounts: [mint] }),
+      rpcCall<TokenSupplyResult>('getTokenSupply', [mint]),
+      rpcCall<HoldersResult>('getTokenLargestAccounts', [mint]),
+      heliusRest<HeliusTx[]>(`/addresses/${mint}/transactions`),
       fetch(`https://api.dexscreener.com/latest/dex/tokens/${mint}`).then(r => r.json()),
     ])
 

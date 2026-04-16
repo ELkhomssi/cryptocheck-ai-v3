@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-
-const HELIUS_KEY = process.env.HELIUS_KEY || '8948de2b-6114-45cd-839d-1a81eb273cd9'
+import { buildHeliusApiUrl } from '@/lib/helius-server'
 
 export async function GET() {
   try {
@@ -14,7 +13,7 @@ export async function GET() {
 
     const results = await Promise.allSettled(
       mints.slice(0, 2).map(mint =>
-        fetch(`https://api.helius.xyz/v0/addresses/${mint}/transactions?api-key=${HELIUS_KEY}&limit=5`)
+        fetch(buildHeliusApiUrl(`/addresses/${mint}/transactions`, { limit: 5 }))
           .then(r => r.json())
           .then(txs => ({ mint, txs: Array.isArray(txs) ? txs : [] }))
       )
@@ -65,7 +64,10 @@ export async function GET() {
 
     // Get real mint events
     const mintCheck = await fetch(
-      `https://api.helius.xyz/v0/addresses/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263/transactions?api-key=${HELIUS_KEY}&limit=3&type=MINT_TO`
+      buildHeliusApiUrl('/addresses/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263/transactions', {
+        limit: 3,
+        type: 'MINT_TO',
+      })
     ).then(r => r.json()).catch(() => [])
 
     if (Array.isArray(mintCheck) && mintCheck.length > 0) {

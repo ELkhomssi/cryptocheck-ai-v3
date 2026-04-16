@@ -1,8 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 
-const HELIUS_KEY = '35530e51-dad1-480b-af8f-11c8af2ab3fd'
-
 interface Token {
   symbol: string
   name: string

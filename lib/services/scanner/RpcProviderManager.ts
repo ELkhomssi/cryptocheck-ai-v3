@@ -1,5 +1,5 @@
 import { Connection } from '@solana/web3.js'
-import { HELIUS_KEY, HELIUS_RPC } from '@/lib/helius'
+import { getHeliusPrimaryRpcUrl } from '@/lib/helius-server'
 
 export type RpcEndpoint = { label: string; url: string }
 
@@ -20,11 +20,6 @@ function pooledConnection(url: string): Connection {
 let cachedPrimary: Connection | null = null
 let cachedPrimaryLabel: string | null = null
 
-function heliusUrl(): string {
-  const key = process.env.HELIUS_KEY || HELIUS_KEY
-  return `https://mainnet.helius-rpc.com/?api-key=${key}`
-}
-
 /**
  * Ordered RPC endpoints — primary Helius, then public fallbacks for read/simulate failover.
  */
@@ -36,9 +31,8 @@ export function listRpcEndpoints(): RpcEndpoint[] {
     seen.add(url)
     endpoints.push({ label, url })
   }
-  push('Helius (primary)', heliusUrl())
+  push('Helius (primary)', getHeliusPrimaryRpcUrl())
   push('Solana mainnet (public fallback)', 'https://api.mainnet-beta.solana.com')
-  if (HELIUS_RPC && !seen.has(HELIUS_RPC)) push('Helius (HELIUS_RPC)', HELIUS_RPC)
   return endpoints
 }
 

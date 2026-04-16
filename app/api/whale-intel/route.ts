@@ -1,23 +1,13 @@
 import { NextResponse } from 'next/server'
-
-const HELIUS_KEY = process.env.HELIUS_KEY || '8948de2b-6114-45cd-839d-1a81eb273cd9'
-const HELIUS_RPC = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_KEY}`
-
-async function rpc(method: string, params: unknown[]) {
-  const r = await fetch(HELIUS_RPC, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params })
-  })
-  const d = await r.json()
-  return d.result
-}
+import { buildHeliusApiUrl } from '@/lib/helius-server'
 
 export async function GET() {
   try {
     // Get top holders of BONK as real whale wallets
     const holders = await fetch(
-      `https://api.helius.xyz/v0/addresses/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263/transactions?api-key=${HELIUS_KEY}&limit=10`
+      buildHeliusApiUrl('/addresses/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263/transactions', {
+        limit: 10,
+      })
     ).then(r => r.json()).catch(() => [])
 
     const whales = []
