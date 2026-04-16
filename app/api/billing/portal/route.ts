@@ -62,7 +62,8 @@ export async function POST(req: NextRequest) {
 
   const session = await response.json()
   if (!response.ok) {
-    return NextResponse.json({ error: session.error?.message ?? 'Stripe error' }, { status: response.status })
+    console.error('[billing/portal] Stripe API error:', session.error ?? session)
+    return NextResponse.json({ error: 'Billing unavailable' }, { status: 502 })
   }
 
   return NextResponse.json({ url: session.url })

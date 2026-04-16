@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { ensureFreeTierSubscription } from '@/lib/services/saas-entitlement.service'
 
-const PLAN_PRICES: Record<string, string> = {
-  pro: process.env.STRIPE_PRICE_PRO ?? process.env.STRIPE_PRICE_VIP ?? 'price_1TCTrmAkjKVFT4Le6GBIJ5K8',
-  enterprise: process.env.STRIPE_PRICE_ENTERPRISE ?? process.env.STRIPE_PRICE_YEARLY ?? 'price_1T9vdDAkjKVFT4LeAb9952Gt',
+const PRICE_ID_RE = /^price_[a-zA-Z0-9]+$/
+
+function resolveStripePriceId(tier: 'pro' | 'enterprise'): string | null {
+  const raw =
+    tier === 'enterprise' ? process.env.STRIPE_PRICE_ID_ENTERPRISE : process.env.STRIPE_PRICE_ID_PRO
+  if (!raw || !PRICE_ID_RE.test(raw.trim())) return null
+  return raw.trim()
 }
 
 /**
@@ -35,16 +39,26 @@ export async function POST(req: NextRequest) {
 
   await ensureFreeTierSubscription(user.id)
 
-  let plan = 'pro'
+  let tier: 'pro' | 'enterprise' = 'pro'
   try {
     const body = await req.json()
-    if (typeof body?.plan === 'string') plan = body.plan.toLowerCase()
+    const raw =
+      (typeof body?.tier === 'string' && body.tier) ||
+      (typeof body?.plan === 'string' && body.plan) ||
+      'pro'
+    const t = String(raw).toLowerCase()
+    tier = t === 'enterprise' ? 'enterprise' : 'pro'
   } catch {
-    /* default pro */
+    /* default tier pro */
   }
 
-  const priceId = plan === 'enterprise' ? PLAN_PRICES.enterprise : PLAN_PRICES.pro
-  const tierMeta = plan === 'enterprise' ? 'ENTERPRISE' : 'PRO'
+  const priceId = resolveStripePriceId(tier)
+  if (!priceId) {
+    console.error('[billing/checkout] Missing or invalid STRIPE_PRICE_ID_PRO / STRIPE_PRICE_ID_ENTERPRISE')
+    return NextResponse.json({ error: 'Billing unavailable' }, { status: 500 })
+  }
+
+  const tierMeta = tier === 'enterprise' ? 'ENTERPRISE' : 'PRO'
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 
@@ -52,8 +66,8 @@ export async function POST(req: NextRequest) {
     mode: 'subscription',
     'line_items[0][price]': priceId,
     'line_items[0][quantity]': '1',
-    success_url: `${siteUrl}/dashboard/billing?checkout=success`,
-    cancel_url: `${siteUrl}/dashboard/billing?checkout=cancel`,
+    success_url: `${siteUrl}/dashboard/billing?success=true`,
+    cancel_url: `${siteUrl}/dashboard/billing?canceled=true`,
     allow_promotion_codes: 'true',
     billing_address_collection: 'auto',
     customer_email: user.email,
@@ -78,7 +92,8 @@ export async function POST(req: NextRequest) {
 
   const session = await response.json()
   if (!response.ok) {
-    return NextResponse.json({ error: session.error?.message ?? 'Stripe error' }, { status: response.status })
+    console.error('[billing/checkout] Stripe API error:', session.error ?? session)
+    return NextResponse.json({ error: 'Billing unavailable' }, { status: 502 })
   }
 
   return NextResponse.json({ url: session.url, sessionId: session.id })

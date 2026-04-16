@@ -17,6 +17,8 @@ type Me = {
 
 function BillingInner() {
   const sp = useSearchParams()
+  const success = sp.get('success')
+  const canceled = sp.get('canceled')
   const checkout = sp.get('checkout')
   const [me, setMe] = useState<Me | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
@@ -44,11 +46,11 @@ function BillingInner() {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan }),
+      body: JSON.stringify({ tier: plan }),
     })
     const j = await res.json().catch(() => ({}))
     if (j.url) window.location.href = j.url
-    else setMsg(j.error || 'Could not start checkout')
+    else setMsg(typeof j.error === 'string' && j.error ? 'Billing unavailable' : 'Could not start checkout')
   }
 
   async function openPortal() {
@@ -59,7 +61,7 @@ function BillingInner() {
     })
     const j = await res.json().catch(() => ({}))
     if (j.url) window.location.href = j.url
-    else setMsg(j.error || 'Portal unavailable (subscribe to a paid plan first).')
+    else setMsg(typeof j.error === 'string' && j.error ? 'Billing unavailable' : 'Portal unavailable (subscribe to a paid plan first).')
   }
 
   if (!me) {
