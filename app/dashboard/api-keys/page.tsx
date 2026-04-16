@@ -25,6 +25,7 @@ export default function ApiKeysPage() {
   const [secretOnce, setSecretOnce] = useState<string | null>(null)
   const [copiedKey, setCopiedKey] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [successToast, setSuccessToast] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -38,6 +39,12 @@ export default function ApiKeysPage() {
     void load()
   }, [load])
 
+  useEffect(() => {
+    if (!successToast) return
+    const t = window.setTimeout(() => setSuccessToast(null), 5000)
+    return () => window.clearTimeout(t)
+  }, [successToast])
+
   async function createKey(e: React.FormEvent) {
     e.preventDefault()
     setErr(null)
@@ -50,9 +57,11 @@ export default function ApiKeysPage() {
     })
     const j = await res.json().catch(() => ({}))
     if (!res.ok) {
-      setErr(j.error || 'Failed to create key')
+      setErr(typeof j.error === 'string' && j.error ? j.error : 'Failed to create key')
       return
     }
+    setErr(null)
+    setSuccessToast('API key created — copy it now; it will not be shown again.')
     setSecretOnce(j.rawKey || j.secret || null)
     setCopiedKey(false)
     void load()
@@ -73,6 +82,14 @@ export default function ApiKeysPage() {
 
   return (
     <div className="space-y-10">
+      {successToast && (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-50 max-w-md -translate-x-1/2 rounded-lg border border-emerald-500/35 bg-emerald-950/90 px-4 py-3 text-center text-sm font-medium text-emerald-100 shadow-lg shadow-black/40"
+        >
+          {successToast}
+        </div>
+      )}
       <header className="max-w-2xl">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
