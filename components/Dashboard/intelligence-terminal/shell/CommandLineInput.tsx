@@ -61,7 +61,7 @@ export function CommandLineInput() {
     <form onSubmit={onSubmit} noValidate className="relative">
       <label
         htmlFor={MINT_INPUT_ID}
-        className="mb-3 block font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500"
+        className="mb-3 block font-mono-terminal text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500"
       >
         Mint Address
       </label>
@@ -71,7 +71,7 @@ export function CommandLineInput() {
         className={`
           group relative flex items-center gap-3
           rounded-lg border bg-[#020617]/80 px-4 py-4 md:py-5
-          font-mono transition-colors duration-200
+          font-mono-terminal transition-colors duration-200
           ${
             scanError
               ? 'border-rose-500/40 focus-within:border-rose-500/60'
@@ -107,12 +107,12 @@ export function CommandLineInput() {
               .filter(Boolean)
               .join(' ') || undefined
           }
-          className="flex-1 bg-transparent font-mono text-sm text-slate-100 outline-none placeholder:text-slate-600 disabled:opacity-60 md:text-base"
+          className="flex-1 bg-transparent font-mono-terminal text-sm text-slate-100 outline-none placeholder:text-slate-600 disabled:opacity-60 md:text-base"
           aria-label="Solana mint address"
         />
 
         {scanning ? (
-          <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-[#00d4aa] motion-safe:animate-[neural-pulse_1.5s_ease-in-out_infinite]">
+          <div className="flex items-center gap-2 font-mono-terminal text-[11px] uppercase tracking-[0.2em] text-[#00d4aa] motion-safe:animate-[neural-pulse_1.5s_ease-in-out_infinite]">
             <Loader2 className="h-4 w-4 shrink-0 motion-safe:animate-spin" aria-hidden />
             <span>Neural Scan</span>
           </div>
@@ -120,7 +120,7 @@ export function CommandLineInput() {
           <button
             type="submit"
             disabled={!canSubmit}
-            className="h-9 shrink-0 rounded-md bg-[#00d4aa] px-4 font-mono text-[11px] font-bold uppercase tracking-[0.15em] text-slate-950 transition-colors hover:bg-[#00d4aa]/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00d4aa] focus-visible:ring-offset-2 focus-visible:ring-offset-[#020617] disabled:cursor-not-allowed disabled:opacity-40"
+            className="h-9 shrink-0 rounded-md bg-[#00d4aa] px-4 font-mono-terminal text-[11px] font-bold uppercase tracking-[0.15em] text-slate-950 transition-colors hover:bg-[#00d4aa]/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00d4aa] focus-visible:ring-offset-2 focus-visible:ring-offset-[#020617] disabled:cursor-not-allowed disabled:opacity-40"
           >
             Scan
           </button>
@@ -139,18 +139,18 @@ export function CommandLineInput() {
       ) : null}
 
       {/* Helper text */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] text-slate-500">
-        <kbd className="rounded bg-white/5 px-1.5 py-0.5 font-mono text-[10px] text-slate-400">
+      <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono-terminal text-[10px] text-slate-500">
+        <kbd className="rounded bg-white/5 px-1.5 py-0.5 font-mono-terminal text-[10px] text-slate-400">
           ⌘K
         </kbd>
         <span>to focus</span>
         <span className="text-slate-700">·</span>
-        <kbd className="rounded bg-white/5 px-1.5 py-0.5 font-mono text-[10px] text-slate-400">
+        <kbd className="rounded bg-white/5 px-1.5 py-0.5 font-mono-terminal text-[10px] text-slate-400">
           Enter
         </kbd>
         <span>to scan</span>
         <span className="text-slate-700">·</span>
-        <kbd className="rounded bg-white/5 px-1.5 py-0.5 font-mono text-[10px] text-slate-400">
+        <kbd className="rounded bg-white/5 px-1.5 py-0.5 font-mono-terminal text-[10px] text-slate-400">
           Esc
         </kbd>
         <span>to clear</span>
@@ -161,7 +161,7 @@ export function CommandLineInput() {
         <p
           id={validationId}
           role="alert"
-          className="mt-3 font-mono text-xs text-rose-300/90"
+          className="mt-3 font-mono-terminal text-xs text-rose-300/90"
         >
           Not a valid Solana mint address (base58, on-curve).
         </p>
@@ -172,7 +172,7 @@ export function CommandLineInput() {
         <p
           id={scanErrorId}
           role="alert"
-          className="mt-3 rounded-md border border-rose-500/20 bg-rose-500/10 px-3 py-2 font-mono text-xs text-rose-200"
+          className="mt-3 rounded-md border border-rose-500/20 bg-rose-500/10 px-3 py-2 font-mono-terminal text-xs text-rose-200"
         >
           {scanError}
         </p>

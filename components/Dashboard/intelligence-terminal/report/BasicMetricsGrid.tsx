@@ -28,12 +28,12 @@ function MetricCard({
       <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
         {label}
       </div>
-      <div className="mt-2 font-mono text-2xl font-semibold tabular-nums text-slate-100 md:text-3xl">
+      <div className="mt-2 font-mono-terminal text-2xl font-semibold tabular-nums text-slate-100 md:text-3xl">
         <FlashOnChange value={flashKey ?? null}>{value}</FlashOnChange>
       </div>
       {delta != null && Number.isFinite(delta) ? (
         <div
-          className={`mt-2 flex items-center gap-1 font-mono text-xs tabular-nums ${
+          className={`mt-2 flex items-center gap-1 font-mono-terminal text-xs tabular-nums ${
             delta >= 0 ? 'text-[#00d4aa]' : 'text-[#ff4757]'
           }`}
         >

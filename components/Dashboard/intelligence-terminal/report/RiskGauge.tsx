@@ -80,7 +80,7 @@ export function RiskGauge({
         x="140"
         y="130"
         textAnchor="middle"
-        className="fill-slate-600 font-mono text-[10px] uppercase tracking-[0.25em]"
+        className="fill-slate-600 font-mono-terminal text-[10px] uppercase tracking-[0.25em]"
       >
         RISK
       </text>

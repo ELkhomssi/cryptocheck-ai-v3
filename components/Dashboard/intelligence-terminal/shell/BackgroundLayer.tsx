@@ -57,7 +57,7 @@ export function BackgroundLayer() {
       {/* ── 4. Brand watermark ──────────────────────────────── */}
       <div
         aria-hidden
-        className="pointer-events-none fixed bottom-8 right-8 -z-10 select-none font-mono text-6xl font-semibold tracking-tighter text-white/[0.03]"
+        className="pointer-events-none fixed bottom-8 right-8 -z-10 select-none font-mono-terminal text-6xl font-semibold tracking-tighter text-white/[0.03]"
       >
         CC⋅AI
       </div>

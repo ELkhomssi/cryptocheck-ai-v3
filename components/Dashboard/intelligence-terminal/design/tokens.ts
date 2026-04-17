@@ -46,7 +46,7 @@ export const terminalTokens = {
   },
 
   fonts: {
-    data: 'var(--font-mono)', // IBM Plex Mono (bound in app/layout.tsx)
+    data: 'var(--font-mono-terminal)', // JetBrains Mono (bound in app/layout.tsx)
     body: 'var(--font-sans)', // IBM Plex Sans
   },
 

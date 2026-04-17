@@ -20,7 +20,7 @@ export function UpgradeTeaser() {
         >
           <Lock className="h-6 w-6 text-[#00d4aa]" />
         </div>
-        <h3 className="font-mono text-base font-semibold tracking-wide text-slate-100">
+        <h3 className="font-mono-terminal text-base font-semibold tracking-wide text-slate-100">
           Sentinel Intelligence
         </h3>
         <p className="max-w-sm text-sm text-slate-400">
@@ -29,7 +29,7 @@ export function UpgradeTeaser() {
         </p>
         <Link
           href="/dashboard/billing"
-          className="mt-2 inline-flex items-center gap-2 rounded-md bg-[#00d4aa] px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-slate-950 transition-colors hover:bg-[#00d4aa]/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00d4aa] focus-visible:ring-offset-2 focus-visible:ring-offset-[#020617]"
+          className="mt-2 inline-flex items-center gap-2 rounded-md bg-[#00d4aa] px-4 py-2 font-mono-terminal text-[11px] font-bold uppercase tracking-[0.2em] text-slate-950 transition-colors hover:bg-[#00d4aa]/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00d4aa] focus-visible:ring-offset-2 focus-visible:ring-offset-[#020617]"
         >
           Upgrade to Sentinel
         </Link>

@@ -74,7 +74,7 @@ export function LiquidityLockCard({
           <Icon className={`h-6 w-6 ${tone.iconClass}`} />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="font-mono text-sm font-semibold text-slate-100">
+          <div className="font-mono-terminal text-sm font-semibold text-slate-100">
             {tone.label}
           </div>
           <p className="mt-0.5 text-xs text-slate-400">{tone.description}</p>
@@ -82,7 +82,7 @@ export function LiquidityLockCard({
       </div>
 
       {/* Details strip */}
-      <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-white/5 pt-3 font-mono text-xs">
+      <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-white/5 pt-3 font-mono-terminal text-xs">
         <div>
           <dt className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
             Burned

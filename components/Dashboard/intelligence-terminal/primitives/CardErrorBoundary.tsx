@@ -47,7 +47,7 @@ export class CardErrorBoundary extends Component<Props, State> {
             aria-hidden
           />
           <div>
-            <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-rose-300">
+            <div className="font-mono-terminal text-[10px] font-semibold uppercase tracking-[0.22em] text-rose-300">
               Card Error
             </div>
             <p className="mt-1 text-xs text-slate-400">

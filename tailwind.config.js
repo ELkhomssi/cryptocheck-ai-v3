@@ -9,7 +9,19 @@ module.exports = {
     extend: {
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        mono: ['"JetBrains Mono"', '"IBM Plex Mono"', 'ui-monospace', 'monospace'],
+        // Global dashboard mono stays IBM Plex Mono.
+        mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
+        // Terminal-only. Opt in by using `font-mono-terminal` inside
+        // components under `components/Dashboard/intelligence-terminal/`.
+        // Backed by the `--font-mono-terminal` CSS variable loaded via
+        // next/font/google in app/layout.tsx.
+        'mono-terminal': [
+          'var(--font-mono-terminal)',
+          '"JetBrains Mono"',
+          '"IBM Plex Mono"',
+          'ui-monospace',
+          'monospace',
+        ],
       },
       colors: {
         'bg-base':     '#0e1117',

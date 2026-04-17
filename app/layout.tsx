@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google'
+import { IBM_Plex_Mono, IBM_Plex_Sans, JetBrains_Mono } from 'next/font/google'
 import { SolanaProvider } from '@/components/SolanaProvider'
 import { Analytics } from '@vercel/analytics/react'
 import './globals.css'
@@ -15,6 +15,17 @@ const ibmSans = IBM_Plex_Sans({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-sans',
+  display: 'swap',
+})
+// ── Intelligence Terminal monospace — scoped to the Analysis Console ──
+// Exposed as CSS variable `--font-mono-terminal`; consumed via the
+// Tailwind utility `font-mono-terminal` (see tailwind.config.js) inside
+// components/Dashboard/intelligence-terminal/**. The rest of the
+// dashboard continues to use IBM Plex Mono via `font-mono`.
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-mono-terminal',
   display: 'swap',
 })
 export const metadata: Metadata = {
@@ -35,7 +46,7 @@ export const viewport: Viewport = {
 }
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${ibmMono.variable} ${ibmSans.variable}`}>
+    <html lang="en" className={`${ibmMono.variable} ${ibmSans.variable} ${jetbrainsMono.variable}`}>
       <head>
         <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⬡</text></svg>" />
       </head>

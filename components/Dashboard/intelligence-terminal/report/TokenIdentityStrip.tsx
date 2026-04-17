@@ -37,7 +37,7 @@ export function TokenIdentityStrip({
       ) : (
         <div
           aria-hidden
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-slate-900 font-mono text-xs font-bold uppercase text-slate-500"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-slate-900 font-mono-terminal text-xs font-bold uppercase text-slate-500"
         >
           {(report.symbol || '?').slice(0, 2)}
         </div>
@@ -48,13 +48,13 @@ export function TokenIdentityStrip({
           <h1 className="truncate text-xl font-semibold tracking-tight text-slate-100">
             {report.name || 'Unknown'}
           </h1>
-          <span className="shrink-0 font-mono text-sm text-slate-400">
+          <span className="shrink-0 font-mono-terminal text-sm text-slate-400">
             ${report.symbol || '—'}
           </span>
         </div>
         <div className="mt-1 flex items-center gap-1.5">
           <code
-            className="truncate font-mono text-xs text-slate-500"
+            className="truncate font-mono-terminal text-xs text-slate-500"
             title={report.mint}
           >
             {shortMint(report.mint, 8, 8)}

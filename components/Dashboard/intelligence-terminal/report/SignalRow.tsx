@@ -41,11 +41,11 @@ export function SignalRow({ signal }: { signal: RiskSignal }) {
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-3">
-          <code className="font-mono text-[10px] uppercase tracking-[0.15em] text-slate-500">
+          <code className="font-mono-terminal text-[10px] uppercase tracking-[0.15em] text-slate-500">
             {signal.code}
           </code>
           <span
-            className={`font-mono text-[11px] font-semibold tabular-nums ${tone.impact}`}
+            className={`font-mono-terminal text-[11px] font-semibold tabular-nums ${tone.impact}`}
           >
             {sign}
             {signal.impact}

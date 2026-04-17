@@ -28,7 +28,7 @@ function EmptyState() {
         <Radar className="h-10 w-10 text-slate-700 motion-safe:animate-pulse" />
       </div>
       <div>
-        <h2 className="font-mono text-base tracking-wide text-slate-400">
+        <h2 className="font-mono-terminal text-base tracking-wide text-slate-400">
           Awaiting target
         </h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">

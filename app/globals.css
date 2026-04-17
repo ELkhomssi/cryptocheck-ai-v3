@@ -151,7 +151,9 @@ body { background: #000 !important; }
 .bg-\[\#0e1117\], .bg-\[\#161b22\], .bg-\[\#0d1117\] { background: #000 !important; }
 
 /* ── Landing Page Animations ── */
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+/* JetBrains Mono is now loaded via next/font/google in app/layout.tsx
+ * and exposed as --font-mono-terminal (scoped to the Intelligence
+ * Terminal). The @import from fonts.googleapis.com has been retired. */
 @keyframes landing-ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 @keyframes landing-orb{0%{transform:translate(0,0)}33%{transform:translate(20px,-15px)}66%{transform:translate(-15px,20px)}100%{transform:translate(0,0)}}
 @keyframes landing-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}

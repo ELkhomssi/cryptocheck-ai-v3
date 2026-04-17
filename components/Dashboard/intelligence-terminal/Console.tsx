@@ -27,7 +27,7 @@ export function Console() {
   if (!state.key) return null
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative min-h-screen overflow-hidden font-mono-terminal">
       <BackgroundLayer />
 
       <main className="relative z-10 mx-auto w-full max-w-[1400px] px-4 py-6 md:px-8 md:py-10">

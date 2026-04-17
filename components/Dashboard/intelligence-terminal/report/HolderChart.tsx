@@ -77,7 +77,7 @@ export function HolderChart({
         <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
           Holder distribution
         </div>
-        <p className="mt-4 font-mono text-xs text-slate-500">
+        <p className="mt-4 font-mono-terminal text-xs text-slate-500">
           No holder data available.
         </p>
       </Card>
@@ -94,7 +94,7 @@ export function HolderChart({
           Holder distribution
         </div>
         {concentration != null ? (
-          <div className="font-mono text-[10px] text-slate-500">
+          <div className="font-mono-terminal text-[10px] text-slate-500">
             Top 10 ·{' '}
             <span className="text-slate-300">
               {formatPercent(concentration)}
@@ -141,7 +141,7 @@ export function HolderChart({
       </svg>
 
       {/* Active row details */}
-      <div className="mt-4 min-h-[48px] rounded-md border border-white/5 bg-black/20 px-3 py-2 font-mono text-xs">
+      <div className="mt-4 min-h-[48px] rounded-md border border-white/5 bg-black/20 px-3 py-2 font-mono-terminal text-xs">
         {(() => {
           const seg = segments.find((s) => s.key === active) ?? segments[0]
           return (

@@ -76,7 +76,7 @@ function Unavailable() {
         <span>Sentinel Risk Engine</span>
       </div>
       <div className="my-auto text-center">
-        <p className="font-mono text-sm text-slate-400">
+        <p className="font-mono-terminal text-sm text-slate-400">
           Risk data unavailable for this scan.
         </p>
         <p className="mt-2 text-xs text-slate-500">
@@ -113,7 +113,7 @@ export function SentinelRiskCard({
           <Shield className="h-3.5 w-3.5" aria-hidden />
           <span>Sentinel Risk Engine</span>
         </div>
-        <span className="font-mono text-[10px] text-slate-600">v2.0</span>
+        <span className="font-mono-terminal text-[10px] text-slate-600">v2.0</span>
       </div>
 
       {/* Score + Gauge */}
@@ -122,11 +122,11 @@ export function SentinelRiskCard({
           <div
             aria-live="polite"
             aria-label={`Risk score ${score} of 100, verdict ${verdict}`}
-            className={`font-mono text-7xl font-semibold leading-none md:text-8xl ${styles.scoreClass} ${styles.glowClass}`}
+            className={`font-mono-terminal text-7xl font-semibold leading-none md:text-8xl ${styles.scoreClass} ${styles.glowClass}`}
           >
             <AnimatedNumber value={score} duration={800} />
           </div>
-          <div className="mt-2 font-mono text-[11px] tracking-widest text-slate-500">
+          <div className="mt-2 font-mono-terminal text-[11px] tracking-widest text-slate-500">
             / 100
           </div>
 
@@ -137,7 +137,7 @@ export function SentinelRiskCard({
               className={`h-2 w-2 rounded-full ${styles.dotClass}`}
               aria-hidden
             />
-            <span className="font-mono text-xs font-semibold tracking-[0.2em]">
+            <span className="font-mono-terminal text-xs font-semibold tracking-[0.2em]">
               {verdict}
             </span>
           </div>

@@ -55,7 +55,7 @@ export function ConsoleHeader() {
           />
         </span>
         <span
-          className="font-mono text-[10px] font-semibold uppercase tracking-[0.22em]"
+          className="font-mono-terminal text-[10px] font-semibold uppercase tracking-[0.22em]"
           style={{ color: dotColor }}
         >
           {statusLabel}
@@ -65,13 +65,13 @@ export function ConsoleHeader() {
       {/* Center — masked key + tier */}
       <div className="flex min-w-0 flex-1 items-center justify-start gap-3 md:justify-center">
         <code
-          className="min-w-0 truncate rounded-md border border-white/5 bg-black/40 px-2.5 py-1 font-mono text-xs text-slate-300"
+          className="min-w-0 truncate rounded-md border border-white/5 bg-black/40 px-2.5 py-1 font-mono-terminal text-xs text-slate-300"
           title={key.keyName}
         >
           {key.masked}
         </code>
         <span
-          className={`inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] ${tierBadgeClasses(
+          className={`inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 font-mono-terminal text-[10px] font-bold uppercase tracking-[0.2em] ${tierBadgeClasses(
             key.subscriptionTier
           )}`}
         >
@@ -86,7 +86,7 @@ export function ConsoleHeader() {
           onClick={actions.lock}
           aria-label="Lock terminal session (Cmd+Shift+L)"
           title="Lock (⌘⇧L)"
-          className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 font-mono text-[11px] font-medium uppercase tracking-wider text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00d4aa]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#020617]"
+          className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 font-mono-terminal text-[11px] font-medium uppercase tracking-wider text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00d4aa]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#020617]"
         >
           <Lock className="h-3.5 w-3.5" aria-hidden />
           <span>Lock</span>
@@ -95,7 +95,7 @@ export function ConsoleHeader() {
           type="button"
           onClick={actions.clearKey}
           aria-label="Exit and clear session key"
-          className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 font-mono text-[11px] font-medium uppercase tracking-wider text-slate-400 transition-colors hover:bg-rose-500/10 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#020617]"
+          className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 font-mono-terminal text-[11px] font-medium uppercase tracking-wider text-slate-400 transition-colors hover:bg-rose-500/10 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#020617]"
         >
           <LogOut className="h-3.5 w-3.5" aria-hidden />
           <span>Exit</span>

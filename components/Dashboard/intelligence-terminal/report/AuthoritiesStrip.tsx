@@ -59,10 +59,10 @@ function AuthorityPill({
     >
       <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
       <div className="min-w-0 flex-1">
-        <div className="font-mono text-[10px] uppercase tracking-[0.22em] opacity-80">
+        <div className="font-mono-terminal text-[10px] uppercase tracking-[0.22em] opacity-80">
           {name}
         </div>
-        <div className="font-mono text-xs font-semibold">{style.label}</div>
+        <div className="font-mono-terminal text-xs font-semibold">{style.label}</div>
       </div>
     </div>
   )
