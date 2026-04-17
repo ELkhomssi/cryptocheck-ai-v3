@@ -232,20 +232,20 @@ export function parseMultiVectorSimulation(
   const liqOk = liq?.result === 'Pass' || liq?.result === 'Fail'
   const authOk = auth?.result === 'Pass' || auth?.result === 'Fail'
   if (!liqOk || !authOk) return fallback
+  const liqLogic = coerceAiText(liq?.logic)
+  const authLogic = coerceAiText(auth?.logic)
+  const socBehavior = coerceAiText(soc?.behavioralAnalysis)
   return {
     liquiditySiphoning: {
       result: liq!.result as 'Pass' | 'Fail',
-      logic: typeof liq?.logic === 'string' ? liq.logic : fallback.liquiditySiphoning.logic,
+      logic: liqLogic ?? fallback.liquiditySiphoning.logic,
     },
     authorityEscalation: {
       result: auth!.result as 'Pass' | 'Fail',
-      logic: typeof auth?.logic === 'string' ? auth.logic : fallback.authorityEscalation.logic,
+      logic: authLogic ?? fallback.authorityEscalation.logic,
     },
     socialEngineeringRugIntent: {
-      behavioralAnalysis:
-        typeof soc?.behavioralAnalysis === 'string'
-          ? soc.behavioralAnalysis
-          : fallback.socialEngineeringRugIntent.behavioralAnalysis,
+      behavioralAnalysis: socBehavior ?? fallback.socialEngineeringRugIntent.behavioralAnalysis,
     },
   }
 }
@@ -299,6 +299,31 @@ export function buildStressTestUserPayload(
   )
 
   return lines.join('\n')
+}
+
+/**
+ * GPT-4o sometimes returns string-typed fields wrapped in small objects like
+ * { text: "..." }, { message: "..." }, { content: "..." }, or arrays of such
+ * objects. Use this before a `typeof === 'string'` check so the real AI content
+ * surfaces to the UI instead of falling back to generic heuristic boilerplate.
+ *
+ * Returns null only when no sensible string representation could be extracted.
+ */
+export function coerceAiText(value: unknown): string | null {
+  if (value == null) return null
+  if (typeof value === 'string') return value.trim() ? value : null
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  if (Array.isArray(value)) {
+    const parts = value.map(coerceAiText).filter((s): s is string => !!s)
+    return parts.length ? parts.join('\n') : null
+  }
+  if (typeof value === 'object') {
+    const obj = value as Record<string, unknown>
+    const candidate = obj.text ?? obj.message ?? obj.content ?? obj.value ?? obj.markdown
+    if (candidate !== undefined) return coerceAiText(candidate)
+    return null
+  }
+  return null
 }
 
 export function extractJsonObject(raw: string): Record<string, unknown> | null {

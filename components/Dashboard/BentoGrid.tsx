@@ -44,6 +44,29 @@ interface BentoGridProps {
 const mdClass =
   'text-[0.68rem] leading-relaxed text-[#c9d1d9] [&_h1]:text-base [&_h1]:font-bold [&_h1]:text-[#e9d5ff] [&_h1]:mb-2 [&_h2]:text-[0.75rem] [&_h2]:font-bold [&_h2]:text-[#a78bfa] [&_h2]:mt-3 [&_h2]:mb-1.5 [&_h3]:text-[0.7rem] [&_h3]:font-semibold [&_h3]:text-[#c4b5fd] [&_p]:mb-2 [&_li]:ml-4 [&_li]:list-disc [&_strong]:text-[#e9d5ff] [&_code]:text-[#34d399] [&_code]:text-[0.62rem]'
 
+// GPT-4o occasionally wraps string fields into objects like { text: "..." },
+// { message: "..." }, or { content: "..." } despite the prompt requesting a raw
+// string. Rendering that object directly yields "[object Object]" in the UI.
+// This helper unwraps the common shapes and guarantees a string.
+function toDisplayText(content: unknown): string {
+  if (content == null) return ''
+  if (typeof content === 'string') return content
+  if (typeof content === 'number' || typeof content === 'boolean') return String(content)
+  if (Array.isArray(content)) return content.map(toDisplayText).filter(Boolean).join('\n')
+  if (typeof content === 'object') {
+    const obj = content as Record<string, unknown>
+    const candidate = obj.text ?? obj.message ?? obj.content ?? obj.value ?? obj.markdown
+    if (typeof candidate === 'string') return candidate
+    if (candidate != null) return toDisplayText(candidate)
+    try {
+      return JSON.stringify(content)
+    } catch {
+      return ''
+    }
+  }
+  return String(content)
+}
+
 export default function BentoGrid({
   address,
   onRunStressTest,
@@ -176,7 +199,7 @@ export default function BentoGrid({
                         {stressResult.multiVectorSimulation.liquiditySiphoning.result}
                       </span>
                       <span className="text-[#6b7a90]"> — </span>
-                      {stressResult.multiVectorSimulation.liquiditySiphoning.logic}
+                      {toDisplayText(stressResult.multiVectorSimulation.liquiditySiphoning.logic)}
                     </p>
                     <p>
                       <span className="text-[#8b949e]">[Vector: Authority Escalation]</span>{' '}
@@ -190,11 +213,11 @@ export default function BentoGrid({
                         {stressResult.multiVectorSimulation.authorityEscalation.result}
                       </span>
                       <span className="text-[#6b7a90]"> — </span>
-                      {stressResult.multiVectorSimulation.authorityEscalation.logic}
+                      {toDisplayText(stressResult.multiVectorSimulation.authorityEscalation.logic)}
                     </p>
                     <p>
                       <span className="text-[#8b949e]">[Vector: Social Engineering / Rug Intent]</span>{' '}
-                      {stressResult.multiVectorSimulation.socialEngineeringRugIntent.behavioralAnalysis}
+                      {toDisplayText(stressResult.multiVectorSimulation.socialEngineeringRugIntent.behavioralAnalysis)}
                     </p>
                   </div>
                 </section>
@@ -202,19 +225,19 @@ export default function BentoGrid({
               <section className="rounded-lg border border-[rgba(59,130,246,0.2)] bg-[#0c0c18] p-3">
                 <div className="text-[0.55rem] font-bold text-[#60a5fa] font-mono mb-2 tracking-wider">TECHNICAL VULNERABILITIES</div>
                 <div className={mdClass}>
-                  <ReactMarkdown>{stressResult.technicalVulnerabilitiesMarkdown}</ReactMarkdown>
+                  <ReactMarkdown>{toDisplayText(stressResult.technicalVulnerabilitiesMarkdown)}</ReactMarkdown>
                 </div>
               </section>
               <section className="rounded-lg border border-[rgba(244,63,94,0.25)] bg-[rgba(24,10,20,0.5)] p-3">
                 <div className="text-[0.55rem] font-bold text-[#fb7185] font-mono mb-2 tracking-wider">MARKET MALICE (HONEYPOT / RUG)</div>
                 <div className={mdClass}>
-                  <ReactMarkdown>{stressResult.marketMaliceMarkdown}</ReactMarkdown>
+                  <ReactMarkdown>{toDisplayText(stressResult.marketMaliceMarkdown)}</ReactMarkdown>
                 </div>
               </section>
               {stressResult.simulationNotes && (
                 <div className="text-[0.6rem] text-[#8b949e] font-mono border-t border-white/5 pt-3">
                   <span className="text-[#a78bfa]">Simulation: </span>
-                  {stressResult.simulationNotes}
+                  {toDisplayText(stressResult.simulationNotes)}
                 </div>
               )}
             </div>

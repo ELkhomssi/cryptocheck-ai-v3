@@ -4,6 +4,7 @@ import {
   SOVEREIGN_SYSTEM_PROMPT,
   buildDeterministicMultiVector,
   buildStressTestUserPayload,
+  coerceAiText,
   extractJsonObject,
   honeypotDetector,
   mergeScores,
@@ -85,15 +86,15 @@ export const POST = withApiAuth(async (req: NextRequest) => {
       buildDeterministicMultiVector(ctx, honeypot, rug, sim)
     )
 
+    const aiTechnical = coerceAiText(parsed?.technicalVulnerabilitiesMarkdown)
     const technicalMd =
-      typeof parsed?.technicalVulnerabilitiesMarkdown === 'string'
-        ? parsed.technicalVulnerabilitiesMarkdown
-        : `## Technical Vulnerabilities\n\n_AI offline — heuristic sandbox only._\n\n${sim.phases.map(p => `- ${p}`).join('\n')}`
+      aiTechnical ??
+      `## Technical Vulnerabilities\n\n_AI offline — heuristic sandbox only._\n\n${sim.phases.map(p => `- ${p}`).join('\n')}`
 
+    const aiMarket = coerceAiText(parsed?.marketMaliceMarkdown)
     const marketMd =
-      typeof parsed?.marketMaliceMarkdown === 'string'
-        ? parsed.marketMaliceMarkdown
-        : `## Market Malice (Honeypot / Rug Pull)\n\n- Honeypot heuristic: **${honeypot.score}/100**\n- Rug probability heuristic: **${rug.rugProbability}/100**\n${[...honeypot.signals, ...rug.signals].map(s => `- ${s}`).join('\n')}`
+      aiMarket ??
+      `## Market Malice (Honeypot / Rug Pull)\n\n- Honeypot heuristic: **${honeypot.score}/100**\n- Rug probability heuristic: **${rug.rugProbability}/100**\n${[...honeypot.signals, ...rug.signals].map(s => `- ${s}`).join('\n')}`
 
     const fullReport = [
       `# CLASSIFIED — OFFENSIVE SOVEREIGN BRIEF · ${address.slice(0, 8)}…${address.slice(-6)}`,
@@ -137,7 +138,7 @@ export const POST = withApiAuth(async (req: NextRequest) => {
       fullReportMarkdown: fullReport,
       multiVectorSimulation: multiVector,
       attackVectors: Array.isArray(parsed?.attackVectors) ? parsed.attackVectors : [],
-      simulationNotes: typeof parsed?.simulationNotes === 'string' ? parsed.simulationNotes : sim.phases.join('\n'),
+      simulationNotes: coerceAiText(parsed?.simulationNotes) ?? sim.phases.join('\n'),
       heuristic: {
         honeypot: honeypot.score,
         rug: rug.rugProbability,
