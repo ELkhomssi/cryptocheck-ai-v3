@@ -2,7 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Align with dashboard glass / accent */
+/* Premium terminal shell */
 body {
-  @apply bg-slate-950 text-slate-100;
+  @apply bg-slate-950 text-slate-100 antialiased;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }

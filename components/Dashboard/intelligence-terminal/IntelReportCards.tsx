@@ -20,36 +20,39 @@ function formatPrice(n: number | null | undefined): string {
   return `$${n.toPrecision(6)}`
 }
 
+/** Verdict panel: verdict-tinted border + CryptoCheck cyan ring/glow (single shadow layer). */
 function verdictAccent(v: string | null | undefined): { border: string; glow: string; text: string } {
+  const cyanGlow =
+    'ring-1 ring-[#00d4aa]/30 shadow-[0_0_44px_-12px_rgba(0,212,170,0.42),0_0_28px_-14px_rgba(0,212,170,0.15)]'
   switch (v) {
     case 'SAFE':
       return {
-        border: 'border-emerald-500/35',
-        glow: 'shadow-[0_0_40px_-8px_rgba(16,185,129,0.35)]',
+        border: 'border-emerald-500/40',
+        glow: cyanGlow,
         text: 'text-emerald-300',
       }
     case 'CAUTION':
       return {
-        border: 'border-amber-500/35',
-        glow: 'shadow-[0_0_40px_-8px_rgba(245,158,11,0.25)]',
+        border: 'border-amber-500/40',
+        glow: cyanGlow,
         text: 'text-amber-300',
       }
     case 'RISKY':
       return {
-        border: 'border-orange-500/35',
-        glow: 'shadow-[0_0_40px_-8px_rgba(249,115,22,0.25)]',
+        border: 'border-orange-500/40',
+        glow: cyanGlow,
         text: 'text-orange-300',
       }
     case 'DANGER':
       return {
-        border: 'border-rose-500/40',
-        glow: 'shadow-[0_0_40px_-8px_rgba(244,63,94,0.3)]',
+        border: 'border-rose-500/45',
+        glow: cyanGlow,
         text: 'text-rose-300',
       }
     default:
       return {
-        border: 'border-slate-500/30',
-        glow: '',
+        border: 'border-slate-500/35',
+        glow: cyanGlow,
         text: 'text-slate-400',
       }
   }
@@ -60,14 +63,22 @@ type CheckState = 'pass' | 'fail' | 'neutral'
 function CheckRow({ label, state, hint }: { label: string; state: CheckState; hint?: string }) {
   const icon =
     state === 'pass' ? (
-      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400/95" aria-hidden />
+      <CheckCircle2
+        className="h-4 w-4 shrink-0 text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.55)]"
+        aria-hidden
+        strokeWidth={2.25}
+      />
     ) : state === 'fail' ? (
-      <XCircle className="h-4 w-4 shrink-0 text-rose-400/95" aria-hidden />
+      <XCircle
+        className="h-4 w-4 shrink-0 text-rose-400 drop-shadow-[0_0_10px_rgba(251,113,133,0.5)]"
+        aria-hidden
+        strokeWidth={2.25}
+      />
     ) : (
-      <MinusCircle className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+      <MinusCircle className="h-4 w-4 shrink-0 text-slate-400/90" aria-hidden strokeWidth={2} />
     )
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-white/[0.04] bg-slate-950/40 px-3 py-2.5">
+    <div className="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-slate-950/50 px-3 py-2.5 transition-colors hover:bg-slate-950/70">
       {icon}
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-slate-200">{label}</p>
@@ -125,11 +136,13 @@ function buildSecurityRows(report: TokenIntelligenceReport): Array<{ label: stri
   return rows
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({ label, value, className = '' }: { label: string; value: string; className?: string }) {
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-slate-950/45 px-4 py-3">
+    <div
+      className={`rounded-xl border border-white/10 bg-slate-950/55 px-3 py-2.5 transition-all duration-200 hover:border-[#00d4aa]/35 hover:bg-slate-950/80 hover:shadow-[0_0_22px_-10px_rgba(0,212,170,0.2)] ${className}`.trim()}
+    >
       <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</p>
-      <p className="mt-1.5 font-mono text-base font-medium tabular-nums text-slate-100">{value}</p>
+      <p className="mt-1 font-mono text-sm font-medium tabular-nums text-slate-100 sm:text-base">{value}</p>
     </div>
   )
 }
@@ -154,7 +167,7 @@ export function IntelReportCardsView({
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* 1 — Intelligence header */}
         <div
-          className={`flex flex-col justify-between rounded-xl border bg-slate-900/60 p-5 shadow-xl backdrop-blur-md ${accent.border} ${accent.glow} lg:min-h-[220px]`}
+          className={`flex flex-col justify-between rounded-2xl border bg-slate-950/80 p-5 shadow-xl backdrop-blur-md ${accent.border} ${accent.glow} lg:min-h-[220px]`}
         >
           <div>
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-slate-500">Token</p>
@@ -177,20 +190,20 @@ export function IntelReportCardsView({
         </div>
 
         {/* 2 — Market metrics */}
-        <div className="rounded-xl border border-white/5 bg-slate-900/60 p-5 shadow-xl backdrop-blur-md lg:min-h-[220px]">
+        <div className="rounded-2xl border border-white/[0.08] bg-slate-950/80 p-5 shadow-xl backdrop-blur-md lg:min-h-[220px]">
           <div className="flex items-center gap-2 text-slate-400">
             <span className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-slate-500">Market</span>
           </div>
           <p className="mt-1 text-xs text-slate-500">DexScreener-sourced snapshot</p>
-          <div className="mt-5 space-y-3">
-            <Metric label="Price (USD)" value={formatPrice(report.price)} />
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <Metric label="Price (USD)" value={formatPrice(report.price)} className="col-span-2" />
             <Metric label="Liquidity" value={formatUsdCompact(report.liquidityUsd)} />
             <Metric label="Market cap" value={formatUsdCompact(report.marketCap)} />
           </div>
         </div>
 
         {/* 3 — Security */}
-        <div className="rounded-xl border border-white/5 bg-slate-900/60 p-5 shadow-xl backdrop-blur-md lg:min-h-[220px]">
+        <div className="rounded-2xl border border-white/[0.08] bg-slate-950/80 p-5 shadow-xl backdrop-blur-md lg:min-h-[220px]">
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-[#00d4aa]/80" aria-hidden />
             <span className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-slate-500">Security check</span>
