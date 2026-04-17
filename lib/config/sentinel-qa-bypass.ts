@@ -1,28 +1,48 @@
 import type { VerifiedApiKeyV2 } from '@/lib/services/api-key-v2.service'
 
 /**
- * Local/QA bypass for the fixed Sentinel test key (no `api_keys_v2` row).
- * Disabled when `NODE_ENV === 'production'` or `SENTINEL_QA_BYPASS_ENABLED=false`.
+ * Local/QA bypass for a dev-only Sentinel test key (no `api_keys_v2` row).
+ *
+ * Fail-closed: the bypass is OFF by default and only activates when ALL of:
+ *   Guard A — `NODE_ENV !== 'production'`                (never in prod)
+ *   Guard B — `SENTINEL_QA_BYPASS_ENABLED === 'true'`    (explicit opt-in)
+ *   Guard C — `SENTINEL_QA_BYPASS_KEY` is set & non-empty (no key → no bypass)
+ *
+ * The raw test-key value is NEVER hardcoded in source. Operators must set it
+ * via the environment; any missing condition disables the bypass completely,
+ * regardless of the other flags.
  */
-export const SENTINEL_QA_BYPASS_RAW_KEY = 'cc_sentinel_test_khomssi_2026'
 
-/** Synthetic row id — must not touch Supabase `api_keys_v2.last_used`. */
 export const SENTINEL_QA_BYPASS_KEY_UUID = 'ffffffff-ffff-4fff-8fff-ffffffff0001'
-
-/** Synthetic user id — `getUserSubscription` maps this to ENTERPRISE / runtime `institutional`. */
 export const SENTINEL_QA_BYPASS_USER_ID = 'ffffffff-ffff-4fff-8fff-ffffffff0002'
-
 const SENTINEL_QA_BYPASS_PUBLIC_KID = 'kid_qa_khomssi_2026'
 
-/** QA synthetic key is **never** honored in production builds. */
+function qaBypassRawKey(): string | null {
+  const raw = process.env.SENTINEL_QA_BYPASS_KEY
+  if (typeof raw !== 'string') return null
+  const trimmed = raw.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
 export function sentinelQaBypassEnabled(): boolean {
-  if (process.env.SENTINEL_QA_BYPASS_ENABLED === 'false') return false
-  return process.env.NODE_ENV !== 'production'
+  if (process.env.NODE_ENV === 'production') return false
+  if (process.env.SENTINEL_QA_BYPASS_ENABLED !== 'true') return false
+  if (qaBypassRawKey() === null) return false
+  return true
+}
+
+if (sentinelQaBypassEnabled()) {
+  // eslint-disable-next-line no-console
+  console.warn(
+    '[SECURITY] QA bypass enabled. This must never run in production.'
+  )
 }
 
 export function isSentinelQaBypassRawKey(raw: string): boolean {
   if (!sentinelQaBypassEnabled()) return false
-  return raw.trim() === SENTINEL_QA_BYPASS_RAW_KEY
+  const expected = qaBypassRawKey()
+  if (expected === null) return false
+  return raw.trim() === expected
 }
 
 export function isSentinelQaBypassKeyUuid(id: string | undefined): boolean {
