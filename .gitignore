@@ -1,15 +1,8 @@
 node_modules/
 .next/
-.env.local
-.env.local
 .vercel
-.env*.local
-.intelligence-key.local
-.intelligence-key.local
-.intelligence-key.local
-cc_live_GWzmrn7YWdwRNJ0pyrPwjr5W0jTrSg9E
-cc_live_GWzmrn7YWdwRNJ0pyrPwjr5W0jTrSg9E
 
+.env*.local
 .intelligence-key
 .intelligence-key.*
 *.key.local
