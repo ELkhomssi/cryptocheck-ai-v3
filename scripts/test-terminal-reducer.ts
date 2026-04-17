@@ -10,7 +10,7 @@ import {
   type TerminalAction,
   type TerminalState,
   type VerifiedKey,
-} from '../components/dashboard/intelligence-terminal/TerminalProvider'
+} from '../components/Dashboard/intelligence-terminal/terminal-reducer'
 
 const sampleKey: VerifiedKey = {
   raw: 'cc_live_xxxxxxxx',
@@ -113,7 +113,7 @@ function main() {
   assert(s.currentScan?.report?.mint === sampleReport.mint && s.currentScan?.status === 'idle', 'SCAN_SUCCESS')
 
   // SCAN_SUCCESS with no currentScan
-  s = terminalReducer(initialTerminalState, { type: 'SCAN_SUCCESS', report: sampleReport as never })
+  s = terminalReducer(initialTerminalState, { type: 'SCAN_SUCCESS', report: sampleReport })
   assert(s.currentScan === null, 'SCAN_SUCCESS without currentScan no-op')
 
   // SCAN_FAIL

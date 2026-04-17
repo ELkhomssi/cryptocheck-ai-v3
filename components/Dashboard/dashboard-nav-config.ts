@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   MoreHorizontal,
   Radar,
+  Scan,
   Shield,
 } from 'lucide-react'
 
@@ -24,8 +25,9 @@ export const primaryNavItems: DashboardNavItem[] = [
   { href: '/dashboard/billing', label: 'Subscription', icon: CreditCard },
 ]
 
-/** Separate product surface — /pro/dashboard */
+/** Separate product surface — authenticated console + public demo */
 export const secondaryNavItems: DashboardNavItem[] = [
+  { href: '/dashboard/intelligence-terminal', label: 'Analysis Console', icon: Scan },
   { href: '/pro/dashboard', label: 'Intelligence Terminal', icon: Radar },
 ]
 

@@ -9,7 +9,8 @@
     "lint": "next lint",
     "test:sentinel": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-sentinel.ts",
     "test:intelligence": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/smoke-intelligence.ts",
-    "test:key-store": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-key-store.ts"
+    "test:key-store": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-key-store.ts",
+    "test:terminal-reducer": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-terminal-reducer.ts"
   },
   "dependencies": {
     "@solana/spl-token": "^0.4.14",
