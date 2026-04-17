@@ -3,9 +3,19 @@
   "name": "CryptoCheck AI",
   "version": "0.1.0",
   "description": "Neural intelligence for Solana — scan tokens from any page.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "action": {
     "default_popup": "index.html",
-    "default_title": "CryptoCheck AI"
+    "default_title": "CryptoCheck AI",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   },
   "background": {
     "service_worker": "service-worker-loader.js",
