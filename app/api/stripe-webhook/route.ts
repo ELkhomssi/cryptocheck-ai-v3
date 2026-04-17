@@ -1,12 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
+import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { upsertSaasSubscription } from '@/lib/services/saas-subscription.service'
 import type { SaasSubscriptionStatus, SaasTier } from '@/lib/types/saas-subscription'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
+
+let _stripe: Stripe | null = null
+function getStripe(): Stripe {
+  if (_stripe) return _stripe
+  const key = process.env.STRIPE_SECRET_KEY
+  if (!key) throw new Error('STRIPE_SECRET_KEY not configured')
+  _stripe = new Stripe(key)
+  return _stripe
+}
 
 function resolveTierFromStripeMetadata(meta: Record<string, string> | undefined): SaasTier {
   const p = String(meta?.tier || meta?.plan || '').toLowerCase()
@@ -55,15 +68,39 @@ async function syncProfileAndSaas(params: {
 }
 
 export async function POST(req: NextRequest) {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+  if (!webhookSecret) {
+    console.error('[stripe-webhook] STRIPE_WEBHOOK_SECRET not configured — refusing to process')
+    return NextResponse.json(
+      { error: 'Webhook misconfigured' },
+      { status: 500 }
+    )
+  }
+
+  const signature = req.headers.get('stripe-signature')
+  if (!signature) {
+    return NextResponse.json(
+      { error: 'Missing stripe-signature header' },
+      { status: 400 }
+    )
+  }
+
+  const rawBody = await req.text()
+
+  let event: Stripe.Event
   try {
-    const body = await req.text()
-    const _sig = req.headers.get('stripe-signature') || ''
+    event = getStripe().webhooks.constructEvent(rawBody, signature, webhookSecret)
+  } catch (err) {
+    console.error('[stripe-webhook] signature verification failed:', err instanceof Error ? err.message : err)
+    return NextResponse.json(
+      { error: 'Invalid signature' },
+      { status: 400 }
+    )
+  }
 
-    // Parse event (add Stripe signature verification in production)
-    const event = JSON.parse(body)
-
+  try {
     if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Record<string, unknown>
+      const session = event.data.object as unknown as Record<string, unknown>
       const meta = session.metadata as Record<string, string> | undefined
       const email =
         (session.customer_email as string) ||
@@ -128,7 +165,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (event.type === 'customer.subscription.created') {
-      const sub = event.data.object as Record<string, unknown>
+      const sub = event.data.object as unknown as Record<string, unknown>
       const meta = sub.metadata as Record<string, string> | undefined
       const email = meta?.email
       if (email && typeof email === 'string') {
@@ -155,7 +192,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (event.type === 'invoice.payment_succeeded') {
-      const inv = event.data.object as Record<string, unknown>
+      const inv = event.data.object as unknown as Record<string, unknown>
       const email = inv.customer_email as string | undefined
       if (email) {
         const tier = resolveTierFromStripeMetadata(inv.metadata as Record<string, string> | undefined)
@@ -178,7 +215,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (event.type === 'customer.subscription.deleted') {
-      const sub = event.data.object as Record<string, unknown>
+      const sub = event.data.object as unknown as Record<string, unknown>
       const meta = sub.metadata as Record<string, string> | undefined
       const email = meta?.email
       const userId = meta?.user_id
