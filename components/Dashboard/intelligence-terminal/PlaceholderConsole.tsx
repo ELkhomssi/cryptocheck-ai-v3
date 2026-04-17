@@ -1,5 +1,6 @@
 'use client'
 
+import { MintScanner } from './MintScanner'
 import { useTerminal } from './TerminalProvider'
 
 function tierBadgeClasses(tier: 'FREE' | 'PRO' | 'ENTERPRISE'): string {
@@ -19,9 +20,9 @@ export function PlaceholderConsole() {
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-6 px-4 py-8 md:px-6">
-      <div className="rounded-xl border border-white/5 bg-slate-900/60 p-6 backdrop-blur-md md:p-8">
+      <div className="rounded-xl border border-white/5 bg-slate-900/60 p-6 shadow-xl backdrop-blur-md md:p-8">
         <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Analysis Console</p>
-        <h1 className="mt-2 text-xl font-semibold tracking-tight text-slate-100">Console ready</h1>
+        <h1 className="mt-2 text-xl font-semibold tracking-tight text-slate-100">Session</h1>
 
         <div className="mt-6 space-y-4 text-sm">
           <div>
@@ -60,11 +61,9 @@ export function PlaceholderConsole() {
         >
           Clear key
         </button>
-
-        <p className="mt-6 text-sm leading-relaxed text-slate-400">
-          Console ready — Phase 4 will build the full scanning UI.
-        </p>
       </div>
+
+      <MintScanner />
     </div>
   )
 }
