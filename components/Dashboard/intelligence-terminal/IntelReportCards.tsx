@@ -134,11 +134,14 @@ function Metric({ label, value }: { label: string; value: string }) {
   )
 }
 
-export function IntelReportCards() {
-  const { state } = useTerminal()
-  const report = state.currentScan?.report
-  if (!report) return null
-
+/** Presentational report grid — use from the extension popup or `IntelReportCards` on the dashboard. */
+export function IntelReportCardsView({
+  report,
+  className = 'mt-10 space-y-4',
+}: {
+  report: TokenIntelligenceReport
+  className?: string
+}) {
   const accent = verdictAccent(report.riskVerdict)
   const score = report.riskScore
   const scoreLabel = score != null && Number.isFinite(score) ? Math.round(score) : '—'
@@ -146,7 +149,7 @@ export function IntelReportCards() {
   const securityRows = buildSecurityRows(report)
 
   return (
-    <div className="mt-10 space-y-4">
+    <div className={className}>
       <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Latest report</h3>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* 1 — Intelligence header */}
@@ -210,4 +213,11 @@ export function IntelReportCards() {
       </div>
     </div>
   )
+}
+
+export function IntelReportCards() {
+  const { state } = useTerminal()
+  const report = state.currentScan?.report
+  if (!report) return null
+  return <IntelReportCardsView report={report} />
 }
