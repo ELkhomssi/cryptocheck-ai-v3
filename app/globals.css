@@ -156,3 +156,108 @@ body { background: #000 !important; }
 @keyframes landing-orb{0%{transform:translate(0,0)}33%{transform:translate(20px,-15px)}66%{transform:translate(-15px,20px)}100%{transform:translate(0,0)}}
 @keyframes landing-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 @keyframes landing-fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* ══════════════════════════════════════════════════════════════
+ * Intelligence Terminal — Phase 4A Design Tokens (CSS-layer)
+ * Variables mirror components/Dashboard/intelligence-terminal/design/tokens.ts
+ * so CSS @keyframes can reference them. Scoped to :root so any component
+ * in the tree can opt in via `color: var(--terminal-primary)` etc.
+ * ══════════════════════════════════════════════════════════════ */
+@layer base {
+  :root {
+    --terminal-primary: #00d4aa;
+    --terminal-primary-glow: rgba(0, 212, 170, 0.25);
+    --terminal-primary-dim: rgba(0, 212, 170, 0.08);
+    --terminal-danger: #ff4757;
+    --terminal-danger-glow: rgba(255, 71, 87, 0.25);
+    --terminal-base: #020617;
+    --terminal-surface: #0b1220;
+    --terminal-surface-raised: #0f1829;
+  }
+}
+
+/* Scan-line — sweeps vertically across the background, 8s loop. */
+@keyframes terminal-scan {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+/* Ticker value flash — fired when a price/metric updates. */
+@keyframes value-flash-up {
+  0%,
+  100% {
+    color: inherit;
+  }
+  50% {
+    color: var(--terminal-primary);
+  }
+}
+
+@keyframes value-flash-down {
+  0%,
+  100% {
+    color: inherit;
+  }
+  50% {
+    color: var(--terminal-danger);
+  }
+}
+
+/* Neural-scan pulse — applied to the Scan button while loading. */
+@keyframes neural-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--terminal-primary-glow);
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 24px 4px var(--terminal-primary-glow);
+    opacity: 0.9;
+  }
+}
+
+/* Card entry — staggered fade-up on first populated render. */
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Verdict reveal glow — one-shot on score mount. */
+@keyframes verdict-glow-safe {
+  0% {
+    text-shadow: none;
+  }
+  100% {
+    text-shadow: 0 0 24px rgba(0, 212, 170, 0.5);
+  }
+}
+
+@keyframes verdict-glow-danger {
+  0% {
+    text-shadow: none;
+  }
+  100% {
+    text-shadow: 0 0 24px rgba(255, 71, 87, 0.5);
+  }
+}
+
+/* Global reduced-motion guard — kills every decorative animation. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
