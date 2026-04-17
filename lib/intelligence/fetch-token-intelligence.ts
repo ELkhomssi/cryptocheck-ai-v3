@@ -47,7 +47,10 @@ async function fetchDexBestPair(mint: string): Promise<DexPair | null> {
   const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${mint}`, {
     next: { revalidate: 0 },
   })
-  if (!res.ok) return null
+  if (res.status === 404) return null
+  if (!res.ok) {
+    throw new Error(`DexScreener HTTP ${res.status}`)
+  }
   const j = (await res.json()) as DexTokenResponse
   const pairs = j.pairs
   if (!pairs?.length) return null
@@ -102,12 +105,8 @@ async function fetchLargestHolders(mint: string): Promise<
 }
 
 async function fetchMetadata(mint: string): Promise<TokenMeta | null> {
-  try {
-    const arr = await heliusRest<TokenMeta[]>('/token-metadata', { mintAccounts: [mint] })
-    return arr?.[0] ?? null
-  } catch {
-    return null
-  }
+  const arr = await heliusRest<TokenMeta[]>('/token-metadata', { mintAccounts: [mint] })
+  return arr?.[0] ?? null
 }
 
 async function fetchRecentTxCount(mint: string): Promise<number> {
@@ -183,12 +182,24 @@ export type BuildReportArgs = {
   onlyTicker: boolean
 }
 
+/** Thrown when DexScreener has no pair and Helius has no metadata (successful empty responses only). */
+export class TokenNotFoundError extends Error {
+  readonly code = 'TOKEN_NOT_FOUND' as const
+  constructor(readonly mint: string) {
+    super(`No upstream token data for mint ${mint}`)
+    this.name = 'TokenNotFoundError'
+  }
+}
+
 export async function buildTokenIntelligenceReport(args: BuildReportArgs): Promise<TokenIntelligenceReport> {
   const { mint, keyTier, publicTier, scanId, onlyTicker } = args
   const scannedAt = new Date().toISOString()
 
   if (onlyTicker) {
     const dexPair = await fetchDexBestPair(mint)
+    if (!dexPair) {
+      throw new TokenNotFoundError(mint)
+    }
     const price = dexPair?.priceUsd != null ? parseFloat(dexPair.priceUsd) : null
     const liquidityUsd = dexPair?.liquidity?.usd ?? null
     const volume24h = dexPair?.volume?.h24 ?? null
@@ -229,12 +240,12 @@ export async function buildTokenIntelligenceReport(args: BuildReportArgs): Promi
     }
   }
 
-  const [dexPair, supply, meta, txCount] = await Promise.all([
-    fetchDexBestPair(mint),
-    fetchSupply(mint),
-    fetchMetadata(mint),
-    fetchRecentTxCount(mint),
-  ])
+  const [dexPair, meta] = await Promise.all([fetchDexBestPair(mint), fetchMetadata(mint)])
+  if (dexPair === null && meta === null) {
+    throw new TokenNotFoundError(mint)
+  }
+
+  const [supply, txCount] = await Promise.all([fetchSupply(mint), fetchRecentTxCount(mint)])
 
   const price = dexPair?.priceUsd != null ? parseFloat(dexPair.priceUsd) : null
   const liquidityUsd = dexPair?.liquidity?.usd ?? null

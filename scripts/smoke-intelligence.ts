@@ -108,7 +108,7 @@ async function main() {
   )
   console.log('POST /intelligence/scan invalid mint →', badMint.res.status)
 
-  // --- scan: valid-format mint (random; may 502 if upstreams fail) ---
+  // --- scan: valid-format mint (random; expect 404 when Dex + Helius have no data) ---
   const ghostMint = randomValidMint()
   const weird = await postJson('/api/v1/intelligence/scan', { mintAddress: ghostMint }, auth)
   console.log('POST /intelligence/scan random valid mint →', weird.res.status)

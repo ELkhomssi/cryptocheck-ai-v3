@@ -8,7 +8,7 @@ import { verifyApiKey, touchVerifiedApiKeyLastUsed } from '@/lib/services/api-ke
 import { enforceRateLimit } from '@/lib/services/rate-limit.service'
 import { subscriptionService } from '@/lib/services/subscription.service'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
-import { buildTokenIntelligenceReport } from '@/lib/intelligence/fetch-token-intelligence'
+import { buildTokenIntelligenceReport, TokenNotFoundError } from '@/lib/intelligence/fetch-token-intelligence'
 import { subscriptionTierToPublic } from '@/lib/types/intelligence'
 import type { TokenIntelligenceReport } from '@/lib/types/intelligence'
 import type { SubscriptionTier } from '@/lib/types/tier'
@@ -172,6 +172,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(report, { headers: extraHeaders })
   } catch (e) {
     console.error('[intelligence/scan]', e)
+    if (e instanceof TokenNotFoundError) {
+      return NextResponse.json(
+        scanApiErrorPayload('Token not found', 404, 'TOKEN_NOT_FOUND', {
+          reason: 'TOKEN_NOT_FOUND',
+          severity: 'medium',
+        }),
+        { status: 404 }
+      )
+    }
     return NextResponse.json(
       scanApiErrorPayload('Upstream intelligence sources unavailable', 502, 'UPSTREAM_ERROR', {
         reason: 'UPSTREAM_ERROR',
