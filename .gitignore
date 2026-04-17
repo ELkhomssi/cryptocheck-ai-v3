@@ -9,3 +9,7 @@ node_modules/
 .intelligence-key.local
 cc_live_GWzmrn7YWdwRNJ0pyrPwjr5W0jTrSg9E
 cc_live_GWzmrn7YWdwRNJ0pyrPwjr5W0jTrSg9E
+
+.intelligence-key
+.intelligence-key.*
+*.key.local
