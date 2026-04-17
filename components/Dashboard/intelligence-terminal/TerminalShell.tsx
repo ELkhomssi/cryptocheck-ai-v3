@@ -3,7 +3,7 @@
 import { Loader2 } from 'lucide-react'
 import { TerminalGate } from './TerminalGate'
 import { useTerminal } from './TerminalProvider'
-import { PlaceholderConsole } from './PlaceholderConsole'
+import { Console } from './Console'
 
 function TerminalSkeleton() {
   return (
@@ -29,7 +29,7 @@ export function TerminalShell() {
   }
 
   if (state.phase === 'unlocked') {
-    return <PlaceholderConsole />
+    return <Console />
   }
 
   return null
