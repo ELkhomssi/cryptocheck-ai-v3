@@ -78,7 +78,7 @@ export function TerminalGate() {
   const isVerifying = state.phase === 'verifying'
 
   return (
-    <div className="mx-auto w-full max-w-[480px] px-6 py-8 md:px-10 md:py-12">
+    <div className="mx-auto w-full max-w-[480px] px-6 py-8 font-mono-terminal md:px-10 md:py-12">
       <div className="rounded-xl border border-white/5 bg-slate-900/60 p-6 shadow-xl backdrop-blur-md md:p-8">
         <h1 className="text-2xl font-semibold tracking-tight text-slate-100 md:text-3xl">Intelligence Terminal</h1>
         <p className="mt-2 text-sm text-slate-400">Paste your access key to unlock</p>
@@ -120,7 +120,7 @@ export function TerminalGate() {
               disabled={isVerifying}
               aria-invalid={hasInlineError}
               aria-describedby={hasInlineError ? errorId : undefined}
-              className="h-12 w-full rounded-md border border-white/10 bg-slate-950 px-4 pr-12 font-mono text-sm text-slate-100 placeholder:text-slate-600 focus:border-[#00d4aa]/50 focus:outline-none focus:ring-2 focus:ring-[#00d4aa]/20 focus-visible:ring-2 focus-visible:ring-[#00d4aa]"
+              className="h-12 w-full rounded-md border border-white/10 bg-slate-950 px-4 pr-12 font-mono-terminal text-sm text-slate-100 placeholder:text-slate-600 focus:border-[#00d4aa]/50 focus:outline-none focus:ring-2 focus:ring-[#00d4aa]/20 focus-visible:ring-2 focus-visible:ring-[#00d4aa]"
             />
             <button
               type="button"
