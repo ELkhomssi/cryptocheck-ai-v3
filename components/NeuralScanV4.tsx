@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef } from 'react'
+import { loadEncryptedKey } from '@/lib/crypto/client-key-store'
 
 interface Signal {
   label: string
@@ -112,20 +113,32 @@ export default function NeuralScanV4() {
     }
 
     try {
+      const apiKey = await loadEncryptedKey()
+      if (!apiKey) {
+        setError('API key required — paste your key in the Intelligence Terminal first.')
+        return
+      }
+      const authHeaders = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      }
       const res = await fetch('/api/neural-v4', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({ mint }),
       })
+      if (res.status === 401) {
+        setError('Session expired or invalid API key — paste your key again.')
+        return
+      }
       const data = await res.json()
       if (data.error) {
         setError(data.error)
       } else {
         setResult(data)
         setActiveTab('verdict')
-        // Fetch predictive score
-        fetch('/api/predict', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mint:data.mint})})
-          .then(r=>r.json()).then(p=>{ if(!p.error) setPredict(p) }).catch(()=>{})
+        fetch('/api/predict', { method: 'POST', headers: authHeaders, body: JSON.stringify({ mint: data.mint }) })
+          .then(r => r.json()).then(p => { if (!p.error) setPredict(p) }).catch(() => {})
       }
     } catch {
       setError('Scan failed. Check connection.')

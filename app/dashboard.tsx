@@ -13,6 +13,7 @@ import {
   getAiChatReply,
   getAiEdgeAnalysis,
 } from '@/app/actions/ai'
+import { loadEncryptedKey } from '@/lib/crypto/client-key-store'
 import RugForensicsLab from '@/components/RugForensicsLab'
 import SignupTrialModal from '@/components/SignupTrialModal'
 import ChartSwapModal from '@/components/ChartSwapModal'
@@ -2309,7 +2310,12 @@ export default function Dashboard() {
     async function fetchRealFeed() {
       if (document.hidden) return
       try {
-        const res = await fetch('/api/live-feed')
+        const apiKey = await loadEncryptedKey()
+        if (!apiKey) return
+        const res = await fetch('/api/live-feed', {
+          headers: { Authorization: `Bearer ${apiKey}` },
+        })
+        if (!res.ok) return
         const data = await res.json()
         if (data.events && data.events.length > 0) {
           const batch = data.events.map((ev: any) => {
@@ -2539,11 +2545,23 @@ export default function Dashboard() {
     setStressError('')
     setStressLoading(true)
     try {
+      const apiKey = await loadEncryptedKey()
+      if (!apiKey) {
+        setStressError('API key required — paste your key in the Intelligence Terminal first.')
+        return
+      }
       const res = await fetch('/api/analyze-contract', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
         body: JSON.stringify({ address: addr }),
       })
+      if (res.status === 401) {
+        setStressError('Session expired or invalid API key — paste your key again.')
+        return
+      }
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'AI Stress Test failed')
       setStressResult(json as StressTestApiResult)

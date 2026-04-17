@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef } from 'react'
+import { loadEncryptedKey } from '@/lib/crypto/client-key-store'
 
 interface EvidenceItem {
   id: string
@@ -81,11 +82,23 @@ export default function RugForensicsLab() {
     }, 500)
 
     try {
+      const apiKey = await loadEncryptedKey()
+      if (!apiKey) {
+        setError('API key required — paste your key in the Intelligence Terminal first.')
+        return
+      }
       const res = await fetch('/api/forensics', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
         body: JSON.stringify({ mint }),
       })
+      if (res.status === 401) {
+        setError('Session expired or invalid API key — paste your key again.')
+        return
+      }
       const data = await res.json()
       if (data.error) {
         setError(data.error)
