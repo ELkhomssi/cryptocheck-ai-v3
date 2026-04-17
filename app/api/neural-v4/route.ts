@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { HeliusTx, HoldersResult, TokenMeta, TokenSupplyResult } from '@/lib/helius'
 import { heliusRest, rpcCall } from '@/lib/helius-server'
+import { withApiAuth } from '@/lib/middleware/with-api-auth'
+import { scanApiErrorPayload } from '@/lib/api/scan-api-errors'
 
-export async function POST(req: NextRequest) {
+export const dynamic = 'force-dynamic'
+
+export const POST = withApiAuth(async (req: NextRequest) => {
   try {
-    const { mint } = await req.json()
-    if (!mint || mint.length < 32) return NextResponse.json({ error: 'Invalid mint' }, { status: 400 })
+    const body = await req.json().catch(() => ({}))
+    const mint = typeof body?.mint === 'string' ? body.mint.trim() : ''
+    if (!mint || mint.length < 32) {
+      return NextResponse.json(
+        scanApiErrorPayload('Invalid mint address', 400, 'INVALID_MINT', {
+          reason: 'INVALID_MINT',
+          severity: 'low',
+        }),
+        { status: 400 }
+      )
+    }
 
     const [metaArr, supply, holders, txs, dexRes] = await Promise.allSettled([
       heliusRest<TokenMeta[]>('/token-metadata', { mintAccounts: [mint] }),
@@ -157,6 +170,13 @@ export async function POST(req: NextRequest) {
       engine: 'CryptoCheck Neural Engine v4',
     })
   } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'Scan failed' }, { status: 500 })
+    console.error('[neural-v4]', err)
+    return NextResponse.json(
+      scanApiErrorPayload('Upstream intelligence sources unavailable', 502, 'UPSTREAM_ERROR', {
+        reason: 'UPSTREAM_ERROR',
+        severity: 'high',
+      }),
+      { status: 502 }
+    )
   }
-}
+})

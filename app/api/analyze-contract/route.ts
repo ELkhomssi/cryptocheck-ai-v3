@@ -12,6 +12,10 @@ import {
   simulateExploitSandbox,
 } from '@/lib/AiStressTester'
 import { safetyScoreToEliteGrade } from '@/lib/elite-grade'
+import { withApiAuth } from '@/lib/middleware/with-api-auth'
+import { scanApiErrorPayload } from '@/lib/api/scan-api-errors'
+
+export const dynamic = 'force-dynamic'
 
 async function callOpenAi(messages: { role: 'system' | 'user'; content: string }[]): Promise<string> {
   const key = process.env.OPENAI_API_KEY
@@ -39,12 +43,18 @@ async function callOpenAi(messages: { role: 'system' | 'user'; content: string }
   return data.choices?.[0]?.message?.content?.trim() ?? ''
 }
 
-export async function POST(req: NextRequest) {
+export const POST = withApiAuth(async (req: NextRequest) => {
   try {
-    const body = await req.json()
+    const body = await req.json().catch(() => ({}))
     const address = typeof body?.address === 'string' ? body.address.trim() : ''
     if (address.length < 32) {
-      return NextResponse.json({ error: 'Invalid Solana address' }, { status: 400 })
+      return NextResponse.json(
+        scanApiErrorPayload('Invalid Solana address', 400, 'INVALID_MINT', {
+          reason: 'INVALID_MINT',
+          severity: 'low',
+        }),
+        { status: 400 }
+      )
     }
 
     const ctx = await fetchContractForStressTest(address)
@@ -140,9 +150,13 @@ export async function POST(req: NextRequest) {
       aiRaw: parsed ? undefined : aiRaw.slice(0, 500),
     })
   } catch (err) {
+    console.error('[analyze-contract]', err)
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Analyze contract failed' },
-      { status: 500 }
+      scanApiErrorPayload('Upstream analysis unavailable', 502, 'UPSTREAM_ERROR', {
+        reason: 'UPSTREAM_ERROR',
+        severity: 'high',
+      }),
+      { status: 502 }
     )
   }
-}
+})

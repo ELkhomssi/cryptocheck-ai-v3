@@ -1,7 +1,11 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { buildHeliusApiUrl } from '@/lib/helius-server'
+import { withApiAuth } from '@/lib/middleware/with-api-auth'
+import { scanApiErrorPayload } from '@/lib/api/scan-api-errors'
 
-export async function GET() {
+export const dynamic = 'force-dynamic'
+
+export const GET = withApiAuth(async (_req: NextRequest) => {
   try {
     // Get recent transactions from top Solana tokens
     const mints = [
@@ -85,6 +89,13 @@ export async function GET() {
       timestamp: new Date().toISOString()
     })
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    console.error('[live-feed]', err)
+    return NextResponse.json(
+      scanApiErrorPayload('Upstream intelligence sources unavailable', 502, 'UPSTREAM_ERROR', {
+        reason: 'UPSTREAM_ERROR',
+        severity: 'high',
+      }),
+      { status: 502 }
+    )
   }
-}
+})
