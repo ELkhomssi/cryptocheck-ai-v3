@@ -10,6 +10,27 @@ export const ENGINE_LABEL = 'CryptoCheck Neural Engine v2'
 /** Public Solana mainnet RPC — safe for browser `Connection` (no API key). */
 export const PUBLIC_SOLANA_RPC_URL = 'https://api.mainnet-beta.solana.com'
 
+/**
+ * Client-facing Solana RPC URL.
+ *
+ * In the browser we route every RPC call (Jupiter Terminal, wallet-adapter,
+ * in-app web3.js `Connection`) through our own `/api/solana/rpc` proxy. This
+ * gives us two guarantees:
+ *   1. The Helius API key never ships to the client bundle — the proxy uses
+ *      it server-side.
+ *   2. The user's CryptoCheck API key / session cookies are *never* forwarded
+ *      to an external Solana RPC or to Jupiter's backend. The proxy makes a
+ *      fresh outbound request with only `Content-Type: application/json`.
+ *
+ * Outside the browser (SSR, tests) we fall back to the plain public RPC.
+ */
+export function getClientSolanaRpcUrl(): string {
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin}/api/solana/rpc`
+  }
+  return PUBLIC_SOLANA_RPC_URL
+}
+
 // ── Types ──────────────────────────────────────
 
 export interface TokenMeta {

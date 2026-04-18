@@ -53,7 +53,7 @@ import {
   truncate,
   calcChartData,
   computeRisk,
-  PUBLIC_SOLANA_RPC_URL,
+  getClientSolanaRpcUrl,
   type ScanData,
   type PortfolioHolding,
   NETWORK_LABEL,
@@ -906,10 +906,14 @@ function JupiterInlinePanel({ mint, sym, onFullScreen, enabled }: {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const w = window as any
         if (!w.Jupiter) return
+        // Use our in-origin Solana RPC proxy. It forwards JSON-RPC to Helius
+        // server-side without ever attaching CryptoCheck auth headers or
+        // cookies, and avoids the public mainnet-beta rate limits that were
+        // surfacing as "RPC not responding" in Jupiter Terminal.
         w.Jupiter.init({
           displayMode: 'integrated',
           integratedTargetId: panelId,
-          endpoint: PUBLIC_SOLANA_RPC_URL,
+          endpoint: getClientSolanaRpcUrl(),
           defaultExplorer: 'Solscan',
           strictTokenList: false,
           enableWalletPassthrough: !!(window as any).solana,
@@ -1499,7 +1503,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
       const provider = (window as any).phantom?.solana || (window as any).solana
       if (!provider?.publicKey) { alert('Connect your Phantom wallet first'); setLoading(null); return }
       const web3 = await import('@solana/web3.js')
-      const connection = new web3.Connection(PUBLIC_SOLANA_RPC_URL, 'confirmed')
+      const connection = new web3.Connection(getClientSolanaRpcUrl(), 'confirmed')
       const plan = plans.find(p => p.id === planId)!
       const solAmount = plan.price / solPrice
       setTxStatus('Requesting wallet approval...')
@@ -2259,6 +2263,8 @@ export default function Dashboard() {
   const [stressResult, setStressResult] = useState<StressTestApiResult | null>(null)
   const [stressModalOpen, setStressModalOpen] = useState(false)
   const [stressError, setStressError] = useState('')
+  // Stable close handler so memo(BentoGrid) isn't invalidated every dashboard render.
+  const closeStressModal = useCallback(() => setStressModalOpen(false), [])
 
   useEffect(() => {
     if (!stressLoading) {
@@ -3204,7 +3210,7 @@ export default function Dashboard() {
                 stressError={stressError}
                 stressResult={stressResult}
                 reportOpen={stressModalOpen}
-                onCloseReport={() => setStressModalOpen(false)}
+                onCloseReport={closeStressModal}
               />
               {/* PERSISTENT SCAN INPUT — outside renderScanContent to prevent re-mount */}
               <div className="flex items-center gap-2 px-3 py-2 bg-[#161b22] border-b border-[rgba(0,212,130,0.15)] flex-shrink-0">

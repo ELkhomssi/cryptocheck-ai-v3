@@ -5,6 +5,7 @@ import { WalletModalProvider, useWalletModal } from '@solana/wallet-adapter-reac
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets'
 import { createContext, useContext } from 'react'
 import '@solana/wallet-adapter-react-ui/styles.css'
+import { getClientSolanaRpcUrl } from '@/lib/helius'
 
 interface SolanaContextValue {
   walletAddress: string | null
@@ -57,7 +58,9 @@ function SolanaInner({ children }: { children: ReactNode }) {
 }
 
 export function SolanaProvider({ children }: { children: ReactNode }) {
-  const endpoint = 'https://api.mainnet-beta.solana.com'
+  // Route wallet-adapter through our clean in-origin proxy so no CryptoCheck
+  // auth headers or cookies can leak to an external Solana RPC.
+  const endpoint = useMemo(() => getClientSolanaRpcUrl(), [])
   const wallets = useMemo(() => [
     new PhantomWalletAdapter(),
     new SolflareWalletAdapter(),

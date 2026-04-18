@@ -25,8 +25,11 @@ const STRESS_SCRIPT: { text: string; suffix?: string }[] = [
   { text: '[*] Sealing classified brief... ', suffix: '[DONE]' },
 ]
 
+// Slower per-character cadence keeps the typewriter readable without scheduling
+// a re-render every animation frame. The stress-test UI sits above the heavy
+// dashboard tree, and sub-15ms intervals were starving the main thread.
 function typewriterMs(len: number): number {
-  return Math.min(42, 8 + Math.floor(len / 4))
+  return Math.min(60, 22 + Math.floor(len / 6))
 }
 
 export default function SecurityTerminal({

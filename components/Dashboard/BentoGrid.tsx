@@ -1,7 +1,7 @@
 'use client'
 
 import ReactMarkdown from 'react-markdown'
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import SecurityTerminal from '@/components/SecurityTerminal'
 
 export type StressPhase = 'idle' | 'analyzing' | 'simulating'
@@ -67,7 +67,172 @@ function toDisplayText(content: unknown): string {
   return String(content)
 }
 
-export default function BentoGrid({
+/**
+ * The stress-test report modal renders large Markdown bodies. ReactMarkdown re-parses
+ * its children on every render, so we isolate it behind React.memo and pre-compute the
+ * string with useMemo. This keeps unrelated dashboard state changes (clock ticks, live
+ * feed polls, etc.) from thrashing the markdown AST while the modal is mounted.
+ */
+const MarkdownBlock = memo(function MarkdownBlock({ content }: { content: string }) {
+  return (
+    <div className={mdClass}>
+      <ReactMarkdown>{content}</ReactMarkdown>
+    </div>
+  )
+})
+
+interface StressReportModalProps {
+  stressResult: StressTestApiResult
+  onCloseReport: () => void
+}
+
+const StressReportModal = memo(function StressReportModal({
+  stressResult,
+  onCloseReport,
+}: StressReportModalProps) {
+  const technicalBody = useMemo(
+    () => toDisplayText(stressResult.technicalVulnerabilitiesMarkdown),
+    [stressResult.technicalVulnerabilitiesMarkdown]
+  )
+  const marketBody = useMemo(
+    () => toDisplayText(stressResult.marketMaliceMarkdown),
+    [stressResult.marketMaliceMarkdown]
+  )
+  const liqLogic = useMemo(
+    () =>
+      stressResult.multiVectorSimulation
+        ? toDisplayText(stressResult.multiVectorSimulation.liquiditySiphoning.logic)
+        : '',
+    [stressResult.multiVectorSimulation]
+  )
+  const authLogic = useMemo(
+    () =>
+      stressResult.multiVectorSimulation
+        ? toDisplayText(stressResult.multiVectorSimulation.authorityEscalation.logic)
+        : '',
+    [stressResult.multiVectorSimulation]
+  )
+  const socLogic = useMemo(
+    () =>
+      stressResult.multiVectorSimulation
+        ? toDisplayText(
+            stressResult.multiVectorSimulation.socialEngineeringRugIntent.behavioralAnalysis
+          )
+        : '',
+    [stressResult.multiVectorSimulation]
+  )
+  const simNotes = useMemo(
+    () => (stressResult.simulationNotes ? toDisplayText(stressResult.simulationNotes) : ''),
+    [stressResult.simulationNotes]
+  )
+
+  return (
+    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+      <div
+        className="w-full max-w-3xl max-h-[85vh] overflow-hidden rounded-xl border border-[rgba(139,92,246,0.35)] bg-[#07060f] shadow-[0_0_40px_rgba(88,28,135,0.35)] flex flex-col"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.08] bg-[#050508]/95">
+          <div>
+            <div className="text-[0.55rem] font-mono text-[#c8ff00] tracking-wider uppercase">
+              Sovereign Brief — Multi-Vector Simulation
+            </div>
+            <div className="text-sm font-bold text-[#e8eaed] mt-0.5 font-mono">
+              {stressResult.eliteTier ? (
+                <>
+                  Tier{' '}
+                  <span
+                    className={
+                      stressResult.eliteTier === 'S' || stressResult.eliteTier === 'A'
+                        ? 'text-[#c8ff00]'
+                        : stressResult.eliteTier === 'F' || stressResult.eliteTier === 'D'
+                          ? 'text-[#ff5722]'
+                          : 'text-amber-400'
+                    }
+                  >
+                    {stressResult.eliteTier}
+                  </span>
+                  {stressResult.eliteLabel ? ` · ${stressResult.eliteLabel}` : ''}
+                </>
+              ) : null}
+              <span className="text-[#8b949e] font-normal">
+                {' '}
+                · Risk {stressResult.riskScore}/100 · {stressResult.kind}
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onCloseReport}
+            className="rounded-md px-3 py-1.5 text-[0.62rem] font-mono text-[#c4b5fd] border border-violet-500/40 hover:bg-violet-950/50"
+          >
+            Close
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#030308]">
+          {stressResult.multiVectorSimulation && (
+            <section className="rounded-lg border border-[#c8ff00]/20 bg-white/[0.03] backdrop-blur-md p-3 space-y-2">
+              <div className="text-[0.55rem] font-bold text-[#c8ff00] font-mono tracking-wider uppercase">
+                Multi-Vector Attack Simulation
+              </div>
+              <div className="text-[0.6rem] font-mono text-[#b8c5d4] space-y-1.5">
+                <p>
+                  <span className="text-[#8b949e]">[Vector: Liquidity Siphoning]</span>{' '}
+                  <span
+                    className={
+                      stressResult.multiVectorSimulation.liquiditySiphoning.result === 'Fail'
+                        ? 'text-[#ff5722]'
+                        : 'text-[#c8ff00]'
+                    }
+                  >
+                    {stressResult.multiVectorSimulation.liquiditySiphoning.result}
+                  </span>
+                  <span className="text-[#6b7a90]"> — </span>
+                  {liqLogic}
+                </p>
+                <p>
+                  <span className="text-[#8b949e]">[Vector: Authority Escalation]</span>{' '}
+                  <span
+                    className={
+                      stressResult.multiVectorSimulation.authorityEscalation.result === 'Fail'
+                        ? 'text-[#ff5722]'
+                        : 'text-[#c8ff00]'
+                    }
+                  >
+                    {stressResult.multiVectorSimulation.authorityEscalation.result}
+                  </span>
+                  <span className="text-[#6b7a90]"> — </span>
+                  {authLogic}
+                </p>
+                <p>
+                  <span className="text-[#8b949e]">[Vector: Social Engineering / Rug Intent]</span>{' '}
+                  {socLogic}
+                </p>
+              </div>
+            </section>
+          )}
+          <section className="rounded-lg border border-[rgba(59,130,246,0.2)] bg-[#0c0c18] p-3">
+            <div className="text-[0.55rem] font-bold text-[#60a5fa] font-mono mb-2 tracking-wider">TECHNICAL VULNERABILITIES</div>
+            <MarkdownBlock content={technicalBody} />
+          </section>
+          <section className="rounded-lg border border-[rgba(244,63,94,0.25)] bg-[rgba(24,10,20,0.5)] p-3">
+            <div className="text-[0.55rem] font-bold text-[#fb7185] font-mono mb-2 tracking-wider">MARKET MALICE (HONEYPOT / RUG)</div>
+            <MarkdownBlock content={marketBody} />
+          </section>
+          {simNotes && (
+            <div className="text-[0.6rem] text-[#8b949e] font-mono border-t border-white/5 pt-3">
+              <span className="text-[#a78bfa]">Simulation: </span>
+              {simNotes}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+})
+
+function BentoGridImpl({
   address,
   onRunStressTest,
   stressLoading,
@@ -137,113 +302,17 @@ export default function BentoGrid({
       </div>
 
       {reportOpen && stressResult && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
-          <div
-            className="w-full max-w-3xl max-h-[85vh] overflow-hidden rounded-xl border border-[rgba(139,92,246,0.35)] bg-[#07060f] shadow-[0_0_40px_rgba(88,28,135,0.35)] flex flex-col"
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.08] bg-[#050508]/95">
-              <div>
-                <div className="text-[0.55rem] font-mono text-[#c8ff00] tracking-wider uppercase">
-                  Sovereign Brief — Multi-Vector Simulation
-                </div>
-                <div className="text-sm font-bold text-[#e8eaed] mt-0.5 font-mono">
-                  {stressResult.eliteTier ? (
-                    <>
-                      Tier{' '}
-                      <span
-                        className={
-                          stressResult.eliteTier === 'S' || stressResult.eliteTier === 'A'
-                            ? 'text-[#c8ff00]'
-                            : stressResult.eliteTier === 'F' || stressResult.eliteTier === 'D'
-                              ? 'text-[#ff5722]'
-                              : 'text-amber-400'
-                        }
-                      >
-                        {stressResult.eliteTier}
-                      </span>
-                      {stressResult.eliteLabel ? ` · ${stressResult.eliteLabel}` : ''}
-                    </>
-                  ) : null}
-                  <span className="text-[#8b949e] font-normal">
-                    {' '}
-                    · Risk {stressResult.riskScore}/100 · {stressResult.kind}
-                  </span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={onCloseReport}
-                className="rounded-md px-3 py-1.5 text-[0.62rem] font-mono text-[#c4b5fd] border border-violet-500/40 hover:bg-violet-950/50"
-              >
-                Close
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#030308]">
-              {stressResult.multiVectorSimulation && (
-                <section className="rounded-lg border border-[#c8ff00]/20 bg-white/[0.03] backdrop-blur-md p-3 space-y-2">
-                  <div className="text-[0.55rem] font-bold text-[#c8ff00] font-mono tracking-wider uppercase">
-                    Multi-Vector Attack Simulation
-                  </div>
-                  <div className="text-[0.6rem] font-mono text-[#b8c5d4] space-y-1.5">
-                    <p>
-                      <span className="text-[#8b949e]">[Vector: Liquidity Siphoning]</span>{' '}
-                      <span
-                        className={
-                          stressResult.multiVectorSimulation.liquiditySiphoning.result === 'Fail'
-                            ? 'text-[#ff5722]'
-                            : 'text-[#c8ff00]'
-                        }
-                      >
-                        {stressResult.multiVectorSimulation.liquiditySiphoning.result}
-                      </span>
-                      <span className="text-[#6b7a90]"> — </span>
-                      {toDisplayText(stressResult.multiVectorSimulation.liquiditySiphoning.logic)}
-                    </p>
-                    <p>
-                      <span className="text-[#8b949e]">[Vector: Authority Escalation]</span>{' '}
-                      <span
-                        className={
-                          stressResult.multiVectorSimulation.authorityEscalation.result === 'Fail'
-                            ? 'text-[#ff5722]'
-                            : 'text-[#c8ff00]'
-                        }
-                      >
-                        {stressResult.multiVectorSimulation.authorityEscalation.result}
-                      </span>
-                      <span className="text-[#6b7a90]"> — </span>
-                      {toDisplayText(stressResult.multiVectorSimulation.authorityEscalation.logic)}
-                    </p>
-                    <p>
-                      <span className="text-[#8b949e]">[Vector: Social Engineering / Rug Intent]</span>{' '}
-                      {toDisplayText(stressResult.multiVectorSimulation.socialEngineeringRugIntent.behavioralAnalysis)}
-                    </p>
-                  </div>
-                </section>
-              )}
-              <section className="rounded-lg border border-[rgba(59,130,246,0.2)] bg-[#0c0c18] p-3">
-                <div className="text-[0.55rem] font-bold text-[#60a5fa] font-mono mb-2 tracking-wider">TECHNICAL VULNERABILITIES</div>
-                <div className={mdClass}>
-                  <ReactMarkdown>{toDisplayText(stressResult.technicalVulnerabilitiesMarkdown)}</ReactMarkdown>
-                </div>
-              </section>
-              <section className="rounded-lg border border-[rgba(244,63,94,0.25)] bg-[rgba(24,10,20,0.5)] p-3">
-                <div className="text-[0.55rem] font-bold text-[#fb7185] font-mono mb-2 tracking-wider">MARKET MALICE (HONEYPOT / RUG)</div>
-                <div className={mdClass}>
-                  <ReactMarkdown>{toDisplayText(stressResult.marketMaliceMarkdown)}</ReactMarkdown>
-                </div>
-              </section>
-              {stressResult.simulationNotes && (
-                <div className="text-[0.6rem] text-[#8b949e] font-mono border-t border-white/5 pt-3">
-                  <span className="text-[#a78bfa]">Simulation: </span>
-                  {toDisplayText(stressResult.simulationNotes)}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <StressReportModal stressResult={stressResult} onCloseReport={onCloseReport} />
       )}
     </>
   )
 }
+
+/**
+ * The surrounding dashboard has a lot of unrelated state (live feed, slot clock,
+ * portfolio polling). Without `memo`, every tick of those timers re-rendered the
+ * heavy stress-test UI (SecurityTerminal typewriter + ReactMarkdown bodies). The
+ * memo wrapper only re-renders when BentoGrid's own props actually change.
+ */
+const BentoGrid = memo(BentoGridImpl)
+export default BentoGrid
