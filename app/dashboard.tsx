@@ -1494,10 +1494,9 @@ function ProModal({ onClose }: { onClose: () => void }) {
   const [payMethod, setPayMethod] = React.useState<Record<string,string>>({})
   React.useEffect(() => { fetch('/api/sol-price').then(r=>r.json()).then(d=>{ if(d.price) setSolPrice(d.price) }).catch(()=>{}) }, [])
   const plans = [
-    { id:'starter', name:'Micro Pack', price:5, period:'/one-time', badge:null as string|null, badgeColor:'', color:'#20b2aa', features:['10 Deep Neural Scans','Rug Detection Reports','Basic Risk Scoring','Valid 30 days'] },
-    { id:'deep', name:'Pro Max Deep', price:30, period:'/month', badge:'GOLD TIER' as string|null, badgeColor:'#d4af37', color:'#d4af37', features:['Deep Neural Scan Engine','Unlimited Neural Scans','GNN Cluster Mapping','LP Exit Prediction','0% Performance Fees'] },
-    { id:'pro', name:'Pro Trader', price:30, period:'/month', badge:'BEST VALUE' as string|null, badgeColor:'#00d4aa', color:'#00d4aa', features:['Unlimited Neural Scans','Portfolio Risk Scanner','Whale Tracker','Alpha Feed','Priority Support'] },
-    { id:'elite', name:'Pro Max Elite', price:40, period:'/month', badge:'COMMAND CENTER' as string|null, badgeColor:'#8b5cf6', color:'#8b5cf6', features:['Everything in Pro','Elite Whale Alerts','AI Auto-Sniper Bot','Neural Risk Filtering','Priority RPC Access'] },
+    { id:'starter', name:'Micro Pack', price:5, period:'/one-time', badge:'STARTER' as string|null, badgeColor:'#475569', color:'#20b2aa', features:['10 Deep Neural Scans','Rug Detection Reports','Basic Risk Scoring','Valid 30 days'] },
+    { id:'deep', name:'Pro Max Deep', price:30, period:'/month', badge:'BEST VALUE' as string|null, badgeColor:'#00d4aa', color:'#d4af37', features:['Deep Neural Scan Engine','Unlimited Neural Scans','GNN Cluster Mapping','LP Exit Prediction','0% Performance Fees'] },
+    { id:'elite', name:'Pro Max Elite', price:40, period:'/month', badge:'COMMAND CENTER' as string|null, badgeColor:'#8b5cf6', color:'#8b5cf6', features:['Everything in Deep','Elite Whale Alerts','AI Auto-Sniper Bot','Neural Risk Filtering','Priority RPC Access'] },
   ]
   async function handleSolPay(planId: string) {
     setLoading(planId)
@@ -1626,9 +1625,19 @@ function ProModal({ onClose }: { onClose: () => void }) {
           </div>
         )}
         <div className="pm-modal-grid" style={{display:'grid',gap:12,padding:'0 20px 16px',width:'100%'}}>
-          {plans.map(pl => (
-            <div key={pl.id} className="pm-plan-card" style={{background:'#0d1420',border:'1px solid ' + (pl.badge ? pl.color + '30' : 'rgba(0,212,170,0.08)'),borderRadius:12,padding:'20px 16px',position:'relative',minWidth:0,overflow:'hidden',width:'100%'}}>
-              {pl.badge && <div style={{position:'absolute',top:-10,left:'50%',transform:'translateX(-50%)',background:pl.badgeColor,color:pl.badgeColor==='#8b5cf6'?'#fff':'#0a0a0a',fontSize:8,fontWeight:700,padding:'3px 10px',borderRadius:10,whiteSpace:'nowrap',letterSpacing:'0.06em'}}>{pl.badge}</div>}
+          {plans.map(pl => {
+            const recommended = pl.id === 'deep'
+            const cardBorder = recommended
+              ? '1px solid rgba(0,212,170,0.42)'
+              : ('1px solid ' + (pl.badge && pl.id !== 'starter' ? pl.color + '30' : 'rgba(0,212,170,0.08)'))
+            const cardShadow = recommended
+              ? '0 0 28px rgba(0,212,170,0.12), inset 0 1px 0 rgba(0,212,170,0.05)'
+              : undefined
+            const badgeText =
+              pl.badgeColor === '#8b5cf6' || pl.badge === 'STARTER' ? '#f8fafc' : '#0a0a0a'
+            return (
+            <div key={pl.id} className="pm-plan-card" style={{background:'#0d1420',border:cardBorder,boxShadow:cardShadow,borderRadius:12,padding:'20px 16px',position:'relative',minWidth:0,overflow:'hidden',width:'100%'}}>
+              {pl.badge && <div style={{position:'absolute',top:-10,left:'50%',transform:'translateX(-50%)',background:pl.badgeColor,color:badgeText,fontSize:8,fontWeight:700,padding:'3px 10px',borderRadius:10,whiteSpace:'nowrap',letterSpacing:'0.06em'}}>{pl.badge}</div>}
               <div style={{textAlign:'center',marginBottom:14}}>
                 <div style={{fontSize:11,fontWeight:600,color:'#8b949e',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.08em'}}>{pl.name}</div>
                 <div style={{fontSize:32,fontWeight:800,color:'#fff',lineHeight:1}}>${pl.price}</div>
@@ -1647,7 +1656,8 @@ function ProModal({ onClose }: { onClose: () => void }) {
                 {loading===pl.id ? 'Processing...' : 'Pay ' + (pl.price / solPrice).toFixed(2) + ' SOL on Solana'}
               </button>
             </div>
-          ))}
+            )
+          })}
         </div>
         <div className='pm-feat-grid' style={{display:'grid',gap:12,padding:'8px 20px 20px'}}>
           {[{icon:'W',name:'Whale Tracker',desc:'Follow top wallets with >$500K PnL'},{icon:'A',name:'Alpha Feed',desc:'Rug alerts, accumulation signals'},{icon:'S',name:'AI Auto-Sniper',desc:'Neural auto-trade on Jupiter'}].map(f => <div key={f.name} style={{background:'rgba(0,212,170,0.02)',border:'1px solid rgba(0,212,170,0.06)',borderRadius:10,padding:'14px 12px',textAlign:'center'}}><div style={{fontSize:16,marginBottom:6,color:'#00d4aa'}}>{f.icon}</div><div style={{fontSize:11,fontWeight:700,color:'#e2e8f0',marginBottom:3}}>{f.name}</div><div style={{fontSize:9,color:'#484f58',lineHeight:1.5}}>{f.desc}</div></div>)}
@@ -1656,7 +1666,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
           <span style={{fontSize:9,color:'#303030'}}>Crypto payments on Solana Mainnet | Card payments via Stripe | No refunds</span>
         </div>
       </div>
-      <style>{'.pm-modal-grid{grid-template-columns:repeat(2,minmax(0,1fr));width:100%}.pm-plan-card{width:100%;min-width:0;max-width:none}.pm-plan-card *{word-break:break-word;overflow-wrap:anywhere}@media(min-width:1100px){.pm-modal-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}@media(max-width:1023px){.pm-modal-grid{display:flex!important;flex-direction:column!important;align-items:center!important;padding:0 10px 16px!important}.pm-plan-card{width:95%!important;max-width:400px!important;min-width:0!important;padding:16px 12px!important}}'}</style>
+      <style>{'.pm-modal-grid{display:grid;grid-template-columns:1fr;width:100%;gap:12px}.pm-plan-card{width:100%;min-width:0;max-width:none}.pm-plan-card *{word-break:break-word;overflow-wrap:anywhere}@media(min-width:768px){.pm-modal-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:767px){.pm-modal-grid{display:flex!important;flex-direction:column!important;align-items:center!important;padding:0 10px 16px!important}.pm-plan-card{width:95%!important;max-width:400px!important;min-width:0!important;padding:16px 12px!important}}'}</style>
     </div>
   )
 }

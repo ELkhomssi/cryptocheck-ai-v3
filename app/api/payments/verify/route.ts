@@ -6,7 +6,7 @@ const TREASURY = '5jbWsijUWqXLyuaNtzkiu2JM1C5jNPUP9oRjKmmJx15i'
 const RPC = process.env.HELIUS_RPC_URL || 'https://api.mainnet-beta.solana.com'
 const PLANS: Record<string,{credits:number;isPro:boolean;isElite:boolean;label:string;minUsd:number}> = {
   starter:{credits:10,isPro:false,isElite:false,label:'Micro Pack',minUsd:5},
-  pro:{credits:-1,isPro:true,isElite:false,label:'Pro Trader',minUsd:30},
+  deep:{credits:-1,isPro:true,isElite:false,label:'Pro Max Deep',minUsd:30},
   pro_yearly:{credits:-1,isPro:true,isElite:false,label:'Pro Yearly',minUsd:288},
   whale:{credits:-1,isPro:true,isElite:false,label:'Whale Access',minUsd:0},
   elite:{credits:-1,isPro:true,isElite:true,label:'Pro Max Elite',minUsd:40},

@@ -9,7 +9,7 @@ const PRICES: Record<string, string> = {
   yearly:  process.env.STRIPE_PRICE_YEARLY   ?? 'price_1T9vdDAkjKVFT4LeAb9952Gt',
   vip:     process.env.STRIPE_PRICE_VIP      ?? 'price_1TCTrmAkjKVFT4Le6GBIJ5K8',
   starter: process.env.STRIPE_PRICE_STARTER  ?? 'price_1T7JMPAkjKVFT4LeDqPZOdMe', // $5 one-time
-  pro:     process.env.STRIPE_PRICE_VIP      ?? 'price_1TCTrmAkjKVFT4Le6GBIJ5K8', // $30/month
+  deep:    process.env.STRIPE_PRICE_VIP       ?? 'price_1TCTrmAkjKVFT4Le6GBIJ5K8', // $30/month Pro Max Deep
   whale:   process.env.STRIPE_PRICE_YEARLY   ?? 'price_1T9vdDAkjKVFT4LeAb9952Gt', // custom
 }
 

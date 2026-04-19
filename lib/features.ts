@@ -37,7 +37,7 @@ export async function getUserAccess(): Promise<UserAccess> {
       .eq('id', user.id)
       .single()
 
-    const isPro  = data?.is_pro || data?.plan === 'pro' || data?.plan === 'whale'
+    const isPro  = data?.is_pro || data?.plan === 'pro' || data?.plan === 'deep' || data?.plan === 'whale'
     const isWhale = data?.plan === 'whale'
     return {
       isPro, isWhale,
@@ -68,7 +68,7 @@ export async function deductScan(userId: string): Promise<{ success: boolean; re
 
     if (error || !data) return { success: false, remaining: 0, error: 'Profile not found' }
 
-    const isPro = data.is_pro || data.plan === 'pro' || data.plan === 'whale'
+    const isPro = data.is_pro || data.plan === 'pro' || data.plan === 'deep' || data.plan === 'whale'
     const limit = isPro ? 9999 : 10
 
     if (data.scans_today >= limit) {
