@@ -1493,6 +1493,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
   const [loading, setLoading] = React.useState<string|null>(null)
   const [payMethod, setPayMethod] = React.useState<Record<string,string>>({})
   React.useEffect(() => { fetch('/api/sol-price').then(r=>r.json()).then(d=>{ if(d.price) setSolPrice(d.price) }).catch(()=>{}) }, [])
+  const fiatEnabled = process.env.NEXT_PUBLIC_ENABLE_FIAT_PAYMENTS === 'true'
   const plans = [
     { id:'starter', name:'Micro Pack', price:5, period:'/one-time', badge:'STARTER' as string|null, badgeColor:'#475569', color:'#20b2aa', features:['10 Deep Neural Scans','Rug Detection Reports','Basic Risk Scoring','Valid 30 days'] },
     { id:'deep', name:'Pro Max Deep', price:30, period:'/month', badge:'BEST VALUE' as string|null, badgeColor:'#00d4aa', color:'#d4af37', features:['Deep Neural Scan Engine','Unlimited Neural Scans','GNN Cluster Mapping','LP Exit Prediction','0% Performance Fees'] },
@@ -1566,7 +1567,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
   }
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.8)',backdropFilter:'blur(20px)',display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
-      <div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:920,maxHeight:'90vh',overflowY:'auto',overflowX:'hidden',background:'#0a0e14',border:'1px solid rgba(0,212,170,0.12)',borderRadius:16,boxShadow:'0 32px 80px rgba(0,0,0,0.8)',fontFamily:"'IBM Plex Mono','Inter',monospace"}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:'min(920px, calc(100vw - 32px))',minWidth:0,boxSizing:'border-box',maxHeight:'90vh',overflowY:'auto',overflowX:'hidden',background:'#0a0e14',border:'1px solid rgba(0,212,170,0.12)',borderRadius:16,boxShadow:'0 32px 80px rgba(0,0,0,0.8)',fontFamily:"'IBM Plex Mono','Inter',monospace"}}>
         <div style={{textAlign:'center',padding:'28px 20px 20px',position:'relative'}}>
           <button onClick={onClose} style={{position:'absolute',top:12,right:16,background:'none',border:'none',color:'#484f58',cursor:'pointer',fontSize:20}}>&times;</button>
           <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 12px',borderRadius:16,border:'1px solid rgba(0,212,170,0.2)',background:'rgba(0,212,170,0.05)',marginBottom:12}}>
@@ -1624,7 +1625,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
             )}
           </div>
         )}
-        <div className="pm-modal-grid" style={{display:'grid',gap:12,padding:'0 20px 16px',width:'100%'}}>
+        <div className="pm-modal-grid" style={{display:'grid',gap:12,padding:'14px 20px 16px',width:'100%',maxWidth:'100%',boxSizing:'border-box'}}>
           {plans.map(pl => {
             const recommended = pl.id === 'deep'
             const cardBorder = recommended
@@ -1636,25 +1637,34 @@ function ProModal({ onClose }: { onClose: () => void }) {
             const badgeText =
               pl.badgeColor === '#8b5cf6' || pl.badge === 'STARTER' ? '#f8fafc' : '#0a0a0a'
             return (
-            <div key={pl.id} className="pm-plan-card" style={{background:'#0d1420',border:cardBorder,boxShadow:cardShadow,borderRadius:12,padding:'20px 16px',position:'relative',minWidth:0,overflow:'hidden',width:'100%'}}>
-              {pl.badge && <div style={{position:'absolute',top:-10,left:'50%',transform:'translateX(-50%)',background:pl.badgeColor,color:badgeText,fontSize:8,fontWeight:700,padding:'3px 10px',borderRadius:10,whiteSpace:'nowrap',letterSpacing:'0.06em'}}>{pl.badge}</div>}
-              <div style={{textAlign:'center',marginBottom:14}}>
-                <div style={{fontSize:11,fontWeight:600,color:'#8b949e',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.08em'}}>{pl.name}</div>
-                <div style={{fontSize:32,fontWeight:800,color:'#fff',lineHeight:1}}>${pl.price}</div>
-                <div style={{fontSize:11,color:'#484f58'}}>{pl.period}</div>
-                <div style={{fontSize:9,color:'#303030',fontFamily:"'IBM Plex Mono',monospace",marginTop:2}}>{'~'} {(pl.price / solPrice).toFixed(2)} SOL</div>
+            <div key={pl.id} className="pm-plan-card" style={{background:'#0d1420',border:cardBorder,boxShadow:cardShadow,borderRadius:12,position:'relative',minWidth:0,overflow:'visible',width:'100%'}}>
+              {pl.badge && <div style={{position:'absolute',top:-10,left:'50%',transform:'translateX(-50%)',zIndex:2,background:pl.badgeColor,color:badgeText,fontSize:8,fontWeight:700,padding:'3px 10px',borderRadius:10,whiteSpace:'nowrap',letterSpacing:'0.06em',boxShadow:'0 2px 8px rgba(0,0,0,0.35)'}}>{pl.badge}</div>}
+              <div className="pm-plan-card-inner" style={{overflow:'hidden',borderRadius:12,padding:'20px 16px'}}>
+                <div style={{textAlign:'center',marginBottom:14}}>
+                  <div style={{fontSize:11,fontWeight:600,color:'#8b949e',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.08em'}}>{pl.name}</div>
+                  <div style={{fontSize:32,fontWeight:800,color:'#fff',lineHeight:1}}>${pl.price}</div>
+                  <div style={{fontSize:11,color:'#484f58'}}>{pl.period}</div>
+                  <div style={{fontSize:9,color:'#303030',fontFamily:"'IBM Plex Mono',monospace",marginTop:2}}>{'~'} {(pl.price / solPrice).toFixed(2)} SOL</div>
+                </div>
+                <div style={{display:'flex',flexDirection:'column',gap:5,marginBottom:16}}>
+                  {pl.features.map((f: string) => <div key={f} style={{display:'flex',alignItems:'flex-start',gap:6,fontSize:'clamp(10px,2.8vw,11px)',lineHeight:1.45,color:'#8b949e'}}><span style={{color:pl.color,fontSize:10,marginTop:1}}>{'✓'}</span><span>{f}</span></div>)}
+                </div>
+                {fiatEnabled ? (
+                  <button type="button" onClick={()=>handleCardPay(pl.id)} disabled={loading===pl.id} style={{width:'100%',padding:'10px 0',borderRadius:8,border:'1px solid rgba(0,212,170,0.2)',background:'rgba(0,212,170,0.05)',color:'#fff',fontSize:12,fontWeight:600,cursor:'pointer',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontFamily:"'IBM Plex Mono',monospace"}}>Pay with Card</button>
+                ) : (
+                  <button type="button" disabled title="Card payments coming soon" style={{width:'100%',padding:'8px 0 10px',borderRadius:8,border:'1px solid rgba(255,255,255,0.08)',background:'rgba(255,255,255,0.03)',color:'#6e7681',fontSize:11,fontWeight:600,cursor:'not-allowed',marginBottom:8,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,fontFamily:"'IBM Plex Mono',monospace",opacity:0.85}}>
+                    <span>Pay with Card</span>
+                    <span style={{fontSize:9,fontWeight:500,opacity:0.75}}>Coming soon</span>
+                  </button>
+                )}
+                <div style={{textAlign:'center',fontSize:9,color:'#303030',margin:'4px 0 8px',letterSpacing:'0.05em'}}>or pay with crypto</div>
+                <div style={{display:'flex',gap:4,marginBottom:8}}>
+                  {['SOL','USDC'].map((c: string) => <button key={c} type="button" onClick={()=>setPayMethod(prev=>({...prev,[pl.id]:c}))} style={{flex:1,padding:'5px 0',borderRadius:6,border:'1px solid ' + ((payMethod[pl.id]||'SOL')===c?'rgba(0,212,170,0.3)':'rgba(255,255,255,0.06)'),background:(payMethod[pl.id]||'SOL')===c?'rgba(0,212,170,0.08)':'transparent',color:(payMethod[pl.id]||'SOL')===c?'#00d4aa':'#484f58',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:"'IBM Plex Mono',monospace"}}>{c}</button>)}
+                </div>
+                <button type="button" onClick={()=>handleSolPay(pl.id)} disabled={loading===pl.id} style={{width:'100%',padding:'10px 0',borderRadius:8,border:'none',background:'linear-gradient(135deg,#00d4aa,#059669)',color:'#000',fontSize:11,fontWeight:700,cursor:loading===pl.id?'not-allowed':'pointer',opacity:loading===pl.id?0.6:1,fontFamily:"'IBM Plex Mono',monospace"}}>
+                  {loading===pl.id ? 'Processing...' : 'Pay ' + (pl.price / solPrice).toFixed(2) + ' SOL on Solana'}
+                </button>
               </div>
-              <div style={{display:'flex',flexDirection:'column',gap:5,marginBottom:16}}>
-                {pl.features.map((f: string) => <div key={f} style={{display:'flex',alignItems:'flex-start',gap:6,fontSize:'clamp(10px,2.8vw,11px)',lineHeight:1.45,color:'#8b949e'}}><span style={{color:pl.color,fontSize:10,marginTop:1}}>{'✓'}</span><span>{f}</span></div>)}
-              </div>
-              <button onClick={()=>handleCardPay(pl.id)} disabled={loading===pl.id} style={{width:'100%',padding:'10px 0',borderRadius:8,border:'1px solid rgba(0,212,170,0.2)',background:'rgba(0,212,170,0.05)',color:'#fff',fontSize:12,fontWeight:600,cursor:'pointer',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontFamily:"'IBM Plex Mono',monospace"}}>Pay with Card</button>
-              <div style={{textAlign:'center',fontSize:9,color:'#303030',margin:'4px 0 8px',letterSpacing:'0.05em'}}>or pay with crypto</div>
-              <div style={{display:'flex',gap:4,marginBottom:8}}>
-                {['SOL','USDC'].map((c: string) => <button key={c} onClick={()=>setPayMethod(prev=>({...prev,[pl.id]:c}))} style={{flex:1,padding:'5px 0',borderRadius:6,border:'1px solid ' + ((payMethod[pl.id]||'SOL')===c?'rgba(0,212,170,0.3)':'rgba(255,255,255,0.06)'),background:(payMethod[pl.id]||'SOL')===c?'rgba(0,212,170,0.08)':'transparent',color:(payMethod[pl.id]||'SOL')===c?'#00d4aa':'#484f58',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:"'IBM Plex Mono',monospace"}}>{c}</button>)}
-              </div>
-              <button onClick={()=>handleSolPay(pl.id)} disabled={loading===pl.id} style={{width:'100%',padding:'10px 0',borderRadius:8,border:'none',background:'linear-gradient(135deg,#00d4aa,#059669)',color:'#000',fontSize:11,fontWeight:700,cursor:loading===pl.id?'not-allowed':'pointer',opacity:loading===pl.id?0.6:1,fontFamily:"'IBM Plex Mono',monospace"}}>
-                {loading===pl.id ? 'Processing...' : 'Pay ' + (pl.price / solPrice).toFixed(2) + ' SOL on Solana'}
-              </button>
             </div>
             )
           })}
@@ -1663,10 +1673,14 @@ function ProModal({ onClose }: { onClose: () => void }) {
           {[{icon:'W',name:'Whale Tracker',desc:'Follow top wallets with >$500K PnL'},{icon:'A',name:'Alpha Feed',desc:'Rug alerts, accumulation signals'},{icon:'S',name:'AI Auto-Sniper',desc:'Neural auto-trade on Jupiter'}].map(f => <div key={f.name} style={{background:'rgba(0,212,170,0.02)',border:'1px solid rgba(0,212,170,0.06)',borderRadius:10,padding:'14px 12px',textAlign:'center'}}><div style={{fontSize:16,marginBottom:6,color:'#00d4aa'}}>{f.icon}</div><div style={{fontSize:11,fontWeight:700,color:'#e2e8f0',marginBottom:3}}>{f.name}</div><div style={{fontSize:9,color:'#484f58',lineHeight:1.5}}>{f.desc}</div></div>)}
         </div>
         <div style={{padding:'10px 20px 14px',borderTop:'1px solid rgba(255,255,255,0.04)',textAlign:'center'}}>
-          <span style={{fontSize:9,color:'#303030'}}>Crypto payments on Solana Mainnet | Card payments via Stripe | No refunds</span>
+          <span style={{fontSize:9,color:'#303030'}}>
+            {fiatEnabled
+              ? 'Crypto payments on Solana Mainnet | Card payments via Stripe | No refunds'
+              : 'Crypto payments on Solana Mainnet | Card checkout coming soon | No refunds'}
+          </span>
         </div>
       </div>
-      <style>{'.pm-modal-grid{display:grid;grid-template-columns:1fr;width:100%;gap:12px}.pm-plan-card{width:100%;min-width:0;max-width:none}.pm-plan-card *{word-break:break-word;overflow-wrap:anywhere}@media(min-width:768px){.pm-modal-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:767px){.pm-modal-grid{display:flex!important;flex-direction:column!important;align-items:center!important;padding:0 10px 16px!important}.pm-plan-card{width:95%!important;max-width:400px!important;min-width:0!important;padding:16px 12px!important}}'}</style>
+      <style>{'.pm-modal-grid{display:grid;grid-template-columns:1fr;width:100%;max-width:100%;gap:12px;box-sizing:border-box}.pm-plan-card{width:100%;min-width:0;max-width:none}.pm-plan-card *{word-break:break-word;overflow-wrap:anywhere}.pm-plan-card-inner{box-sizing:border-box}@media(min-width:768px){.pm-modal-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:767px){.pm-modal-grid{display:flex!important;flex-direction:column!important;align-items:center!important;padding:14px 12px 16px!important}.pm-plan-card{width:100%!important;max-width:400px!important;min-width:0!important}.pm-plan-card-inner{padding:16px 12px!important}}'}</style>
     </div>
   )
 }
