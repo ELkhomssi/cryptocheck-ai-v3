@@ -2,7 +2,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Home, LayoutDashboard } from 'lucide-react'
+import { Home, LayoutDashboard, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import MintInput from '@/components/MintInput'
 import { Buffer } from 'buffer'
@@ -59,6 +59,7 @@ import {
   NETWORK_LABEL,
   ENGINE_LABEL,
 } from '@/lib/helius'
+import { formatSolanaError } from '@/lib/payments/format-solana-error'
 
 ChartJS.register(ArcElement, Tooltip, Legend)
 
@@ -1488,6 +1489,7 @@ type DexQuote = any
 function ProModal({ onClose }: { onClose: () => void }) {
   const [solPrice, setSolPrice] = React.useState(80)
   const [txStatus, setTxStatus] = React.useState<string|null>(null)
+  const [txStatusIsError, setTxStatusIsError] = React.useState(false)
   const [loading, setLoading] = React.useState<string|null>(null)
   const [payMethod, setPayMethod] = React.useState<Record<string,string>>({})
   React.useEffect(() => { fetch('/api/sol-price').then(r=>r.json()).then(d=>{ if(d.price) setSolPrice(d.price) }).catch(()=>{}) }, [])
@@ -1498,17 +1500,26 @@ function ProModal({ onClose }: { onClose: () => void }) {
     { id:'elite', name:'Pro Max Elite', price:40, period:'/month', badge:'COMMAND CENTER' as string|null, badgeColor:'#8b5cf6', color:'#8b5cf6', features:['Everything in Pro','Elite Whale Alerts','AI Auto-Sniper Bot','Neural Risk Filtering','Priority RPC Access'] },
   ]
   async function handleSolPay(planId: string) {
-    setLoading(planId); setTxStatus(null)
+    setLoading(planId)
+    setTxStatus(null)
+    setTxStatusIsError(false)
+
+    let connection: import('@solana/web3.js').Connection | null = null
+    let payerPubkey: import('@solana/web3.js').PublicKey | null = null
+    let requiredLamports: number | undefined
+
     try {
       const provider = (window as any).phantom?.solana || (window as any).solana
       if (!provider?.publicKey) { alert('Connect your Phantom wallet first'); setLoading(null); return }
+      payerPubkey = provider.publicKey
       const web3 = await import('@solana/web3.js')
-      const connection = new web3.Connection(getClientSolanaRpcUrl(), 'confirmed')
+      connection = new web3.Connection(getClientSolanaRpcUrl(), 'confirmed')
       const plan = plans.find(p => p.id === planId)!
       const solAmount = plan.price / solPrice
+      requiredLamports = Math.round(solAmount * web3.LAMPORTS_PER_SOL)
       setTxStatus('Requesting wallet approval...')
       const tx = new web3.Transaction()
-      tx.add(web3.SystemProgram.transfer({ fromPubkey: provider.publicKey, toPubkey: new web3.PublicKey('5jbWsijUWqXLyuaNtzkiu2JM1C5jNPUP9oRjKmmJx15i'), lamports: Math.round(solAmount * web3.LAMPORTS_PER_SOL) }))
+      tx.add(web3.SystemProgram.transfer({ fromPubkey: provider.publicKey, toPubkey: new web3.PublicKey('5jbWsijUWqXLyuaNtzkiu2JM1C5jNPUP9oRjKmmJx15i'), lamports: requiredLamports }))
       tx.add(new web3.TransactionInstruction({
         keys: [],
         programId: new web3.PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'),
@@ -1531,8 +1542,17 @@ function ProModal({ onClose }: { onClose: () => void }) {
       if (!res.ok) throw new Error(result.error || 'Verification failed')
       setTxStatus('Payment confirmed!')
       setTimeout(() => window.location.reload(), 1500)
-    } catch(e: any) {
-      setTxStatus(e?.message?.includes('User rejected') ? 'Transaction cancelled' : (e?.message || 'Failed'))
+    } catch (e: unknown) {
+      let userLamports: number | undefined
+      if (connection && payerPubkey) {
+        try {
+          userLamports = await connection.getBalance(payerPubkey)
+        } catch {
+          /* ignore secondary RPC errors */
+        }
+      }
+      setTxStatus(formatSolanaError(e, { requiredLamports, userLamports }))
+      setTxStatusIsError(true)
     } finally { setTimeout(() => setLoading(null), 2000) }
   }
   async function handleCardPay(planId: string) {
@@ -1556,7 +1576,55 @@ function ProModal({ onClose }: { onClose: () => void }) {
           <h2 style={{fontSize:24,fontWeight:800,color:'#fff',margin:'0 0 6px'}}>Upgrade to <span style={{color:'#00d4aa'}}>PRO</span></h2>
           <p style={{fontSize:12,color:'#6e7681',margin:0}}>Pay with card or crypto on Solana — instant access.</p>
         </div>
-        {txStatus && <div style={{margin:'0 20px 12px',padding:'8px 14px',borderRadius:8,fontSize:11,fontWeight:600,fontFamily:"'IBM Plex Mono',monospace",textAlign:'center',background:'rgba(0,212,170,0.06)',border:'1px solid rgba(0,212,170,0.15)',color:'#00d4aa'}}>{txStatus}</div>}
+        {txStatus && (
+          <div
+            style={{
+              margin: '0 20px 12px',
+              padding: '10px 14px',
+              borderRadius: 8,
+              fontSize: 11,
+              fontWeight: 600,
+              fontFamily: "'IBM Plex Mono',monospace",
+              textAlign: 'left',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 10,
+              lineHeight: 1.45,
+              wordBreak: 'break-word',
+              background: txStatusIsError ? 'rgba(251,191,36,0.08)' : 'rgba(0,212,170,0.06)',
+              border: txStatusIsError ? '1px solid rgba(251,191,36,0.35)' : '1px solid rgba(0,212,170,0.15)',
+              color: txStatusIsError ? '#fcd34d' : '#00d4aa',
+              position: 'relative',
+              paddingRight: txStatusIsError ? 36 : 14,
+            }}
+          >
+            {txStatusIsError && (
+              <AlertCircle size={18} style={{ flexShrink: 0, marginTop: 1, opacity: 0.95 }} aria-hidden />
+            )}
+            <span style={{ flex: 1, textAlign: txStatusIsError ? 'left' : 'center' }}>{txStatus}</span>
+            {txStatusIsError && (
+              <button
+                type="button"
+                onClick={() => { setTxStatus(null); setTxStatusIsError(false) }}
+                aria-label="Dismiss message"
+                style={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 10,
+                  background: 'none',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  fontSize: 18,
+                  lineHeight: 1,
+                  padding: 2,
+                }}
+              >
+                &times;
+              </button>
+            )}
+          </div>
+        )}
         <div className="pm-modal-grid" style={{display:'grid',gap:12,padding:'0 20px 16px',width:'100%'}}>
           {plans.map(pl => (
             <div key={pl.id} className="pm-plan-card" style={{background:'#0d1420',border:'1px solid ' + (pl.badge ? pl.color + '30' : 'rgba(0,212,170,0.08)'),borderRadius:12,padding:'20px 16px',position:'relative',minWidth:0,overflow:'hidden',width:'100%'}}>
