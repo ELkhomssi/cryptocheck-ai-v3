@@ -31,7 +31,7 @@ function isLoading(tierId: DeveloperTierId, method: PayMethod, loadingTierId?: D
 }
 
 function buildEnterpriseSalesMailto() {
-  const salesEmail = process.env.NEXT_PUBLIC_SALES_EMAIL || 'sales@cryptocheckai.com'
+  const salesEmail = 'cryptocheckai@gmail.com'
   const subject = encodeURIComponent('Enterprise inquiry - CryptoCheck AI')
   const body = encodeURIComponent(
     [
