@@ -4,19 +4,17 @@ import Link from 'next/link'
 import { Check } from 'lucide-react'
 import { DEVELOPER_TIERS, type DeveloperTier, type DeveloperTierId } from '@/lib/config/developer-pricing'
 import { Card } from '@/components/Dashboard/intelligence-terminal/primitives/Card'
+import type { BillingStripeUrls } from '@/lib/config/billing-stripe-urls'
 
 type BillingTier = 'FREE' | 'PRO' | 'ENTERPRISE' | 'pro-developer' | 'enterprise' | string | null | undefined
-type PayMethod = 'card' | 'sol' | 'usdc'
 
 type DeveloperPricingGridProps = {
   currentTier?: BillingTier
   manageHref?: string
   contactSalesHref?: string
-  loadingTierId?: DeveloperTierId | null
-  loadingMethod?: PayMethod | null
-  onPayCard?: (tier: DeveloperTier) => void
-  onPaySol?: (tier: DeveloperTier) => void
-  onPayUsdc?: (tier: DeveloperTier) => void
+  stripeUrls: BillingStripeUrls
+  redirectingTierId?: string | null
+  onStripeBuy: (tier: DeveloperTier) => void
 }
 
 function normalizeTier(input: BillingTier): DeveloperTierId | 'free' {
@@ -24,10 +22,6 @@ function normalizeTier(input: BillingTier): DeveloperTierId | 'free' {
   if (raw === 'pro' || raw === 'pro-developer') return 'pro-developer'
   if (raw === 'enterprise') return 'enterprise'
   return 'free'
-}
-
-function isLoading(tierId: DeveloperTierId, method: PayMethod, loadingTierId?: DeveloperTierId | null, loadingMethod?: PayMethod | null) {
-  return loadingTierId === tierId && loadingMethod === method
 }
 
 function buildEnterpriseSalesMailto() {
@@ -52,15 +46,13 @@ export function DeveloperPricingGrid({
   currentTier,
   manageHref = '/dashboard/billing',
   contactSalesHref,
-  loadingTierId = null,
-  loadingMethod = null,
-  onPayCard,
-  onPaySol,
-  onPayUsdc,
+  stripeUrls,
+  redirectingTierId = null,
+  onStripeBuy,
 }: DeveloperPricingGridProps) {
   const effectiveTier = normalizeTier(currentTier)
-  const fiatEnabled = process.env.NEXT_PUBLIC_ENABLE_FIAT_PAYMENTS === 'true'
   const enterpriseContactHref = contactSalesHref ?? buildEnterpriseSalesMailto()
+  const enterprisePayUrl = stripeUrls.enterprise?.trim()
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -81,9 +73,7 @@ export function DeveloperPricingGrid({
                 {tier.id === 'enterprise' ? (
                   <p className="mt-1 text-xs font-medium text-slate-500">or custom</p>
                 ) : (
-                  <p className="mt-1 text-xs font-medium text-slate-500">
-                    Pay {tier.priceSol.toFixed(2)} SOL or {tier.priceUsdc} USDC
-                  </p>
+                  <p className="mt-1 text-xs font-medium text-slate-500">Billed securely via Stripe</p>
                 )}
               </div>
               {current && (
@@ -124,46 +114,34 @@ export function DeveloperPricingGrid({
                     Manage
                   </Link>
                 </div>
-              ) : tier.ctaVariant === 'contact-sales' ? (
-                <a
-                  href={enterpriseContactHref}
-                  className="inline-flex w-full items-center justify-center rounded-lg border border-fuchsia-500/40 bg-fuchsia-500/12 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-fuchsia-100 transition-colors hover:bg-fuchsia-500/20"
-                >
-                  Contact Sales
-                </a>
-              ) : (
+              ) : tier.id === 'enterprise' ? (
                 <div className="space-y-2.5">
-                  <button
-                    type="button"
-                    onClick={() => onPayCard?.(tier)}
-                    disabled={!fiatEnabled || isLoading(tier.id, 'card', loadingTierId, loadingMethod)}
-                    title={!fiatEnabled ? 'Card payments coming soon' : undefined}
-                    className="w-full rounded-lg border border-white/10 bg-white/[0.03] py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400 disabled:cursor-not-allowed disabled:opacity-75"
+                  {enterprisePayUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => onStripeBuy(tier)}
+                      disabled={redirectingTierId === tier.id}
+                      className="w-full rounded-lg border border-fuchsia-500/40 bg-fuchsia-500/14 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-fuchsia-100 transition-colors hover:bg-fuchsia-500/22 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {redirectingTierId === tier.id ? 'Redirecting…' : 'Buy now'}
+                    </button>
+                  ) : null}
+                  <a
+                    href={enterpriseContactHref}
+                    className="inline-flex w-full items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-200 transition-colors hover:bg-white/[0.06]"
                   >
-                    <span className="block">Pay with Card</span>
-                    {!fiatEnabled && <span className="mt-0.5 block text-[10px] font-medium normal-case tracking-normal">Coming soon</span>}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => onPaySol?.(tier)}
-                    disabled={isLoading(tier.id, 'sol', loadingTierId, loadingMethod)}
-                    className="w-full rounded-lg border border-emerald-500/40 bg-emerald-500/14 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-100 transition-colors hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    {isLoading(tier.id, 'sol', loadingTierId, loadingMethod)
-                      ? 'Processing...'
-                      : `Pay ${tier.priceSol.toFixed(2)} SOL on Solana`}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => onPayUsdc?.(tier)}
-                    disabled={isLoading(tier.id, 'usdc', loadingTierId, loadingMethod)}
-                    className="w-full rounded-lg border border-cyan-500/35 bg-cyan-500/10 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-cyan-100 transition-colors hover:bg-cyan-500/18 disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    {isLoading(tier.id, 'usdc', loadingTierId, loadingMethod) ? 'Processing...' : `Pay ${tier.priceUsdc} USDC`}
-                  </button>
+                    Contact sales
+                  </a>
                 </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onStripeBuy(tier)}
+                  disabled={redirectingTierId === tier.id || !stripeUrls.proDeveloper?.trim()}
+                  className="w-full rounded-lg border border-emerald-500/40 bg-emerald-500/14 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-100 transition-colors hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {redirectingTierId === tier.id ? 'Redirecting…' : 'Buy now'}
+                </button>
               )}
             </div>
           </Card>

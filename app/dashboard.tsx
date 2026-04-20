@@ -59,7 +59,6 @@ import {
   NETWORK_LABEL,
   ENGINE_LABEL,
 } from '@/lib/helius'
-import { formatSolanaError } from '@/lib/payments/format-solana-error'
 
 ChartJS.register(ArcElement, Tooltip, Legend)
 
@@ -1417,154 +1416,118 @@ function JupiterSwapModal({ mint, sym, onClose }: {
 }
 
 
-// ── Pro Modal ──
-// Solana logo inline SVG — no external dep
-function SolanaLogo({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 397.7 311.7" xmlns="http://www.w3.org/2000/svg">
-      <linearGradient id="sol-g" x1="90.9" y1="319.6" x2="296" y2="-12.6" gradientUnits="userSpaceOnUse">
-        <stop offset="0" stopColor="#9945ff"/><stop offset=".42" stopColor="#5497d5"/>
-        <stop offset=".82" stopColor="#28e0b9"/><stop offset="1" stopColor="#19fb9b"/>
-      </linearGradient>
-      <path fill="url(#sol-g)" d="M64.6 237.9a10 10 0 0 1 7-2.9h317.4c4.4 0 6.6 5.3 3.5 8.4l-62.7 62.7a10 10 0 0 1-7 2.9H5.4c-4.4 0-6.6-5.3-3.5-8.4l62.7-62.7zm0-165.1a10 10 0 0 1 7-2.9h317.4c4.4 0 6.6 5.3 3.5 8.4L329.8 141a10 10 0 0 1-7 2.9H5.4c-4.4 0-6.6-5.3-3.5-8.4l62.7-62.8zM329.8 6.9a10 10 0 0 0-7-2.9H5.4C1 4-1.2 9.3 1.9 12.4l62.7 62.7a10 10 0 0 0 7 2.9h317.4c4.4 0 6.6-5.3 3.5-8.4L329.8 6.9z"/>
-    </svg>
-  )
-}
-
-// Plan definitions — single source of truth
-const PLANS = [
-  {
-    id:       'weekly'  as const,
-    label:    'Weekly',
-    price:    '$5',
-    period:   '/week',
-    solAmt:   0.03,
-    usdcAmt:  5,
-    accentColor: '#00d4aa',
-    badge:    null,
-    features: ['Unlimited Neural Scans','Portfolio Risk Scanner','Whale Tracker','Alpha Feed','Priority Support'],
-    btnStyle: { background:'transparent', border:'1px solid rgba(48,54,61,1)', color:'#8b949e' },
-  },
-  {
-    id:       'yearly'  as const,
-    label:    'Yearly',
-    price:    '$200',
-    period:   '/year',
-    solAmt:   1.2,
-    usdcAmt:  200,
-    accentColor: '#00d4aa',
-    badge:    '⭐ BEST VALUE — SAVE 77%',
-    badgeStyle: { background:'linear-gradient(135deg,#00d4aa,#06b6d4)' },
-    features: ['Everything in Weekly','Institutional Analytics','API Access (1M calls/mo)','Telegram Alerts Bot','Early Feature Access'],
-    btnStyle: { background:'linear-gradient(135deg,#00d4aa,#00b894)', boxShadow:'0 0 12px rgba(48,54,61,1)', color:'#fff', border:'none' },
-  },
-  {
-    id:       'vip'     as const,
-    label:    'AI Auto-Sniper',
-    price:    '$30',
-    period:   '/mo',
-    solAmt:   0.2,
-    usdcAmt:  30,
-    accentColor: '#f59e0b',
-    badge:    '⚡ VIP EXCLUSIVE',
-    badgeStyle: { background:'linear-gradient(135deg,#f59e0b,#7c3aed)' },
-    cardStyle: { background:'linear-gradient(135deg,rgba(251,191,36,0.06),rgba(124,58,237,0.08))', border:'1px solid rgba(251,191,36,0.3)' },
-    priceStyle: { color:'#fbbf24' },
-    featureColor: '#fbbf24',
-    features: ['Everything in Yearly','AI Auto-Sniper Bot','Neural Risk Filtering','Jupiter Auto-Execution','Priority RPC Access'],
-    btnStyle: { background:'linear-gradient(135deg,#f59e0b,#7c3aed)', boxShadow:'0 0 12px rgba(245,158,11,0.3)', color:'#fff', border:'none' },
-  },
-] as const
-
-type PlanId = typeof PLANS[number]['id']
-type CryptoStep = 'idle'|'connecting'|'confirm'|'sending'|'success'|'error'
-type Coin = 'SOL'|'USDC'
-
-const DEST_WALLET = '5jbWsijUWqXLyuaNtzkiu2JM1C5jNPUP9oRjKmmJx15i'
-const USDC_MINT   = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DexQuote = any
 
+type ProModalPlan = {
+  id: 'starter' | 'deep' | 'elite'
+  name: string
+  price: number
+  period: string
+  badge: string | null
+  badgeColor: string
+  color: string
+  features: string[]
+}
+
 function ProModal({ onClose }: { onClose: () => void }) {
-  const [solPrice, setSolPrice] = React.useState(80)
-  const [txStatus, setTxStatus] = React.useState<string|null>(null)
+  const [txStatus, setTxStatus] = React.useState<string | null>(null)
   const [txStatusIsError, setTxStatusIsError] = React.useState(false)
-  const [loading, setLoading] = React.useState<string|null>(null)
-  const [payMethod, setPayMethod] = React.useState<Record<string,string>>({})
-  React.useEffect(() => { fetch('/api/sol-price').then(r=>r.json()).then(d=>{ if(d.price) setSolPrice(d.price) }).catch(()=>{}) }, [])
-  const fiatEnabled = process.env.NEXT_PUBLIC_ENABLE_FIAT_PAYMENTS === 'true'
-  const plans = [
-    { id:'starter', name:'Micro Pack', price:5, period:'/one-time', badge:'STARTER' as string|null, badgeColor:'#475569', color:'#20b2aa', features:['10 Deep Neural Scans','Rug Detection Reports','Basic Risk Scoring','Valid 30 days'] },
-    { id:'deep', name:'Pro Max Deep', price:30, period:'/month', badge:'BEST VALUE' as string|null, badgeColor:'#00d4aa', color:'#d4af37', features:['Deep Neural Scan Engine','Unlimited Neural Scans','GNN Cluster Mapping','LP Exit Prediction','0% Performance Fees'] },
-    { id:'elite', name:'Pro Max Elite', price:40, period:'/month', badge:'COMMAND CENTER' as string|null, badgeColor:'#8b5cf6', color:'#8b5cf6', features:['Everything in Deep','Elite Whale Alerts','AI Auto-Sniper Bot','Neural Risk Filtering','Priority RPC Access'] },
+  const [loading, setLoading] = React.useState<string | null>(null)
+  const [stripeLinks, setStripeLinks] = React.useState<{
+    micropack: string | null
+    proMaxDeep: string | null
+    proMaxElite: string | null
+  } | null>(null)
+
+  React.useEffect(() => {
+    void fetch('/api/billing/payment-links')
+      .then((r) => r.json())
+      .then((j) => {
+        setStripeLinks({
+          micropack: typeof j.micropack === 'string' ? j.micropack : null,
+          proMaxDeep: typeof j.proMaxDeep === 'string' ? j.proMaxDeep : null,
+          proMaxElite: typeof j.proMaxElite === 'string' ? j.proMaxElite : null,
+        })
+      })
+      .catch(() => setStripeLinks({ micropack: null, proMaxDeep: null, proMaxElite: null }))
+  }, [])
+
+  const plans: ProModalPlan[] = [
+    {
+      id: 'starter',
+      name: 'Micro Pack',
+      price: 5,
+      period: '/one-time',
+      badge: 'STARTER',
+      badgeColor: '#475569',
+      color: '#20b2aa',
+      features: ['10 Deep Neural Scans', 'Rug Detection Reports', 'Basic Risk Scoring', 'Valid 30 days'],
+    },
+    {
+      id: 'deep',
+      name: 'Pro Max Deep',
+      price: 30,
+      period: '/month',
+      badge: 'BEST VALUE',
+      badgeColor: '#00d4aa',
+      color: '#d4af37',
+      features: ['Deep Neural Scan Engine', 'Unlimited Neural Scans', 'GNN Cluster Mapping', 'LP Exit Prediction', '0% Performance Fees'],
+    },
+    {
+      id: 'elite',
+      name: 'Pro Max Elite',
+      price: 40,
+      period: '/month',
+      badge: 'COMMAND CENTER',
+      badgeColor: '#8b5cf6',
+      color: '#8b5cf6',
+      features: ['Everything in Deep', 'Elite Whale Alerts', 'AI Auto-Sniper Bot', 'Neural Risk Filtering', 'Priority RPC Access'],
+    },
   ]
-  async function handleSolPay(planId: string) {
+
+  function stripeUrlForPlan(planId: string): string | null {
+    if (!stripeLinks) return null
+    if (planId === 'starter') return stripeLinks.micropack
+    if (planId === 'deep') return stripeLinks.proMaxDeep
+    if (planId === 'elite') return stripeLinks.proMaxElite
+    return null
+  }
+
+  async function handleStripeBuy(planId: string) {
+    const raw = stripeUrlForPlan(planId)
+    if (!raw?.trim()) {
+      setTxStatus('Checkout is not configured for this plan.')
+      setTxStatusIsError(true)
+      return
+    }
     setLoading(planId)
     setTxStatus(null)
     setTxStatusIsError(false)
-
-    let connection: import('@solana/web3.js').Connection | null = null
-    let payerPubkey: import('@solana/web3.js').PublicKey | null = null
-    let requiredLamports: number | undefined
-
     try {
-      const provider = (window as any).phantom?.solana || (window as any).solana
-      if (!provider?.publicKey) { alert('Connect your Phantom wallet first'); setLoading(null); return }
-      payerPubkey = provider.publicKey
-      const web3 = await import('@solana/web3.js')
-      connection = new web3.Connection(getClientSolanaRpcUrl(), 'confirmed')
-      const plan = plans.find(p => p.id === planId)!
-      const solAmount = plan.price / solPrice
-      requiredLamports = Math.round(solAmount * web3.LAMPORTS_PER_SOL)
-      setTxStatus('Requesting wallet approval...')
-      const tx = new web3.Transaction()
-      tx.add(web3.SystemProgram.transfer({ fromPubkey: provider.publicKey, toPubkey: new web3.PublicKey('5jbWsijUWqXLyuaNtzkiu2JM1C5jNPUP9oRjKmmJx15i'), lamports: requiredLamports }))
-      tx.add(new web3.TransactionInstruction({
-        keys: [],
-        programId: new web3.PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'),
-        data: Buffer.from('CryptoCheckAI Subscription', 'utf8'),
-      }))
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized')
-      tx.recentBlockhash = blockhash; tx.feePayer = provider.publicKey
-      setTxStatus('Confirm in wallet...')
-      const signed = await provider.signTransaction(tx)
-      setTxStatus('Broadcasting to Solana...')
-      const sig = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false, preflightCommitment: 'confirmed' })
-      setTxStatus('Confirming on-chain...')
-      await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
-      setTxStatus('Verifying payment...')
       const { supabase } = await import('@/lib/supabase')
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user?.id) throw new Error('Not logged in')
-      const res = await fetch('/api/payments/verify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ signature:sig, plan:planId, userId:session.user.id, solPrice }) })
-      const result = await res.json()
-      if (!res.ok) throw new Error(result.error || 'Verification failed')
-      setTxStatus('Payment confirmed!')
-      setTimeout(() => window.location.reload(), 1500)
-    } catch (e: unknown) {
-      let userLamports: number | undefined
-      if (connection && payerPubkey) {
-        try {
-          userLamports = await connection.getBalance(payerPubkey)
-        } catch {
-          /* ignore secondary RPC errors */
-        }
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (!session?.user?.id) {
+        setTxStatus('Sign in to continue — we attach your purchase to your account.')
+        setTxStatusIsError(true)
+        setLoading(null)
+        return
       }
-      setTxStatus(formatSolanaError(e, { requiredLamports, userLamports }))
+      const q = new URLSearchParams()
+      q.set('client_reference_id', session.user.id)
+      if (session.user.email) q.set('prefilled_email', session.user.email)
+      const sep = raw.includes('?') ? '&' : '?'
+      window.location.href = `${raw.trim()}${sep}${q.toString()}`
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Could not start checkout'
+      setTxStatus(msg)
       setTxStatusIsError(true)
-    } finally { setTimeout(() => setLoading(null), 2000) }
+      setLoading(null)
+    }
   }
-  async function handleCardPay(planId: string) {
-    setLoading(planId)
-    try {
-      const res = await fetch('/api/stripe/checkout', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ plan: planId }) })
-      const data = await res.json()
-      if (data.url) window.location.assign(data.url)
-      else throw new Error(data.error || 'Failed')
-    } catch(e: any) { alert('Payment error: ' + (e?.message || 'Unknown')) }
-    finally { setLoading(null) }
-  }
+
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.8)',backdropFilter:'blur(20px)',display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
       <div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:'min(920px, calc(100vw - 32px))',minWidth:0,boxSizing:'border-box',maxHeight:'90vh',overflowY:'auto',overflowX:'hidden',background:'#0a0e14',border:'1px solid rgba(0,212,170,0.12)',borderRadius:16,boxShadow:'0 32px 80px rgba(0,0,0,0.8)',fontFamily:"'IBM Plex Mono','Inter',monospace"}}>
@@ -1574,7 +1537,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
             <span style={{fontSize:8,fontWeight:700,color:'#00d4aa',letterSpacing:'0.1em'}}>INSTITUTIONAL ACCESS</span>
           </div>
           <h2 style={{fontSize:24,fontWeight:800,color:'#fff',margin:'0 0 6px'}}>Upgrade to <span style={{color:'#00d4aa'}}>PRO</span></h2>
-          <p style={{fontSize:12,color:'#6e7681',margin:0}}>Pay with card or crypto on Solana — instant access.</p>
+          <p style={{fontSize:12,color:'#6e7681',margin:0}}>Secure checkout via Stripe — instant access after payment.</p>
         </div>
         {txStatus && (
           <div
@@ -1626,7 +1589,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
           </div>
         )}
         <div className="pm-modal-grid" style={{display:'grid',gap:12,padding:'14px 20px 16px',width:'100%',maxWidth:'100%',boxSizing:'border-box'}}>
-          {plans.map(pl => {
+          {plans.map((pl) => {
             const recommended = pl.id === 'deep'
             const cardBorder = recommended
               ? '1px solid rgba(0,212,170,0.42)'
@@ -1636,6 +1599,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
               : undefined
             const badgeText =
               pl.badgeColor === '#8b5cf6' || pl.badge === 'STARTER' ? '#f8fafc' : '#0a0a0a'
+            const payUrl = stripeUrlForPlan(pl.id)
             return (
             <div key={pl.id} className="pm-plan-card" style={{background:'#0d1420',border:cardBorder,boxShadow:cardShadow,borderRadius:12,position:'relative',minWidth:0,overflow:'visible',width:'100%'}}>
               {pl.badge && <div style={{position:'absolute',top:-10,left:'50%',transform:'translateX(-50%)',zIndex:2,background:pl.badgeColor,color:badgeText,fontSize:8,fontWeight:700,padding:'3px 10px',borderRadius:10,whiteSpace:'nowrap',letterSpacing:'0.06em',boxShadow:'0 2px 8px rgba(0,0,0,0.35)'}}>{pl.badge}</div>}
@@ -1644,25 +1608,17 @@ function ProModal({ onClose }: { onClose: () => void }) {
                   <div style={{fontSize:11,fontWeight:600,color:'#8b949e',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.08em'}}>{pl.name}</div>
                   <div style={{fontSize:32,fontWeight:800,color:'#fff',lineHeight:1}}>${pl.price}</div>
                   <div style={{fontSize:11,color:'#484f58'}}>{pl.period}</div>
-                  <div style={{fontSize:9,color:'#303030',fontFamily:"'IBM Plex Mono',monospace",marginTop:2}}>{'~'} {(pl.price / solPrice).toFixed(2)} SOL</div>
                 </div>
                 <div style={{display:'flex',flexDirection:'column',gap:5,marginBottom:16}}>
                   {pl.features.map((f: string) => <div key={f} style={{display:'flex',alignItems:'flex-start',gap:6,fontSize:'clamp(10px,2.8vw,11px)',lineHeight:1.45,color:'#8b949e'}}><span style={{color:pl.color,fontSize:10,marginTop:1}}>{'✓'}</span><span>{f}</span></div>)}
                 </div>
-                {fiatEnabled ? (
-                  <button type="button" onClick={()=>handleCardPay(pl.id)} disabled={loading===pl.id} style={{width:'100%',padding:'10px 0',borderRadius:8,border:'1px solid rgba(0,212,170,0.2)',background:'rgba(0,212,170,0.05)',color:'#fff',fontSize:12,fontWeight:600,cursor:'pointer',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontFamily:"'IBM Plex Mono',monospace"}}>Pay with Card</button>
-                ) : (
-                  <button type="button" disabled title="Card payments coming soon" style={{width:'100%',padding:'8px 0 10px',borderRadius:8,border:'1px solid rgba(255,255,255,0.08)',background:'rgba(255,255,255,0.03)',color:'#6e7681',fontSize:11,fontWeight:600,cursor:'not-allowed',marginBottom:8,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,fontFamily:"'IBM Plex Mono',monospace",opacity:0.85}}>
-                    <span>Pay with Card</span>
-                    <span style={{fontSize:9,fontWeight:500,opacity:0.75}}>Coming soon</span>
-                  </button>
-                )}
-                <div style={{textAlign:'center',fontSize:9,color:'#303030',margin:'4px 0 8px',letterSpacing:'0.05em'}}>or pay with crypto</div>
-                <div style={{display:'flex',gap:4,marginBottom:8}}>
-                  {['SOL','USDC'].map((c: string) => <button key={c} type="button" onClick={()=>setPayMethod(prev=>({...prev,[pl.id]:c}))} style={{flex:1,padding:'5px 0',borderRadius:6,border:'1px solid ' + ((payMethod[pl.id]||'SOL')===c?'rgba(0,212,170,0.3)':'rgba(255,255,255,0.06)'),background:(payMethod[pl.id]||'SOL')===c?'rgba(0,212,170,0.08)':'transparent',color:(payMethod[pl.id]||'SOL')===c?'#00d4aa':'#484f58',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:"'IBM Plex Mono',monospace"}}>{c}</button>)}
-                </div>
-                <button type="button" onClick={()=>handleSolPay(pl.id)} disabled={loading===pl.id} style={{width:'100%',padding:'10px 0',borderRadius:8,border:'none',background:'linear-gradient(135deg,#00d4aa,#059669)',color:'#000',fontSize:11,fontWeight:700,cursor:loading===pl.id?'not-allowed':'pointer',opacity:loading===pl.id?0.6:1,fontFamily:"'IBM Plex Mono',monospace"}}>
-                  {loading===pl.id ? 'Processing...' : 'Pay ' + (pl.price / solPrice).toFixed(2) + ' SOL on Solana'}
+                <button
+                  type="button"
+                  onClick={() => void handleStripeBuy(pl.id)}
+                  disabled={loading === pl.id || !stripeLinks || !payUrl?.trim()}
+                  style={{width:'100%',padding:'10px 0',borderRadius:8,border:'1px solid rgba(0,212,170,0.2)',background:'rgba(0,212,170,0.05)',color:'#fff',fontSize:12,fontWeight:600,cursor:loading===pl.id || !payUrl?.trim() ? 'not-allowed' : 'pointer',opacity:loading===pl.id || !payUrl?.trim() ? 0.55 : 1,fontFamily:"'IBM Plex Mono',monospace"}}
+                >
+                  {loading === pl.id ? 'Redirecting…' : 'Buy now'}
                 </button>
               </div>
             </div>
@@ -1674,9 +1630,7 @@ function ProModal({ onClose }: { onClose: () => void }) {
         </div>
         <div style={{padding:'10px 20px 14px',borderTop:'1px solid rgba(255,255,255,0.04)',textAlign:'center'}}>
           <span style={{fontSize:9,color:'#303030'}}>
-            {fiatEnabled
-              ? 'Crypto payments on Solana Mainnet | Card payments via Stripe | No refunds'
-              : 'Crypto payments on Solana Mainnet | Card checkout coming soon | No refunds'}
+            Card payments via Stripe Payment Links | No refunds
           </span>
         </div>
       </div>
