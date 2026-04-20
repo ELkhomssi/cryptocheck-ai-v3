@@ -1433,24 +1433,6 @@ function ProModal({ onClose }: { onClose: () => void }) {
   const [txStatus, setTxStatus] = React.useState<string | null>(null)
   const [txStatusIsError, setTxStatusIsError] = React.useState(false)
   const [loading, setLoading] = React.useState<string | null>(null)
-  const [stripeLinks, setStripeLinks] = React.useState<{
-    micropack: string | null
-    proMaxDeep: string | null
-    proMaxElite: string | null
-  } | null>(null)
-
-  React.useEffect(() => {
-    void fetch('/api/billing/payment-links')
-      .then((r) => r.json())
-      .then((j) => {
-        setStripeLinks({
-          micropack: typeof j.micropack === 'string' ? j.micropack : null,
-          proMaxDeep: typeof j.proMaxDeep === 'string' ? j.proMaxDeep : null,
-          proMaxElite: typeof j.proMaxElite === 'string' ? j.proMaxElite : null,
-        })
-      })
-      .catch(() => setStripeLinks({ micropack: null, proMaxDeep: null, proMaxElite: null }))
-  }, [])
 
   const plans: ProModalPlan[] = [
     {
@@ -1485,21 +1467,32 @@ function ProModal({ onClose }: { onClose: () => void }) {
     },
   ]
 
-  function stripeUrlForPlan(planId: string): string | null {
-    if (!stripeLinks) return null
-    if (planId === 'starter') return stripeLinks.micropack
-    if (planId === 'deep') return stripeLinks.proMaxDeep
-    if (planId === 'elite') return stripeLinks.proMaxElite
-    return null
+  type ConsumerPaymentLinks = { micropack: string; proMaxDeep: string; proMaxElite: string }
+
+  async function fetchConsumerPaymentLinks(): Promise<ConsumerPaymentLinks> {
+    const res = await fetch('/api/billing/payment-links', { cache: 'no-store' })
+    const j = (await res.json().catch(() => ({}))) as Record<string, unknown>
+    if (!res.ok) {
+      const msg = typeof j.error === 'string' && j.error ? j.error : 'Could not load payment options'
+      throw new Error(msg)
+    }
+    const micropack = typeof j.micropack === 'string' ? j.micropack.trim() : ''
+    const proMaxDeep = typeof j.proMaxDeep === 'string' ? j.proMaxDeep.trim() : ''
+    const proMaxElite = typeof j.proMaxElite === 'string' ? j.proMaxElite.trim() : ''
+    if (!micropack || !proMaxDeep || !proMaxElite) {
+      throw new Error('Payment not configured')
+    }
+    return { micropack, proMaxDeep, proMaxElite }
   }
 
-  async function handleStripeBuy(planId: string) {
-    const raw = stripeUrlForPlan(planId)
-    if (!raw?.trim()) {
-      setTxStatus('Checkout is not configured for this plan.')
-      setTxStatusIsError(true)
-      return
-    }
+  function paymentUrlForPlan(links: ConsumerPaymentLinks, planId: ProModalPlan['id']): string {
+    if (planId === 'starter') return links.micropack
+    if (planId === 'deep') return links.proMaxDeep
+    return links.proMaxElite
+  }
+
+  /** Card checkout: fresh Payment Link URLs from `/api/billing/payment-links`, then Stripe-hosted redirect. */
+  async function handlePayWithCard(planId: ProModalPlan['id']) {
     setLoading(planId)
     setTxStatus(null)
     setTxStatusIsError(false)
@@ -1511,18 +1504,27 @@ function ProModal({ onClose }: { onClose: () => void }) {
       if (!session?.user?.id) {
         setTxStatus('Sign in to continue — we attach your purchase to your account.')
         setTxStatusIsError(true)
-        setLoading(null)
         return
       }
+
+      const links = await fetchConsumerPaymentLinks()
+      const raw = paymentUrlForPlan(links, planId)
+      if (!raw) {
+        setTxStatus('This plan is not available. Contact support.')
+        setTxStatusIsError(true)
+        return
+      }
+
       const q = new URLSearchParams()
       q.set('client_reference_id', session.user.id)
       if (session.user.email) q.set('prefilled_email', session.user.email)
       const sep = raw.includes('?') ? '&' : '?'
-      window.location.href = `${raw.trim()}${sep}${q.toString()}`
+      window.location.href = `${raw}${sep}${q.toString()}`
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Could not start checkout'
-      setTxStatus(msg)
+      console.error('[Payment] Card pay error:', e)
+      setTxStatus(e instanceof Error ? e.message : 'Could not start checkout. Please try again.')
       setTxStatusIsError(true)
+    } finally {
       setLoading(null)
     }
   }
@@ -1598,7 +1600,6 @@ function ProModal({ onClose }: { onClose: () => void }) {
               : undefined
             const badgeText =
               pl.badgeColor === '#8b5cf6' || pl.badge === 'STARTER' ? '#f8fafc' : '#0a0a0a'
-            const payUrl = stripeUrlForPlan(pl.id)
             return (
             <div key={pl.id} className="pm-plan-card" style={{background:'#0d1420',border:cardBorder,boxShadow:cardShadow,borderRadius:12,position:'relative',minWidth:0,overflow:'visible',width:'100%'}}>
               {pl.badge && <div style={{position:'absolute',top:-10,left:'50%',transform:'translateX(-50%)',zIndex:2,background:pl.badgeColor,color:badgeText,fontSize:8,fontWeight:700,padding:'3px 10px',borderRadius:10,whiteSpace:'nowrap',letterSpacing:'0.06em',boxShadow:'0 2px 8px rgba(0,0,0,0.35)'}}>{pl.badge}</div>}
@@ -1613,11 +1614,11 @@ function ProModal({ onClose }: { onClose: () => void }) {
                 </div>
                 <button
                   type="button"
-                  onClick={() => void handleStripeBuy(pl.id)}
-                  disabled={loading === pl.id || !stripeLinks || !payUrl?.trim()}
-                  style={{width:'100%',padding:'10px 0',borderRadius:8,border:'1px solid rgba(0,212,170,0.2)',background:'rgba(0,212,170,0.05)',color:'#fff',fontSize:12,fontWeight:600,cursor:loading===pl.id || !payUrl?.trim() ? 'not-allowed' : 'pointer',opacity:loading===pl.id || !payUrl?.trim() ? 0.55 : 1,fontFamily:"'IBM Plex Mono',monospace"}}
+                  onClick={() => void handlePayWithCard(pl.id)}
+                  disabled={loading === pl.id}
+                  style={{width:'100%',padding:'10px 0',borderRadius:8,border:'1px solid rgba(0,212,170,0.2)',background:'rgba(0,212,170,0.05)',color:'#fff',fontSize:12,fontWeight:600,cursor:loading===pl.id ? 'not-allowed' : 'pointer',opacity:loading===pl.id ? 0.65 : 1,fontFamily:"'IBM Plex Mono',monospace"}}
                 >
-                  {loading === pl.id ? 'Redirecting…' : 'Buy now'}
+                  {loading === pl.id ? 'Redirecting…' : 'Pay with Card'}
                 </button>
               </div>
             </div>
