@@ -21,7 +21,7 @@ export class SubscriptionService {
     if (!row) return 'free'
     const p = String(row.plan || '').toLowerCase()
     if (p === 'institutional' || p === 'enterprise') return 'institutional'
-    if (row.is_pro || p === 'pro' || p === 'deep' || p === 'whale') return 'pro'
+    if (row.is_pro || p === 'pro' || p === 'deep' || p === 'whale' || p === 'elite') return 'pro'
     return 'free'
   }
 

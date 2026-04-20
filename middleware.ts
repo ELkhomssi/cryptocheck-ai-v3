@@ -4,6 +4,7 @@ import type { NextRequest } from 'next/server'
 /**
  * Permanent redirects for legacy / spam URLs (e.g. "company website" crawl noise).
  * next.config.js `redirects` cannot match arbitrary substrings in a path; this middleware can.
+ * Does not gate `/app` or auth — consumer app routes pass through unchanged.
  */
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl

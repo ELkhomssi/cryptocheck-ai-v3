@@ -30,7 +30,6 @@ import BentoGrid, { type StressTestApiResult } from '@/components/Dashboard/Bent
 import SecurityTerminal from '@/components/SecurityTerminal'
 import { safetyScoreToEliteGrade } from '@/lib/elite-grade'
 import ProMaxDeepDashboard from '@/components/ProMaxDeepDashboard'
-import { TrialBanner, TrialWall, useTrialStatus } from '@/components/TrialSystem'
 import { AiAutoSniper } from '@/components/AiAutoSniper'
 import { Doughnut } from 'react-chartjs-2'
 import {
@@ -2229,12 +2228,29 @@ export default function Dashboard() {
 
   async function loadCreditsFromProfile(userId: string) {
     try {
-      const { data } = await supabase.from('profiles').select('credits, is_pro').eq('id', userId).single()
+      const { data } = await supabase
+        .from('profiles')
+        .select('credits, is_pro, plan, is_elite')
+        .eq('id', userId)
+        .single()
       if (data) {
         if (data.credits !== null && data.credits !== undefined) {
           setCredits(data.credits)
         }
-        if (data.is_pro) { setIsPro(true); localStorage.setItem('cc_is_pro', 'true') }
+        const p = String(data.plan || '').toLowerCase()
+        const proLike =
+          !!data.is_pro ||
+          p === 'pro' ||
+          p === 'deep' ||
+          p === 'whale' ||
+          p === 'elite' ||
+          p === 'institutional' ||
+          p === 'enterprise'
+        if (proLike) {
+          setIsPro(true)
+          localStorage.setItem('cc_is_pro', 'true')
+        }
+        if (data.is_elite) setIsElite(true)
       }
     } catch { /* fallback to localStorage */ }
   }
@@ -2251,8 +2267,6 @@ export default function Dashboard() {
   const [trialActivated, setTrialActivated] = useState(false)
   const [showSignup, setShowSignup] = useState(false)
   const [chartSwapModal, setChartSwapModal] = useState<{mint:string;symbol:string;tab?:string}|null>(null)
-  const { trial } = useTrialStatus(walletAddress)
-  const isTrialExpired = trial?.expired ?? false
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const pro = localStorage.getItem('cc_is_pro') === 'true'
@@ -2918,11 +2932,35 @@ export default function Dashboard() {
     return () => window.removeEventListener('openChartSwap', handleChartSwap)
   }, [])
 
-  if (!mounted) return (
-    <>
-      {/* SignupModal disabled - using Gated Access instead */}
-    </>
-  )
+  if (!mounted) {
+    return (
+      <div
+        style={{
+          background: '#000',
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 14,
+          fontFamily: "'JetBrains Mono',monospace",
+        }}
+      >
+        <div
+          style={{
+            width: 26,
+            height: 26,
+            border: '2px solid rgba(52,211,153,0.15)',
+            borderTop: '2px solid #34d399',
+            borderRadius: '50%',
+            animation: 'spin 0.7s linear infinite',
+          }}
+        />
+        <div style={{ fontSize: 10, color: 'rgba(52,211,153,0.5)', letterSpacing: '0.1em' }}>LOADING</div>
+        <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
+      </div>
+    )
+  }
 
   return (
     <>
