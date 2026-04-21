@@ -1,5 +1,7 @@
 import type { NextRequest } from 'next/server'
+import { randomUUID } from 'crypto'
 import type { ProFeatureContext } from '@/lib/auth/pro-feature-access'
+import { buildTokenIntelligenceReport } from '@/lib/intelligence/fetch-token-intelligence'
 import { enrichScanBodyFromChain } from '@/lib/services/scanner/solana-token-enrichment'
 import { runInstitutionalPipeline } from '@/lib/services/scanner/pipeline/run-institutional-scan'
 import {
@@ -164,4 +166,41 @@ export async function runInstitutionalScan(
     }
     return { ok: false, error: err }
   }
+}
+
+export type ScanTokenIntelligenceInput = {
+  mint: string
+  mode?: 'full' | 'fast'
+}
+
+export type ScanTokenIntelligenceResult = {
+  riskScore: number
+  verdict: 'SAFE' | 'CAUTION' | 'RISKY' | 'DANGER'
+  topSignals: string[]
+}
+
+/**
+ * Lightweight wrapper for app routes that need a single-token risk snapshot.
+ */
+export async function scanTokenIntelligence(
+  input: ScanTokenIntelligenceInput
+): Promise<ScanTokenIntelligenceResult> {
+  const mint = String(input.mint ?? '').trim()
+  if (!mint) throw new Error('Mint is required')
+
+  const report = await buildTokenIntelligenceReport({
+    mint,
+    keyTier: 'v2',
+    publicTier: 'PRO',
+    scanId: randomUUID(),
+    onlyTicker: false,
+  })
+
+  const riskScore = typeof report.riskScore === 'number' ? report.riskScore : 50
+  const verdict = (report.riskVerdict ?? 'CAUTION') as ScanTokenIntelligenceResult['verdict']
+  const topSignals = Array.isArray(report.riskSignals)
+    ? report.riskSignals.slice(0, 3).map((s) => s.message)
+    : []
+
+  return { riskScore, verdict, topSignals }
 }

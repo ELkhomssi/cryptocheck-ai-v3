@@ -31,6 +31,8 @@ import SecurityTerminal from '@/components/SecurityTerminal'
 import { safetyScoreToEliteGrade } from '@/lib/elite-grade'
 import ProMaxDeepDashboard from '@/components/ProMaxDeepDashboard'
 import { AiAutoSniper } from '@/components/AiAutoSniper'
+import PortfolioScanner from '@/components/portfolio/PortfolioScanner'
+import WatchlistPanel from '@/components/watchlist/WatchlistPanel'
 import { Doughnut } from 'react-chartjs-2'
 import {
   Chart as ChartJS,
@@ -2725,44 +2727,12 @@ export default function Dashboard() {
 
   // ── Portfolio content ──
   const renderPortfolioContent = () => {
-    if (pfState === 'idle') return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-center gap-4 p-10">
-        <div className="text-5xl">📂</div>
-        <div className="text-base font-bold text-[#e2e8f0] font-sans">Portfolio Risk Scanner</div>
-        <div className="text-[0.7rem] text-[#8b949e] max-w-xs leading-relaxed">Connect your Phantom wallet to scan all token holdings. The AI generates a Global Portfolio Risk Score by analyzing every position via Helius DAS API.</div>
-        <button onClick={doPortfolioScan} disabled={isConnecting} className="unlock-btn max-w-xs">{isConnecting ? 'Connecting…' : isConnected ? '🔍 Scan My Portfolio' : '🔗 Connect & Scan Portfolio'}</button>
-        <div className="flex flex-col md:flex-row gap-1.5 justify-center">
-          <span className="ds-badge ds-badge-rpc"><span className="w-1.5 h-1.5 rounded-full bg-cyan-400 inline-block dot-pulse" />Helius DAS API</span>
-          <span className="ds-badge ds-badge-net">{NETWORK_LABEL}</span>
-          <span className="ds-badge ds-badge-engine">{ENGINE_LABEL}</span>
-        </div>
+    return (
+      <div className="space-y-4">
+        <PortfolioScanner audience="consumer" />
+        <WatchlistPanel audience="consumer" />
       </div>
     )
-
-    if (pfState === 'loading') return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 p-10">
-        <NeuralSpinner />
-        <div className="text-center">
-          <div className="text-sm font-bold text-[#e2e8f0] font-sans mb-1">Portfolio Risk Scan</div>
-          <div className="text-[0.62rem] text-[#8b949e]">Fetching holdings via Helius DAS API…</div>
-        </div>
-        <div className="w-full max-w-xs bg-[#0c0c18] border border-[rgba(0,212,130,0.15)] rounded-[4px] p-3">
-          {['$ portfolio_scan --wallet helius-das', '⚡ Querying token accounts…', '📋 Analyzing balances…', '🧠 Running neural risk scoring…', '📊 Generating Global Risk Score…'].map((l,i) => (
-            <div key={i} className="log-line" style={{ animationDelay: `${i*0.18}s` }}>{l}</div>
-          ))}
-        </div>
-      </div>
-    )
-
-    if (pfState === 'error') return (
-      <div className="p-6">
-        <div className="p-3 bg-red-950/20 border border-red-800/25 rounded-[4px] text-red-400 text-[0.7rem] mb-4">⚠ {pfError}</div>
-        <button onClick={() => setPfState('idle')} className="unlock-btn max-w-xs">← Try Again</button>
-      </div>
-    )
-
-    if (pfState === 'done' && walletAddress) return <PortfolioResults holdings={pfHoldings} wallet={walletAddress} />
-    return null
   }
 
   // ── Main scan content ──

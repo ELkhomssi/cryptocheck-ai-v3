@@ -13,12 +13,11 @@ export async function GET() {
   const proMaxElite = process.env.STRIPE_PRICE_PRO_MAX_ELITE?.trim()
 
   if (!micropack || !proMaxDeep || !proMaxElite) {
-    console.error('[payment-links] Missing consumer Payment Link env vars:', {
-      hasMicropack: !!micropack,
-      hasProMaxDeep: !!proMaxDeep,
-      hasProMaxElite: !!proMaxElite,
-    })
-    return NextResponse.json({ error: 'Payment not configured' }, { status: 503 })
+    console.error('[payment-links] Missing env vars')
+    return NextResponse.json(
+      { error: 'Payment not configured' },
+      { status: 503 }
+    )
   }
 
   return NextResponse.json({

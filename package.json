@@ -9,6 +9,7 @@
     "lint": "next lint",
     "test:sentinel": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-sentinel.ts",
     "test:intelligence": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/smoke-intelligence.ts",
+    "test:portfolio-alerts": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/smoke-portfolio-alerts.ts",
     "test:key-store": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-key-store.ts",
     "test:terminal-reducer": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-terminal-reducer.ts"
   },

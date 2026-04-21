@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   BarChart3,
+  Bell,
   CreditCard,
   KeyRound,
   LayoutDashboard,
@@ -8,6 +9,7 @@ import {
   Radar,
   Scan,
   Shield,
+  Wallet,
 } from 'lucide-react'
 
 export type DashboardNavItem = {
@@ -28,6 +30,8 @@ export const primaryNavItems: DashboardNavItem[] = [
 /** Separate product surface — authenticated console + public demo */
 export const secondaryNavItems: DashboardNavItem[] = [
   { href: '/dashboard/intelligence-terminal', label: 'Analysis Console', icon: Scan },
+  { href: '/dashboard/portfolio', label: 'Portfolio', icon: Wallet },
+  { href: '/dashboard/alerts', label: 'Alerts', icon: Bell },
   { href: '/pro/dashboard', label: 'Intelligence Terminal', icon: Radar },
 ]
 
