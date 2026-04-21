@@ -7,8 +7,11 @@ import { resolveConsumerTier, type ConsumerTier } from '@/lib/billing/consumer-t
 
 function consumerTierToSaasTier(t: ConsumerTier): SaasTier {
   if (t === 'free') return 'FREE'
-  if (t === 'elite') return 'ENTERPRISE'
-  return 'PRO'
+  if (t === 'enterprise') return 'ENTERPRISE'
+  if (t === 'elite') return 'PRO_MAX_ELITE'
+  if (t === 'pro') return 'PRO'
+  if (t === 'micropack') return 'PRO'
+  return 'FREE'
 }
 
 /**
@@ -20,7 +23,7 @@ export type UserSubscription = {
   userId: string
   /** Raw row if present */
   record: SaasSubscriptionRow | null
-  /** Merged tier (profiles + SaaS); maps micropack/pro → `PRO`, elite → `ENTERPRISE`. */
+  /** Merged tier (profiles + SaaS); maps to canonical `SaasTier` labels. */
   effectiveTier: SaasTier
   /** Maps to runtime quota keys (`institutional` for ENTERPRISE) */
   runtimeTier: SubscriptionTier

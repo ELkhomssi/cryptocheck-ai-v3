@@ -65,11 +65,11 @@ function resolveFromPaymentLinkUrl(plUrl: string): ResolvedCheckout | null {
     },
     {
       env: process.env.STRIPE_PRICE_PRO_MAX_ELITE,
-      out: { plan: 'elite', planType: 'pro_max_elite', isPro: true, isElite: true, saasTier: 'PRO' },
+      out: { plan: 'elite', planType: 'pro_max_elite', isPro: true, isElite: true, saasTier: 'PRO_MAX_ELITE' },
     },
     {
       env: process.env.STRIPE_PRICE_PRO_MAX_DEEP,
-      out: { plan: 'deep', planType: 'pro_max_deep', isPro: true, saasTier: 'PRO' },
+      out: { plan: 'deep', planType: 'pro_max_deep', isPro: true, saasTier: 'PRO_MAX_DEEP' },
     },
     {
       env: process.env.STRIPE_PRICE_MICROPACK,
@@ -90,9 +90,9 @@ function resolveFromMetadata(meta: Record<string, string> | undefined): Resolved
   if (p === 'pro' || p === 'pro-developer' || p === 'pro_developer')
     return { plan: 'pro', planType: 'pro', isPro: true, saasTier: 'PRO' }
   if (p === 'deep' || p === 'pro_max_deep')
-    return { plan: 'deep', planType: 'pro_max_deep', isPro: true, saasTier: 'PRO' }
+    return { plan: 'deep', planType: 'pro_max_deep', isPro: true, saasTier: 'PRO_MAX_DEEP' }
   if (p === 'elite' || p === 'pro_max_elite')
-    return { plan: 'elite', planType: 'pro_max_elite', isPro: true, isElite: true, saasTier: 'PRO' }
+    return { plan: 'elite', planType: 'pro_max_elite', isPro: true, isElite: true, saasTier: 'PRO_MAX_ELITE' }
   if (p === 'starter' || p === 'micropack')
     return { plan: 'starter', planType: 'micropack', isPro: false, saasTier: null, grantStarterCredits: true }
   return null
@@ -103,6 +103,8 @@ function resolveTierFromStripeMetadata(meta: Record<string, string> | undefined)
   if (r?.saasTier) return r.saasTier
   const p = String(meta?.tier || meta?.plan || '').toLowerCase()
   if (p === 'enterprise' || p === 'institutional') return 'ENTERPRISE'
+  if (p === 'elite' || p === 'pro_max_elite') return 'PRO_MAX_ELITE'
+  if (p === 'deep' || p === 'pro_max_deep') return 'PRO_MAX_DEEP'
   if (p === 'pro' || p === 'pro-developer') return 'PRO'
   return 'PRO'
 }
@@ -119,13 +121,25 @@ async function syncProfileAndSaas(params: {
   planType?: string
 }) {
   const isPro = params.tier !== 'FREE'
-  const plan = params.tier === 'ENTERPRISE' ? 'institutional' : params.tier === 'PRO' ? 'pro' : 'free'
+  const plan =
+    params.tier === 'ENTERPRISE'
+      ? 'institutional'
+      : params.tier === 'PRO_MAX_ELITE'
+        ? 'elite'
+        : params.tier === 'PRO_MAX_DEEP'
+          ? 'deep'
+          : params.tier === 'PRO'
+            ? 'pro'
+            : 'free'
+  const isElite = params.tier === 'ENTERPRISE' || params.tier === 'PRO_MAX_ELITE'
 
   const { error } = await supabase
     .from('profiles')
     .update({
       is_pro: isPro,
+      is_elite: isElite,
       plan,
+      tier: params.tier,
       ...(params.planType ? { plan_type: params.planType } : {}),
     })
     .eq('email', params.email)
@@ -199,6 +213,11 @@ async function applyProfileAfterCheckout(
     plan_type: resolution.planType,
   }
   if (resolution.isElite) upd.is_elite = true
+  if (resolution.saasTier) {
+    upd.tier = resolution.saasTier
+    const t = resolution.saasTier
+    upd.is_elite = t === 'ENTERPRISE' || t === 'PRO_MAX_ELITE' || !!resolution.isElite
+  }
 
   if (resolution.grantStarterCredits) {
     const { data: p, error: selErr } = await supabase.from('profiles').select('credits').eq('id', profileId).maybeSingle()
@@ -393,7 +412,7 @@ export async function handleStripeWebhook(req: NextRequest): Promise<NextRespons
       if (typeof userId === 'string' && userId.length > 0) {
         await supabase
           .from('profiles')
-          .update({ is_pro: false, plan: 'free', plan_type: 'free' })
+          .update({ is_pro: false, is_elite: false, plan: 'free', plan_type: 'free', tier: 'FREE' })
           .eq('id', userId)
         try {
           await upsertSaasSubscription({
@@ -412,7 +431,7 @@ export async function handleStripeWebhook(req: NextRequest): Promise<NextRespons
       } else if (delEmail) {
         await supabase
           .from('profiles')
-          .update({ is_pro: false, plan: 'free', plan_type: 'free' })
+          .update({ is_pro: false, is_elite: false, plan: 'free', plan_type: 'free', tier: 'FREE' })
           .eq('email', delEmail.toLowerCase())
         const { data: profile } = await supabase.from('profiles').select('id').eq('email', delEmail.toLowerCase()).maybeSingle()
         if (profile?.id) {

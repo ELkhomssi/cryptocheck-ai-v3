@@ -23,16 +23,11 @@ export type SubscriptionContextValue = ClientSubscriptionFlags & {
 
 const SubscriptionContext = createContext<SubscriptionContextValue | null>(null)
 
-const defaultFlags: ClientSubscriptionFlags = {
-  currentTier: 'FREE',
-  isDeepActive: false,
-  isEliteActive: false,
-  hasFullAccess: false,
-}
-
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [row, setRow] = useState<ProfileSubscriptionRow | null>(null)
+  const [saasTier, setSaasTier] = useState<string | null>(null)
+  const [saasStatus, setSaasStatus] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -42,14 +37,22 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       } = await supabase.auth.getUser()
       if (!user) {
         setRow(null)
+        setSaasTier(null)
+        setSaasStatus(null)
         return
       }
-      const { data } = await supabase
-        .from('profiles')
-        .select('is_pro, plan, plan_type, tier, is_elite')
-        .eq('id', user.id)
-        .single()
-      setRow(data ?? null)
+      const [profileRes, saasRes] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('is_pro, plan, plan_type, tier, is_elite')
+          .eq('id', user.id)
+          .maybeSingle(),
+        supabase.from('saas_subscriptions').select('tier, status').eq('user_id', user.id).maybeSingle(),
+      ])
+      setRow((profileRes.data as ProfileSubscriptionRow) ?? null)
+      const s = saasRes.data as { tier?: string | null; status?: string | null } | null
+      setSaasTier(s?.tier != null ? String(s.tier) : null)
+      setSaasStatus(s?.status != null ? String(s.status) : null)
     } finally {
       setLoading(false)
     }
@@ -65,7 +68,14 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   }, [refresh])
 
-  const derived = useMemo(() => deriveClientSubscription(row), [row])
+  const derived = useMemo(
+    () =>
+      deriveClientSubscription(row, {
+        saasTier,
+        saasStatus,
+      }),
+    [row, saasTier, saasStatus]
+  )
 
   const value = useMemo<SubscriptionContextValue>(
     () => ({

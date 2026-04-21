@@ -1,8 +1,14 @@
 /**
  * SENTINEL SaaS — persisted tier labels (database CHECK constraints).
  * Maps to runtime `SubscriptionTier` via `mapSaasTierToRuntime`.
+ * Hierarchy: FREE < PRO < PRO_MAX_DEEP < PRO_MAX_ELITE < ENTERPRISE
  */
-export type SaasTier = 'FREE' | 'PRO' | 'ENTERPRISE'
+export type SaasTier =
+  | 'FREE'
+  | 'PRO'
+  | 'PRO_MAX_DEEP'
+  | 'PRO_MAX_ELITE'
+  | 'ENTERPRISE'
 
 export type SaasSubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'canceled'
 

@@ -19,7 +19,7 @@ type WatchItem = {
 
 type WatchlistResponse = {
   items: WatchItem[]
-  tier: 'free' | 'micropack' | 'pro' | 'elite'
+  tier: 'free' | 'micropack' | 'pro' | 'elite' | 'enterprise'
   usage: {
     used: number
     limit: number | null

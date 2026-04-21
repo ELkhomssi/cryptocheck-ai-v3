@@ -109,7 +109,9 @@ function BillingInner({ stripeUrls }: { stripeUrls: BillingStripeUrls }) {
     return <p className="text-sm font-medium tracking-wide text-slate-500">Loading subscription…</p>
   }
 
-  const sentinel = ['PRO', 'ENTERPRISE'].includes(me.subscription.effectiveTier.toUpperCase())
+  const sentinel = ['PRO', 'PRO_MAX_DEEP', 'PRO_MAX_ELITE', 'ENTERPRISE'].includes(
+    me.subscription.effectiveTier.toUpperCase()
+  )
 
   return (
     <div className="space-y-10">

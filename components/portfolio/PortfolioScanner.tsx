@@ -8,7 +8,7 @@ import {
   type Verdict,
 } from '@/components/Dashboard/intelligence-terminal/design/tokens'
 
-type Tier = 'free' | 'micropack' | 'pro' | 'elite'
+type Tier = 'free' | 'micropack' | 'pro' | 'elite' | 'enterprise'
 
 type TierLimits = {
   maxTokens: number
@@ -55,6 +55,7 @@ const TIER_LABEL: Record<Tier, string> = {
   micropack: 'MICROPACK',
   pro: 'PRO',
   elite: 'ELITE',
+  enterprise: 'ENTERPRISE',
 }
 
 function formatUsd(value: number): string {
@@ -315,7 +316,7 @@ export default function PortfolioScanner({
               <input
                 type="checkbox"
                 checked={scheduleWeekly}
-                disabled={tier !== 'elite'}
+                disabled={tier !== 'elite' && tier !== 'enterprise'}
                 onChange={(e) => setScheduleWeekly(e.target.checked)}
               />
               Schedule weekly scans (Elite+)

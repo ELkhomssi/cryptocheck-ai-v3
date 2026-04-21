@@ -1,7 +1,15 @@
 /**
- * Client-safe subscription flags from `profiles` row (same signals as consumer dashboard).
- * ENTERPRISE / institutional / is_elite → superset of PRO for UI gating.
+ * Client-safe subscription flags from `profiles` (+ optional entitled SaaS tier).
+ * Canonical tiers: FREE < PRO < PRO_MAX_DEEP < PRO_MAX_ELITE < ENTERPRISE.
+ * ENTERPRISE unlocks both Deep and Elite (no separate flags required).
  */
+
+import {
+  canonicalTierRank,
+  clampCanonicalFromRank,
+  normalizeTierLabel,
+  type CanonicalSaasTier,
+} from '@/lib/subscription/tier-ranks'
 
 export type ProfileSubscriptionRow = {
   is_pro?: boolean | null
@@ -11,20 +19,57 @@ export type ProfileSubscriptionRow = {
   is_elite?: boolean | null
 }
 
-export type DisplaySubscriptionTier = 'FREE' | 'PRO' | 'ENTERPRISE'
+export type DisplaySubscriptionTier = CanonicalSaasTier
 
 export type ClientSubscriptionFlags = {
   currentTier: DisplaySubscriptionTier
-  /** Pro Max Deep ($30) and API depth — true for PRO or ENTERPRISE. */
+  /** Pro Max Deep features — PRO+ (includes PRO_MAX_DEEP path). */
   isDeepActive: boolean
-  /** Elite / institutional surface — true for ENTERPRISE, institutional, or is_elite. */
+  /** Pro Max Elite + ENTERPRISE surfaces. */
   isEliteActive: boolean
-  /** Bypass consumer Deep paywall — true for any paid deep tier (PRO or ENTERPRISE). */
+  /** Consumer Deep paywall bypass — same threshold as Deep. */
   hasFullAccess: boolean
 }
 
-export function deriveClientSubscription(row: ProfileSubscriptionRow | null): ClientSubscriptionFlags {
-  if (!row) {
+const SAAS_ENTITLED = new Set(['active', 'trialing', 'past_due'])
+
+function legacyRankFromProfile(row: ProfileSubscriptionRow): number {
+  const p = String(row.plan || '').toLowerCase()
+  const pt = String(row.plan_type ?? '').trim().toLowerCase()
+  let m = 0
+  if (p === 'institutional' || p === 'enterprise' || pt === 'institutional' || pt === 'enterprise') {
+    m = Math.max(m, 5)
+  } else if (row.is_elite || p === 'elite' || pt === 'elite' || pt === 'pro_max_elite') {
+    m = Math.max(m, 4)
+  } else if (p === 'deep' || pt === 'deep' || pt === 'pro_max_deep') {
+    m = Math.max(m, 3)
+  } else if (row.is_pro || p === 'pro' || p === 'whale' || pt === 'pro' || pt === 'whale') {
+    m = Math.max(m, 2)
+  }
+  return m
+}
+
+function effectiveRankFromProfile(row: ProfileSubscriptionRow | null): number {
+  if (!row) return 0
+  const fromColumn = canonicalTierRank(normalizeTierLabel(row.tier))
+  return Math.max(fromColumn, legacyRankFromProfile(row))
+}
+
+export type DeriveSubscriptionOpts = {
+  /** Raw `saas_subscriptions.tier` when row is entitled. */
+  saasTier?: string | null
+  saasStatus?: string | null
+}
+
+/**
+ * Derives UI flags from `profiles` and optionally an entitled SaaS row.
+ * Uses max rank across sources (strict hierarchy).
+ */
+export function deriveClientSubscription(
+  profile: ProfileSubscriptionRow | null,
+  opts?: DeriveSubscriptionOpts
+): ClientSubscriptionFlags {
+  if (!profile && !(opts?.saasTier && opts?.saasStatus && SAAS_ENTITLED.has(String(opts.saasStatus).toLowerCase()))) {
     return {
       currentTier: 'FREE',
       isDeepActive: false,
@@ -33,48 +78,18 @@ export function deriveClientSubscription(row: ProfileSubscriptionRow | null): Cl
     }
   }
 
-  const p = String(row.plan || '').toLowerCase()
-  const pt = String(row.plan_type ?? '').trim().toLowerCase()
-  const tierRaw = String(row.tier ?? '').trim()
-  const tier = tierRaw.toLowerCase()
-  const tierU = tierRaw.toUpperCase()
+  let r = profile ? effectiveRankFromProfile(profile) : 0
 
-  const enterpriseLike =
-    tierU === 'ENTERPRISE' ||
-    tier === 'enterprise' ||
-    tier === 'institutional' ||
-    tier === 'elite' ||
-    !!row.is_elite ||
-    p === 'institutional' ||
-    p === 'enterprise' ||
-    p === 'elite' ||
-    pt === 'institutional' ||
-    pt === 'enterprise' ||
-    pt === 'elite'
+  const st = String(opts?.saasStatus ?? '').toLowerCase()
+  if (opts?.saasTier && SAAS_ENTITLED.has(st)) {
+    r = Math.max(r, canonicalTierRank(normalizeTierLabel(opts.saasTier)))
+  }
 
-  const proDeepLike =
-    !!row.is_pro ||
-    p === 'pro' ||
-    p === 'deep' ||
-    p === 'whale' ||
-    pt === 'pro' ||
-    pt === 'deep' ||
-    pt === 'whale' ||
-    tierU === 'PRO' ||
-    tier === 'micropack' ||
-    tier === 'starter' ||
-    tier === 'pro' ||
-    tier === 'deep' ||
-    tier === 'whale'
+  const currentTier = clampCanonicalFromRank(r)
 
-  const isDeepActive = enterpriseLike || proDeepLike
-  const isEliteActive = enterpriseLike
-  const hasFullAccess = isDeepActive
-  const currentTier: DisplaySubscriptionTier = enterpriseLike
-    ? 'ENTERPRISE'
-    : proDeepLike
-      ? 'PRO'
-      : 'FREE'
+  const isDeepActive = r >= 2
+  const isEliteActive = r >= 4
+  const hasFullAccess = r >= 2
 
   return { currentTier, isDeepActive, isEliteActive, hasFullAccess }
 }

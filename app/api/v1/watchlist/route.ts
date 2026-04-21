@@ -13,6 +13,7 @@ const WATCHLIST_LIMITS: Record<ConsumerTier, number> = {
   micropack: 10,
   pro: 25,
   elite: Number.MAX_SAFE_INTEGER,
+  enterprise: Number.MAX_SAFE_INTEGER,
 }
 
 async function getAuthedUserId(): Promise<string | null> {

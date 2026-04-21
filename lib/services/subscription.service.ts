@@ -27,8 +27,24 @@ export class SubscriptionService {
     const tierRaw = String(row.tier ?? '').trim()
     const tierU = tierRaw.toUpperCase()
     const t = tierRaw.toLowerCase()
-    if (tierU === 'ENTERPRISE' || t === 'elite' || t === 'enterprise' || t === 'institutional') return 'institutional'
-    if (tierU === 'PRO' || t === 'pro' || t === 'deep' || t === 'micropack' || t === 'starter' || t === 'whale') return 'pro'
+    if (
+      tierU === 'ENTERPRISE' ||
+      tierU === 'PRO_MAX_ELITE' ||
+      t === 'elite' ||
+      t === 'enterprise' ||
+      t === 'institutional'
+    )
+      return 'institutional'
+    if (
+      tierU === 'PRO' ||
+      tierU === 'PRO_MAX_DEEP' ||
+      t === 'pro' ||
+      t === 'deep' ||
+      t === 'micropack' ||
+      t === 'starter' ||
+      t === 'whale'
+    )
+      return 'pro'
 
     const p = String(row.plan || '').toLowerCase()
     const pt = String(row.plan_type ?? '').trim().toLowerCase()

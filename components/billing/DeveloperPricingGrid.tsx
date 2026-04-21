@@ -19,8 +19,8 @@ type DeveloperPricingGridProps = {
 
 function normalizeTier(input: BillingTier): DeveloperTierId | 'free' {
   const raw = String(input ?? '').trim().toLowerCase()
-  if (raw === 'pro' || raw === 'pro-developer') return 'pro-developer'
-  if (raw === 'enterprise') return 'enterprise'
+  if (raw === 'pro' || raw === 'pro-developer' || raw === 'pro_max_deep') return 'pro-developer'
+  if (raw === 'enterprise' || raw === 'pro_max_elite') return 'enterprise'
   return 'free'
 }
 

@@ -2250,12 +2250,16 @@ export default function Dashboard() {
         const tierProLike =
           tierU === 'PRO' ||
           tierU === 'ENTERPRISE' ||
+          tierU === 'PRO_MAX_DEEP' ||
+          tierU === 'PRO_MAX_ELITE' ||
           tier === 'micropack' ||
           tier === 'starter' ||
           tier === 'pro' ||
           tier === 'deep' ||
           tier === 'whale' ||
           tier === 'elite' ||
+          tier === 'pro_max_deep' ||
+          tier === 'pro_max_elite' ||
           tier === 'institutional' ||
           tier === 'enterprise'
         const proLike =
@@ -2281,9 +2285,13 @@ export default function Dashboard() {
         if (
           data.is_elite ||
           tierU === 'ENTERPRISE' ||
+          tierU === 'PRO_MAX_ELITE' ||
           tier === 'elite' ||
+          tier === 'pro_max_elite' ||
           tier === 'enterprise' ||
           tier === 'institutional' ||
+          p === 'institutional' ||
+          p === 'enterprise' ||
           pt === 'elite' ||
           pt === 'enterprise' ||
           pt === 'institutional'
@@ -2307,6 +2315,14 @@ export default function Dashboard() {
   /** Merged with {@link useSubscription} so ENTERPRISE / institutional always unlocks Pro+Deep UI. */
   const entitlementPro = isPro || sub.hasFullAccess
   const entitlementElite = isElite || sub.isEliteActive
+  const headerVipStyle =
+    sub.currentTier === 'ENTERPRISE' || sub.currentTier === 'PRO_MAX_ELITE'
+  const headerTierLabel =
+    sub.currentTier === 'ENTERPRISE'
+      ? '◆ ENTERPRISE'
+      : sub.currentTier === 'PRO_MAX_ELITE'
+        ? '◆ ELITE'
+        : '⭐ PRO'
   const [credits, setCredits] = useState(10) // Server-synced via loadCreditsFromProfile
   const [trialActivated, setTrialActivated] = useState(false)
   const [showSignup, setShowSignup] = useState(false)
@@ -2999,8 +3015,8 @@ export default function Dashboard() {
           <CryptoCheckLogo href="/dashboard" />
           <span className="text-[0.5rem] text-[#8b949e] ml-0.5 font-mono">v3</span>
           {entitlementPro ? (
-            <span style={{fontSize:'9px',fontWeight:700,padding:'2px 8px',borderRadius:4,fontFamily:'IBM Plex Mono,monospace',letterSpacing:'0.08em',background: sub.currentTier === 'ENTERPRISE' ? 'linear-gradient(135deg,rgba(139,92,246,0.2),rgba(99,102,241,0.08))' : 'linear-gradient(135deg,rgba(212,175,55,0.15),rgba(212,175,55,0.05))', border: sub.currentTier === 'ENTERPRISE' ? '1px solid rgba(139,92,246,0.45)' : '1px solid rgba(212,175,55,0.35)', color: sub.currentTier === 'ENTERPRISE' ? '#c4b5fd' : '#d4af37'}}>
-              {sub.currentTier === 'ENTERPRISE' ? '◆ ENTERPRISE' : '⭐ PRO'}
+            <span style={{fontSize:'9px',fontWeight:700,padding:'2px 8px',borderRadius:4,fontFamily:'IBM Plex Mono,monospace',letterSpacing:'0.08em',background: headerVipStyle ? 'linear-gradient(135deg,rgba(139,92,246,0.2),rgba(99,102,241,0.08))' : 'linear-gradient(135deg,rgba(212,175,55,0.15),rgba(212,175,55,0.05))', border: headerVipStyle ? '1px solid rgba(139,92,246,0.45)' : '1px solid rgba(212,175,55,0.35)', color: headerVipStyle ? '#c4b5fd' : '#d4af37'}}>
+              {headerTierLabel}
             </span>
           ) : null}
         </div>
@@ -3019,8 +3035,8 @@ export default function Dashboard() {
           {entitlementPro ? (
             <div style={{display:'flex',alignItems:'center',gap:6,fontSize:'0.6rem',fontFamily:'IBM Plex Mono,monospace'}}>
               <span style={{color:'#6e7681'}}>∞ scans</span>
-              <button type="button" onClick={() => setShowModal(true)} className="btn-terminal px-3 py-1 rounded-[4px] text-[0.62rem]" style={{ color: sub.currentTier === 'ENTERPRISE' ? '#c4b5fd' : '#d4af37', border: sub.currentTier === 'ENTERPRISE' ? '1px solid rgba(139,92,246,0.35)' : '1px solid rgba(212,175,55,0.3)', background: sub.currentTier === 'ENTERPRISE' ? 'rgba(139,92,246,0.08)' : 'rgba(212,175,55,0.06)' }}>
-                {sub.currentTier === 'ENTERPRISE' ? '◆ ENTERPRISE' : '⭐ PRO'}
+              <button type="button" onClick={() => setShowModal(true)} className="btn-terminal px-3 py-1 rounded-[4px] text-[0.62rem]" style={{ color: headerVipStyle ? '#c4b5fd' : '#d4af37', border: headerVipStyle ? '1px solid rgba(139,92,246,0.35)' : '1px solid rgba(212,175,55,0.3)', background: headerVipStyle ? 'rgba(139,92,246,0.08)' : 'rgba(212,175,55,0.06)' }}>
+                {headerTierLabel}
               </button>
             </div>
           ) : (
@@ -3404,7 +3420,13 @@ export default function Dashboard() {
           )}
           {view === 'promax' && (
             <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', background: '#050505' }}>
-              <ProMaxDeepDashboard isPro={entitlementPro} hasPremiumAccess={entitlementElite} onUpgrade={() => setShowModal(true)} />
+              <ProMaxDeepDashboard
+                isPro={entitlementPro}
+                hasPremiumAccess={entitlementElite}
+                mint={(scanData?.mint || currentMint || '').trim()}
+                deepLiveIntel={sub.currentTier === 'ENTERPRISE' || sub.currentTier === 'PRO_MAX_DEEP'}
+                onUpgrade={() => setShowModal(true)}
+              />
             </div>
           )}
           {view === 'elite' && (

@@ -15,6 +15,7 @@ const TIER_LIMITS: Record<ConsumerTier, { maxTokens: number; scansPerDay: number
   micropack: { maxTokens: 25, scansPerDay: 3 },
   pro: { maxTokens: 50, scansPerDay: 20 },
   elite: { maxTokens: 100, scansPerDay: 100 },
+  enterprise: { maxTokens: 100, scansPerDay: 100 },
 }
 
 const SCAN_CONCURRENCY = 6
