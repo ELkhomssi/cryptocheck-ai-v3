@@ -3,7 +3,12 @@
  */
 export function createPollFallback(
   path: string,
-  opts: { intervalMs?: number; onMessage: (data: unknown) => void }
+  opts: {
+    intervalMs?: number
+    onMessage: (data: unknown) => void
+    /** Called when `fetch` succeeds but HTTP status is not 2xx (e.g. 401). */
+    onPollError?: (status: number) => void
+  }
 ): { stop: () => void } {
   const ms = opts.intervalMs ?? 5000
   let stopped = false
@@ -11,7 +16,11 @@ export function createPollFallback(
     if (stopped) return
     try {
       const res = await fetch(path, { credentials: 'include' })
-      if (res.ok) opts.onMessage(await res.json())
+      if (res.ok) {
+        opts.onMessage(await res.json())
+      } else {
+        opts.onPollError?.(res.status)
+      }
     } catch {
       /* swallow — caller may log */
     }

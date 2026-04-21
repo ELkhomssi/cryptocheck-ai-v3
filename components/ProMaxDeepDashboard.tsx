@@ -1,6 +1,7 @@
 'use client'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import CopilotDecisionPanel from '@/components/trading-os/CopilotDecisionPanel'
+import TradingOsStreamPanel from '@/components/trading-os/TradingOsStreamPanel'
 
 export interface DeepProps {
   isPro: boolean
@@ -396,6 +397,7 @@ export default function ProMaxDeepDashboard({
               </div>
             )}
             <CopilotDecisionPanel mint={activeMint} enabled={liveOn} />
+            <TradingOsStreamPanel enabled={unlocked} />
           </div>
         )}
 

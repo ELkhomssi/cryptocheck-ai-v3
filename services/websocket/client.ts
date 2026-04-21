@@ -2,10 +2,18 @@
 
 import { createPollFallback } from '@/services/market-stream/poll-fallback'
 
-type Handlers = { onOpen?: () => void; onClose?: () => void; onError?: (e: Event) => void; onMessage?: (d: unknown) => void }
+type Handlers = {
+  onOpen?: () => void
+  onClose?: () => void
+  onError?: (e: Event) => void
+  onMessage?: (d: unknown) => void
+  /** HTTP poll returned non-OK (e.g. session expired). */
+  onPollError?: (status: number) => void
+}
 
 /**
  * Browser WebSocket with reconnect + optional 5s poll fallback if `wsUrl` empty.
+ * Default poll path for Trading OS: `/api/trading-os/stream/events`.
  */
 export class TradingOsConnection {
   private ws: WebSocket | null = null
@@ -23,7 +31,10 @@ export class TradingOsConnection {
     this.closed = false
     if (this.wsUrl) this.openWs()
     else if (this.pollPath) {
-      this.pollStop = createPollFallback(this.pollPath, { onMessage: (d) => this.handlers.onMessage?.(d) }).stop
+      this.pollStop = createPollFallback(this.pollPath, {
+        onMessage: (d) => this.handlers.onMessage?.(d),
+        onPollError: (status) => this.handlers.onPollError?.(status),
+      }).stop
     }
   }
 

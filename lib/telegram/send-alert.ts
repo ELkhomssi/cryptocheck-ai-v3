@@ -8,6 +8,35 @@ export type AlertData = {
   newVerdict: string
 }
 
+/** Free-form HTML body (caller must escape untrusted text). */
+export async function sendTelegramPlainMessage(chatId: string, html: string): Promise<boolean> {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim()
+  if (!botToken) {
+    console.warn('[telegram] TELEGRAM_BOT_TOKEN missing, telegram alerts disabled')
+    return false
+  }
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: html,
+        parse_mode: 'HTML',
+        disable_web_page_preview: true,
+      }),
+    })
+    if (!res.ok) {
+      console.error('[telegram] plain send failed', res.status, await res.text().catch(() => ''))
+      return false
+    }
+    return true
+  } catch (err) {
+    console.error('[telegram] plain send error', err)
+    return false
+  }
+}
+
 export async function sendTelegramAlert(chatId: string, alert: AlertData): Promise<boolean> {
   const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim()
   if (!botToken) {
