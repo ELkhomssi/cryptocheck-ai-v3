@@ -5,6 +5,7 @@ import type { ProDashboardSession } from '@/lib/types/pro-dashboard'
 
 export type { ProDashboardSession }
 
+/** Institutional `/pro/dashboard` — grants access for PRO or ENTERPRISE (normalized `institutional`). */
 export async function getProDashboardSession(): Promise<ProDashboardSession> {
   const supabase = await createClient()
   const {

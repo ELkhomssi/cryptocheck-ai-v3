@@ -3,9 +3,10 @@ import type { SubscriptionTier } from '@/lib/types/tier'
 import type { SaasSubscriptionStatus, SaasTier } from '@/lib/types/saas-subscription'
 
 /** Maps DB ENUM to existing rate-limit / quota tier keys (ENTERPRISE → runtime `institutional`). */
-export function mapSaasTierToRuntime(tier: SaasTier): SubscriptionTier {
-  if (tier === 'ENTERPRISE') return 'institutional'
-  if (tier === 'PRO') return 'pro'
+export function mapSaasTierToRuntime(tier: SaasTier | string): SubscriptionTier {
+  const u = String(tier ?? '').trim().toUpperCase()
+  if (u === 'ENTERPRISE') return 'institutional'
+  if (u === 'PRO') return 'pro'
   return 'free'
 }
 

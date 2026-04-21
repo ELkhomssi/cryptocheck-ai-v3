@@ -21,11 +21,18 @@ export type ProfileRow = {
 export class SubscriptionService {
   resolveTier(row: ProfileRow | null | undefined): SubscriptionTier {
     if (!row) return 'free'
-    const t = String(row.tier ?? '').trim().toLowerCase()
-    if (t === 'elite' || t === 'enterprise' || t === 'institutional') return 'institutional'
-    if (t === 'pro' || t === 'deep' || t === 'micropack' || t === 'starter' || t === 'whale') return 'pro'
+    // Elite / enterprise product flags (profiles) — ENTERPRISE is a superset of PRO for gating.
+    if (row.is_elite) return 'institutional'
+
+    const tierRaw = String(row.tier ?? '').trim()
+    const tierU = tierRaw.toUpperCase()
+    const t = tierRaw.toLowerCase()
+    if (tierU === 'ENTERPRISE' || t === 'elite' || t === 'enterprise' || t === 'institutional') return 'institutional'
+    if (tierU === 'PRO' || t === 'pro' || t === 'deep' || t === 'micropack' || t === 'starter' || t === 'whale') return 'pro'
+
     const p = String(row.plan || '').toLowerCase()
-    if (p === 'institutional' || p === 'enterprise') return 'institutional'
+    const pt = String(row.plan_type ?? '').trim().toLowerCase()
+    if (p === 'institutional' || p === 'enterprise' || pt === 'institutional' || pt === 'enterprise') return 'institutional'
     if (row.is_pro || p === 'pro' || p === 'deep' || p === 'whale' || p === 'elite') return 'pro'
     return 'free'
   }

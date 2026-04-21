@@ -4,6 +4,7 @@ import { authenticateApiRequestOptional } from '@/lib/middleware/with-api-auth'
 import { subscriptionService } from '@/lib/services/subscription.service'
 import type { SubscriptionTier } from '@/lib/types/tier'
 
+/** PRO or ENTERPRISE (normalized to `institutional`) — see subscriptionService.resolveTier / mapSaasTierToRuntime. */
 export function isProOrInstitutional(tier: SubscriptionTier): boolean {
   return tier === 'pro' || tier === 'institutional'
 }

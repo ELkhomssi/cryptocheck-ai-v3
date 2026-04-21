@@ -2242,8 +2242,12 @@ export default function Dashboard() {
         }
         const p = String(data.plan || '').toLowerCase()
         const pt = String(data.plan_type ?? '').trim().toLowerCase()
-        const tier = String(data.tier ?? '').trim().toLowerCase()
+        const tierRaw = String(data.tier ?? '').trim()
+        const tier = tierRaw.toLowerCase()
+        const tierU = tierRaw.toUpperCase()
         const tierProLike =
+          tierU === 'PRO' ||
+          tierU === 'ENTERPRISE' ||
           tier === 'micropack' ||
           tier === 'starter' ||
           tier === 'pro' ||
@@ -2254,6 +2258,7 @@ export default function Dashboard() {
           tier === 'enterprise'
         const proLike =
           !!data.is_pro ||
+          !!data.is_elite ||
           p === 'pro' ||
           p === 'deep' ||
           p === 'whale' ||
@@ -3386,13 +3391,14 @@ export default function Dashboard() {
           )}
           {view === 'promax' && (
             <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', background: '#050505' }}>
-              <ProMaxDeepDashboard isPro={isPro} onUpgrade={() => setShowModal(true)} />
+              <ProMaxDeepDashboard isPro={isPro} hasPremiumAccess={isElite} onUpgrade={() => setShowModal(true)} />
             </div>
           )}
           {view === 'elite' && (
             <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', background: '#030308' }}>
               <ProMaxEliteDashboard
                 isPro={isPro}
+                hasPremiumAccess={isElite}
                 tier="elite"
                 onUpgrade={() => setShowModal(true)}
                 mint={(scanData?.mint || currentMint || '').trim()}

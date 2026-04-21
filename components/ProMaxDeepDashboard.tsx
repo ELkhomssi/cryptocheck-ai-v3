@@ -1,7 +1,12 @@
 'use client'
 import React, { useState, useEffect, useRef } from 'react'
 
-interface DeepProps { isPro: boolean; onUpgrade: () => void }
+interface DeepProps {
+  isPro: boolean
+  /** ENTERPRISE / elite — same unlock as Pro for Deep marketing CTAs. */
+  hasPremiumAccess?: boolean
+  onUpgrade: () => void
+}
 
 const LOGS = [
   { tag:'DEEP_LEARNING', color:'#d4af37', msg:'Analyzing bytecode — 2,847 instructions decompiled' },
@@ -54,10 +59,11 @@ function ForensicLog() {
   )
 }
 
-export default function ProMaxDeepDashboard({ isPro, onUpgrade }: DeepProps) {
+export default function ProMaxDeepDashboard({ isPro, hasPremiumAccess, onUpgrade }: DeepProps) {
   const [mt, sM] = useState(false)
   useEffect(() => sM(true), [])
   if (!mt) return null
+  const unlocked = isPro || !!hasPremiumAccess
 
   const feats = [
     { icon:'◈', title:'Cluster Mapping', sub:'SYBIL DETECTION', desc:'Visualize the developer wallet network. Detect if 100+ wallets belong to the same entity orchestrating fake volume and artificial holder counts.', stat:'847', statL:'avg nodes mapped' },
@@ -153,7 +159,7 @@ export default function ProMaxDeepDashboard({ isPro, onUpgrade }: DeepProps) {
       </div>
 
       {/* ═══ BOTTOM CTA ═══ */}
-      {!isPro && (
+      {!unlocked && (
         <div style={{textAlign:'center',padding:'32px 0'}}>
           <button onClick={onUpgrade} style={{padding:'16px 40px',fontSize:14,fontWeight:700,background:'linear-gradient(135deg,#d4af37,#FFD700)',border:'none',borderRadius:8,color:'#000',cursor:'pointer',fontFamily:"'IBM Plex Mono',monospace",boxShadow:'0 0 30px rgba(212,175,55,0.2)',letterSpacing:'0.03em'}}>
             Upgrade to Pro Max Deep — $30/mo
