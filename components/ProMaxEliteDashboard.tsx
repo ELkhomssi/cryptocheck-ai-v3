@@ -1,14 +1,36 @@
 'use client'
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
-import { Shield, Brain, Network, Activity, Zap, AlertTriangle, Eye, Lock, TrendingUp, Wallet, Search } from 'lucide-react'
+import { Shield, Brain, Network, Activity, Zap, AlertTriangle, Eye, Lock, TrendingUp, Wallet, Search, Clock, Crosshair } from 'lucide-react'
+import { loadEncryptedKey } from '@/lib/crypto/client-key-store'
 
 type Tier = 'free' | 'pro' | 'elite'
+
+export type TokenExitIntelResponse = {
+  mint: string
+  symbol: string
+  splMintAuthority: string | null
+  splFreezeAuthority: string | null
+  metadataUpdateAuthority: string | null
+  isSplMintRenounced: boolean
+  isSplFullyRenounced: boolean
+  iei: number
+  neuralScore: number
+  acutePoolWindowEndMs: number | null
+  pairCreatedAtMs: number | null
+  top1Pct: number
+  liquidityUsd: number
+  pairAgeMin: number | null
+  dexUrl: string
+  scannedAt: string
+}
 
 interface ProMaxEliteProps {
   isPro: boolean
   tier?: Tier
   onUpgrade: () => void
+  /** Active scan mint — wires IEI / LP cliff / Neural Score to `/api/token-exit-intel` (Helius RPC). */
+  mint?: string | null
 }
 
 const TC = {
@@ -38,15 +60,287 @@ function FTerm({tier}:{tier:Tier}){const t=TC[tier==='elite'?'elite':'pro'];cons
 
 function SM({icon:I,label,value,delta,color}:{icon:any;label:string;value:string;delta?:string;color:string}){return<div style={{display:'flex',alignItems:'center',gap:10}}><div style={{width:32,height:32,borderRadius:8,background:color+'10',border:`1px solid ${color}20`,display:'flex',alignItems:'center',justifyContent:'center'}}><I size={14} color={color}/></div><div><div style={{fontSize:8,color:'#484f58',letterSpacing:'0.1em',fontWeight:600}}>{label}</div><div style={{display:'flex',alignItems:'baseline',gap:4}}><span style={{fontSize:16,fontWeight:800,color:'#e2e8f0',fontFamily:"'IBM Plex Mono',monospace"}}>{value}</span>{delta&&<span style={{fontSize:9,color:delta.startsWith('-')?'#ff4444':'#00ff88',fontWeight:600}}>{delta}</span>}</div></div></div>}
 
-export default function ProMaxEliteDashboard({isPro, tier='pro', onUpgrade}: ProMaxEliteProps){
-  const at = tier==='elite'?'elite':'pro' as const
+function truncAddr(a: string | null | undefined, f = 6, b = 4): string {
+  if (a == null || a === '') return 'none'
+  if (a.length <= f + b + 1) return a
+  return `${a.slice(0, f)}…${a.slice(-b)}`
+}
+
+function fmtUsd(n: number): string {
+  if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`
+  if (n >= 1e3) return `$${(n / 1e3).toFixed(1)}K`
+  if (n > 0) return `$${n.toFixed(0)}`
+  return '—'
+}
+
+/** SPL + DEX-backed exit surface (IEI + acute pool-age window from chain + DexScreener). */
+function AsymmetricExitRadar({
+  tier,
+  intel,
+  loading,
+  error,
+  hasMint,
+}: {
+  tier: Tier
+  intel: TokenExitIntelResponse | null
+  loading: boolean
+  error: string
+  hasMint: boolean
+}) {
+  const t = TC[tier === 'elite' ? 'elite' : 'pro']
+  const [, bump] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => bump((n) => n + 1), 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  const iei = intel?.iei ?? null
+  const endTarget = intel?.acutePoolWindowEndMs ?? null
+  const left = endTarget != null ? Math.max(0, endTarget - Date.now()) : 0
+  const hh = String(Math.floor(left / 3600000)).padStart(2, '0')
+  const mm = String(Math.floor((left % 3600000) / 60000)).padStart(2, '0')
+  const ss = String(Math.floor((left % 60000) / 1000)).padStart(2, '0')
+  const hasCountdown = endTarget != null && left > 0
+
+  const barCol =
+    iei == null ? '#484f58' : iei <= 0 ? '#00ff88' : iei >= 75 ? '#ff4444' : iei >= 40 ? '#ff6b35' : '#00ff88'
+  const ieiLabel =
+    iei == null
+      ? hasMint
+        ? 'AWAITING DATA'
+        : 'NO MINT'
+      : iei <= 0
+        ? intel?.splFreezeAuthority
+          ? 'MINT RENOUNCED · FREEZE STILL LIVE'
+          : 'CLEAR — SPL MINT INFLATION PATH OFF'
+        : iei >= 75
+          ? 'ELEVATED — EXIT ASYMMETRY'
+          : iei >= 40
+            ? 'MODERATE INSIDER SURFACE'
+            : 'CONTROLLED'
+
+  const stc = { critical: '#ff4444', warn: '#ff6b35', safe: '#00ff88' } as const
+
+  const rows = useMemo(() => {
+    if (!intel) {
+      return [
+        { k: 'SPL mint authority', v: '—', st: 'warn' as const },
+        { k: 'SPL freeze authority', v: '—', st: 'warn' as const },
+        { k: 'Metadata update', v: '—', st: 'warn' as const },
+        { k: 'Pool / liquidity (DexScreener)', v: '—', st: 'warn' as const },
+      ]
+    }
+    const mintRow =
+      intel.isSplMintRenounced
+        ? ({ k: 'SPL mint authority', v: 'Renounced — no new inflation', st: 'safe' as const } as const)
+        : ({ k: 'SPL mint authority', v: `Active · ${truncAddr(intel.splMintAuthority)}`, st: 'critical' as const } as const)
+    const freezeRow =
+      intel.splFreezeAuthority == null
+        ? ({ k: 'SPL freeze authority', v: 'None', st: 'safe' as const } as const)
+        : ({ k: 'SPL freeze authority', v: `Set · ${truncAddr(intel.splFreezeAuthority)}`, st: 'critical' as const } as const)
+    const metaRow =
+      intel.metadataUpdateAuthority == null
+        ? ({ k: 'Metadata update', v: 'None (immutable URI path)', st: 'safe' as const } as const)
+        : ({ k: 'Metadata update', v: `Active · ${truncAddr(intel.metadataUpdateAuthority)}`, st: 'warn' as const } as const)
+    const liqParts = [`Liq ${fmtUsd(intel.liquidityUsd)}`, intel.pairAgeMin != null ? `pair ${intel.pairAgeMin}m` : 'no pair age']
+    if (intel.acutePoolWindowEndMs && Date.now() < intel.acutePoolWindowEndMs) {
+      liqParts.push(`acute window ${hh}:${mm}:${ss}`)
+    } else if (intel.pairCreatedAtMs) {
+      liqParts.push('outside 72h acute window')
+    } else {
+      liqParts.push('no DEX pair timestamp')
+    }
+    const poolRow = { k: 'Pool / liquidity (DexScreener)', v: liqParts.join(' · '), st: 'warn' as const }
+    return [mintRow, freezeRow, metaRow, poolRow]
+  }, [intel, hh, mm, ss])
+
+  return (
+    <div>
+      {!hasMint && (
+        <div style={{ fontSize: 9, color: '#8b949e', marginBottom: 10, padding: '8px 10px', borderRadius: 6, background: 'rgba(255,255,255,0.02)', border: `1px solid rgba(${t.rgb},0.08)` }}>
+          Scan a token in the main scanner (or open a chart mint) to load live SPL authorities, IEI, and pool-age window via Helius RPC.
+        </div>
+      )}
+      {error && (
+        <div style={{ fontSize: 9, color: '#ff6b35', marginBottom: 10 }}>{error}</div>
+      )}
+      {loading && (
+        <div style={{ fontSize: 9, color: t.accent, marginBottom: 8 }}>Pulling mint account + DEX context…</div>
+      )}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'stretch', justifyContent: 'space-between', gap: 14, marginBottom: 14 }}>
+        <div style={{ flex: '1 1 200px' }}>
+          <div style={{ fontSize: 8, color: '#484f58', letterSpacing: '0.14em', fontWeight: 700, marginBottom: 6 }}>INSIDER EXIT INDEX (IEI)</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 36, fontWeight: 900, color: barCol, fontFamily: "'IBM Plex Mono',monospace", lineHeight: 1 }}>{iei == null ? '—' : iei}</span>
+            <span style={{ fontSize: 9, fontWeight: 700, color: barCol, letterSpacing: '0.06em', maxWidth: 220 }}>{ieiLabel}</span>
+          </div>
+          <div style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.06)', marginTop: 8, overflow: 'hidden' }}>
+            <div
+              style={{
+                width: `${iei == null ? 2 : Math.min(100, Math.max(0, iei))}%`,
+                height: '100%',
+                borderRadius: 3,
+                background: `linear-gradient(90deg,${t.sec},${barCol})`,
+                transition: 'width 0.8s ease',
+              }}
+            />
+          </div>
+        </div>
+        <div style={{ flex: '1 1 220px', display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'flex-end' }}>
+          <div
+            style={{
+              flex: 1,
+              maxWidth: 300,
+              padding: '10px 12px',
+              borderRadius: 8,
+              background: hasCountdown ? 'rgba(255,68,68,0.06)' : 'rgba(0,255,136,0.04)',
+              border: hasCountdown ? '1px solid rgba(255,68,68,0.2)' : `1px solid rgba(${t.rgb},0.12)`,
+            }}
+          >
+            <div style={{ fontSize: 8, color: hasCountdown ? '#ff4444' : '#6e7681', fontWeight: 700, letterSpacing: '0.1em', marginBottom: 4 }}>
+              {hasCountdown ? 'ACUTE POOL-AGE WINDOW (72H)' : 'LP CLIFF TIMER'}
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: '#e2e8f0', fontFamily: "'IBM Plex Mono',monospace", letterSpacing: '0.06em' }}>
+              {hasCountdown ? `${hh}:${mm}:${ss}` : endTarget != null && left <= 0 ? 'CLOSED' : '—'}
+            </div>
+            <div style={{ fontSize: 8, color: '#6e7681', marginTop: 4, lineHeight: 1.4 }}>
+              {hasCountdown
+                ? 'Countdown to end of 72h surveillance window from first DEX pair timestamp (not on-chain LP lock proof).'
+                : intel?.iei === 0 && !intel?.splFreezeAuthority
+                  ? 'No SPL inflation clock — mint renounced. Pool-age timer is independent; monitor LP token movements.'
+                  : intel?.iei === 0 && intel?.splFreezeAuthority
+                    ? 'Mint renounced (IEI clear) but freeze authority can still block transfers — see row below.'
+                    : intel?.pairCreatedAtMs == null
+                      ? 'No DEX pair time — list on a DEX or paste a traded mint for pool-age context.'
+                      : 'Outside 72h acute window from pair creation; authority/holder risk may still apply.'}
+            </div>
+          </div>
+          <Crosshair size={28} color={t.accent} style={{ opacity: 0.35 }} />
+        </div>
+      </div>
+      <div style={{ display: 'grid', gap: 6 }}>
+        {rows.map((r) => (
+          <div
+            key={r.k}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 10,
+              padding: '8px 10px',
+              borderRadius: 6,
+              background: 'rgba(255,255,255,0.02)',
+              border: `1px solid rgba(${t.rgb},0.06)`,
+            }}
+          >
+            <span style={{ fontSize: 9, color: '#8b949e', fontWeight: 600 }}>{r.k}</span>
+            <span style={{ fontSize: 9, fontWeight: 700, color: stc[r.st], textAlign: 'right', maxWidth: '62%' }}>{r.v}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginTop: 10, fontSize: 7, color: '#484f58', lineHeight: 1.5 }}>
+        IEI is computed from live SPL mint + freeze authorities (RPC), holder top-1 %, DEX liquidity, and listing age. Neural Score in the adjacent card uses the same threat bundle.
+      </div>
+    </div>
+  )
+}
+
+export default function ProMaxEliteDashboard({ isPro, tier = 'pro', onUpgrade, mint: mintProp }: ProMaxEliteProps) {
+  const at = tier === 'elite' ? 'elite' : 'pro'
   const t = TC[at]
   const [liq] = useState(mkLiq)
   const [txs] = useState(mkTx)
-  const [score] = useState(73)
+  const [score, setScore] = useState(73)
+  const [exitIntel, setExitIntel] = useState<TokenExitIntelResponse | null>(null)
+  const [exitLoading, setExitLoading] = useState(false)
+  const [exitError, setExitError] = useState('')
   const [mt, sM] = useState(false)
-  useEffect(()=>sM(true),[])
-  if(!mt) return null
+  const mint = (mintProp ?? '').trim()
+
+  useEffect(() => {
+    if (!mint || mint.length < 32) {
+      setExitIntel(null)
+      setExitError('')
+      setExitLoading(false)
+      setScore(73)
+      return
+    }
+
+    let cancelled = false
+    ;(async () => {
+      setExitLoading(true)
+      setExitError('')
+      try {
+        const apiKey = await loadEncryptedKey()
+        if (!apiKey) {
+          if (!cancelled) {
+            setExitError('Paste your Intelligence Terminal API key to load live exit intel.')
+            setExitLoading(false)
+          }
+          return
+        }
+        const res = await fetch('/api/token-exit-intel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+          body: JSON.stringify({ mint }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          const msg =
+            typeof data?.message === 'string'
+              ? data.message
+              : typeof data?.error?.message === 'string'
+                ? data.error.message
+                : `HTTP ${res.status}`
+          if (!cancelled) {
+            setExitIntel(null)
+            setExitError(msg)
+          }
+          return
+        }
+        if (!cancelled && data?.mint) {
+          setExitIntel(data as TokenExitIntelResponse)
+          setScore(typeof data.neuralScore === 'number' ? data.neuralScore : 73)
+        }
+      } catch {
+        if (!cancelled) setExitError('Exit intel request failed.')
+      } finally {
+        if (!cancelled) setExitLoading(false)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [mint])
+
+  const neuralCells = useMemo(() => {
+    if (!exitIntel) {
+      return [
+        { l: 'Concentration', v: '—', c: '#484f58' },
+        { l: 'LP (DEX)', v: '—', c: '#484f58' },
+        { l: 'SPL mint', v: '—', c: '#484f58' },
+        { l: 'SPL freeze', v: '—', c: '#484f58' },
+      ]
+    }
+    const ie = exitIntel
+    const conc = ie.top1Pct >= 45 ? '#ff4444' : ie.top1Pct >= 25 ? '#ff6b35' : t.sec
+    const mintC = ie.isSplMintRenounced ? '#00ff88' : '#ff4444'
+    const liqC = ie.liquidityUsd >= 150_000 ? '#00ff88' : ie.liquidityUsd >= 25_000 ? t.accent : '#ff6b35'
+    const fzC = ie.splFreezeAuthority ? '#ff4444' : '#00ff88'
+    return [
+      { l: 'Concentration', v: `${ie.top1Pct.toFixed(1)}%`, c: conc },
+      { l: 'LP (DEX)', v: fmtUsd(ie.liquidityUsd), c: liqC },
+      { l: 'SPL mint', v: ie.isSplMintRenounced ? 'RENOUNCED' : 'ACTIVE', c: mintC },
+      { l: 'SPL freeze', v: ie.splFreezeAuthority ? 'SET' : 'OFF', c: fzC },
+    ]
+  }, [exitIntel, t])
+
+  useEffect(() => {
+    sM(true)
+  }, [])
+
+  if (!mt) return null
 
   if(false && !isPro) return(  // Always show full dashboard as preview
     <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'60vh',padding:'clamp(16px,4vw,40px)',textAlign:'center',position:'relative'}}>
@@ -71,14 +365,37 @@ export default function ProMaxEliteDashboard({isPro, tier='pro', onUpgrade}: Pro
         <div style={{display:'flex',gap:12,flexWrap:'wrap'}}><SM icon={Shield} label="AUDITS TODAY" value="47" delta="+12%" color={t.accent}/><SM icon={AlertTriangle} label="RUGS DETECTED" value="3" color="#ff4444"/></div>
       </div>
       <div className="pm-grid" style={{display:'grid',gap:10}}>
-        <GC span={4} cls="pm-4" tier={at}><CH icon={Brain} title="Neural Score" badge="LIVE" tier={at}/><div style={{display:'flex',flexDirection:'column',alignItems:'center'}}><Gauge score={score} size={140} tier={at}/><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,width:'100%',marginTop:12}}>{[{l:'Sybil Risk',v:'94.2%',c:'#ff4444'},{l:'LP Health',v:'78%',c:t.accent},{l:'Authority',v:'ACTIVE',c:'#ff6b35'},{l:'Holders',v:'2,847',c:t.sec}].map(s=><div key={s.l} style={{background:'rgba(255,255,255,0.02)',borderRadius:6,padding:'6px 8px'}}><div style={{fontSize:7,color:'#484f58',letterSpacing:'0.08em'}}>{s.l}</div><div style={{fontSize:12,fontWeight:800,color:s.c}}>{s.v}</div></div>)}</div></div></GC>
+        <GC span={12} cls="pm-12" tier={at}>
+          <CH icon={Clock} title="Asymmetric Exit Surface" badge={at === 'elite' ? 'ELITE · RPC' : 'DEEP · RPC'} tier={at} />
+          <AsymmetricExitRadar
+            tier={at}
+            intel={exitIntel}
+            loading={exitLoading}
+            error={exitError}
+            hasMint={mint.length >= 32}
+          />
+        </GC>
+        <GC span={4} cls="pm-4" tier={at}>
+          <CH icon={Brain} title="Neural Score" badge={exitIntel ? 'RPC+DEX' : 'DEMO'} tier={at} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <Gauge score={score} size={140} tier={at} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, width: '100%', marginTop: 12 }}>
+              {neuralCells.map((s) => (
+                <div key={s.l} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 6, padding: '6px 8px' }}>
+                  <div style={{ fontSize: 7, color: '#484f58', letterSpacing: '0.08em' }}>{s.l}</div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: s.c }}>{s.v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </GC>
         <GC span={8} cls="pm-8" tier={at}><CH icon={TrendingUp} title="Liquidity Depth" badge="24H" tier={at}/><div style={{height:200}}><ResponsiveContainer width="100%" height="100%"><AreaChart data={liq}><defs><linearGradient id="goldG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#d4af37" stopOpacity={0.3}/><stop offset="100%" stopColor="#d4af37" stopOpacity={0}/></linearGradient><linearGradient id="violetG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.3}/><stop offset="100%" stopColor="#8b5cf6" stopOpacity={0}/></linearGradient><filter id="cG"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><XAxis dataKey="time" tick={{fontSize:8,fill:'#484f58'}} axisLine={{stroke:'rgba(255,255,255,0.04)'}} tickLine={false} interval={3}/><YAxis tick={{fontSize:8,fill:'#484f58'}} axisLine={false} tickLine={false} width={35}/><Tooltip contentStyle={{background:'#0a0a0a',border:`1px solid rgba(${t.rgb},0.15)`,borderRadius:6,fontSize:10,fontFamily:"'IBM Plex Mono',monospace"}} labelStyle={{color:'#6e7681'}} itemStyle={{color:t.accent}}/><Area type="monotone" dataKey="depth" stroke={t.accent} strokeWidth={2} fill={`url(#${t.cf})`} filter="url(#cG)"/><Area type="monotone" dataKey="volume" stroke={t.sec} strokeWidth={1} fill={t.sec+'08'} strokeDasharray="4 2"/></AreaChart></ResponsiveContainer></div></GC>
         <GC span={6} cls="pm-6" tier={at}><CH icon={Network} title="Cluster Map" badge="GNN" tier={at}/><div style={{height:200}}><NetG tier={at}/></div><div style={{display:'flex',gap:12,marginTop:8,flexWrap:'wrap'}}>{[{l:'Nodes',v:'847',c:t.accent},{l:'Clusters',v:'12',c:'#ff4444'},{l:'Sybil',v:'142',c:'#ff6b35'}].map(s=><div key={s.l} style={{display:'flex',alignItems:'center',gap:4}}><span style={{width:4,height:4,borderRadius:'50%',background:s.c}}/><span style={{fontSize:8,color:'#484f58'}}>{s.l}:</span><span style={{fontSize:9,fontWeight:700,color:s.c}}>{s.v}</span></div>)}</div></GC>
         <GC span={6} cls="pm-6" tier={at}><CH icon={Activity} title="Engine Metrics" badge="v4.0" tier={at}/><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>{[{icon:Zap,l:'SCAN SPEED',v:t.speed,c:t.sec},{icon:Eye,l:'CONTRACTS',v:'523K',c:t.accent},{icon:Lock,l:'LP LOCKED',v:'78%',c:'#ff6b35'},{icon:Wallet,l:'WALLETS',v:'847',c:t.accent}].map(s=><div key={s.l} style={{background:'rgba(255,255,255,0.02)',borderRadius:6,padding:10,display:'flex',alignItems:'center',gap:8}}><s.icon size={14} color={s.c}/><div><div style={{fontSize:7,color:'#484f58',letterSpacing:'0.08em'}}>{s.l}</div><div style={{fontSize:14,fontWeight:800,color:s.c}}>{s.v}</div></div></div>)}</div></GC>
         <GC span={8} cls="pm-8" tier={at}><CH icon={Activity} title="Live Forensic Transfers" badge="REAL-TIME" tier={at}/><FTab data={txs} tier={at}/></GC>
         <GC span={4} cls="pm-4" tier={at}><CH icon={Zap} title="Forensic Log" badge="STREAMING" tier={at}/><div style={{height:220,background:'#050505',borderRadius:6,border:`1px solid rgba(${t.rgb},0.06)`,overflow:'hidden'}}><FTerm tier={at}/></div></GC>
       </div>
-      <style>{`@keyframes fadeRow{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}@keyframes riskPulse{0%,100%{opacity:1}50%{opacity:0.3}}@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}.pm-grid{grid-template-columns:repeat(12,1fr)}@media(max-width:900px){.pm-grid{grid-template-columns:1fr!important}.pm-4,.pm-6,.pm-8{grid-column:span 1!important}}@media(min-width:901px)and(max-width:1200px){.pm-grid{grid-template-columns:repeat(6,1fr)!important}.pm-4{grid-column:span 3!important}.pm-6{grid-column:span 3!important}.pm-8{grid-column:span 6!important}}`}</style>
+      <style>{`@keyframes fadeRow{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}@keyframes riskPulse{0%,100%{opacity:1}50%{opacity:0.3}}@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}.pm-grid{grid-template-columns:repeat(12,1fr)}@media(max-width:900px){.pm-grid{grid-template-columns:1fr!important}.pm-4,.pm-6,.pm-8,.pm-12{grid-column:span 1!important}}@media(min-width:901px)and(max-width:1200px){.pm-grid{grid-template-columns:repeat(6,1fr)!important}.pm-12{grid-column:span 6!important}.pm-4{grid-column:span 3!important}.pm-6{grid-column:span 3!important}.pm-8{grid-column:span 6!important}}`}</style>
     </div>
   )
 }

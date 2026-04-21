@@ -3391,7 +3391,12 @@ export default function Dashboard() {
           )}
           {view === 'elite' && (
             <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', background: '#030308' }}>
-              <ProMaxEliteDashboard isPro={isPro} tier="elite" onUpgrade={() => setShowModal(true)} />
+              <ProMaxEliteDashboard
+                isPro={isPro}
+                tier="elite"
+                onUpgrade={() => setShowModal(true)}
+                mint={(scanData?.mint || currentMint || '').trim()}
+              />
             </div>
           )}
           {/* Feed — Mobile fullscreen Alpha Feed */}
