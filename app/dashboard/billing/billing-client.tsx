@@ -41,7 +41,10 @@ function BillingInner({ stripeUrls }: { stripeUrls: BillingStripeUrls }) {
   const [redirectingTier, setRedirectingTier] = useState<string | null>(null)
 
   const load = useCallback(() => {
-    void fetch('/api/dashboard/me', { credentials: 'include' })
+    void fetch(`/api/dashboard/me?t=${Date.now()}`, {
+      credentials: 'include',
+      cache: 'no-store',
+    })
       .then((r) => r.json())
       .then((j) => {
         if (j.subscription) setMe({ subscription: j.subscription })
@@ -50,6 +53,14 @@ function BillingInner({ stripeUrls }: { stripeUrls: BillingStripeUrls }) {
 
   useEffect(() => {
     load()
+  }, [load])
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === 'visible') load()
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
   }, [load])
 
   useEffect(() => {

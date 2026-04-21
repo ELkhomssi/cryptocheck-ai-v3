@@ -7,6 +7,7 @@ import type { SaasTier } from '@/lib/types/saas-subscription'
 export type ProfileRow = {
   is_pro?: boolean | null
   plan?: string | null
+  plan_type?: string | null
   tier?: string | null
   is_elite?: boolean | null
   credits?: number | null
@@ -39,7 +40,7 @@ export class SubscriptionService {
     const sb = getSupabaseAdmin()
     const { data, error } = await sb
       .from('profiles')
-      .select('is_pro, plan, tier, is_elite')
+      .select('is_pro, plan, plan_type, tier, is_elite')
       .eq('id', userId)
       .maybeSingle()
 

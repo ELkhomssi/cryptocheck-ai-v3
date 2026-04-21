@@ -7,6 +7,8 @@ export type ConsumerTier = 'free' | 'micropack' | 'pro' | 'elite'
 type ProfileTierRow = {
   tier?: string | null
   plan?: string | null
+  /** Stripe / legacy SQL often writes here while `plan` stays a display slug */
+  plan_type?: string | null
   is_pro?: boolean | null
   is_elite?: boolean | null
 }
@@ -28,9 +30,18 @@ function normalizeProfileTier(row: ProfileTierRow | null): ConsumerTier | null {
   if (direct === 'elite' || direct === 'enterprise' || direct === 'institutional') return 'elite'
 
   const plan = String(row.plan ?? '').trim().toLowerCase()
-  if (plan === 'starter' || plan === 'micropack') return 'micropack'
-  if (plan === 'deep' || plan === 'pro' || plan === 'whale') return 'pro'
-  if (plan === 'elite' || plan === 'enterprise' || plan === 'institutional') return 'elite'
+  const planType = String(row.plan_type ?? '').trim().toLowerCase()
+  if (plan === 'starter' || plan === 'micropack' || planType === 'starter' || planType === 'micropack') return 'micropack'
+  if (plan === 'deep' || plan === 'pro' || plan === 'whale' || planType === 'deep' || planType === 'pro' || planType === 'whale') return 'pro'
+  if (
+    plan === 'elite' ||
+    plan === 'enterprise' ||
+    plan === 'institutional' ||
+    planType === 'elite' ||
+    planType === 'enterprise' ||
+    planType === 'institutional'
+  )
+    return 'elite'
   if (row.is_elite) return 'elite'
   if (row.is_pro) return 'pro'
   return null
@@ -54,7 +65,7 @@ export async function resolveConsumerTier(userId: string): Promise<ConsumerTier>
   const sb = getSupabaseAdmin()
 
   const [{ data: profile }, { data: saas }] = await Promise.all([
-    sb.from('profiles').select('tier, plan, is_pro, is_elite').eq('id', userId).maybeSingle(),
+    sb.from('profiles').select('tier, plan, plan_type, is_pro, is_elite').eq('id', userId).maybeSingle(),
     sb
       .from('saas_subscriptions')
       .select('tier, status, updated_at')

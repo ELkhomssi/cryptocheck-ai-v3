@@ -33,11 +33,12 @@ export async function getUserAccess(): Promise<UserAccess> {
     }
     const { data } = await supabase
       .from('profiles')
-      .select('is_pro, plan, tier, scans_today')
+      .select('is_pro, plan, plan_type, tier, scans_today')
       .eq('id', user.id)
       .single()
 
     const p = String(data?.plan || '').toLowerCase()
+    const pt = String(data?.plan_type ?? '').trim().toLowerCase()
     const tier = String(data?.tier ?? '').trim().toLowerCase()
     const tierPro =
       tier === 'micropack' ||
@@ -56,7 +57,13 @@ export async function getUserAccess(): Promise<UserAccess> {
       p === 'whale' ||
       p === 'elite' ||
       p === 'institutional' ||
-      p === 'enterprise'
+      p === 'enterprise' ||
+      pt === 'pro' ||
+      pt === 'deep' ||
+      pt === 'whale' ||
+      pt === 'elite' ||
+      pt === 'institutional' ||
+      pt === 'enterprise'
     const isWhale = data?.plan === 'whale'
     return {
       isPro, isWhale,
@@ -81,13 +88,14 @@ export async function deductScan(userId: string): Promise<{ success: boolean; re
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('scans_today, is_pro, plan, tier')
+      .select('scans_today, is_pro, plan, plan_type, tier')
       .eq('id', userId)
       .single()
 
     if (error || !data) return { success: false, remaining: 0, error: 'Profile not found' }
 
     const p = String(data.plan || '').toLowerCase()
+    const pt = String(data.plan_type ?? '').trim().toLowerCase()
     const tier = String(data.tier ?? '').trim().toLowerCase()
     const tierPro =
       tier === 'micropack' ||
@@ -106,7 +114,13 @@ export async function deductScan(userId: string): Promise<{ success: boolean; re
       p === 'whale' ||
       p === 'elite' ||
       p === 'institutional' ||
-      p === 'enterprise'
+      p === 'enterprise' ||
+      pt === 'pro' ||
+      pt === 'deep' ||
+      pt === 'whale' ||
+      pt === 'elite' ||
+      pt === 'institutional' ||
+      pt === 'enterprise'
     const limit = isPro ? 9999 : 10
 
     if (data.scans_today >= limit) {

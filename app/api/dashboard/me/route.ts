@@ -12,17 +12,24 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const sub = await getUserSubscription(user.id)
-  return NextResponse.json({
-    userId: user.id,
-    email: user.email,
-    subscription: {
-      effectiveTier: sub.effectiveTier,
-      runtimeTier: sub.runtimeTier,
-      isDefaultFree: sub.isDefaultFree,
-      status: sub.record?.status ?? null,
-      currentPeriodEnd: sub.record?.current_period_end ?? null,
-      cancelAtPeriodEnd: sub.record?.cancel_at_period_end ?? false,
-      stripeCustomerId: sub.record?.stripe_customer_id ?? null,
+  return NextResponse.json(
+    {
+      userId: user.id,
+      email: user.email,
+      subscription: {
+        effectiveTier: sub.effectiveTier,
+        runtimeTier: sub.runtimeTier,
+        isDefaultFree: sub.isDefaultFree,
+        status: sub.record?.status ?? null,
+        currentPeriodEnd: sub.record?.current_period_end ?? null,
+        cancelAtPeriodEnd: sub.record?.cancel_at_period_end ?? false,
+        stripeCustomerId: sub.record?.stripe_customer_id ?? null,
+      },
     },
-  })
+    {
+      headers: {
+        'Cache-Control': 'private, no-store, max-age=0, must-revalidate',
+      },
+    }
+  )
 }
