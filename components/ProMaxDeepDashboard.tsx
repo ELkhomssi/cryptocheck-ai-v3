@@ -101,15 +101,17 @@ export default function ProMaxDeepDashboard({ isPro, hasPremiumAccess, onUpgrade
         <p style={{fontSize:'clamp(12px,1.4vw,14px)',color:'#6e7681',lineHeight:1.7,maxWidth:560,margin:'0 auto 24px'}}>
           Graph Neural Networks and Deep Contract Decompilation identify fraud clusters across the Solana ecosystem. Trained on 523,841 contracts.
         </p>
-        <div style={{display:'inline-flex',alignItems:'center',gap:10,padding:'12px 24px',borderRadius:10,background:'rgba(212,175,55,0.04)',border:'1px solid rgba(212,175,55,0.12)',boxShadow:'0 0 30px rgba(212,175,55,0.04)',marginBottom:24}}>
-          <span style={{fontSize:30,fontWeight:900,color:'#d4af37'}}>$30</span>
-          <div style={{textAlign:'left'}}>
-            <div style={{fontSize:11,color:'#d4af37',fontWeight:700}}>/month</div>
-            <div style={{fontSize:9,color:'#6e7681',letterSpacing:'0.06em'}}>UNLIMITED FORENSIC AUDITS</div>
-          </div>
-        </div>
-        {!isPro && (
-          <div><button onClick={onUpgrade} style={{padding:'14px 32px',fontSize:13,fontWeight:700,background:'linear-gradient(135deg,#d4af37,#FFD700)',border:'none',borderRadius:8,color:'#000',cursor:'pointer',fontFamily:"'IBM Plex Mono',monospace",boxShadow:'0 0 25px rgba(212,175,55,0.2)',letterSpacing:'0.03em',transition:'transform 0.2s'}}>Upgrade to Pro Max Deep</button></div>
+        {!unlocked && (
+          <>
+            <div style={{display:'inline-flex',alignItems:'center',gap:10,padding:'12px 24px',borderRadius:10,background:'rgba(212,175,55,0.04)',border:'1px solid rgba(212,175,55,0.12)',boxShadow:'0 0 30px rgba(212,175,55,0.04)',marginBottom:24}}>
+              <span style={{fontSize:30,fontWeight:900,color:'#d4af37'}}>$30</span>
+              <div style={{textAlign:'left'}}>
+                <div style={{fontSize:11,color:'#d4af37',fontWeight:700}}>/month</div>
+                <div style={{fontSize:9,color:'#6e7681',letterSpacing:'0.06em'}}>UNLIMITED FORENSIC AUDITS</div>
+              </div>
+            </div>
+            <div><button type="button" onClick={onUpgrade} style={{padding:'14px 32px',fontSize:13,fontWeight:700,background:'linear-gradient(135deg,#d4af37,#FFD700)',border:'none',borderRadius:8,color:'#000',cursor:'pointer',fontFamily:"'IBM Plex Mono',monospace",boxShadow:'0 0 25px rgba(212,175,55,0.2)',letterSpacing:'0.03em',transition:'transform 0.2s'}}>Upgrade to Pro Max Deep</button></div>
+          </>
         )}
       </div>
 

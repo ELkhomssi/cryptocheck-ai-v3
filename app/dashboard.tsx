@@ -30,6 +30,7 @@ import BentoGrid, { type StressTestApiResult } from '@/components/Dashboard/Bent
 import SecurityTerminal from '@/components/SecurityTerminal'
 import { safetyScoreToEliteGrade } from '@/lib/elite-grade'
 import ProMaxDeepDashboard from '@/components/ProMaxDeepDashboard'
+import { useSubscription } from '@/lib/subscription/SubscriptionContext'
 import { AiAutoSniper } from '@/components/AiAutoSniper'
 import PortfolioScanner from '@/components/portfolio/PortfolioScanner'
 import WatchlistPanel from '@/components/watchlist/WatchlistPanel'
@@ -2173,6 +2174,7 @@ function ProMaxView({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => voi
 export default function Dashboard() {
 
   const { walletAddress, isConnected, isConnecting, connect, disconnect, shortAddr } = useSolana()
+  const sub = useSubscription()
 
   const [view,        setView]        = useState<View>('scanner')
   const [scanTab,     setScanTab]     = useState<ScanTab>('verdict')
@@ -2278,6 +2280,7 @@ export default function Dashboard() {
         }
         if (
           data.is_elite ||
+          tierU === 'ENTERPRISE' ||
           tier === 'elite' ||
           tier === 'enterprise' ||
           tier === 'institutional' ||
@@ -2287,6 +2290,7 @@ export default function Dashboard() {
         )
           setIsElite(true)
       }
+      void sub.refresh()
     } catch { /* fallback to localStorage */ }
   }
 
@@ -2294,10 +2298,15 @@ export default function Dashboard() {
     await supabase.auth.signOut()
     setAuthUser(null)
     setIsPro(false)
+    setIsElite(false)
     localStorage.removeItem('cc_is_pro')
+    void sub.refresh()
   }
   const [isPro,setIsPro] = useState(false)
   const [isElite, setIsElite] = useState(false)
+  /** Merged with {@link useSubscription} so ENTERPRISE / institutional always unlocks Pro+Deep UI. */
+  const entitlementPro = isPro || sub.hasFullAccess
+  const entitlementElite = isElite || sub.isEliteActive
   const [credits, setCredits] = useState(10) // Server-synced via loadCreditsFromProfile
   const [trialActivated, setTrialActivated] = useState(false)
   const [showSignup, setShowSignup] = useState(false)
@@ -2524,7 +2533,7 @@ export default function Dashboard() {
     setScanState('loading')
     setScanData(null)
     try {
-      if (!isPro) {
+      if (!entitlementPro) {
         const checkRes = await fetch('/api/scan/use-credit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2556,7 +2565,7 @@ export default function Dashboard() {
       setScanState('done')
       setScanCount(c => c + 1)
 
-      if (!isPro) {
+      if (!entitlementPro) {
         const consumeRes = await fetch('/api/scan/use-credit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2596,7 +2605,7 @@ export default function Dashboard() {
       setChatMessages([])
       triggerAiSummary(data)
     } catch(e: unknown) {
-      if (!isPro && !creditConsumed) {
+      if (!entitlementPro && !creditConsumed) {
         try {
           const syncRes = await fetch('/api/scan/use-credit', {
             method: 'POST',
@@ -2989,8 +2998,10 @@ export default function Dashboard() {
         <div className="flex items-center gap-2 flex-wrap">
           <CryptoCheckLogo href="/dashboard" />
           <span className="text-[0.5rem] text-[#8b949e] ml-0.5 font-mono">v3</span>
-          {isPro ? (
-            <span style={{fontSize:'9px',fontWeight:700,padding:'2px 8px',borderRadius:4,fontFamily:'IBM Plex Mono,monospace',letterSpacing:'0.08em',background:'linear-gradient(135deg,rgba(212,175,55,0.15),rgba(212,175,55,0.05))',border:'1px solid rgba(212,175,55,0.35)',color:'#d4af37'}}>⭐ PRO</span>
+          {entitlementPro ? (
+            <span style={{fontSize:'9px',fontWeight:700,padding:'2px 8px',borderRadius:4,fontFamily:'IBM Plex Mono,monospace',letterSpacing:'0.08em',background: sub.currentTier === 'ENTERPRISE' ? 'linear-gradient(135deg,rgba(139,92,246,0.2),rgba(99,102,241,0.08))' : 'linear-gradient(135deg,rgba(212,175,55,0.15),rgba(212,175,55,0.05))', border: sub.currentTier === 'ENTERPRISE' ? '1px solid rgba(139,92,246,0.45)' : '1px solid rgba(212,175,55,0.35)', color: sub.currentTier === 'ENTERPRISE' ? '#c4b5fd' : '#d4af37'}}>
+              {sub.currentTier === 'ENTERPRISE' ? '◆ ENTERPRISE' : '⭐ PRO'}
+            </span>
           ) : null}
         </div>
 
@@ -3005,10 +3016,12 @@ export default function Dashboard() {
 
         <div className="flex items-center gap-1.5">
           <div className="live-badge bg-emerald-950/30 border border-emerald-800/25 text-emerald-400 px-2 py-0.5 rounded-[3px] text-[0.58rem] font-bold tracking-wider hidden sm:block">● MAINNET-BETA</div>
-          {isPro ? (
+          {entitlementPro ? (
             <div style={{display:'flex',alignItems:'center',gap:6,fontSize:'0.6rem',fontFamily:'IBM Plex Mono,monospace'}}>
               <span style={{color:'#6e7681'}}>∞ scans</span>
-              <button onClick={() => setShowModal(true)} className="btn-terminal px-3 py-1 rounded-[4px] text-[0.62rem]" style={{color:'#d4af37',border:'1px solid rgba(212,175,55,0.3)',background:'rgba(212,175,55,0.06)'}}>⭐ PRO</button>
+              <button type="button" onClick={() => setShowModal(true)} className="btn-terminal px-3 py-1 rounded-[4px] text-[0.62rem]" style={{ color: sub.currentTier === 'ENTERPRISE' ? '#c4b5fd' : '#d4af37', border: sub.currentTier === 'ENTERPRISE' ? '1px solid rgba(139,92,246,0.35)' : '1px solid rgba(212,175,55,0.3)', background: sub.currentTier === 'ENTERPRISE' ? 'rgba(139,92,246,0.08)' : 'rgba(212,175,55,0.06)' }}>
+                {sub.currentTier === 'ENTERPRISE' ? '◆ ENTERPRISE' : '⭐ PRO'}
+              </button>
             </div>
           ) : (
             <div style={{display:'flex',alignItems:'center',gap:6}}>
@@ -3020,10 +3033,10 @@ export default function Dashboard() {
                 animation:credits<3?'pulse 1.5s infinite':'none'
               }}>
                 <span style={{fontSize:'11px'}}>◆</span>
-                <span style={{fontSize:'0.6rem',fontWeight:700,color:credits<=0?'#ff4444':credits<3?'#f0a500':'#20b2aa',fontFamily:'IBM Plex Mono,monospace'}}>{isPro ? '∞' : credits}</span>
+                <span style={{fontSize:'0.6rem',fontWeight:700,color:credits<=0?'#ff4444':credits<3?'#f0a500':'#20b2aa',fontFamily:'IBM Plex Mono,monospace'}}>{entitlementPro ? '∞' : credits}</span>
                 <span style={{fontSize:'0.45rem',color:'#6e7681',fontWeight:600}}><span className='hidden sm:inline'>SCANS</span></span>
               </button>
-              {!isPro && credits < 5 && (
+              {!entitlementPro && credits < 5 && (
                 <button onClick={() => setShowModal(true)} style={{padding:'3px 8px',fontSize:'0.55rem',fontWeight:700,background:'rgba(32,178,170,0.1)',border:'1px solid rgba(32,178,170,0.3)',borderRadius:4,color:'#20b2aa',cursor:'pointer',fontFamily:'IBM Plex Mono,monospace',animation:'pulse 2s infinite'}}>
                   + REFILL
                 </button>
@@ -3109,7 +3122,7 @@ export default function Dashboard() {
           {/* Scan zone — stable external MintInput */}
           <div ref={scanTopRef}>
             <MintInput onScan={(v) => {
-              if (!isPro && credits <= 0) {
+              if (!entitlementPro && credits <= 0) {
                 setShowModal(true)
                 return
               }
@@ -3323,7 +3336,7 @@ export default function Dashboard() {
                 />
                 <button
                   onClick={() => doScan()}
-                  disabled={scanState === 'loading' || (credits <= 0 && !isPro)}
+                  disabled={scanState === 'loading' || (credits <= 0 && !entitlementPro)}
                   style={{
                     background: scanState === 'loading' ? 'rgba(48,54,61,1)' : 'linear-gradient(135deg,#00d4aa,#00b894)',
                     border: 'none', borderRadius: '6px',
@@ -3334,7 +3347,7 @@ export default function Dashboard() {
                     letterSpacing: '0.05em', whiteSpace: 'nowrap',
                   }}
                 >
-                  {scanState === 'loading' ? '⟳ SCANNING…' : credits <= 0 && !isPro ? '🔒 NO CREDITS' : '⚡ NEURAL SCAN'}
+                  {scanState === 'loading' ? '⟳ SCANNING…' : credits <= 0 && !entitlementPro ? '🔒 NO CREDITS' : '⚡ NEURAL SCAN'}
                 </button>
               </div>
               <div className="flex overflow-x-auto border-b border-[rgba(0,212,130,0.15)] bg-[#161b22] flex-shrink-0 scrollbar-none" style={{WebkitOverflowScrolling:'touch'}}>
@@ -3391,14 +3404,14 @@ export default function Dashboard() {
           )}
           {view === 'promax' && (
             <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', background: '#050505' }}>
-              <ProMaxDeepDashboard isPro={isPro} hasPremiumAccess={isElite} onUpgrade={() => setShowModal(true)} />
+              <ProMaxDeepDashboard isPro={entitlementPro} hasPremiumAccess={entitlementElite} onUpgrade={() => setShowModal(true)} />
             </div>
           )}
           {view === 'elite' && (
             <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', background: '#030308' }}>
               <ProMaxEliteDashboard
-                isPro={isPro}
-                hasPremiumAccess={isElite}
+                isPro={entitlementPro}
+                hasPremiumAccess={entitlementElite}
                 tier="elite"
                 onUpgrade={() => setShowModal(true)}
                 mint={(scanData?.mint || currentMint || '').trim()}
