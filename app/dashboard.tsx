@@ -2233,7 +2233,7 @@ export default function Dashboard() {
     try {
       const { data } = await supabase
         .from('profiles')
-        .select('credits, is_pro, plan, is_elite')
+        .select('credits, is_pro, plan, tier, is_elite')
         .eq('id', userId)
         .single()
       if (data) {
@@ -2241,6 +2241,16 @@ export default function Dashboard() {
           setCredits(data.credits)
         }
         const p = String(data.plan || '').toLowerCase()
+        const tier = String(data.tier ?? '').trim().toLowerCase()
+        const tierProLike =
+          tier === 'micropack' ||
+          tier === 'starter' ||
+          tier === 'pro' ||
+          tier === 'deep' ||
+          tier === 'whale' ||
+          tier === 'elite' ||
+          tier === 'institutional' ||
+          tier === 'enterprise'
         const proLike =
           !!data.is_pro ||
           p === 'pro' ||
@@ -2248,12 +2258,13 @@ export default function Dashboard() {
           p === 'whale' ||
           p === 'elite' ||
           p === 'institutional' ||
-          p === 'enterprise'
+          p === 'enterprise' ||
+          tierProLike
         if (proLike) {
           setIsPro(true)
           localStorage.setItem('cc_is_pro', 'true')
         }
-        if (data.is_elite) setIsElite(true)
+        if (data.is_elite || tier === 'elite' || tier === 'enterprise' || tier === 'institutional') setIsElite(true)
       }
     } catch { /* fallback to localStorage */ }
   }

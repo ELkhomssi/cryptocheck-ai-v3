@@ -33,13 +33,24 @@ export async function getUserAccess(): Promise<UserAccess> {
     }
     const { data } = await supabase
       .from('profiles')
-      .select('is_pro, plan, scans_today')
+      .select('is_pro, plan, tier, scans_today')
       .eq('id', user.id)
       .single()
 
     const p = String(data?.plan || '').toLowerCase()
+    const tier = String(data?.tier ?? '').trim().toLowerCase()
+    const tierPro =
+      tier === 'micropack' ||
+      tier === 'starter' ||
+      tier === 'pro' ||
+      tier === 'deep' ||
+      tier === 'whale' ||
+      tier === 'elite' ||
+      tier === 'institutional' ||
+      tier === 'enterprise'
     const isPro =
       !!data?.is_pro ||
+      tierPro ||
       p === 'pro' ||
       p === 'deep' ||
       p === 'whale' ||
@@ -70,15 +81,26 @@ export async function deductScan(userId: string): Promise<{ success: boolean; re
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('scans_today, is_pro, plan')
+      .select('scans_today, is_pro, plan, tier')
       .eq('id', userId)
       .single()
 
     if (error || !data) return { success: false, remaining: 0, error: 'Profile not found' }
 
     const p = String(data.plan || '').toLowerCase()
+    const tier = String(data.tier ?? '').trim().toLowerCase()
+    const tierPro =
+      tier === 'micropack' ||
+      tier === 'starter' ||
+      tier === 'pro' ||
+      tier === 'deep' ||
+      tier === 'whale' ||
+      tier === 'elite' ||
+      tier === 'institutional' ||
+      tier === 'enterprise'
     const isPro =
       !!data.is_pro ||
+      tierPro ||
       p === 'pro' ||
       p === 'deep' ||
       p === 'whale' ||

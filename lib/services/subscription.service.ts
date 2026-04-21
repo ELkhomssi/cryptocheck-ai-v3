@@ -7,6 +7,7 @@ import type { SaasTier } from '@/lib/types/saas-subscription'
 export type ProfileRow = {
   is_pro?: boolean | null
   plan?: string | null
+  tier?: string | null
   is_elite?: boolean | null
   credits?: number | null
 }
@@ -19,6 +20,9 @@ export type ProfileRow = {
 export class SubscriptionService {
   resolveTier(row: ProfileRow | null | undefined): SubscriptionTier {
     if (!row) return 'free'
+    const t = String(row.tier ?? '').trim().toLowerCase()
+    if (t === 'elite' || t === 'enterprise' || t === 'institutional') return 'institutional'
+    if (t === 'pro' || t === 'deep' || t === 'micropack' || t === 'starter' || t === 'whale') return 'pro'
     const p = String(row.plan || '').toLowerCase()
     if (p === 'institutional' || p === 'enterprise') return 'institutional'
     if (row.is_pro || p === 'pro' || p === 'deep' || p === 'whale' || p === 'elite') return 'pro'
@@ -35,7 +39,7 @@ export class SubscriptionService {
     const sb = getSupabaseAdmin()
     const { data, error } = await sb
       .from('profiles')
-      .select('is_pro, plan, is_elite')
+      .select('is_pro, plan, tier, is_elite')
       .eq('id', userId)
       .maybeSingle()
 
