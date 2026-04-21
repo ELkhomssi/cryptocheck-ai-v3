@@ -1,12 +1,13 @@
 'use client'
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import CopilotDecisionPanel from '@/components/trading-os/CopilotDecisionPanel'
 
 export interface DeepProps {
   isPro: boolean
   hasPremiumAccess?: boolean
   /** Synced from Scanner / chart — drives live intel when set. */
   mint?: string
-  /** ENTERPRISE or PRO_MAX_DEEP only — enables `/api/promax/deep-panel` live chain fusion. */
+  /** PRO MAX DEEP / ELITE band — enables `/api/promax/deep-panel` live chain fusion + copilot. */
   deepLiveIntel?: boolean
   onUpgrade: () => void
 }
@@ -40,7 +41,11 @@ type DeepPanelPayload = {
 }
 
 const DEMO_LOGS: ForensicEntry[] = [
-  { tag: 'DEEP_LEARNING', color: '#d4af37', msg: 'Demo mode — connect ENTERPRISE / PRO_MAX_DEEP + mint for live LP + cluster fusion.' },
+  {
+    tag: 'DEEP_LEARNING',
+    color: '#d4af37',
+    msg: 'Demo mode — connect PRO MAX DEEP / ELITE + mint for live LP + cluster fusion.',
+  },
   { tag: 'LP_MONITOR', color: '#20b2aa', msg: 'Static preview only.' },
 ]
 
@@ -360,9 +365,9 @@ export default function ProMaxDeepDashboard({
         </h1>
         <p style={{ fontSize: 'clamp(12px,1.4vw,14px)', color: '#6e7681', lineHeight: 1.7, maxWidth: 560, margin: '0 auto 16px' }}>
           {liveOn
-            ? 'Live Solana + Helius + DexScreener fusion — gated to ENTERPRISE / PRO_MAX_DEEP.'
+            ? 'Live Solana + Helius + DexScreener fusion — PRO MAX DEEP / ELITE command tier.'
             : unlocked && !deepLiveIntel
-              ? 'Upgrade to ENTERPRISE or PRO_MAX_DEEP to unlock live cluster, neural, and LP fusion for any mint.'
+              ? 'Upgrade to PRO MAX DEEP or PRO MAX ELITE to unlock live cluster, neural, LP fusion, and the AI copilot for any mint.'
               : 'Graph Neural Networks and Deep Contract Decompilation identify fraud clusters across the Solana ecosystem.'}
         </p>
 
@@ -390,6 +395,7 @@ export default function ProMaxDeepDashboard({
                 {loading ? 'Refreshing on-chain intel…' : err ? `Error: ${err}` : panel ? `Live · ${panel.symbol}` : ''}
               </div>
             )}
+            <CopilotDecisionPanel mint={activeMint} enabled={liveOn} />
           </div>
         )}
 

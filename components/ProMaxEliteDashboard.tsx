@@ -28,7 +28,7 @@ export type TokenExitIntelResponse = {
 interface ProMaxEliteProps {
   /** Legacy: Supabase `is_pro` — use with {@link hasPremiumAccess} for full gating. */
   isPro: boolean
-  /** ENTERPRISE / elite / institutional — superset of Pro for Elite UI (no upgrade strip). */
+  /** DB may store ENTERPRISE — UI is PRO MAX ELITE band; superset of Pro for Elite UI (no upgrade strip). */
   hasPremiumAccess?: boolean
   tier?: Tier
   onUpgrade: () => void

@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     const allowed = await userHasDeepLiveIntel(user.id)
     if (!allowed) {
       return NextResponse.json(
-        { error: 'Deep live intel requires ENTERPRISE or PRO_MAX_DEEP tier.', code: 'DEEP_INTEL_TIER' },
+        { error: 'Deep live intel requires PRO MAX DEEP or PRO MAX ELITE tier.', code: 'DEEP_INTEL_TIER' },
         { status: 403 }
       )
     }

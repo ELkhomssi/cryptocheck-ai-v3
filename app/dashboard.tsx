@@ -30,6 +30,7 @@ import BentoGrid, { type StressTestApiResult } from '@/components/Dashboard/Bent
 import SecurityTerminal from '@/components/SecurityTerminal'
 import { safetyScoreToEliteGrade } from '@/lib/elite-grade'
 import ProMaxDeepDashboard from '@/components/ProMaxDeepDashboard'
+import { hasAccess } from '@/lib/access-control'
 import { useSubscription } from '@/lib/subscription/SubscriptionContext'
 import { AiAutoSniper } from '@/components/AiAutoSniper'
 import PortfolioScanner from '@/components/portfolio/PortfolioScanner'
@@ -2312,17 +2313,19 @@ export default function Dashboard() {
   }
   const [isPro,setIsPro] = useState(false)
   const [isElite, setIsElite] = useState(false)
-  /** Merged with {@link useSubscription} so ENTERPRISE / institutional always unlocks Pro+Deep UI. */
+  /** Merged with {@link useSubscription}; DB ENTERPRISE is full stack (see {@link hasAccess}). */
   const entitlementPro = isPro || sub.hasFullAccess
   const entitlementElite = isElite || sub.isEliteActive
   const headerVipStyle =
     sub.currentTier === 'ENTERPRISE' || sub.currentTier === 'PRO_MAX_ELITE'
   const headerTierLabel =
     sub.currentTier === 'ENTERPRISE'
-      ? '◆ ENTERPRISE'
+      ? '◆ PRO MAX · Full stack'
       : sub.currentTier === 'PRO_MAX_ELITE'
-        ? '◆ ELITE'
-        : '⭐ PRO'
+        ? '◆ PRO MAX ELITE'
+        : sub.currentTier === 'PRO_MAX_DEEP'
+          ? '◆ PRO MAX DEEP'
+          : '⭐ PRO'
   const [credits, setCredits] = useState(10) // Server-synced via loadCreditsFromProfile
   const [trialActivated, setTrialActivated] = useState(false)
   const [showSignup, setShowSignup] = useState(false)
@@ -3424,7 +3427,10 @@ export default function Dashboard() {
                 isPro={entitlementPro}
                 hasPremiumAccess={entitlementElite}
                 mint={(scanData?.mint || currentMint || '').trim()}
-                deepLiveIntel={sub.currentTier === 'ENTERPRISE' || sub.currentTier === 'PRO_MAX_DEEP'}
+                deepLiveIntel={hasAccess(
+                  { profileTier: sub.currentTier, saasTier: sub.currentTier },
+                  'deep_chain_intel'
+                )}
                 onUpgrade={() => setShowModal(true)}
               />
             </div>
