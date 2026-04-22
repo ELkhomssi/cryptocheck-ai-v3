@@ -59,6 +59,7 @@ export function LiquidityLockCard({
   const status = info?.status ?? 'unknown'
   const tone = STATUS_MAP[status]
   const Icon = tone.icon
+  const detailReason = info?.reason?.trim() || tone.description
 
   return (
     <Card accent={tone.accent} className="p-5">
@@ -100,6 +101,9 @@ export function LiquidityLockCard({
           </dd>
         </div>
       </dl>
+      <p className="mt-3 text-xs text-slate-500" title={detailReason}>
+        {detailReason}
+      </p>
     </Card>
   )
 }

@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { scanTokenIntelligence } from '@/lib/services/scanner/execute-scan'
 import { sendTelegramAlert } from '@/lib/telegram/send-alert'
 import { sendEmailAlert } from '@/lib/email/send-alert'
+import { dispatchInstitutionalWebhooks } from '@/lib/webhooks/dispatch'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -83,6 +84,14 @@ export async function GET(req: Request) {
       const minChange = prefs?.min_risk_change ?? 10
       const shouldAlert = scoreDelta >= minChange || worseVerdict(oldVerdict, newScan.verdict)
       if (!shouldAlert) continue
+
+      void dispatchInstitutionalWebhooks(item.user_id, 'risk.changed', {
+        mint: item.mint,
+        oldRiskScore: oldScore,
+        newRiskScore: newScan.riskScore,
+        oldVerdict,
+        newVerdict: newScan.verdict,
+      })
 
       if (prefs?.telegram_alerts_enabled && prefs.telegram_chat_id) {
         const sent = await sendTelegramAlert(prefs.telegram_chat_id, {

@@ -58,9 +58,10 @@ X-API-Key: cc_live_…</pre>
   <p>Deterministic sandbox analysis — same engine path without serialized on-chain swap simulation. Optional body <code>{ "tokenAddress": "…" }</code> to override mint.</p>
 
   <h2>POST /api/v1/scan/batch</h2>
-  <p>Bulk platform scans. Max batch: Free 5, Pro 20, Enterprise 100. Consumes daily quota equal to item count.</p>
+  <p>Bulk platform scans. Max batch: Free 5, Pro 20, Enterprise 100. Consumes daily quota equal to item count. Optional <code>clientRef</code> (≤80 chars) or header <code>X-CryptoCheck-Client-Ref</code> is echoed as <code>client_ref</code> and logged for org/desk traceability. Console UI: <code>/dashboard/batch</code> (Pro+ session).</p>
   <pre>{
   "chain": "solana",
+  "clientRef": "desk-nyc-42",
   "items": [
     { "tokenAddress": "EPjF…", "chain": "solana" }
   ]
@@ -69,8 +70,12 @@ X-API-Key: cc_live_…</pre>
   <h2>Priority (Enterprise)</h2>
   <p>Send <code>X-CryptoCheck-Priority: high</code> — logged for future priority queues.</p>
 
-  <h2>Webhooks</h2>
-  <p><code>GET /api/v1/webhooks</code> — registration endpoint reserved (see response).</p>
+  <h2 id="status">Public status &amp; SLA</h2>
+  <p>Human page <code>/status</code> and JSON <code>GET /api/status/public</code> (no auth). Shows dependency health, SLA target copy, and optional 30-day rolling probe availability when Upstash Redis is configured and the uptime cron runs.</p>
+
+  <h2 id="webhooks">Webhooks (Enterprise)</h2>
+  <p>Register HTTPS targets from the authenticated dashboard (<code>/dashboard/webhooks</code>). The server POSTs JSON with <code>X-CryptoCheck-Event</code>, <code>X-CryptoCheck-Timestamp</code>, and <code>X-CryptoCheck-Signature: sha256=&lt;hex&gt;</code> (HMAC-SHA256 of the raw body). Events include <code>scan.completed</code>, <code>risk.changed</code> (watchlist cron), optional legacy <code>high_safety_token</code>, and reserved <code>whale.moved</code>.</p>
+  <p class="muted">See <code>docs/api.md</code> for retry behaviour, dashboard CRUD routes under <code>/api/dashboard/webhooks</code>, and the test endpoint.</p>
 
   <h2>Error format</h2>
   <pre>{ "error": "string", "code": 400, "reason": "INVALID_INPUT" }</pre>

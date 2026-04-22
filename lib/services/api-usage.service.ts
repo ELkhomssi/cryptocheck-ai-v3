@@ -11,6 +11,8 @@ export type ApiUsageInput = {
   ip?: string | null
   userAgent?: string | null
   priority?: boolean
+  /** Optional org / desk label for batch scans (audit trail). */
+  batchClientRef?: string | null
 }
 
 /**
@@ -29,6 +31,7 @@ export async function logApiUsageEvent(input: ApiUsageInput): Promise<void> {
       status: input.statusCode,
       duration_ms: input.durationMs,
       priority: input.priority ?? false,
+      ...(input.batchClientRef ? { client_ref: input.batchClientRef } : {}),
     },
   })
 }

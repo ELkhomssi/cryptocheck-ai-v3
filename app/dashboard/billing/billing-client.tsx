@@ -20,6 +20,15 @@ type Me = {
   }
 }
 
+const FALLBACK_FREE_SUBSCRIPTION: Me['subscription'] = {
+  effectiveTier: 'FREE',
+  runtimeTier: 'free',
+  status: null,
+  currentPeriodEnd: null,
+  cancelAtPeriodEnd: false,
+  stripeCustomerId: null,
+}
+
 function appendStripeLinkParams(baseUrl: string, userId: string | null, email: string | null) {
   let url = baseUrl.trim()
   if (!url) return url
@@ -37,17 +46,45 @@ function BillingInner({ stripeUrls }: { stripeUrls: BillingStripeUrls }) {
   const checkout = sp.get('checkout')
   const [me, setMe] = useState<Me | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const fiatEnabled = process.env.NEXT_PUBLIC_ENABLE_FIAT_PAYMENTS === 'true'
   const [redirectingTier, setRedirectingTier] = useState<string | null>(null)
 
   const load = useCallback(() => {
+    setLoading(true)
+    setLoadError(null)
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 10000)
+
     void fetch(`/api/dashboard/me?t=${Date.now()}`, {
       credentials: 'include',
       cache: 'no-store',
+      signal: controller.signal,
     })
-      .then((r) => r.json())
+      .then(async (r) => {
+        const j = (await r.json().catch(() => ({}))) as { subscription?: Me['subscription']; error?: string }
+        if (!r.ok) {
+          throw new Error(j.error || 'Could not load subscription.')
+        }
+        return j
+      })
       .then((j) => {
-        if (j.subscription) setMe({ subscription: j.subscription })
+        if (j.subscription) {
+          setMe({ subscription: j.subscription })
+          return
+        }
+        setMe({ subscription: FALLBACK_FREE_SUBSCRIPTION })
+        setMsg('No active subscription · View plans below to upgrade.')
+      })
+      .catch((e: unknown) => {
+        const isAbort = e instanceof DOMException && e.name === 'AbortError'
+        setLoadError(isAbort ? 'Subscription request timed out. Try again.' : 'Could not load subscription details.')
+        setMe({ subscription: FALLBACK_FREE_SUBSCRIPTION })
+      })
+      .finally(() => {
+        clearTimeout(timeout)
+        setLoading(false)
       })
   }, [])
 
@@ -105,9 +142,16 @@ function BillingInner({ stripeUrls }: { stripeUrls: BillingStripeUrls }) {
     await redirectToPaymentLink(url, tier.id)
   }
 
-  if (!me) {
-    return <p className="text-sm font-medium tracking-wide text-slate-500">Loading subscription…</p>
+  if (loading && !me) {
+    return (
+      <div className="space-y-4">
+        <div className="h-4 w-48 animate-pulse rounded bg-slate-800/70" />
+        <div className="h-28 w-full animate-pulse rounded-xl border border-white/10 bg-slate-900/40" />
+        <div className="h-64 w-full animate-pulse rounded-xl border border-white/10 bg-slate-900/30" />
+      </div>
+    )
   }
+  if (!me) return null
 
   const sentinel = ['PRO', 'PRO_MAX_DEEP', 'PRO_MAX_ELITE', 'ENTERPRISE'].includes(
     me.subscription.effectiveTier.toUpperCase()
@@ -126,6 +170,18 @@ function BillingInner({ stripeUrls }: { stripeUrls: BillingStripeUrls }) {
       {msg && (
         <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/[0.08] px-4 py-3 text-sm font-medium text-emerald-200/95">
           {msg}
+        </div>
+      )}
+      {loadError && (
+        <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-200">
+          {loadError}
+          <button
+            type="button"
+            onClick={load}
+            className="ml-3 underline decoration-rose-400/60 underline-offset-2 hover:text-rose-100"
+          >
+            Retry
+          </button>
         </div>
       )}
 

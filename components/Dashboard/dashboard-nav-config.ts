@@ -4,12 +4,15 @@ import {
   Bell,
   CreditCard,
   KeyRound,
+  Layers,
   LayoutDashboard,
   MoreHorizontal,
   Radar,
+  Scale,
   Scan,
   Shield,
   Wallet,
+  Webhook,
 } from 'lucide-react'
 
 export type DashboardNavItem = {
@@ -30,8 +33,11 @@ export const primaryNavItems: DashboardNavItem[] = [
 /** Separate product surface — authenticated console + public demo */
 export const secondaryNavItems: DashboardNavItem[] = [
   { href: '/dashboard/intelligence-terminal', label: 'Analysis Console', icon: Scan },
+  { href: '/dashboard/batch', label: 'Batch scan', icon: Layers },
+  { href: '/dashboard/compliance', label: 'Compliance', icon: Scale },
   { href: '/dashboard/portfolio', label: 'Portfolio', icon: Wallet },
   { href: '/dashboard/alerts', label: 'Alerts', icon: Bell },
+  { href: '/dashboard/webhooks', label: 'Webhooks', icon: Webhook },
   { href: '/pro/dashboard', label: 'Intelligence Terminal', icon: Radar },
 ]
 

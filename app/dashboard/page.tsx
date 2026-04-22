@@ -134,6 +134,12 @@ export default async function DashboardHomePage() {
           Issue API credential
         </Link>
         <Link
+          href="/dashboard/compliance"
+          className="inline-flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-300 transition-all duration-150 ease-out hover:border-white/[0.12] hover:bg-white/[0.05]"
+        >
+          Compliance &amp; exports
+        </Link>
+        <Link
           href="/api/docs"
           className="inline-flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-300 transition-all duration-150 ease-out hover:border-white/[0.12] hover:bg-white/[0.05]"
         >

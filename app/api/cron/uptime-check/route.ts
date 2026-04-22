@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { recordUptimeProbe } from '@/lib/status/uptime-probes'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -36,6 +37,9 @@ export async function GET(req: NextRequest) {
       'https://api.dexscreener.com/latest/dex/tokens/So11111111111111111111111111111111111111112'
     ),
   ])
+
+  const healthOk = results.health?.ok === true
+  await recordUptimeProbe(healthOk)
 
   return NextResponse.json({ ok: true, results, ts: new Date().toISOString() })
 }

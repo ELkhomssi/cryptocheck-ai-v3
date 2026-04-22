@@ -17,18 +17,22 @@ function MetricCard({
   value,
   delta,
   flashKey,
+  missingTooltip,
 }: {
   label: string
   value: string
   delta?: number | null
   flashKey?: number | null
+  missingTooltip?: string
 }) {
+  const isMissing = value === '—'
+  const title = isMissing ? missingTooltip : undefined
   return (
     <Card className="p-5">
       <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
         {label}
       </div>
-      <div className="mt-2 font-mono-terminal text-2xl font-semibold tabular-nums text-slate-100 md:text-3xl">
+      <div className="mt-2 font-mono-terminal text-2xl font-semibold tabular-nums text-slate-100 md:text-3xl" title={title}>
         <FlashOnChange value={flashKey ?? null}>{value}</FlashOnChange>
       </div>
       {delta != null && Number.isFinite(delta) ? (
@@ -65,19 +69,23 @@ export function BasicMetricsGrid({
         value={formatUsdCompact(price)}
         delta={change24h}
         flashKey={price}
+        missingTooltip="No DEX listing found"
       />
       <MetricCard
         label="Market Cap"
         value={formatUsdCompact(report.marketCap)}
+        missingTooltip="No DEX listing found"
       />
       <MetricCard
         label="Volume 24h"
         value={formatUsdCompact(volume24h)}
         flashKey={volume24h}
+        missingTooltip="No DEX listing found"
       />
       <MetricCard
         label="Liquidity"
         value={formatUsdCompact(report.liquidityUsd)}
+        missingTooltip="No DEX listing found"
       />
     </div>
   )

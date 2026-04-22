@@ -40,7 +40,7 @@
     "recharts": "^3.8.1",
     "server-only": "^0.0.1",
     "stripe": "^22.0.2",
-    "swr": "^2.2.5"
+    "swr": "^2.4.1"
   },
   "devDependencies": {
     "@types/node": "^20",

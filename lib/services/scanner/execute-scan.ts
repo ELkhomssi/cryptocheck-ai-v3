@@ -12,7 +12,8 @@ import {
   scanBodyCacheKey,
 } from '@/lib/services/scanner/ScannerCache'
 import { pushPulseEntry } from '@/lib/services/pulse-feed.service'
-import { WebhookService } from '@/lib/services/webhook.service'
+import { ANONYMOUS_PUBLIC_PRO_SCAN_USER_ID } from '@/lib/config/public-pro-scan'
+import { dispatchInstitutionalWebhooks } from '@/lib/webhooks/dispatch'
 import { securityLogUserIdForContext } from '@/lib/config/sentinel-qa-bypass'
 import { logSecurityEvent } from '@/lib/services/security-log.service'
 import { enforceRateLimit } from '@/lib/services/rate-limit.service'
@@ -227,12 +228,20 @@ export async function runInstitutionalScan(
         ts: new Date().toISOString(),
       })
 
-      if (snapshot.reasoning.aggregateScore >= 85 && snapshot.reasoning.verdict === 'SAFE') {
-        void WebhookService.dispatch(ctx.userId, 'high_safety_token', {
+      if (ctx.userId !== ANONYMOUS_PUBLIC_PRO_SCAN_USER_ID) {
+        void dispatchInstitutionalWebhooks(ctx.userId, 'scan.completed', {
           mint: mintLabel,
           score: snapshot.reasoning.aggregateScore,
+          verdict: snapshot.reasoning.verdict,
           grade: snapshot.reasoning.institutionalGrade,
         })
+        if (snapshot.reasoning.aggregateScore >= 85 && snapshot.reasoning.verdict === 'SAFE') {
+          void dispatchInstitutionalWebhooks(ctx.userId, 'high_safety_token', {
+            mint: mintLabel,
+            score: snapshot.reasoning.aggregateScore,
+            grade: snapshot.reasoning.institutionalGrade,
+          })
+        }
       }
 
       recordScanTiming({

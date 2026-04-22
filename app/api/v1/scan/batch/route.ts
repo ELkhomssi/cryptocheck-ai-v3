@@ -11,21 +11,14 @@ import { logSecurityEvent } from '@/lib/services/security-log.service'
 import { ScanServiceError } from '@/lib/services/scanner/ErrorHandler'
 import type { ProFeatureContext } from '@/lib/auth/pro-feature-access'
 import type { PlatformScanResponse } from '@/lib/types/platform-scan-api'
-import type { SubscriptionTier } from '@/lib/types/tier'
 import { getUserSubscription } from '@/lib/services/user-subscription.service'
+import { maxBatchSizeForTier } from '@/lib/services/scanner/batch-limits'
 import { mergeWithRateLimitHeaders } from '@/lib/api/scan-api-errors'
 import { securityLogUserIdForContext } from '@/lib/config/sentinel-qa-bypass'
 
 export const dynamic = 'force-dynamic'
 
 const BATCH_CONCURRENCY = 10
-
-/** SENTINEL batch caps: Free 5, Pro 20, Enterprise 100 */
-function maxBatchForTier(tier: SubscriptionTier): number {
-  if (tier === 'institutional') return 100
-  if (tier === 'pro') return 20
-  return 5
-}
 
 type ItemResult =
   | { index: number; ok: true; data: PlatformScanResponse }
@@ -47,7 +40,12 @@ export async function POST(req: NextRequest) {
     items?: unknown[]
     chain?: string
     tokenAddresses?: string[]
+    clientRef?: unknown
   }
+
+  const headerRef = req.headers.get('x-cryptocheck-client-ref')?.trim() ?? ''
+  const bodyRef = typeof body.clientRef === 'string' ? body.clientRef.trim() : ''
+  const clientRef = (bodyRef || headerRef).slice(0, 80)
 
   let items: Record<string, unknown>[] = []
   if (Array.isArray(body.items)) {
@@ -63,7 +61,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const max = maxBatchForTier(sentinelTier)
+  const max = maxBatchSizeForTier(sentinelTier)
   if (items.length > max) {
     return NextResponse.json(
       {
@@ -187,6 +185,7 @@ export async function POST(req: NextRequest) {
     ip: scanClientIp(req),
     userAgent: req.headers.get('user-agent'),
     priority,
+    batchClientRef: clientRef || null,
   })
 
   return NextResponse.json(
@@ -195,6 +194,7 @@ export async function POST(req: NextRequest) {
       batch_size: items.length,
       succeeded: okCount,
       failed: items.length - okCount,
+      ...(clientRef ? { client_ref: clientRef } : {}),
       results,
     },
     {

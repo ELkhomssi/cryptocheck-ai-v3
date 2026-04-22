@@ -1,7 +1,9 @@
-import { createHmac } from 'crypto'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { dispatchInstitutionalWebhooks } from '@/lib/webhooks/dispatch'
+import { signWebhookBody } from '@/lib/webhooks/signing'
+import type { WebhookDispatchEvent } from '@/lib/webhooks/types'
 
-export type WebhookEvent = 'high_safety_token' | 'risk_status_change'
+export type WebhookEvent = WebhookDispatchEvent
 
 export type InstitutionalWebhook = {
   id: string
@@ -9,16 +11,15 @@ export type InstitutionalWebhook = {
   url: string
   secret: string
   events: WebhookEvent[]
+  is_active: boolean
+  consecutive_failures: number
+  last_success_at: string | null
   created_at: string
 }
 
-/**
- * Institutional webhook delivery (scaffold).
- * Register rows in `institutional_webhooks` when migration is applied; otherwise no-op dispatch.
- */
 export class WebhookService {
   static signPayload(secret: string, body: string): string {
-    return createHmac('sha256', secret).update(body).digest('hex')
+    return signWebhookBody(secret, body)
   }
 
   static async listForUser(userId: string): Promise<InstitutionalWebhook[]> {
@@ -26,7 +27,7 @@ export class WebhookService {
       const sb = getSupabaseAdmin()
       const { data, error } = await sb
         .from('institutional_webhooks')
-        .select('id, user_id, url, secret, events, created_at')
+        .select('id, user_id, url, secret, events, is_active, consecutive_failures, last_success_at, created_at')
         .eq('user_id', userId)
       if (error || !data) return []
       return data as InstitutionalWebhook[]
@@ -36,30 +37,6 @@ export class WebhookService {
   }
 
   static async dispatch(userId: string, event: WebhookEvent, payload: Record<string, unknown>): Promise<void> {
-    const hooks = await WebhookService.listForUser(userId)
-    const targets = hooks.filter((h) => h.events?.includes(event))
-    if (!targets.length) return
-
-    const body = JSON.stringify({
-      event,
-      sent_at: new Date().toISOString(),
-      payload,
-    })
-
-    await Promise.allSettled(
-      targets.map(async (h) => {
-        const sig = WebhookService.signPayload(h.secret, body)
-        await fetch(h.url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CryptoCheck-Signature': sig,
-            'User-Agent': 'CryptoCheckAI-Webhook/1.0',
-          },
-          body,
-          signal: AbortSignal.timeout(8000),
-        })
-      })
-    )
+    await dispatchInstitutionalWebhooks(userId, event, payload)
   }
 }

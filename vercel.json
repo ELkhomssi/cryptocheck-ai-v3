@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/uptime-check",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/webhook-retry",
+      "schedule": "*/5 * * * *"
     }
   ],
   "redirects": [
@@ -16,6 +20,12 @@
       "has": [{ "type": "host", "value": "cryptocheckai.com" }],
       "destination": "https://www.cryptocheckai.com/:path*",
       "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "status.cryptocheckai.com" }],
+      "destination": "https://www.cryptocheckai.com/status",
+      "permanent": false
     }
   ]
 }

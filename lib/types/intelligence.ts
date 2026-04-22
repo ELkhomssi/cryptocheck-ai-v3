@@ -51,6 +51,8 @@ export type LiquidityLockInfo = {
   /** 0–100 when known; null if unknown. */
   burnedPct: number | null
   lockUntil: string | null
+  /** Human-readable reason shown in UI tooltip/context. */
+  reason?: string | null
 }
 
 export type InsiderFlagRow = {
