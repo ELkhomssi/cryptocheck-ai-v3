@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Home, LayoutDashboard } from 'lucide-react'
 import { GeistMono } from 'geist/font/mono'
@@ -12,7 +12,8 @@ import type { WeightedSecurityScore } from '@/lib/services/scanner/types'
 import type { ScanV1ApiResponse } from '@/lib/types/institutional-scan-api'
 import { CryptoCheckLogo } from '@/components/brand/CryptoCheckLogo'
 import { PulseFeed } from '@/components/pro/PulseFeed'
-import { InstitutionalHero } from '@/components/pro/institutional/InstitutionalHero'
+import { HeroScanner } from '@/components/pro/HeroScanner'
+import type { LivePerfMeta } from '@/components/pro/LiveScoreDisplay'
 import { RiskBreakdownPanel } from '@/components/pro/institutional/RiskBreakdownPanel'
 import { WhyItMattersBlock } from '@/components/pro/institutional/WhyItMattersBlock'
 import { WalletIntelGraph } from '@/components/pro/institutional/WalletIntelGraph'
@@ -123,12 +124,12 @@ function ProDashboardClientInner({
 }: Props) {
   const { t, locale } = useInstitutionalTranslation()
   const [scanResponse, setScanResponse] = useState<ScanV1ApiResponse | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [prefillMint, setPrefillMint] = useState<string | null>(null)
+  const [exportMint, setExportMint] = useState('')
+  const [toast, setToast] = useState<string | null>(null)
   const [apiError, setApiError] = useState<string | null>(null)
-  const [dlBusy, setDlBusy] = useState<'pdf' | 'json' | null>(null)
+  const [dlBusy, setDlBusy] = useState<'pdf' | 'copy' | null>(null)
   const { connect, disconnect, isConnected, shortAddr, isConnecting } = useSolana()
-
-  const canUseDeepApi = session.hasDeepAccess
 
   const tierHint = useMemo(() => {
     if (!session.userId) return t('institutional.page.tier_hint_signed_out')
@@ -148,54 +149,37 @@ function ProDashboardClientInner({
   const orderedEvidence = useMemo(() => {
     const sim = reasoning.evidence.filter((l) => l.id === 'ev_live_simulation')
     const rest = reasoning.evidence.filter((l) => l.id !== 'ev_live_simulation')
-    return [...sim, ...rest]
+    const sorted = [...rest].sort((a, b) => b.riskContribution - a.riskContribution)
+    return [...sim, ...sorted]
   }, [reasoning.evidence])
 
-  const demoMint = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
+  const handlePrefillConsumed = useCallback(() => setPrefillMint(null), [])
 
-  async function runLiveScan() {
-    if (!canUseDeepApi) return
-    setLoading(true)
+  const onPulsePick = useCallback((mint: string) => {
+    setPrefillMint(mint)
+    requestAnimationFrame(() => {
+      document.getElementById('pro-live-scanner')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }, [])
+
+  const handleLiveResult = useCallback((scan: ScanV1ApiResponse, _perf: LivePerfMeta, mint: string) => {
+    setScanResponse(scan)
+    setExportMint(mint)
     setApiError(null)
-    try {
-      const r = await fetch('/api/v1/scan', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mint: demoMint,
-          liquidityUsd: 8_500_000,
-          topHolderPct: 12,
-          pairAgeMinutes: 10080,
-          mintAuthorityActive: false,
-          creatorScamLinkedFundingCount: 0,
-        }),
-      })
-      const j = (await r.json()) as ScanV1ApiResponse | Record<string, unknown>
-      if (!r.ok) {
-        throw new Error(scanApiErrorMessage(j))
-      }
-      setScanResponse(j as ScanV1ApiResponse)
-    } catch (e: unknown) {
-      setApiError(e instanceof Error ? e.message : 'Request failed')
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [])
 
-  async function downloadReport(format: 'pdf' | 'json') {
-    if (!canUseDeepApi) return
-    setDlBusy(format)
+  async function downloadPdf() {
+    if (!scanResponse || !exportMint) return
+    setDlBusy('pdf')
     try {
-      const r = await fetch('/api/v1/audit/report', {
+      const r = await fetch('/api/v1/audit/report/public', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          format,
-          mint: demoMint,
-          tokenName: 'Demo / USDC',
-          reasoning,
+          format: 'pdf',
+          mint: exportMint,
+          tokenName: `Token ${exportMint.slice(0, 4)}…`,
+          reasoning: scanResponse.reasoning,
         }),
       })
       if (!r.ok) {
@@ -203,11 +187,10 @@ function ProDashboardClientInner({
         throw new Error(scanApiErrorMessage(j))
       }
       const blob = await r.blob()
-      const ext = format === 'pdf' ? 'pdf' : 'json'
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `cryptocheck-audit-${demoMint.slice(0, 8)}.${ext}`
+      a.download = `cryptocheck-audit-${exportMint.slice(0, 8)}.pdf`
       a.click()
       URL.revokeObjectURL(url)
     } catch (e: unknown) {
@@ -217,12 +200,32 @@ function ProDashboardClientInner({
     }
   }
 
+  async function copyApiSnippet() {
+    if (!exportMint) return
+    setDlBusy('copy')
+    try {
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.cryptocheckai.com'
+      const text = `curl -X POST ${origin}/api/v1/scan \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -d '{"mint":"${exportMint}"}'`
+      await navigator.clipboard.writeText(text)
+      setToast('Copied cURL example to clipboard.')
+      window.setTimeout(() => setToast(null), 3200)
+    } catch {
+      setApiError('Clipboard unavailable in this browser.')
+    } finally {
+      setDlBusy(null)
+    }
+  }
+
   function downloadReasoningJsonLocal() {
+    const slug = exportMint ? exportMint.slice(0, 8) : 'scan'
     const blob = new Blob([JSON.stringify(reasoning, null, 2)], { type: 'application/json;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `cryptocheck-reasoning-${demoMint.slice(0, 8)}.json`
+    a.download = `cryptocheck-reasoning-${slug}.json`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -402,32 +405,29 @@ function ProDashboardClientInner({
           </div>
         </header>
 
-        <InstitutionalHero
-          score={weighted.score}
-          verdict={reasoning.verdict}
-          confidence={weighted.confidence}
-          trustContext={{
-            rpcProvider: rpcDisplay,
-            lastUpdatedIso: lastUpdated,
-            confidence01: weighted.confidence,
-            cache: scanResponse?.cache,
-            pipelineMs: scanResponse?.pipeline_ms,
-            responseTimeMs: scanResponse?.meta?.response_time_ms,
-          }}
-          urgencyLine={t('institutional.hero.urgency')}
-          primaryCta={{
-            label: t('institutional.cta.run_scan'),
-            onClick: () => {
-              if (!canUseDeepApi) {
-                if (!session.userId && typeof window !== 'undefined') window.location.href = '/landing'
-                return
-              }
-              void runLiveScan()
-            },
-            disabled: !canUseDeepApi && !!session.userId,
-            loading,
-          }}
+        <HeroScanner
+          prefillMint={prefillMint}
+          onPrefillConsumed={handlePrefillConsumed}
+          onLiveResult={handleLiveResult}
+          initialScore={demoWeighted.score}
+          initialVerdict={demoReasoning.verdict}
+          initialConfidence={demoWeighted.confidence}
         />
+        {toast ? (
+          <div
+            style={{
+              marginBottom: 12,
+              fontSize: 12,
+              color: '#6ee7b7',
+              padding: '10px 12px',
+              borderRadius: 10,
+              border: '0.5px solid rgba(16,185,129,0.25)',
+              background: 'rgba(16,185,129,0.08)',
+            }}
+          >
+            {toast}
+          </div>
+        ) : null}
 
         <WhyItMattersBlock verdict={reasoning.verdict} reasoning={reasoning} weighted={weighted} />
 
@@ -462,8 +462,8 @@ function ProDashboardClientInner({
               {t('institutional.simulation.layer_title')}
             </div>
             <p style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.55, margin: 0 }}>{buildSimulationNarrative(scanResponse, t)}</p>
-            {!canUseDeepApi ? (
-              <p style={{ marginTop: 10, fontSize: 11, color: '#64748b' }}>{t('institutional.simulation.upgrade_hint')}</p>
+            {!scanResponse ? (
+              <p style={{ marginTop: 10, fontSize: 11, color: '#64748b' }}>Run a live scan above to populate simulation context.</p>
             ) : null}
           </div>
         </div>
@@ -491,7 +491,7 @@ function ProDashboardClientInner({
         ) : null}
 
         <div style={{ marginTop: 28 }}>
-          <PulseFeed />
+          <PulseFeed onPickMint={onPulsePick} />
         </div>
 
         <section
@@ -527,8 +527,8 @@ function ProDashboardClientInner({
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end' }}>
               <button
                 type="button"
-                disabled={!canUseDeepApi || dlBusy !== null}
-                onClick={() => void downloadReport('pdf')}
+                disabled={!scanResponse || dlBusy !== null}
+                onClick={() => void downloadPdf()}
                 style={{
                   fontSize: 12,
                   fontWeight: 600,
@@ -537,15 +537,15 @@ function ProDashboardClientInner({
                   border: '0.5px solid rgba(16,185,129,0.25)',
                   background: 'rgba(16,185,129,0.06)',
                   color: '#6ee7b7',
-                  cursor: canUseDeepApi ? 'pointer' : 'not-allowed',
+                  cursor: scanResponse ? 'pointer' : 'not-allowed',
                 }}
               >
                 {dlBusy === 'pdf' ? '…' : t('institutional.evidence.pdf_audit')}
               </button>
               <button
                 type="button"
-                disabled={!canUseDeepApi || dlBusy !== null}
-                onClick={() => void downloadReport('json')}
+                disabled={!exportMint || dlBusy !== null}
+                onClick={() => void copyApiSnippet()}
                 style={{
                   fontSize: 12,
                   fontWeight: 600,
@@ -554,10 +554,11 @@ function ProDashboardClientInner({
                   border: '0.5px solid rgba(255,255,255,0.12)',
                   background: 'rgba(255,255,255,0.05)',
                   color: '#e2e8f0',
-                  cursor: canUseDeepApi ? 'pointer' : 'not-allowed',
+                  cursor: exportMint ? 'pointer' : 'not-allowed',
                 }}
+                aria-label="Copy API cURL example to clipboard"
               >
-                {dlBusy === 'json' ? '…' : t('institutional.evidence.export_json')}
+                {dlBusy === 'copy' ? '…' : 'Export JSON (API)'}
               </button>
               <button
                 type="button"
@@ -578,10 +579,9 @@ function ProDashboardClientInner({
             </div>
           </div>
 
-          {!canUseDeepApi ? (
+          {!scanResponse ? (
             <div style={{ marginTop: 12, fontSize: 11, color: '#94a3b8' }}>
-              {t('institutional.evidence.upgrade_pro_block')}{' '}
-              <span style={{ color: '#6ee7b7' }}>{t('institutional.evidence.upgrade_pro')}</span> {t('institutional.evidence.upgrade_pro_suffix')}
+              Run a live scan to enable PDF export and API snippet copy.
             </div>
           ) : null}
 
@@ -663,7 +663,7 @@ function ProDashboardClientInner({
           </div>
         </section>
 
-        {!canUseDeepApi ? (
+        {!session.hasDeepAccess ? (
           <p style={{ marginTop: 22, fontSize: 12, color: '#64748b' }}>
             {t('institutional.session_footer', { email: session.email ?? 'anonymous', tier: session.tier })}
           </p>

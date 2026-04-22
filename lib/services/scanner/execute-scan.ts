@@ -42,6 +42,8 @@ export type InstitutionalScanResult =
 export type RunInstitutionalScanOptions = {
   /** When true (e.g. batch inner items), skip `scan_v1` audit lines — caller logs `scan_item` per mint. */
   suppressAudit?: boolean
+  /** Public marketing scans: do not apply per-session Redis scan throttle (IP limit enforced at route). */
+  skipSessionRateLimit?: boolean
 }
 
 /**
@@ -89,7 +91,7 @@ export async function runInstitutionalScan(
    * API-key requests are already tier-limited in `authenticateApiRequestOptional`.
    * Session-only Pro routes get an additional per-user scan limit here.
    */
-  if (ctx.via === 'session') {
+  if (ctx.via === 'session' && options?.skipSessionRateLimit !== true) {
     try {
       const rate = await enforceRateLimit(`session:${ctx.userId}`, ctx.tier)
       if (!rate.ok) {

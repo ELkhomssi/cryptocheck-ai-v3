@@ -39,7 +39,8 @@
     "react-markdown": "^10.1.0",
     "recharts": "^3.8.1",
     "server-only": "^0.0.1",
-    "stripe": "^22.0.2"
+    "stripe": "^22.0.2",
+    "swr": "^2.2.5"
   },
   "devDependencies": {
     "@types/node": "^20",

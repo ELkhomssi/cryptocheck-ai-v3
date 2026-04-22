@@ -1,4 +1,5 @@
 import type { VerifiedApiKeyV2 } from '@/lib/services/api-key-v2.service'
+import { ANONYMOUS_PUBLIC_PRO_SCAN_USER_ID } from '@/lib/config/public-pro-scan'
 
 /**
  * Local/QA bypass for a dev-only Sentinel test key (no `api_keys_v2` row).
@@ -74,6 +75,7 @@ export function securityLogUserIdForContext(ctx: {
   apiKeyId?: string
   via: 'api_key' | 'session'
 }): string | null {
+  if (ctx.userId === ANONYMOUS_PUBLIC_PRO_SCAN_USER_ID) return null
   if (ctx.via === 'api_key' && isSentinelQaBypassKeyUuid(ctx.apiKeyId)) return null
   return ctx.userId
 }
