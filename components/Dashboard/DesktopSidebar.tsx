@@ -39,16 +39,19 @@ export function DesktopSidebar({
   pathname,
   sentinelMode,
   userEmail,
+  isAnonymousPreview = false,
 }: {
   pathname: string
   sentinelMode: boolean
   userEmail: string
+  isAnonymousPreview?: boolean
 }) {
+  const topOffset =
+    sentinelMode ? 'top-[4.5rem]' : isAnonymousPreview ? 'top-28 md:top-24' : 'top-10'
+
   return (
     <aside
-      className={`fixed bottom-0 left-0 z-40 hidden w-[280px] flex-col border-r border-white/[0.06] bg-[rgba(7,7,8,0.92)] backdrop-blur-[20px] md:flex ${
-        sentinelMode ? 'top-[4.5rem]' : 'top-10'
-      }`}
+      className={`fixed bottom-0 left-0 z-40 hidden w-[280px] flex-col border-r border-white/[0.06] bg-[rgba(7,7,8,0.92)] backdrop-blur-[20px] md:flex ${topOffset}`}
     >
       <div className="border-b border-white/[0.05] px-5 py-6">
         <p className="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Control plane</p>
@@ -68,7 +71,17 @@ export function DesktopSidebar({
         ))}
       </nav>
       <div className="border-t border-white/[0.05] px-4 py-4">
-        <p className="truncate text-xs font-medium tracking-wide text-slate-500">{userEmail}</p>
+        {userEmail ? (
+          <p className="truncate text-xs font-medium tracking-wide text-slate-500">{userEmail}</p>
+        ) : (
+          <p className="text-xs font-medium tracking-wide text-slate-500">
+            <span className="text-amber-200/80">Guest preview</span>
+            {' · '}
+            <Link href="/landing?next=%2Fdashboard" className="text-cyan-400/90 hover:text-cyan-300">
+              Sign in
+            </Link>
+          </p>
+        )}
       </div>
     </aside>
   )

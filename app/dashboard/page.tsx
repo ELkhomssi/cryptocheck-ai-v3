@@ -14,7 +14,54 @@ export default async function DashboardHomePage() {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return null
+  if (!user) {
+    return (
+      <div className="space-y-10">
+        <header className="max-w-3xl">
+          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-amber-500/90">Preview</p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-200 md:text-[1.65rem]">
+            Intelligence command
+          </h1>
+          <p className="mt-2 text-sm font-medium leading-relaxed text-slate-400">
+            Browse the full dashboard UI without signing in. Connect your account when you are ready for live quotas,
+            credentials, and SENTINEL logs.
+          </p>
+        </header>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href="/landing?next=%2Fdashboard"
+            className="inline-flex items-center justify-center rounded-lg border border-emerald-500/25 bg-emerald-500/[0.08] px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-200/95 shadow-[0_0_20px_rgba(16,185,129,0.08)] transition-all duration-150 ease-out hover:-translate-y-0.5 hover:bg-emerald-500/15"
+          >
+            Sign in
+          </Link>
+          <Link
+            href="/dashboard/security"
+            className="inline-flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-300 transition-all duration-150 ease-out hover:border-white/[0.12] hover:bg-white/[0.05]"
+          >
+            API keys — SENTINEL
+          </Link>
+          <Link
+            href="/dashboard/intelligence-terminal"
+            className="inline-flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-300 transition-all duration-150 ease-out hover:border-white/[0.12] hover:bg-white/[0.05]"
+          >
+            Terminal
+          </Link>
+          <Link
+            href="/dashboard/compliance"
+            className="inline-flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-300 transition-all duration-150 ease-out hover:border-white/[0.12] hover:bg-white/[0.05]"
+          >
+            Compliance
+          </Link>
+          <Link
+            href="/dashboard/batch"
+            className="inline-flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-300 transition-all duration-150 ease-out hover:border-white/[0.12] hover:bg-white/[0.05]"
+          >
+            Batch
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   const [sub, usage] = await Promise.all([
     getUserSubscription(user.id),

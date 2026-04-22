@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation'
 import { Inter } from 'next/font/google'
 import { createClient } from '@/lib/supabase/server'
 import { ensureFreeTierSubscription } from '@/lib/services/saas-entitlement.service'
@@ -16,19 +15,28 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) redirect('/landing?next=%2Fdashboard')
 
-  try {
-    await ensureFreeTierSubscription(user.id)
-  } catch {
-    /* service role / DB — best effort */
+  /** Preview mode: shell + routes visible without auth (Vercel QA / mobile UI review). */
+  let userEmail = ''
+  let effectiveTier = 'FREE'
+  if (user) {
+    userEmail = user.email ?? ''
+    try {
+      await ensureFreeTierSubscription(user.id)
+    } catch {
+      /* service role / DB — best effort */
+    }
+    const sub = await getUserSubscription(user.id)
+    effectiveTier = sub.effectiveTier
   }
-
-  const sub = await getUserSubscription(user.id)
 
   return (
     <div className={`${inter.className} antialiased`}>
-      <DashboardShell userEmail={user.email ?? ''} effectiveTier={sub.effectiveTier}>
+      <DashboardShell
+        userEmail={userEmail}
+        effectiveTier={effectiveTier}
+        isAnonymousPreview={!user}
+      >
         {children}
       </DashboardShell>
     </div>

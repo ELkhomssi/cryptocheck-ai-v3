@@ -25,10 +25,13 @@ export function DashboardShell({
   children,
   userEmail,
   effectiveTier,
+  isAnonymousPreview = false,
 }: {
   children: React.ReactNode
   userEmail: string
   effectiveTier: string
+  /** Logged-out preview: full dashboard chrome for QA without Supabase session. */
+  isAnonymousPreview?: boolean
 }) {
   const pathname = usePathname()
   const [health, setHealth] = useState<HealthPayload | null>(null)
@@ -71,6 +74,20 @@ export function DashboardShell({
           sentinelMode ? 'top-8' : 'top-0'
         }`}
       >
+        {isAnonymousPreview && (
+          <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-b border-amber-500/20 bg-amber-950/85 px-3 py-1.5 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-amber-100/95">
+            <span>Preview</span>
+            <span className="hidden font-medium normal-case tracking-normal text-amber-100/80 sm:inline">
+              Sign in for live keys, quotas, and SENTINEL logs.
+            </span>
+            <a
+              href="/landing?next=%2Fdashboard"
+              className="rounded border border-amber-400/35 bg-amber-500/20 px-2 py-0.5 text-[0.58rem] font-semibold uppercase tracking-[0.1em] text-amber-50 hover:bg-amber-500/30"
+            >
+              Sign in
+            </a>
+          </div>
+        )}
         <div className="flex min-h-12 items-center gap-2 px-3 py-1 md:h-10 md:min-h-[2.5rem] md:gap-4 md:px-6 md:py-0">
           <MobileTopBar onOpenMenu={() => setDrawerOpen(true)} />
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 text-[0.68rem] font-medium tracking-wide text-slate-400 md:gap-x-5">
@@ -105,7 +122,12 @@ export function DashboardShell({
         </div>
       </header>
 
-      <DesktopSidebar pathname={pathname} sentinelMode={sentinelMode} userEmail={userEmail} />
+      <DesktopSidebar
+        pathname={pathname}
+        sentinelMode={sentinelMode}
+        userEmail={userEmail}
+        isAnonymousPreview={isAnonymousPreview}
+      />
 
       <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} pathname={pathname} />
 
@@ -113,7 +135,7 @@ export function DashboardShell({
 
       <main
         className={`min-h-screen pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] md:pb-10 md:pl-[280px] ${
-          sentinelMode ? 'pt-[5rem] md:pt-[4.5rem]' : 'pt-12 md:pt-10'
+          sentinelMode ? 'pt-[5rem] md:pt-[4.5rem]' : isAnonymousPreview ? 'pt-28 md:pt-24' : 'pt-12 md:pt-10'
         }`}
       >
         <div className="relative mx-auto max-w-[1200px] px-4 py-8 md:px-8 md:py-10">

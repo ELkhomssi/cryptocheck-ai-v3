@@ -12,7 +12,17 @@ export async function GET() {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!user) {
+    const now = new Date().toISOString()
+    return NextResponse.json({
+      trust_score: 72,
+      trust_note:
+        'Preview mode — sign in to attach live SENTINEL telemetry, API denials, and workspace security events.',
+      recent_events: [{ action: 'session.preview_ui', created_at: now }],
+      alerts: [],
+      preview: true,
+    })
+  }
 
   const sb = getSupabaseAdmin()
   const { data: rows } = await sb
