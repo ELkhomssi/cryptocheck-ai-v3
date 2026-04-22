@@ -6,7 +6,7 @@ export const runtime = 'nodejs'
 
 /**
  * Warms RPC + DexScreener + in-process route handlers to reduce cold starts.
- * Vercel Cron: every 5 minutes (see vercel.json).
+ * Vercel Cron: daily at 00:00 UTC (see vercel.json; Hobby-friendly schedule).
  */
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET

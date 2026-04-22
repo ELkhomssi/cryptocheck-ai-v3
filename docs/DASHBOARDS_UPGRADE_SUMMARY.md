@@ -45,8 +45,8 @@ Apply in your Supabase SQL editor or migration pipeline. RLS assumptions match t
 | Path | Schedule | Notes |
 |------|----------|--------|
 | `/api/cron/watchlist-scan` | `0 9 * * *` | Daily watchlist; requires `CRON_SECRET` |
-| `/api/cron/uptime-check` | `*/5 * * * *` | Warms health + DexScreener; records **`recordUptimeProbe`** when Redis configured |
-| `/api/cron/webhook-retry` | `*/5 * * * *` | Webhook retry queue |
+| `/api/cron/uptime-check` | `0 0 * * *` (daily UTC) | Warms health + DexScreener; records **`recordUptimeProbe`** when Redis configured (Hobby-friendly; upgrade for higher cadence) |
+| `/api/cron/webhook-retry` | `0 0 * * *` (daily UTC) | Webhook retry queue (same) |
 
 Vercel injects **`Authorization: Bearer ${CRON_SECRET}`** when **`CRON_SECRET`** is set in project env.
 
