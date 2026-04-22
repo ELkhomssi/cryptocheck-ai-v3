@@ -2,7 +2,7 @@ import { Redis } from '@upstash/redis'
 import { createHash } from 'crypto'
 import type { InstitutionalScanSnapshot } from '@/lib/services/scanner/types'
 
-const TTL_SEC = 60
+const TTL_SEC = 45
 const PREFIX = 'institutional_scan:v1:'
 
 function getRedis(): Redis | null {

@@ -17,6 +17,8 @@ import {
 import { SentinelServerMisconfigurationError } from '@/lib/security/signing'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+export const revalidate = 0
 
 const PRIORITY_HEADER = 'high'
 
@@ -150,6 +152,7 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
     })
     return jsonWithScanHeaders(ctx, platform, 200, {
       'X-Cache': meta.cache === 'hit' ? 'HIT' : 'MISS',
+      'X-Cache-Hit': meta.cache === 'hit' ? 'true' : 'false',
       'X-Response-Time-Ms': String(responseTimeMs),
       'X-RPC-Provider': snapshot.rpcProviderLabel,
       'X-Request-Id': requestId,
@@ -179,6 +182,7 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
 
   return jsonWithScanHeaders(ctx, payload, 200, {
     'X-Cache': meta.cache === 'hit' ? 'HIT' : 'MISS',
+    'X-Cache-Hit': meta.cache === 'hit' ? 'true' : 'false',
     'X-Response-Time-Ms': String(responseTimeMs),
     'X-RPC-Provider': snapshot.rpcProviderLabel,
     'X-Request-Id': requestId,

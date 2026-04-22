@@ -113,14 +113,44 @@ export async function getQuotaSnapshot(userId: string, tier: SubscriptionTier) {
 }
 
 /** Resolves tier from subscription service + quota math for dashboard. */
+export type ScanPipelineLatency = { p50: number; p95: number; p99: number; avg: number; sample: number }
+
+export async function getScanTimingLatencyStats(
+  userId: string,
+  days: number
+): Promise<ScanPipelineLatency | null> {
+  const sb = getSupabaseAdmin()
+  const since = new Date()
+  since.setUTCDate(since.getUTCDate() - days)
+  const { data, error } = await sb
+    .from('scan_timings')
+    .select('total_ms')
+    .eq('user_id', userId)
+    .eq('cached', false)
+    .gte('created_at', since.toISOString())
+
+  if (error || !data?.length) return null
+  const ms = data
+    .map((r) => Number((r as { total_ms?: unknown }).total_ms))
+    .filter((n) => Number.isFinite(n) && n >= 0)
+    .sort((a, b) => a - b)
+  if (!ms.length) return null
+  const p50 = ms[Math.floor(ms.length * 0.5)]
+  const p95 = ms[Math.floor(ms.length * 0.95)]
+  const p99 = ms[Math.min(ms.length - 1, Math.floor(ms.length * 0.99))]
+  const avg = ms.reduce((a, b) => a + b, 0) / ms.length
+  return { p50, p95, p99, avg, sample: ms.length }
+}
+
 export async function getDashboardUsageBundle(userId: string, days: number) {
   const sub = await getUserSubscription(userId)
   const tier = sub.runtimeTier
-  const [series, latency, errors, quota] = await Promise.all([
+  const [series, latency, errors, quota, scanPipeline] = await Promise.all([
     getUsageDailySeries(userId, days),
     getUsageLatencyStats(userId, days),
     getUsageErrorRate(userId, days),
     getQuotaSnapshot(userId, tier),
+    getScanTimingLatencyStats(userId, days),
   ])
-  return { series, latency, errors, quota, tier: sub.effectiveTier, runtimeTier: tier }
+  return { series, latency, errors, quota, tier: sub.effectiveTier, runtimeTier: tier, scanPipeline }
 }

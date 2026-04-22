@@ -1,6 +1,8 @@
 import 'server-only'
 
-import { heliusRest, rpcCall } from '@/lib/helius-server'
+import { buildHeliusApiUrl, heliusRest, rpcCall } from '@/lib/helius-server'
+import { fetchTokenMetricsWithPair } from '@/lib/dexscreener/fetch-token-metrics'
+import { detectLiquidityLock } from '@/lib/sentinel/liquidity-lock'
 import type { TokenMeta } from '@/lib/helius'
 import type {
   AuthorityField,
@@ -13,18 +15,10 @@ import type {
 import { computeRiskScoreAndSignals } from '@/lib/intelligence/risk-score'
 
 type DexPair = {
+  dexId?: string
+  pairAddress?: string
   baseToken?: { symbol?: string; name?: string }
-  priceUsd?: string
-  liquidity?: { usd?: number }
-  volume?: { h24?: number }
-  priceChange?: { h24?: number }
   pairCreatedAt?: number
-  fdv?: number
-  marketCap?: number
-}
-
-type DexTokenResponse = {
-  pairs?: DexPair[] | null
 }
 
 function normalizeAuthField(addr: string | null): AuthorityField {
@@ -41,20 +35,6 @@ function normalizeMintAuth(a: unknown): string | null {
     return (a as { address: string }).address
   }
   return null
-}
-
-async function fetchDexBestPair(mint: string): Promise<DexPair | null> {
-  const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${mint}`, {
-    next: { revalidate: 0 },
-  })
-  if (res.status === 404) return null
-  if (!res.ok) {
-    throw new Error(`DexScreener HTTP ${res.status}`)
-  }
-  const j = (await res.json()) as DexTokenResponse
-  const pairs = j.pairs
-  if (!pairs?.length) return null
-  return pairs[0]
 }
 
 async function fetchMintParsed(mint: string): Promise<{
@@ -111,7 +91,10 @@ async function fetchMetadata(mint: string): Promise<TokenMeta | null> {
 
 async function fetchRecentTxCount(mint: string): Promise<number> {
   try {
-    const txs = await heliusRest<unknown[]>(`/addresses/${mint}/transactions`)
+    const url = buildHeliusApiUrl(`/addresses/${mint}/transactions`, { limit: 40 })
+    const res = await fetch(url, { method: 'GET', headers: { Accept: 'application/json' } })
+    if (!res.ok) return 0
+    const txs = (await res.json()) as unknown[]
     return Array.isArray(txs) ? txs.length : 0
   } catch {
     return 0
@@ -166,14 +149,6 @@ function buildTopHolders(
   return { holders, top10Concentration: Math.min(100, sum10) }
 }
 
-function bestEffortLiquidityLock(_pair: DexPair | null): LiquidityLockInfo {
-  return {
-    status: 'unknown',
-    burnedPct: null,
-    lockUntil: null,
-  }
-}
-
 export type BuildReportArgs = {
   mint: string
   keyTier: KeyTier
@@ -196,23 +171,19 @@ export async function buildTokenIntelligenceReport(args: BuildReportArgs): Promi
   const scannedAt = new Date().toISOString()
 
   if (onlyTicker) {
-    const dexPair = await fetchDexBestPair(mint)
-    if (!dexPair) {
+    const dex = await fetchTokenMetricsWithPair(mint)
+    if (!dex.pair) {
       throw new TokenNotFoundError(mint)
     }
-    const price = dexPair?.priceUsd != null ? parseFloat(dexPair.priceUsd) : null
-    const liquidityUsd = dexPair?.liquidity?.usd ?? null
-    const volume24h = dexPair?.volume?.h24 ?? null
-    const priceChange24h = dexPair?.priceChange?.h24 ?? null
+    const dexPair = dex.pair
+    const price = dex.priceUsd ?? null
+    const liquidityUsd = dex.liquidityUsd ?? null
+    const volume24h = dex.volume24hUsd ?? null
+    const priceChange24h = dex.priceChange24h ?? null
     const pairCreatedAt = dexPair?.pairCreatedAt
     const pairAgeDays =
       pairCreatedAt != null ? (Date.now() - pairCreatedAt) / (86_400_000) : null
-    let marketCap: number | null = null
-    if (dexPair?.marketCap != null && typeof dexPair.marketCap === 'number') {
-      marketCap = dexPair.marketCap
-    } else if (dexPair?.fdv != null && typeof dexPair.fdv === 'number') {
-      marketCap = dexPair.fdv
-    }
+    const marketCap = dex.marketCapUsd ?? null
     const sym = dexPair?.baseToken?.symbol ?? '???'
     const nm = dexPair?.baseToken?.name ?? sym
     const baseMeta = {
@@ -240,28 +211,25 @@ export async function buildTokenIntelligenceReport(args: BuildReportArgs): Promi
     }
   }
 
-  const [dexPair, meta] = await Promise.all([fetchDexBestPair(mint), fetchMetadata(mint)])
-  if (dexPair === null && meta === null) {
+  const [dex, meta] = await Promise.all([fetchTokenMetricsWithPair(mint), fetchMetadata(mint)])
+  if (dex.pair === null && meta === null) {
     throw new TokenNotFoundError(mint)
   }
+  const dexPair = dex.pair
 
   const [supply, txCount] = await Promise.all([fetchSupply(mint), fetchRecentTxCount(mint)])
 
-  const price = dexPair?.priceUsd != null ? parseFloat(dexPair.priceUsd) : null
-  const liquidityUsd = dexPair?.liquidity?.usd ?? null
-  const volume24h = dexPair?.volume?.h24 ?? null
-  const priceChange24h = dexPair?.priceChange?.h24 ?? null
+  const price = dex.priceUsd ?? null
+  const liquidityUsd = dex.liquidityUsd ?? null
+  const volume24h = dex.volume24hUsd ?? null
+  const priceChange24h = dex.priceChange24h ?? null
   const pairCreatedAt = dexPair?.pairCreatedAt
   const pairAgeDays =
     pairCreatedAt != null ? (Date.now() - pairCreatedAt) / (86_400_000) : null
 
-  let marketCap: number | null = null
-  if (dexPair?.marketCap != null && typeof dexPair.marketCap === 'number') {
-    marketCap = dexPair.marketCap
-  } else if (price != null && supply.ui != null && Number.isFinite(supply.ui)) {
+  let marketCap: number | null = dex.marketCapUsd ?? null
+  if (marketCap == null && price != null && supply.ui != null && Number.isFinite(supply.ui)) {
     marketCap = price * supply.ui
-  } else if (dexPair?.fdv != null && typeof dexPair.fdv === 'number') {
-    marketCap = dexPair.fdv
   }
 
   const name =
@@ -297,7 +265,14 @@ export async function buildTokenIntelligenceReport(args: BuildReportArgs): Promi
     : normalizeAuthField(null)
   const updateAuthority = parseUpdateAuthority(meta)
 
-  const liquidityLock = bestEffortLiquidityLock(dexPair)
+  const liquidityLock: LiquidityLockInfo = await detectLiquidityLock(
+    dexPair
+      ? {
+          dexId: dexPair.dexId,
+          pairAddress: dexPair.pairAddress,
+        }
+      : null
+  )
   const insiderFlags = null
 
   let riskScore: number | null = null

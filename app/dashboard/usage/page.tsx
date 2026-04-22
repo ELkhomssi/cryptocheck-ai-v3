@@ -17,6 +17,7 @@ type Bundle = {
   errors: { rate: number; errors: number; total: number }
   quota: { limit: number; used: number; remaining: number }
   runtimeTier: string
+  scanPipeline?: { p50: number; p95: number; p99: number; avg: number; sample: number } | null
 }
 
 export default function UsagePage() {
@@ -75,6 +76,17 @@ export default function UsagePage() {
             value: `${(100 - data.errors.rate * 100).toFixed(1)}%`,
             hint: `Derived from ${data.errors.total.toLocaleString()} monitored events (${data.errors.errors} anomalies).`,
           },
+          ...(data.scanPipeline
+            ? [
+                {
+                  label: 'Scan API p95 (cache miss)',
+                  value: `${Math.round(data.scanPipeline.p95)} ms`,
+                  hint: `POST /api/v1/scan — ${data.scanPipeline.sample.toLocaleString()} instrumented runs (p99 ${Math.round(
+                    data.scanPipeline.p99
+                  )} ms).`,
+                },
+              ]
+            : []),
         ].map((card) => (
           <div key={card.label} className="col-span-12 sm:col-span-6 xl:col-span-3">
             <GlassCard accent={sentinelMode ? 'sentinel' : 'default'} className="h-full p-5">

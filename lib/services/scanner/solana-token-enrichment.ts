@@ -69,12 +69,10 @@ type LargestAccountRow = {
   uiAmount: number
 }
 
-async function fetchTopHolderConcentrationPct(
+async function fetchLargestAccountRows(
   endpoint: string,
-  mintPk: PublicKey,
-  supplyUi: number
-): Promise<number | null> {
-  if (!Number.isFinite(supplyUi) || supplyUi <= 0) return null
+  mintPk: PublicKey
+): Promise<LargestAccountRow[] | null> {
   try {
     const result = await rpcPost<{ value: LargestAccountRow[] }>(endpoint, 'getTokenLargestAccounts', [
       mintPk.toBase58(),
@@ -82,16 +80,21 @@ async function fetchTopHolderConcentrationPct(
     ])
     const rows = result?.value
     if (!Array.isArray(rows) || rows.length === 0) return null
-    const row = rows[0] as { uiAmount?: number; uiAmountString?: string }
-    const top =
-      typeof row.uiAmount === 'number' && Number.isFinite(row.uiAmount)
-        ? row.uiAmount
-        : parseFloat(String(row.uiAmountString ?? '0'))
-    if (!Number.isFinite(top) || top <= 0) return null
-    return Math.min(100, Math.max(0, (top / supplyUi) * 100))
+    return rows
   } catch {
     return null
   }
+}
+
+function topHolderConcentrationFromRows(rows: LargestAccountRow[], supplyUi: number): number | null {
+  if (!Number.isFinite(supplyUi) || supplyUi <= 0) return null
+  const row = rows[0] as { uiAmount?: number; uiAmountString?: string }
+  const top =
+    typeof row.uiAmount === 'number' && Number.isFinite(row.uiAmount)
+      ? row.uiAmount
+      : parseFloat(String(row.uiAmountString ?? '0'))
+  if (!Number.isFinite(top) || top <= 0) return null
+  return Math.min(100, Math.max(0, (top / supplyUi) * 100))
 }
 
 /**
@@ -132,7 +135,10 @@ export async function enrichScanBodyFromChain(body: Record<string, unknown>): Pr
 
   try {
     const mintPk = new PublicKey(mint)
-    const m = await getMint(connection, mintPk)
+    const [m, largestRows] = await Promise.all([
+      getMint(connection, mintPk),
+      fetchLargestAccountRows(connection.rpcEndpoint, mintPk),
+    ])
     const mintActive = m.mintAuthority != null
     const freezeActive = m.freezeAuthority != null
     const supplyUi = Number(m.supply) / 10 ** m.decimals
@@ -140,8 +146,8 @@ export async function enrichScanBodyFromChain(body: Record<string, unknown>): Pr
     merged.mintAuthorityActive = mintActive
     merged.freezeAuthorityActive = freezeActive
 
-    if (merged.topHolderPct == null) {
-      const topPct = await fetchTopHolderConcentrationPct(connection.rpcEndpoint, mintPk, supplyUi)
+    if (merged.topHolderPct == null && largestRows?.length) {
+      const topPct = topHolderConcentrationFromRows(largestRows, supplyUi)
       if (topPct != null) merged.topHolderPct = Math.round(topPct * 10) / 10
     }
 
