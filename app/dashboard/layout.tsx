@@ -1,4 +1,4 @@
-import { Inter } from 'next/font/google'
+import { Inter, Space_Grotesk } from 'next/font/google'
 import { createClient } from '@/lib/supabase/server'
 import { ensureFreeTierSubscription } from '@/lib/services/saas-entitlement.service'
 import { getUserSubscription } from '@/lib/services/user-subscription.service'
@@ -8,6 +8,13 @@ import { DisclaimerBanner } from '@/components/legal/DisclaimerBanner'
 const inter = Inter({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
+  display: 'swap',
+})
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-space-grotesk',
   display: 'swap',
 })
 
@@ -32,7 +39,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   return (
-    <div className={`${inter.className} antialiased`}>
+    <div className={`${inter.className} ${spaceGrotesk.variable} antialiased`}>
       <DashboardShell
         userEmail={userEmail}
         effectiveTier={effectiveTier}

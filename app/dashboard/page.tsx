@@ -1,25 +1,61 @@
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getDashboardUsageBundle } from '@/lib/services/usage-analytics.service'
 import { getUserSubscription } from '@/lib/services/user-subscription.service'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
-import { GlassCard } from '@/components/Dashboard/GlassCard'
 import { RadialCapacity } from '@/components/Dashboard/RadialCapacity'
 import { ActivityStream, type StreamEvent } from '@/components/Dashboard/ActivityStream'
+import { ForensicTerminalShell } from '@/components/Dashboard/forensic-terminal/ForensicTerminalShell'
+import { NeonForensicPanel } from '@/components/Dashboard/forensic-terminal/NeonForensicPanel'
 
 export const dynamic = 'force-dynamic'
+
+function CyberLink({
+  href,
+  children,
+  variant = 'primary',
+}: {
+  href: string
+  children: ReactNode
+  variant?: 'primary' | 'ghost'
+}) {
+  const base =
+    'inline-flex items-center justify-center rounded-xl border px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.14em] transition-all duration-200 ease-out hover:-translate-y-0.5'
+  if (variant === 'primary') {
+    return (
+      <Link
+        href={href}
+        className={`${base} border-cyan-400/35 bg-gradient-to-r from-cyan-500/20 to-emerald-500/15 text-cyan-100 shadow-[0_0_22px_rgba(6,182,212,0.15)] hover:border-cyan-300/50 hover:shadow-[0_0_28px_rgba(6,182,212,0.25)]`}
+      >
+        {children}
+      </Link>
+    )
+  }
+  return (
+    <Link
+      href={href}
+      className={`${base} border-white/[0.1] bg-white/[0.04] text-slate-200 hover:border-cyan-400/25 hover:bg-cyan-500/[0.06] hover:text-cyan-50`}
+    >
+      {children}
+    </Link>
+  )
+}
 
 export default async function DashboardHomePage() {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
+
   if (!user) {
     return (
-      <div className="space-y-10">
+      <ForensicTerminalShell>
         <header className="max-w-3xl">
-          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-amber-500/90">Preview</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-200 md:text-[1.65rem]">
+          <p className="font-space text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-amber-400/90">
+            Preview
+          </p>
+          <h1 className="mt-2 font-space text-2xl font-semibold tracking-tight text-slate-100 md:text-[1.65rem]">
             Intelligence command
           </h1>
           <p className="mt-2 text-sm font-medium leading-relaxed text-slate-400">
@@ -27,39 +63,17 @@ export default async function DashboardHomePage() {
             credentials, and SENTINEL logs.
           </p>
         </header>
-        <div className="flex flex-wrap gap-3">
-          <Link
-            href="/landing?next=%2Fdashboard"
-            className="inline-flex items-center justify-center rounded-lg border border-emerald-500/25 bg-emerald-500/[0.08] px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-200/95 shadow-[0_0_20px_rgba(16,185,129,0.08)] transition-all duration-150 ease-out hover:-translate-y-0.5 hover:bg-emerald-500/15"
-          >
+
+        <div className="mt-8 flex flex-wrap gap-3">
+          <CyberLink href="/landing?next=%2Fdashboard" variant="primary">
             Sign in
-          </Link>
-          <Link
-            href="/dashboard/security"
-            className="inline-flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-300 transition-all duration-150 ease-out hover:border-white/[0.12] hover:bg-white/[0.05]"
-          >
-            API keys — SENTINEL
-          </Link>
-          <Link
-            href="/dashboard/intelligence-terminal"
-            className="inline-flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-300 transition-all duration-150 ease-out hover:border-white/[0.12] hover:bg-white/[0.05]"
-          >
-            Terminal
-          </Link>
-          <Link
-            href="/dashboard/compliance"
-            className="inline-flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-300 transition-all duration-150 ease-out hover:border-white/[0.12] hover:bg-white/[0.05]"
-          >
-            Compliance
-          </Link>
-          <Link
-            href="/dashboard/batch"
-            className="inline-flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-300 transition-all duration-150 ease-out hover:border-white/[0.12] hover:bg-white/[0.05]"
-          >
-            Batch
-          </Link>
+          </CyberLink>
+          <CyberLink href="/dashboard/security">API keys — SENTINEL</CyberLink>
+          <CyberLink href="/dashboard/intelligence-terminal">Terminal</CyberLink>
+          <CyberLink href="/dashboard/compliance">Compliance</CyberLink>
+          <CyberLink href="/dashboard/batch">Batch</CyberLink>
         </div>
-      </div>
+      </ForensicTerminalShell>
     )
   }
 
@@ -87,12 +101,12 @@ export default async function DashboardHomePage() {
   }))
 
   return (
-    <div className="space-y-10">
+    <ForensicTerminalShell>
       <header className="max-w-3xl">
-        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-slate-500">
+        <p className="font-space text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-cyan-300/90">
           Intelligence command
         </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-200 md:text-[1.65rem]">
+        <h1 className="mt-2 bg-gradient-to-r from-cyan-200 via-fuchsia-200 to-emerald-200 bg-clip-text font-space text-2xl font-semibold tracking-tight text-transparent md:text-[1.75rem]">
           Institutional overview
         </h1>
         <p className="mt-2 text-sm font-medium leading-relaxed text-slate-400">
@@ -100,99 +114,101 @@ export default async function DashboardHomePage() {
         </p>
       </header>
 
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-12 grid gap-6 lg:col-span-8 lg:grid-cols-12">
-          <div className="col-span-12 sm:col-span-6 lg:col-span-4">
-            <GlassCard accent={sentinelMode ? 'sentinel' : 'default'} className="p-5">
-              <p className="text-[0.65rem] font-medium uppercase tracking-[0.2em] text-slate-500">Deployment tier</p>
-              <p className="mt-3 text-lg font-semibold tabular-nums text-slate-200">{sub.effectiveTier}</p>
-              <p className="mt-2 text-xs font-medium leading-relaxed text-slate-400">
+      <div className="mt-10 grid grid-cols-12 gap-6">
+        <div className="col-span-12 space-y-6 lg:col-span-8">
+          <NeonForensicPanel
+            title="Analyse console"
+            subtitle="High-resolution workspace telemetry · UTC intelligence window"
+            tone="neutral"
+          >
+            <div className="rounded-xl border border-cyan-500/15 bg-slate-950/70 p-4 font-mono-terminal text-[0.7rem] leading-relaxed text-cyan-100/90">
+              <p className="text-cyan-400/80">&gt; SESSION</p>
+              <p className="mt-1 text-slate-300">
+                organisation=<span className="text-emerald-300/90">authenticated</span> tier=
+                <span className="text-cyan-200">{sub.effectiveTier}</span>
+              </p>
+              <p className="mt-3 text-cyan-400/80">&gt; QUOTA_WINDOW</p>
+              <p className="mt-1 text-slate-300">
+                analyses_7d=<span className="tabular-nums text-amber-200/90">{analyses7d.toLocaleString()}</span> sentinel_mode=
+                <span className={sentinelMode ? 'text-emerald-300' : 'text-slate-500'}>
+                  {sentinelMode ? 'armed' : 'standard'}
+                </span>
+              </p>
+              <p className="mt-3 text-cyan-400/80">&gt; CAPACITY</p>
+              <p className="mt-1 text-slate-300">
+                used=<span className="tabular-nums text-cyan-200">{usage.quota.used.toLocaleString()}</span> limit=
+                <span className="tabular-nums text-cyan-200">{usage.quota.limit.toLocaleString()}</span> window=
+                <span className="text-fuchsia-200/80">UTC</span>
+              </p>
+            </div>
+          </NeonForensicPanel>
+
+          <div className="grid gap-6 sm:grid-cols-2">
+            <NeonForensicPanel title="Deployment tier" subtitle="Billing & governance plane" tone="neutral">
+              <p className="font-mono-terminal text-lg font-semibold tabular-nums text-cyan-100">{sub.effectiveTier}</p>
+              <p className="mt-2 font-mono-terminal text-[0.65rem] font-medium leading-relaxed text-slate-400">
                 Governance, quotas, and SLAs follow this tier across all intelligence routes.
               </p>
               <Link
                 href="/dashboard/billing"
-                className="mt-4 inline-flex text-xs font-semibold tracking-wide text-cyan-400/90 transition-colors duration-150 hover:text-cyan-300"
+                className="mt-3 inline-flex font-mono-terminal text-xs font-semibold tracking-wide text-cyan-400/90 transition-colors hover:text-cyan-300"
               >
-                Manage subscription →
+                manage_subscription →
               </Link>
-            </GlassCard>
-          </div>
+            </NeonForensicPanel>
 
-          <div className="col-span-12 sm:col-span-6 lg:col-span-4">
-            <GlassCard className="h-full p-5">
-              <p className="text-[0.65rem] font-medium uppercase tracking-[0.2em] text-slate-500">
-                Security analyses (7d)
-              </p>
-              <p className="mt-3 text-2xl font-semibold tabular-nums tracking-tight text-slate-200">
+            <NeonForensicPanel title="Security analyses (7d)" subtitle="Completed intelligence cycles" tone="neutral">
+              <p className="font-mono-terminal text-2xl font-semibold tabular-nums tracking-tight text-cyan-100">
                 {analyses7d.toLocaleString()}
               </p>
-              <p className="mt-2 text-xs font-medium text-slate-400">
+              <p className="mt-2 font-mono-terminal text-[0.65rem] font-medium text-slate-400">
                 Completed intelligence cycles across your workspace — not raw traffic volume.
               </p>
               <Link
                 href="/dashboard/usage"
-                className="mt-4 inline-flex text-xs font-semibold tracking-wide text-slate-400 transition-colors duration-150 hover:text-slate-200"
+                className="mt-3 inline-flex font-mono-terminal text-xs font-semibold tracking-wide text-cyan-300/80 transition-colors hover:text-cyan-200"
               >
-                Open intelligence ops →
+                open_intelligence_ops →
               </Link>
-            </GlassCard>
+            </NeonForensicPanel>
           </div>
 
-          <div className="col-span-12 lg:col-span-4">
-            <GlassCard accent={sentinelMode ? 'sentinel' : 'default'} className="flex h-full flex-col p-5">
-              <p className="text-center text-[0.65rem] font-medium uppercase tracking-[0.2em] text-slate-500">
-                System capacity
-              </p>
-              <p className="mt-1 text-center text-xs font-medium text-slate-400">
-                Daily intelligence operations budget (UTC)
-              </p>
-              <div className="mt-2 flex flex-1 items-center justify-center">
-                <RadialCapacity
-                  used={usage.quota.used}
-                  limit={usage.quota.limit}
-                  label="Capacity utilization"
-                  sublabel={`${usage.quota.used.toLocaleString()} of ${usage.quota.limit.toLocaleString()} operations`}
-                />
-              </div>
-            </GlassCard>
-          </div>
+          <NeonForensicPanel
+            title="Capacity utilization"
+            subtitle="Daily intelligence operations budget (UTC)"
+            tone="capacity"
+          >
+            <div className="flex justify-center py-2">
+              <RadialCapacity
+                used={usage.quota.used}
+                limit={usage.quota.limit}
+                sublabel={`${usage.quota.used.toLocaleString()} of ${usage.quota.limit.toLocaleString()} operations`}
+                chartId="dash-main"
+              />
+            </div>
+          </NeonForensicPanel>
         </div>
 
         <div className="col-span-12 lg:col-span-4">
-          <GlassCard className="flex h-full min-h-[280px] flex-col p-0">
-            <div className="border-b border-white/[0.06] px-5 py-4">
-              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Threat event stream
-              </p>
-              <p className="mt-1 text-xs font-medium text-slate-400">Live security log — Bloomberg-style feed</p>
-            </div>
-            <div className="flex-1 px-2 py-3">
-              <ActivityStream initial={streamInitial} />
-            </div>
-          </GlassCard>
+          <NeonForensicPanel
+            title="Threat event stream"
+            subtitle="Forensic security log · immutable audit trail"
+            tone="threat"
+            className="min-h-[320px]"
+          >
+            <ActivityStream initial={streamInitial} variant="forensic" />
+          </NeonForensicPanel>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <Link
-          href="/dashboard/api-keys"
-          className="inline-flex items-center justify-center rounded-lg border border-emerald-500/25 bg-emerald-500/[0.08] px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-200/95 shadow-[0_0_20px_rgba(16,185,129,0.08)] transition-all duration-150 ease-out hover:-translate-y-0.5 hover:bg-emerald-500/15"
-        >
+      <div className="mt-10 flex flex-wrap gap-3">
+        <CyberLink href="/dashboard/api-keys" variant="primary">
           Issue API credential
-        </Link>
-        <Link
-          href="/dashboard/compliance"
-          className="inline-flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-300 transition-all duration-150 ease-out hover:border-white/[0.12] hover:bg-white/[0.05]"
-        >
-          Compliance &amp; exports
-        </Link>
-        <Link
-          href="/api/docs"
-          className="inline-flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-300 transition-all duration-150 ease-out hover:border-white/[0.12] hover:bg-white/[0.05]"
-        >
-          API reference
-        </Link>
+        </CyberLink>
+        <CyberLink href="/dashboard/compliance">Compliance &amp; exports</CyberLink>
+        <CyberLink href="/api/docs">API reference</CyberLink>
+        <CyberLink href="/dashboard/investigate">AI investigation</CyberLink>
       </div>
-    </div>
+    </ForensicTerminalShell>
   )
 }

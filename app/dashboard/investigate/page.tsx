@@ -93,7 +93,7 @@ export default function InvestigatePage() {
   }, [toolEvents])
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#030712] p-6 text-slate-100">
+    <div className="relative min-h-screen overflow-hidden bg-[#020617] p-6 text-slate-100">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(34,211,238,0.14),transparent_40%),radial-gradient(circle_at_80%_20%,rgba(168,85,247,0.15),transparent_35%),radial-gradient(circle_at_50%_90%,rgba(16,185,129,0.12),transparent_45%)]" />
       <div className="pointer-events-none absolute inset-0 opacity-[0.08] [background-image:linear-gradient(to_right,#22d3ee_1px,transparent_1px),linear-gradient(to_bottom,#22d3ee_1px,transparent_1px)] [background-size:52px_52px]" />
 
