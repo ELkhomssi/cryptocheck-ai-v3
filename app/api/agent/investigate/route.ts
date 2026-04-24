@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { runInvestigation } from '@/lib/agents/investigation/agent'
+import { runInvestigationStream } from '@/lib/agents/investigation/stream'
 import { redis } from '@/lib/cache/redis'
 
 export const runtime = 'nodejs'
@@ -47,6 +47,12 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'Valid Solana mint required' }, { status: 400 })
   }
 
-  const result = runInvestigation({ mint: mint.trim(), userId: user.id })
-  return result.toTextStreamResponse()
+  const stream = runInvestigationStream({ mint: mint.trim(), userId: user.id })
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'application/x-ndjson; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+    },
+  })
 }
