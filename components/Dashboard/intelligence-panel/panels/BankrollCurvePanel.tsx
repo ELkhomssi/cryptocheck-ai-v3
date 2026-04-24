@@ -40,13 +40,20 @@ export function BankrollCurvePanel() {
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={curve}>
             <XAxis dataKey="t" hide />
-            <YAxis tick={{ fontSize: 10 }} />
+            <YAxis tick={{ fontSize: 12, fill: '#94a3b8', fontFamily: 'var(--font-mono-terminal), monospace' }} />
             <Tooltip />
-            <Line type="monotone" dataKey="v" stroke="#00D4AA" strokeWidth={2} dot={false} />
+            <Line
+              type="monotone"
+              dataKey="v"
+              stroke="#34d399"
+              strokeWidth={2.5}
+              dot={false}
+              style={{ filter: 'drop-shadow(0 0 6px rgba(52,211,153,0.55))' }}
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <p className="mt-2 text-xs text-slate-400">
+      <p className="mt-3 text-sm text-slate-500">
         Backtest of past signals. Past performance does not predict future results.
       </p>
     </GlassCard>

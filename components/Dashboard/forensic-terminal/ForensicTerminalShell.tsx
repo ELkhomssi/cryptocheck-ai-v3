@@ -2,14 +2,31 @@
 
 import type { CSSProperties, ReactNode } from 'react'
 
+type ForensicTerminalShellProps = {
+  children: ReactNode
+  /** When false, no negative margins — use inside routes that already sit in dashboard padding. */
+  bleed?: boolean
+  /** Inner content max width (Tailwind class). */
+  maxWidthClass?: string
+}
+
 /**
  * Full-bleed forensic atmosphere for dashboard main content.
  * Matches AI Investigation Agent: grid, radial glow, particles, scanline.
  * Background #020617 per design spec.
  */
-export function ForensicTerminalShell({ children }: { children: ReactNode }) {
+export function ForensicTerminalShell({
+  children,
+  bleed = true,
+  maxWidthClass = 'max-w-[1200px]',
+}: ForensicTerminalShellProps) {
+  const outerBleed =
+    'relative -mx-4 -my-8 min-h-[calc(100dvh-6rem)] overflow-hidden bg-[#020617] px-4 py-8 text-slate-100 md:-mx-8 md:px-8 md:-my-10 md:py-10'
+  const outerEmbedded =
+    'relative min-h-[calc(100dvh-5rem)] w-full overflow-hidden bg-[#020617] px-0 py-4 text-slate-100 sm:px-2 md:py-6'
+
   return (
-    <div className="relative -mx-4 -my-8 min-h-[calc(100dvh-6rem)] overflow-hidden bg-[#020617] px-4 py-8 text-slate-100 md:-mx-8 md:px-8 md:-my-10 md:py-10">
+    <div className={bleed ? outerBleed : outerEmbedded}>
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(34,211,238,0.14),transparent_40%),radial-gradient(circle_at_80%_20%,rgba(168,85,247,0.15),transparent_35%),radial-gradient(circle_at_50%_90%,rgba(16,185,129,0.12),transparent_45%)]" />
       <div className="pointer-events-none absolute inset-0 opacity-[0.08] [background-image:linear-gradient(to_right,#22d3ee_1px,transparent_1px),linear-gradient(to_bottom,#22d3ee_1px,transparent_1px)] [background-size:52px_52px]" />
 
@@ -93,7 +110,7 @@ export function ForensicTerminalShell({ children }: { children: ReactNode }) {
         ))}
       </div>
 
-      <div className="relative z-[1] mx-auto max-w-[1200px]">{children}</div>
+      <div className={`relative z-[1] mx-auto w-full ${maxWidthClass}`}>{children}</div>
     </div>
   )
 }

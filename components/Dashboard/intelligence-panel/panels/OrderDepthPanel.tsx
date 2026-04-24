@@ -39,23 +39,23 @@ export function OrderDepthPanel({ mint }: { mint: string }) {
   }, [mint])
 
   return (
-    <GlassCard title="Order Depth">
-      <div className="grid grid-cols-2 gap-3 text-xs">
+    <GlassCard title="Order Depth" badge="Jupiter ref">
+      <div className="grid grid-cols-2 gap-4 text-sm">
         <div>
-          <h4 className="mb-1 text-cyan-300">Bids</h4>
+          <h4 className="mb-2 font-space text-xs font-bold uppercase tracking-widest text-cyan-300">Bids</h4>
           {bids.map((l, i) => (
-            <div key={`b-${i}`} className="flex justify-between text-slate-300">
-              <span>{l.price}</span>
-              <span>{l.size.toLocaleString()}</span>
+            <div key={`b-${i}`} className="flex justify-between gap-2 py-1 font-mono-terminal text-sm text-slate-200">
+              <span className="text-cyan-100/90">{l.price}</span>
+              <span className="text-slate-400">{l.size.toLocaleString()}</span>
             </div>
           ))}
         </div>
         <div>
-          <h4 className="mb-1 text-amber-300">Asks</h4>
+          <h4 className="mb-2 font-space text-xs font-bold uppercase tracking-widest text-amber-300">Asks</h4>
           {asks.map((l, i) => (
-            <div key={`a-${i}`} className="flex justify-between text-slate-300">
-              <span>{l.price}</span>
-              <span>{l.size.toLocaleString()}</span>
+            <div key={`a-${i}`} className="flex justify-between gap-2 py-1 font-mono-terminal text-sm text-slate-200">
+              <span className="text-amber-100/90">{l.price}</span>
+              <span className="text-slate-400">{l.size.toLocaleString()}</span>
             </div>
           ))}
         </div>

@@ -47,26 +47,31 @@ export function TrackedOpportunitiesPanel() {
 
   return (
     <GlassCard title="Tracked Opportunities" badge={`${items.length} tracked`}>
-      <div className="space-y-2">
+      <div className="space-y-3">
         {items.length === 0 ? (
-          <p className="text-sm text-slate-400">No tracked opportunities yet.</p>
+          <p className="py-2 text-base text-slate-500">No tracked opportunities yet.</p>
         ) : (
           items.map((item) => (
-            <div key={item.id} className="rounded border border-slate-800 p-2">
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-xs text-slate-200">{item.mint.slice(0, 6)}...{item.mint.slice(-4)}</span>
+            <div
+              key={item.id}
+              className="rounded-xl border border-white/[0.08] bg-slate-950/60 p-4 shadow-[inset_0_0_24px_rgba(34,211,238,0.04)]"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-mono-terminal text-sm font-bold text-cyan-100/90">
+                  {item.mint.slice(0, 8)}…{item.mint.slice(-6)}
+                </span>
                 <SignalBadge verdict={signals[item.mint]?.verdict ?? 'quiet'} />
               </div>
-              <p className="mt-1 text-xs text-slate-400 line-clamp-2">
+              <p className="mt-2 text-sm leading-relaxed text-slate-400 line-clamp-2">
                 {signals[item.mint]?.ai_reasoning ?? 'Awaiting intelligence update.'}
               </p>
               <a
                 href={`https://jup.ag/swap/SOL-${item.mint}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-2 inline-block text-xs text-cyan-300 hover:underline"
+                className="mt-3 inline-block text-sm font-semibold text-cyan-300 hover:text-cyan-200"
               >
-                Jupiter swap (user executes)
+                Jupiter swap (user executes) →
               </a>
             </div>
           ))
