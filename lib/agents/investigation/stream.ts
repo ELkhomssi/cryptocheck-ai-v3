@@ -136,9 +136,9 @@ export function runInvestigationStream(params: { mint: string; userId: string })
         console.error('[investigation-stream]', message)
         let hint = message
         const low = message.toLowerCase()
-        if (message.includes('Helius API 401') || /helius api\s*401/i.test(message)) {
+        if (message.includes('Helius API 401') || /helius api\s*401/i.test(message) || message.includes('-32401')) {
           hint =
-            '[Helius 401] Invalid or missing API key — fix HELIUS_API_KEY (or HELIUS_KEY) in server env and redeploy. Raw: ' +
+            '[Helius auth] Key rejected (-32401 / 401). In https://dev.helius.xyz/dashboard create or rotate an API key, set HELIUS_API_KEY (no quotes/BOM), redeploy. RPC steps may fall back to public Solana; REST metadata still needs a valid Helius key. Raw: ' +
             message
         } else if (low.includes('incorrect api key') || low.includes('invalid_api_key') || low.includes('openai_api_key')) {
           hint =

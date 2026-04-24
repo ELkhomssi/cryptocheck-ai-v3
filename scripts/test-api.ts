@@ -19,7 +19,7 @@ function envLine(name: string): string {
 }
 
 async function probeHelius(key: string): Promise<void> {
-  const url = `https://mainnet.helius-rpc.com/?api-key=${encodeURIComponent(key)}`
+  const url = `https://mainnet.helius-rpc.com/?api-key=${encodeURIComponent(key.trim().replace(/^\uFEFF/, ''))}`
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

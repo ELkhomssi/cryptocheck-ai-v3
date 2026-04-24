@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { createClient } from '@supabase/supabase-js'
-import { getHeliusApiKeyFromEnv } from '@/lib/helius-server'
+import { getHeliusApiKeyFromEnv, getHeliusPrimaryRpcUrl } from '@/lib/helius-server'
 
 export type HealthCheck = { ok: boolean; ms?: number; error?: string }
 
@@ -31,11 +31,10 @@ export async function collectHealthSnapshot(): Promise<HealthSnapshot> {
 
   try {
     const t0 = Date.now()
-    const key = getHeliusApiKeyFromEnv()
-    if (!key) {
+    if (!getHeliusApiKeyFromEnv()) {
       checks.rpc_primary = { ok: false, error: 'HELIUS_API_KEY (or HELIUS_KEY) not configured' }
     } else {
-      const r = await fetch(`https://mainnet.helius-rpc.com/?api-key=${key}`, {
+      const r = await fetch(getHeliusPrimaryRpcUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getSlot', params: [] }),

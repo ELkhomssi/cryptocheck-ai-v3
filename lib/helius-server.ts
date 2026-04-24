@@ -16,7 +16,17 @@ export const HELIUS_API = 'https://api.helius.xyz/v0'
  * Canonical: `HELIUS_API_KEY`. Also accepts legacy `HELIUS_KEY` so renamed Vercel envs still work.
  */
 export function getHeliusApiKeyFromEnv(): string | undefined {
-  return process.env.HELIUS_API_KEY?.trim() || process.env.HELIUS_KEY?.trim() || undefined
+  const raw = process.env.HELIUS_API_KEY?.trim() || process.env.HELIUS_KEY?.trim()
+  return raw ? normalizeHeliusApiKey(raw) : undefined
+}
+
+/** Trim BOM/quotes — bad paste in Vercel often causes Helius `-32401` / HTTP 401. */
+function normalizeHeliusApiKey(raw: string): string {
+  let s = raw.replace(/^\uFEFF/, '').trim()
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+    s = s.slice(1, -1).trim()
+  }
+  return s
 }
 
 function requireHeliusKey(): string {
@@ -29,14 +39,17 @@ function requireHeliusKey(): string {
 
 /** Primary authenticated Helius JSON-RPC URL — server-only; never expose to the client. */
 export function getHeliusPrimaryRpcUrl(): string {
-  return `https://mainnet.helius-rpc.com/?api-key=${requireHeliusKey()}`
+  const key = encodeURIComponent(requireHeliusKey())
+  return `https://mainnet.helius-rpc.com/?api-key=${key}`
 }
 
-/** Build a Helius REST URL with the API key — server-only. */
+/** Build a Helius REST URL with the API key — server-only (key is URL-encoded). */
 export function buildHeliusRestUrl(path: string): string {
   const key = requireHeliusKey()
   const p = path.startsWith('/') ? path : `/${path}`
-  return `${HELIUS_API}${p}?api-key=${key}`
+  const u = new URL(`${HELIUS_API}${p}`)
+  u.searchParams.set('api-key', key)
+  return u.toString()
 }
 
 /**
@@ -64,9 +77,11 @@ function rpcErrorIsFailoverWorthy(err: { code?: number; message?: string } | und
   const c = err.code
   const m = String(err.message ?? '').toLowerCase()
   return (
+    c === -32401 ||
     c === -32005 ||
     c === -32603 ||
     c === 429 ||
+    m.includes('invalid api key') ||
     m.includes('429') ||
     m.includes('503') ||
     m.includes('timed out') ||
@@ -98,7 +113,7 @@ export async function rpcCall<T = unknown>(method: string, params: unknown[] = [
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
-      const data = await res.json()
+      const data = (await res.json()) as { error?: { code?: number; message?: string }; result?: T }
       if (data.error) {
         lastMessage = data.error.message ?? 'RPC error'
         if (rpcErrorIsFailoverWorthy(data.error) && i < endpoints.length - 1) continue

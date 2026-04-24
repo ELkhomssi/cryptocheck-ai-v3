@@ -85,8 +85,18 @@ async function fetchLargestHolders(mint: string): Promise<
 }
 
 async function fetchMetadata(mint: string): Promise<TokenMeta | null> {
-  const arr = await heliusRest<TokenMeta[]>('/token-metadata', { mintAccounts: [mint] })
-  return arr?.[0] ?? null
+  try {
+    const arr = await heliusRest<TokenMeta[]>('/token-metadata', { mintAccounts: [mint] })
+    return arr?.[0] ?? null
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    // Bad Helius key or plan restriction — degrade to Dex/on-chain RPC only instead of failing the whole investigation.
+    if (/helius api 401|helius api 403|invalid api key|-32401/i.test(msg)) {
+      console.warn('[fetch-token-intelligence] token-metadata skipped:', msg.slice(0, 200))
+      return null
+    }
+    throw e
+  }
 }
 
 async function fetchRecentTxCount(mint: string): Promise<number> {
