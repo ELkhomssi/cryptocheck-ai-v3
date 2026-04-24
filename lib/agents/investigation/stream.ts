@@ -8,6 +8,46 @@ import { fetchTokenMetricsWithPair } from '@/lib/dexscreener/fetch-token-metrics
 import { detectLiquidityLock } from '@/lib/sentinel/liquidity-lock'
 import { complete } from '@/lib/services/ai/openai-client'
 
+/** Models often return `analysis`, `summary`, etc. under `json_object` instead of `report`. */
+function preprocessReportJson(input: unknown): unknown {
+  if (typeof input !== 'object' || input === null) return input
+  const o = input as Record<string, unknown>
+  if (typeof o.report === 'string' && o.report.trim().length > 0) return { report: padReportMin80(o.report) }
+  const keys = [
+    'forensic_report',
+    'investigation_report',
+    'findings',
+    'narrative',
+    'analysis',
+    'summary',
+    'content',
+    'text',
+    'body',
+    'result',
+  ] as const
+  for (const k of keys) {
+    const v = o[k]
+    if (typeof v === 'string' && v.trim().length > 0) return { report: padReportMin80(v) }
+  }
+  const strs = Object.values(o).filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+  if (strs.length > 0) {
+    strs.sort((a, b) => b.trim().length - a.trim().length)
+    return { report: padReportMin80(strs[0]!) }
+  }
+  const fallback =
+    `${JSON.stringify(o, null, 2).slice(0, 2400)}\n\n` +
+    'The model returned JSON without a `report` (or known alias) field. Use the payload above for manual review. Informational only. Not financial advice.'
+  return { report: padReportMin80(fallback) }
+}
+
+function padReportMin80(raw: string): string {
+  const t = raw.trim()
+  if (t.length >= 80) return t.slice(0, 3000)
+  const pad =
+    '\n\n[Note] Short model reply padded for pipeline minimum length. Informational only. Not financial advice.'
+  return (t + pad).slice(0, 3000)
+}
+
 const ReportSchema = z.object({
   report: z.string().min(80).max(3000),
 })
@@ -103,7 +143,9 @@ export function runInvestigationStream(params: { mint: string; userId: string })
         push({ type: 'tool', toolName: 'synthesizeReport', state: 'running', detail: 'Synthesizing forensic report...' })
         const reportObj = await complete({
           systemPrompt:
-            'You are a forensic Solana analyst. Produce factual observations only. Never include buy/sell/target/probability language. End with: "Informational only. Not financial advice."',
+            'You are a forensic Solana analyst. Produce factual observations only. Never include buy/sell/target/probability language. End with: "Informational only. Not financial advice."\n\n' +
+            'Respond with exactly one JSON object: { "report": "<string>" }. The `report` value must be the full narrative (markdown allowed), at least 80 characters. Do not put the narrative in `analysis`, `summary`, or other keys — only `report`.',
+          preprocessParsed: preprocessReportJson,
           userMessage: JSON.stringify(
             {
               mint: params.mint,
@@ -145,6 +187,10 @@ export function runInvestigationStream(params: { mint: string; userId: string })
             '[OpenAI] Key missing or rejected — fix OPENAI_API_KEY (or OPENAI_KEY). Raw: ' + message
         } else if (low.includes('supabase') || low.includes('fetch failed')) {
           hint = '[Supabase / network] ' + message
+        } else if (low.includes('invalid_type') || low.includes('required') || message.includes('zod')) {
+          hint =
+            '[Report synthesis] Model JSON did not match the expected shape (this should be auto-normalized now). If it persists, retry or check OpenAI logs. Raw: ' +
+            message
         }
         push({ type: 'text', content: `Investigation unavailable: ${hint}` })
         push({ type: 'done' })

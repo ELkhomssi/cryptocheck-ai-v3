@@ -17,6 +17,8 @@ export async function complete<T>(params: {
   systemPrompt: string
   userMessage: string
   schema: z.ZodSchema<T>
+  /** Map model JSON into the shape expected by `schema` (e.g. move `analysis` → `report`). */
+  preprocessParsed?: (parsed: unknown) => unknown
   model?: 'gpt-4o-mini' | 'gpt-4o'
   temperature?: number
   userId?: string
@@ -49,8 +51,9 @@ export async function complete<T>(params: {
     }).catch(() => {})
   }
 
-  const parsed = JSON.parse(content)
-  return params.schema.parse(parsed)
+  const parsed = JSON.parse(content) as unknown
+  const shaped = params.preprocessParsed ? params.preprocessParsed(parsed) : parsed
+  return params.schema.parse(shaped)
 }
 
 async function logAIUsage(params: {
