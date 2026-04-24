@@ -109,7 +109,7 @@ export async function GET(
     const exposeDetail = process.env.NODE_ENV !== 'production'
     return NextResponse.json(
       {
-        error: 'Signal generation failed',
+        error: 'Intelligence diagnostic pipeline interrupted',
         code,
         hint,
         ...(exposeDetail && err instanceof Error ? { detail: err.message } : {}),

@@ -32,7 +32,9 @@ export default function UsagePage() {
 
   if (!data) {
     return (
-      <p className="text-sm font-medium tracking-wide text-slate-500">Loading intelligence operations…</p>
+      <p className="font-mono-terminal text-base text-slate-500 motion-safe:animate-pulse">
+        Loading intelligence operations…
+      </p>
     )
   }
 
@@ -43,14 +45,16 @@ export default function UsagePage() {
   return (
     <div className="space-y-10">
       <header className="max-w-2xl">
-        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-slate-500">
+        <p className="font-space text-xs font-bold uppercase tracking-[0.22em] text-cyan-400/80">
           Intelligence operations
         </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-200">Throughput &amp; latency</h1>
-        <p className="mt-2 text-sm font-medium text-slate-400">
+        <h1 className="mt-2 font-space text-3xl font-bold tracking-tight text-slate-100 md:text-4xl">
+          Throughput &amp; latency
+        </h1>
+        <p className="mt-3 text-base leading-relaxed text-slate-400">
           Runtime tier{' '}
-          <span className="font-semibold text-slate-300">{data.runtimeTier}</span> — security analyses and API
-          intelligence routes.
+          <span className="font-mono-terminal font-bold text-cyan-200/90">{data.runtimeTier}</span> — security analyses
+          and API intelligence routes.
         </p>
       </header>
 

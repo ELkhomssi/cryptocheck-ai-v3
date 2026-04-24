@@ -160,9 +160,11 @@ function BillingInner({ stripeUrls }: { stripeUrls: BillingStripeUrls }) {
   return (
     <div className="space-y-10">
       <header className="max-w-2xl">
-        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Commercial</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-200">Subscription &amp; billing</h1>
-        <p className="mt-2 text-sm font-medium text-slate-400">
+        <p className="font-space text-xs font-bold uppercase tracking-[0.22em] text-cyan-400/80">Commercial</p>
+        <h1 className="mt-2 font-space text-3xl font-bold tracking-tight text-slate-100 md:text-4xl">
+          Subscription &amp; billing
+        </h1>
+        <p className="mt-3 text-base leading-relaxed text-slate-400">
           API access, dashboard, and support — priced for developers and institutions.
         </p>
       </header>

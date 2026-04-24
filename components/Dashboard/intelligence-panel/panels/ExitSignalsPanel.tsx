@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
-import { GlassCard } from '../shared/GlassCard'
+import { NeonForensicPanel } from '@/components/Dashboard/forensic-terminal/NeonForensicPanel'
 import { DoorOpen } from 'lucide-react'
 
 type ExitSignal = { mint: string; ai_reasoning: string; generated_at: string; verdict: string }
@@ -29,7 +29,7 @@ export function ExitSignalsPanel() {
   }, [])
 
   return (
-    <GlassCard title="Exit Signals" badge={`${items.length} recent`}>
+    <NeonForensicPanel title="Exit Signals" badge={`${items.length} recent`} tone="threat">
       <p className="mb-4 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-sm leading-relaxed text-amber-100/90">
         Signal-only alerts. You decide execution — no auto-trades from this console.
       </p>
@@ -68,6 +68,6 @@ export function ExitSignalsPanel() {
           ))
         )}
       </div>
-    </GlassCard>
+    </NeonForensicPanel>
   )
 }

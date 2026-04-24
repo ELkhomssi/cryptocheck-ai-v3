@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { GlassCard } from '../shared/GlassCard'
+import { NeonForensicPanel } from '@/components/Dashboard/forensic-terminal/NeonForensicPanel'
 import { SignalBadge } from '../shared/SignalBadge'
 
 type Item = { id: string; mint: string; created_at: string }
@@ -46,7 +46,7 @@ export function TrackedOpportunitiesPanel() {
   }, [])
 
   return (
-    <GlassCard title="Tracked Opportunities" badge={`${items.length} tracked`}>
+    <NeonForensicPanel title="Tracked Opportunities" badge={`${items.length} tracked`} tone="neutral">
       <div className="space-y-3">
         {items.length === 0 ? (
           <p className="py-2 text-base text-slate-500">No tracked opportunities yet.</p>
@@ -77,6 +77,6 @@ export function TrackedOpportunitiesPanel() {
           ))
         )}
       </div>
-    </GlassCard>
+    </NeonForensicPanel>
   )
 }

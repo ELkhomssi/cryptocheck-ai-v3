@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { computeRisk, type ScanData } from '@/lib/helius'
-import { GlassCard } from '../shared/GlassCard'
+import { NeonForensicPanel } from '@/components/Dashboard/forensic-terminal/NeonForensicPanel'
 import { Radar } from 'lucide-react'
 
 export function RiskMonitorPanel({ mint }: { mint: string }) {
@@ -42,7 +42,7 @@ export function RiskMonitorPanel({ mint }: { mint: string }) {
   const risk = scan ? computeRisk(scan) : null
 
   return (
-    <GlassCard title="Risk Monitor" badge="Sentinel">
+    <NeonForensicPanel title="Risk Monitor" badge="Sentinel" tone="capacity">
       {loading ? (
         <div className="flex items-center gap-3 py-4 font-mono-terminal text-sm text-slate-400">
           <Radar className="h-5 w-5 shrink-0 animate-pulse text-cyan-400/80" aria-hidden />
@@ -69,6 +69,6 @@ export function RiskMonitorPanel({ mint }: { mint: string }) {
           </div>
         </div>
       )}
-    </GlassCard>
+    </NeonForensicPanel>
   )
 }

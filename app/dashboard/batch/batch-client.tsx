@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Layers } from 'lucide-react'
-import { GlassCard } from '@/components/Dashboard/GlassCard'
+import { NeonForensicPanel } from '@/components/Dashboard/forensic-terminal/NeonForensicPanel'
 
 function maxBatchForRuntimeTier(rt: string | undefined): number {
   if (rt === 'institutional') return 100
@@ -104,91 +104,103 @@ export default function BatchClient() {
   }
 
   if (tierLoading) {
-    return <p className="text-sm text-slate-400">Loading plan limits…</p>
+    return (
+      <p className="font-mono-terminal text-base text-slate-400 motion-safe:animate-pulse">Loading plan limits…</p>
+    )
   }
 
   return (
     <div className="space-y-8">
       <header className="max-w-3xl">
-        <div className="flex items-center gap-2 text-slate-500">
+        <div className="flex items-center gap-2 font-space text-xs font-bold uppercase tracking-[0.22em] text-cyan-400/80">
           <Layers className="h-4 w-4" aria-hidden />
-          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em]">Batch</p>
+          <p>Batch</p>
         </div>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-200">Multi-token scan</h1>
-        <p className="mt-2 text-sm font-medium leading-relaxed text-slate-400">
-          Run <code className="text-emerald-200/90">POST /api/v1/scan/batch</code> with your signed-in session (Pro or
-          Institutional). Daily quota applies to each token. Current tier batch cap:{' '}
-          <span className="font-semibold text-slate-200">{maxBatch}</span> tokens.
+        <h1 className="mt-2 font-space text-3xl font-bold tracking-tight text-slate-100 md:text-4xl">Multi-token scan</h1>
+        <p className="mt-3 text-base leading-relaxed text-slate-400">
+          Run{' '}
+          <code className="font-mono-terminal text-sm text-emerald-200/90">POST /api/v1/scan/batch</code> with your
+          signed-in session (Pro or Institutional). Daily quota applies to each token. Current tier batch cap:{' '}
+          <span className="font-mono-terminal font-bold text-cyan-200">{maxBatch}</span> tokens.
         </p>
       </header>
 
       {error && (
-        <p className="text-sm text-rose-300" role="alert">
+        <p className="font-mono-terminal text-sm text-rose-300" role="alert">
           {error}
         </p>
       )}
 
-      <GlassCard className="p-6">
-        <label className="block text-xs font-medium text-slate-400">
+      <NeonForensicPanel
+        title="Batch configuration"
+        subtitle="Paste mints · optional client reference for audit logs"
+        tone="capacity"
+      >
+        <label className="block font-space text-xs font-bold uppercase tracking-wider text-slate-500">
           Token mints (one per line, comma, or space)
           <textarea
             value={rawMints}
             onChange={(e) => setRawMints(e.target.value)}
             rows={10}
             placeholder="So11111111111111111111111111111111111111112"
-            className="mt-2 w-full resize-y rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-sm text-slate-100 outline-none ring-emerald-400/30 focus:ring-2"
+            className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/40 px-3 py-3 font-mono-terminal text-sm text-slate-100 outline-none ring-emerald-400/30 focus:ring-2"
           />
         </label>
-        <label className="mt-4 block text-xs font-medium text-slate-400">
+        <label className="mt-4 block font-space text-xs font-bold uppercase tracking-wider text-slate-500">
           Client reference (optional, ≤80 chars — desk, org desk ID, ticket)
           <input
             value={clientRef}
             onChange={(e) => setClientRef(e.target.value)}
             maxLength={80}
-            className="mt-2 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-slate-100 outline-none ring-emerald-400/30 focus:ring-2"
+            className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-3 font-mono-terminal text-sm text-slate-100 outline-none ring-emerald-400/30 focus:ring-2"
           />
         </label>
-        <div className="mt-4 flex flex-wrap items-center gap-3">
+        <div className="mt-5 flex flex-wrap items-center gap-3">
           <button
             type="button"
             disabled={running}
             onClick={() => void runBatch()}
-            className="rounded-lg bg-emerald-500/90 px-4 py-2 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-xl border border-emerald-400/40 bg-gradient-to-r from-emerald-500/25 to-cyan-500/20 px-5 py-2.5 font-space text-sm font-bold uppercase tracking-widest text-emerald-100 transition hover:from-emerald-500/35 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {running ? 'Scanning…' : 'Run batch'}
           </button>
-          <p className="text-xs text-slate-500">
+          <p className="max-w-md text-sm text-slate-500">
             Free-tier developers: use an API key with the same endpoint from the shell — browser session requires Pro
             or Institutional.
           </p>
         </div>
-      </GlassCard>
+      </NeonForensicPanel>
 
       {result?.results && result.results.length > 0 && (
-        <GlassCard className="overflow-hidden p-0">
-          <div className="border-b border-white/10 px-5 py-3 text-xs text-slate-400">
-            <span className="font-semibold text-slate-200">{result.succeeded ?? 0}</span> succeeded ·{' '}
-            <span className="font-semibold text-slate-200">{result.failed ?? 0}</span> failed
+        <NeonForensicPanel
+          title="Batch results"
+          badge={`${result.succeeded ?? 0} ok · ${result.failed ?? 0} fail`}
+          tone="neutral"
+          contentClassName="!p-0 sm:!p-0"
+        >
+          <div className="border-b border-white/10 px-5 py-3 font-mono-terminal text-xs text-slate-400">
+            <span className="font-bold text-slate-200">{result.succeeded ?? 0}</span> succeeded ·{' '}
+            <span className="font-bold text-slate-200">{result.failed ?? 0}</span> failed
             {result.request_id ? (
               <>
                 {' '}
-                · <span className="font-mono text-slate-500">{result.request_id}</span>
+                · <span className="text-slate-500">{result.request_id}</span>
               </>
             ) : null}
             {result.client_ref ? (
               <>
                 {' '}
-                · ref <span className="font-mono text-slate-400">{result.client_ref}</span>
+                · ref <span className="text-slate-400">{result.client_ref}</span>
               </>
             ) : null}
           </div>
           <div className="max-h-[480px] overflow-auto">
             <table className="w-full text-left text-sm">
-              <thead className="sticky top-0 bg-[rgba(10,10,11,0.95)] text-xs uppercase tracking-wider text-slate-500">
+              <thead className="sticky top-0 bg-[#020617]/95 text-xs uppercase tracking-wider text-slate-500 backdrop-blur-sm">
                 <tr>
-                  <th className="px-4 py-2">#</th>
-                  <th className="px-4 py-2">Mint</th>
-                  <th className="px-4 py-2">Result</th>
+                  <th className="px-4 py-2 font-space">#</th>
+                  <th className="px-4 py-2 font-space">Mint</th>
+                  <th className="px-4 py-2 font-space">Result</th>
                 </tr>
               </thead>
               <tbody>
@@ -199,7 +211,8 @@ export default function BatchClient() {
                     if (row.ok === true) {
                       resultCell = (
                         <span>
-                          score <span className="font-semibold text-emerald-200">{row.data.score ?? '—'}</span>
+                          score{' '}
+                          <span className="font-mono-terminal font-bold text-emerald-200">{row.data.score ?? '—'}</span>
                           {row.data.decision ? (
                             <span className="ml-2 text-slate-400">{row.data.decision}</span>
                           ) : null}
@@ -207,7 +220,7 @@ export default function BatchClient() {
                       )
                     } else {
                       resultCell = (
-                        <span className="text-rose-200/90">
+                        <span className="font-mono-terminal text-rose-200/90">
                           {row.error}
                           {row.code != null ? ` (${row.code})` : ''}
                         </span>
@@ -215,8 +228,8 @@ export default function BatchClient() {
                     }
                     return (
                       <tr key={row.index} className="border-t border-white/[0.06]">
-                        <td className="px-4 py-2 font-mono text-slate-500">{row.index}</td>
-                        <td className="max-w-[200px] truncate px-4 py-2 font-mono text-xs text-slate-300">
+                        <td className="px-4 py-2 font-mono-terminal text-slate-500">{row.index}</td>
+                        <td className="max-w-[200px] truncate px-4 py-2 font-mono-terminal text-xs text-slate-300">
                           {lastMints[row.index] ?? '—'}
                         </td>
                         <td className="px-4 py-2 text-slate-300">{resultCell}</td>
@@ -226,7 +239,7 @@ export default function BatchClient() {
               </tbody>
             </table>
           </div>
-        </GlassCard>
+        </NeonForensicPanel>
       )}
     </div>
   )

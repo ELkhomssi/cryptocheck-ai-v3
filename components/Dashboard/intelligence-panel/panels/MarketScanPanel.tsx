@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { computeRisk, type ScanData } from '@/lib/helius'
-import { GlassCard } from '../shared/GlassCard'
+import { NeonForensicPanel } from '@/components/Dashboard/forensic-terminal/NeonForensicPanel'
 import { supabase } from '@/lib/supabase'
 import { AlertTriangle, CheckCircle2, Scale, ShieldAlert } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -89,7 +89,7 @@ export function MarketScanPanel({ mint }: { mint: string }) {
   const { Icon, gradient, border, glow, text, iconClass } = verdictVisual
 
   return (
-    <GlassCard title="Market Scan" badge="Helius engine">
+    <NeonForensicPanel title="Market Scan" badge="Helius engine" tone="neutral">
       <div className="space-y-4">
         <div className="font-mono-terminal text-sm font-semibold text-slate-300">
           <span className="text-slate-500">Mint · </span>
@@ -166,6 +166,6 @@ export function MarketScanPanel({ mint }: { mint: string }) {
           {tracking ? 'Recording…' : 'Track this token'}
         </button>
       </div>
-    </GlassCard>
+    </NeonForensicPanel>
   )
 }

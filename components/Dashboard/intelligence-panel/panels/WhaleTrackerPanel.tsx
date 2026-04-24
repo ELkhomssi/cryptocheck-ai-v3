@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
-import { GlassCard } from '../shared/GlassCard'
+import { NeonForensicPanel } from '@/components/Dashboard/forensic-terminal/NeonForensicPanel'
 import { Activity, Fish } from 'lucide-react'
 
 type Wallet = {
@@ -92,7 +92,7 @@ export function WhaleTrackerPanel({ mint }: { mint: string }) {
   const ingestLine = useMemo(() => new Date(nowTick).toISOString().replace('T', ' ').slice(0, 19), [nowTick])
 
   return (
-    <GlassCard title="Whale Tracker" badge={`Mint flow · ${flowCount}`}>
+    <NeonForensicPanel title="Whale Tracker" badge={`Mint flow · ${flowCount}`} tone="neutral">
       <div className="mb-3 flex items-center gap-2 border-b border-white/[0.06] pb-3 font-mono-terminal text-xs text-slate-500">
         <Activity className="h-3.5 w-3.5 text-emerald-400/80" aria-hidden />
         <span>
@@ -157,6 +157,6 @@ export function WhaleTrackerPanel({ mint }: { mint: string }) {
           </p>
         </motion.div>
       ) : null}
-    </GlassCard>
+    </NeonForensicPanel>
   )
 }

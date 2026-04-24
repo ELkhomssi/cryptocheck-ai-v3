@@ -1,19 +1,16 @@
 'use client'
 
-import type { CSSProperties, ReactNode } from 'react'
+import type { ReactNode } from 'react'
+import { ForensicBackdrop } from '@/components/Dashboard/forensic-terminal/ForensicBackdrop'
 
 type ForensicTerminalShellProps = {
   children: ReactNode
-  /** When false, no negative margins — use inside routes that already sit in dashboard padding. */
   bleed?: boolean
-  /** Inner content max width (Tailwind class). */
   maxWidthClass?: string
 }
 
 /**
- * Full-bleed forensic atmosphere for dashboard main content.
- * Matches AI Investigation Agent: grid, radial glow, particles, scanline.
- * Background #020617 per design spec.
+ * Forensic command region: optional full-bleed vs embedded; shares {@link ForensicBackdrop} with dashboard shell.
  */
 export function ForensicTerminalShell({
   children,
@@ -27,89 +24,7 @@ export function ForensicTerminalShell({
 
   return (
     <div className={bleed ? outerBleed : outerEmbedded}>
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(34,211,238,0.14),transparent_40%),radial-gradient(circle_at_80%_20%,rgba(168,85,247,0.15),transparent_35%),radial-gradient(circle_at_50%_90%,rgba(16,185,129,0.12),transparent_45%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.08] [background-image:linear-gradient(to_right,#22d3ee_1px,transparent_1px),linear-gradient(to_bottom,#22d3ee_1px,transparent_1px)] [background-size:52px_52px]" />
-
-      <style jsx>{`
-        @keyframes scanlineSweep {
-          0% {
-            transform: translateY(-120%);
-            opacity: 0;
-          }
-          20% {
-            opacity: 0.5;
-          }
-          100% {
-            transform: translateY(120%);
-            opacity: 0;
-          }
-        }
-        .scanline-overlay {
-          position: absolute;
-          inset: 0;
-          pointer-events: none;
-          overflow: hidden;
-        }
-        .scanline-overlay::after {
-          content: '';
-          position: absolute;
-          left: 0;
-          right: 0;
-          height: 120px;
-          background: linear-gradient(
-            to bottom,
-            rgba(34, 211, 238, 0),
-            rgba(34, 211, 238, 0.18),
-            rgba(34, 211, 238, 0)
-          );
-          animation: scanlineSweep 4.5s linear infinite;
-        }
-        @keyframes particleFloat {
-          0% {
-            transform: translate3d(0, 0, 0);
-            opacity: 0;
-          }
-          10% {
-            opacity: 0.55;
-          }
-          100% {
-            transform: translate3d(var(--x-shift), -75vh, 0);
-            opacity: 0;
-          }
-        }
-        .particle {
-          position: absolute;
-          bottom: -10px;
-          width: 3px;
-          height: 3px;
-          border-radius: 999px;
-          background: rgba(34, 211, 238, 0.8);
-          box-shadow: 0 0 10px rgba(34, 211, 238, 0.8);
-          animation: particleFloat var(--duration) linear infinite;
-          animation-delay: var(--delay);
-          left: var(--left);
-          --x-shift: var(--drift);
-        }
-      `}</style>
-
-      <div className="scanline-overlay" />
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {Array.from({ length: 22 }).map((_, i) => (
-          <span
-            key={`dash-particle-${i}`}
-            className="particle"
-            style={
-              {
-                '--left': `${(i * 97) % 100}%`,
-                '--duration': `${8 + (i % 7)}s`,
-                '--delay': `${-1 * (i % 11)}s`,
-                '--drift': `${(i % 2 === 0 ? 1 : -1) * (10 + (i % 5) * 6)}px`,
-              } as CSSProperties
-            }
-          />
-        ))}
-      </div>
-
+      <ForensicBackdrop className="pointer-events-none absolute inset-0 z-0" />
       <div className={`relative z-[1] mx-auto w-full ${maxWidthClass}`}>{children}</div>
     </div>
   )

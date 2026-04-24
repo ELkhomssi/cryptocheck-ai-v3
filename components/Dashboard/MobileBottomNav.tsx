@@ -28,12 +28,12 @@ function BottomItem({
     <Link
       href={href}
       onClick={() => tapFeedback()}
-      className={`relative flex min-h-[64px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-3 text-[11px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
-        active ? 'text-[#00d4aa]' : 'text-slate-500'
+      className={`relative flex min-h-[64px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-3 font-space text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#020617] ${
+        active ? 'text-emerald-400' : 'text-slate-500'
       }`}
       aria-current={active ? 'page' : undefined}
     >
-      {active && <span className="absolute inset-x-0 top-0 h-0.5 bg-[#00d4aa]" aria-hidden />}
+      {active && <span className="absolute inset-x-0 top-0 h-0.5 bg-emerald-400" aria-hidden />}
       <Icon className="h-5 w-5" strokeWidth={active ? 2.25 : 1.5} aria-hidden />
       <span className={`max-w-[4.5rem] truncate text-center leading-tight ${active ? 'font-bold text-slate-100' : ''}`}>
         {label}

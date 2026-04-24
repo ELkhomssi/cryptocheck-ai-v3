@@ -55,9 +55,11 @@ export default function DashboardAlertsPage() {
   return (
     <div className="space-y-8">
       <header className="max-w-3xl">
-        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Alerts</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-200">Telegram alert linking</h1>
-        <p className="mt-2 text-sm font-medium leading-relaxed text-slate-400">
+        <p className="font-space text-xs font-bold uppercase tracking-[0.22em] text-fuchsia-300/80">Alerts</p>
+        <h1 className="mt-2 font-space text-3xl font-bold tracking-tight text-slate-100 md:text-4xl">
+          Telegram alert linking
+        </h1>
+        <p className="mt-3 text-base leading-relaxed text-slate-400">
           Connect Telegram to receive watchlist risk alerts directly from CryptoCheck AI.
         </p>
       </header>

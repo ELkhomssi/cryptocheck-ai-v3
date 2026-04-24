@@ -6,7 +6,6 @@ import { getUserSubscription } from '@/lib/services/user-subscription.service'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { RadialCapacity } from '@/components/Dashboard/RadialCapacity'
 import { ActivityStream, type StreamEvent } from '@/components/Dashboard/ActivityStream'
-import { ForensicTerminalShell } from '@/components/Dashboard/forensic-terminal/ForensicTerminalShell'
 import { NeonForensicPanel } from '@/components/Dashboard/forensic-terminal/NeonForensicPanel'
 
 export const dynamic = 'force-dynamic'
@@ -21,7 +20,7 @@ function CyberLink({
   variant?: 'primary' | 'ghost'
 }) {
   const base =
-    'inline-flex items-center justify-center rounded-xl border px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.14em] transition-all duration-200 ease-out hover:-translate-y-0.5'
+    'inline-flex items-center justify-center rounded-xl border px-5 py-2.5 font-space text-sm font-bold uppercase tracking-[0.14em] transition-all duration-200 ease-out hover:-translate-y-0.5'
   if (variant === 'primary') {
     return (
       <Link
@@ -50,15 +49,13 @@ export default async function DashboardHomePage() {
 
   if (!user) {
     return (
-      <ForensicTerminalShell>
+      <>
         <header className="max-w-3xl">
-          <p className="font-space text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-amber-400/90">
-            Preview
-          </p>
-          <h1 className="mt-2 font-space text-2xl font-semibold tracking-tight text-slate-100 md:text-[1.65rem]">
+          <p className="font-space text-xs font-bold uppercase tracking-[0.22em] text-amber-400/90">Preview</p>
+          <h1 className="mt-2 font-space text-3xl font-bold tracking-tight text-slate-100 md:text-4xl">
             Intelligence command
           </h1>
-          <p className="mt-2 text-sm font-medium leading-relaxed text-slate-400">
+          <p className="mt-3 text-base leading-relaxed text-slate-400">
             Browse the full dashboard UI without signing in. Connect your account when you are ready for live quotas,
             credentials, and SENTINEL logs.
           </p>
@@ -73,7 +70,7 @@ export default async function DashboardHomePage() {
           <CyberLink href="/dashboard/compliance">Compliance</CyberLink>
           <CyberLink href="/dashboard/batch">Batch</CyberLink>
         </div>
-      </ForensicTerminalShell>
+      </>
     )
   }
 
@@ -101,15 +98,15 @@ export default async function DashboardHomePage() {
   }))
 
   return (
-    <ForensicTerminalShell>
+    <>
       <header className="max-w-3xl">
-        <p className="font-space text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-cyan-300/90">
+        <p className="font-space text-xs font-bold uppercase tracking-[0.22em] text-cyan-300/90">
           Intelligence command
         </p>
-        <h1 className="mt-2 bg-gradient-to-r from-cyan-200 via-fuchsia-200 to-emerald-200 bg-clip-text font-space text-2xl font-semibold tracking-tight text-transparent md:text-[1.75rem]">
+        <h1 className="mt-2 bg-gradient-to-r from-cyan-200 via-fuchsia-200 to-emerald-200 bg-clip-text font-space text-3xl font-bold tracking-tight text-transparent md:text-4xl">
           Institutional overview
         </h1>
-        <p className="mt-2 text-sm font-medium leading-relaxed text-slate-400">
+        <p className="mt-3 text-base leading-relaxed text-slate-400">
           Subscription, credentials, and intelligence throughput — SENTINEL-grade API control plane.
         </p>
       </header>
@@ -209,6 +206,6 @@ export default async function DashboardHomePage() {
         <CyberLink href="/api/docs">API reference</CyberLink>
         <CyberLink href="/dashboard/investigate">AI investigation</CyberLink>
       </div>
-    </ForensicTerminalShell>
+    </>
   )
 }

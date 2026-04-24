@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { supabase } from '@/lib/supabase'
-import { GlassCard } from '../shared/GlassCard'
+import { NeonForensicPanel } from '@/components/Dashboard/forensic-terminal/NeonForensicPanel'
 
 type PerfRow = { created_at: string; pnl_pct: number | null }
 
@@ -35,7 +35,7 @@ export function BankrollCurvePanel() {
   }, [rows])
 
   return (
-    <GlassCard title="Strategy Performance (Historical Signals)">
+    <NeonForensicPanel title="Strategy Performance" subtitle="Historical signals" tone="capacity">
       <div className="h-48 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={curve}>
@@ -56,6 +56,6 @@ export function BankrollCurvePanel() {
       <p className="mt-3 text-sm text-slate-500">
         Backtest of past signals. Past performance does not predict future results.
       </p>
-    </GlassCard>
+    </NeonForensicPanel>
   )
 }

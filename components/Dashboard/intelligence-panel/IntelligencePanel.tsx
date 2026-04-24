@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { ForensicTerminalShell } from '@/components/Dashboard/forensic-terminal/ForensicTerminalShell'
 import { MarketScanPanel } from './panels/MarketScanPanel'
 import { AISignalPanel } from './panels/AISignalPanel'
 import { TrackedOpportunitiesPanel } from './panels/TrackedOpportunitiesPanel'
@@ -18,13 +17,13 @@ export function IntelligencePanel({ mint: initialMint }: { mint: string }) {
   const [mint, setMint] = useState(initialMint)
 
   return (
-    <ForensicTerminalShell bleed={false} maxWidthClass="max-w-[1800px]">
+    <div className="relative w-full max-w-[1800px]">
       <DisclaimerBanner variant="ai" />
 
       <header className="mb-6 mt-2 border-b border-white/[0.08] pb-6">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="font-mono-terminal text-xs font-semibold uppercase tracking-[0.25em] text-cyan-400/80">
+            <p className="font-mono-terminal text-xs font-bold uppercase tracking-[0.25em] text-cyan-400/80">
               Intelligence Terminal
             </p>
             <h1 className="mt-1 font-space text-2xl font-bold tracking-tight text-white sm:text-3xl md:text-4xl">
@@ -33,7 +32,7 @@ export function IntelligencePanel({ mint: initialMint }: { mint: string }) {
               </span>
             </h1>
             <p className="mt-2 max-w-2xl text-base text-slate-400">
-              Multi-source Solana intelligence — same forensic atmosphere as the AI Investigation Agent.
+              Multi-source Solana intelligence — unified with the institutional dashboard shell.
             </p>
           </div>
           <div className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 font-mono-terminal text-xs text-emerald-200/90 sm:mt-0">
@@ -81,6 +80,6 @@ export function IntelligencePanel({ mint: initialMint }: { mint: string }) {
 
         <RiskMonitorPanel mint={mint} />
       </div>
-    </ForensicTerminalShell>
+    </div>
   )
 }

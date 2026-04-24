@@ -34,13 +34,13 @@ function DrawerLink({
         tapFeedback()
         onNavigate()
       }}
-      className={`flex items-center gap-3 rounded-lg px-4 py-4 text-sm font-semibold tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
+      className={`flex items-center gap-3 rounded-lg px-4 py-4 font-space text-sm font-bold uppercase tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#020617] ${
         active
-          ? 'border-l-2 border-[#00d4aa] bg-white/[0.08] pl-[14px] text-slate-100'
+          ? 'border-l-2 border-emerald-400 bg-white/[0.08] pl-[14px] text-slate-100'
           : 'border-l-2 border-transparent text-slate-300 hover:bg-white/[0.05]'
       }`}
     >
-      <Icon className={`h-5 w-5 shrink-0 ${active ? 'text-[#00d4aa]' : 'text-slate-500'}`} strokeWidth={active ? 2 : 1.35} />
+      <Icon className={`h-5 w-5 shrink-0 ${active ? 'text-emerald-400' : 'text-slate-500'}`} strokeWidth={active ? 2 : 1.35} />
       {label}
     </Link>
   )
@@ -74,7 +74,7 @@ export function MobileDrawer({
         aria-label="Close menu"
         onClick={onClose}
       />
-      <div className="absolute bottom-0 left-0 top-0 flex w-[min(100vw-2.5rem,20rem)] flex-col border-r border-white/[0.08] bg-[rgba(7,7,9,0.98)] shadow-2xl shadow-black/50">
+      <div className="absolute bottom-0 left-0 top-0 flex w-[min(100vw-2.5rem,20rem)] flex-col border-r border-white/[0.08] bg-[#020617]/96 shadow-2xl shadow-black/50 backdrop-blur-xl">
         <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-4">
           <CryptoCheckLogo href="/dashboard" />
           <button
@@ -91,7 +91,9 @@ export function MobileDrawer({
             <DrawerLink key={item.href} item={item} pathname={pathname} onNavigate={onClose} />
           ))}
           <div className="my-4 border-t border-white/5" role="presentation" />
-          <p className="mb-1 px-4 text-[10px] font-medium uppercase tracking-widest text-white/40">PRO SURFACE</p>
+          <p className="mb-1 px-4 font-space text-[11px] font-bold uppercase tracking-widest text-fuchsia-300/70">
+            PRO SURFACE
+          </p>
           {secondaryNavItems.map((item) => (
             <DrawerLink key={item.href} item={item} pathname={pathname} onNavigate={onClose} />
           ))}

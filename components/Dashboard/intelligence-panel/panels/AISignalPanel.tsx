@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Activity, Radio, ShieldAlert } from 'lucide-react'
-import { GlassCard } from '../shared/GlassCard'
+import { NeonForensicPanel } from '@/components/Dashboard/forensic-terminal/NeonForensicPanel'
 import { SignalBadge } from '../shared/SignalBadge'
 
 type SignalResponse = {
@@ -18,7 +18,11 @@ type SignalResponse = {
 function humanizeProviderMessage(raw?: string): string {
   if (!raw?.trim()) return 'The intelligence service is reconnecting. Your session stays secure.'
   const t = raw.toLowerCase()
-  if (t.includes('signal generation failed') || t.includes('signal generation')) {
+  if (
+    t.includes('signal generation failed') ||
+    t.includes('signal generation') ||
+    t.includes('diagnostic pipeline')
+  ) {
     return 'The synthesizer could not complete this pass — often a transient upstream or rate limit. Try again shortly.'
   }
   if (t.includes('unavailable') || t.includes('failed')) {
@@ -86,7 +90,7 @@ export function AISignalPanel({ mint }: { mint: string }) {
   const showDiagnostic = error
 
   return (
-    <GlassCard title="AI Signal Panel" badge="Consensus">
+    <NeonForensicPanel title="AI Signal Panel" badge="Consensus" tone="neutral">
       <AnimatePresence mode="wait">
         {showAwaiting ? (
           <motion.div
@@ -220,6 +224,6 @@ export function AISignalPanel({ mint }: { mint: string }) {
           <p className="py-4 text-center text-sm text-slate-500">Enter a valid mint (32+ characters) to run the signal pipeline.</p>
         ) : null}
       </AnimatePresence>
-    </GlassCard>
+    </NeonForensicPanel>
   )
 }

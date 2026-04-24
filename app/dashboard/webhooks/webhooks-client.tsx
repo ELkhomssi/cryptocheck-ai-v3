@@ -165,9 +165,11 @@ export default function WebhooksClient() {
     return (
       <div className="space-y-8">
         <header className="max-w-3xl">
-          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-slate-500">Webhooks</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-200">Enterprise webhooks</h1>
-          <p className="mt-2 text-sm font-medium leading-relaxed text-slate-400">
+          <p className="font-space text-xs font-bold uppercase tracking-[0.22em] text-cyan-400/80">Webhooks</p>
+          <h1 className="mt-2 font-space text-3xl font-bold tracking-tight text-slate-100 md:text-4xl">
+            Enterprise webhooks
+          </h1>
+          <p className="mt-3 text-base leading-relaxed text-slate-400">
             Outbound HTTPS webhooks are available on the Enterprise plan. Upgrade to connect your own SIEM, Slack
             bridge, or internal risk ledger.
           </p>
@@ -179,12 +181,14 @@ export default function WebhooksClient() {
   return (
     <div className="space-y-8">
       <header className="max-w-3xl">
-        <div className="flex items-center gap-2 text-slate-500">
+        <div className="flex items-center gap-2 font-space text-xs font-bold uppercase tracking-[0.22em] text-cyan-400/80">
           <Webhook className="h-4 w-4" aria-hidden />
-          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em]">Webhooks</p>
+          <p>Webhooks</p>
         </div>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-200">Enterprise endpoints</h1>
-        <p className="mt-2 text-sm font-medium leading-relaxed text-slate-400">
+        <h1 className="mt-2 font-space text-3xl font-bold tracking-tight text-slate-100 md:text-4xl">
+          Enterprise endpoints
+        </h1>
+        <p className="mt-3 text-base leading-relaxed text-slate-400">
           CryptoCheck posts signed JSON to your HTTPS URL for scan completion and watchlist risk shifts. Retries use
           exponential backoff; endpoints are paused after ten consecutive failed delivery campaigns.
         </p>

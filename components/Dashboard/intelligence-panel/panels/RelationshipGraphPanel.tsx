@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useState } from 'react'
-import { GlassCard } from '../shared/GlassCard'
+import { NeonForensicPanel } from '@/components/Dashboard/forensic-terminal/NeonForensicPanel'
 
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false })
 
@@ -97,7 +97,7 @@ export function RelationshipGraphPanel({ mint }: { mint: string }) {
   )
 
   return (
-    <GlassCard title="Relationship Graph" badge="Force layout">
+    <NeonForensicPanel title="Relationship Graph" badge="Force layout" tone="neutral">
       <div className="h-64 overflow-hidden rounded-xl border border-white/[0.06] bg-[#020617] shadow-[inset_0_0_40px_rgba(34,211,238,0.06)]">
         <ForceGraph2D
           graphData={{ nodes: graph.nodes, links: graph.edges }}
@@ -121,6 +121,6 @@ export function RelationshipGraphPanel({ mint }: { mint: string }) {
         <span className="font-mono-terminal text-cyan-400/80">Cyan</span> — token hub ·{' '}
         <span className="font-mono-terminal text-fuchsia-400/80">Fuchsia</span> — wallets · Edges show flow direction.
       </p>
-    </GlassCard>
+    </NeonForensicPanel>
   )
 }

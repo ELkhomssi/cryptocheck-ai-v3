@@ -1,4 +1,4 @@
-import { Inter, Space_Grotesk } from 'next/font/google'
+import { Inter, JetBrains_Mono, Space_Grotesk } from 'next/font/google'
 import { createClient } from '@/lib/supabase/server'
 import { ensureFreeTierSubscription } from '@/lib/services/saas-entitlement.service'
 import { getUserSubscription } from '@/lib/services/user-subscription.service'
@@ -15,6 +15,13 @@ const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-space-grotesk',
+  display: 'swap',
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-mono-terminal',
   display: 'swap',
 })
 
@@ -39,7 +46,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   return (
-    <div className={`${inter.className} ${spaceGrotesk.variable} antialiased`}>
+    <div className={`${inter.className} ${spaceGrotesk.variable} ${jetbrainsMono.variable} antialiased`}>
       <DashboardShell
         userEmail={userEmail}
         effectiveTier={effectiveTier}

@@ -2,6 +2,7 @@
 
 import { type CSSProperties, useMemo, useState } from 'react'
 import { GlassCard } from '@/components/Dashboard/GlassCard'
+import { NeonForensicPanel } from '@/components/Dashboard/forensic-terminal/NeonForensicPanel'
 import {
   terminalTokens,
   verdictAccent,
@@ -170,13 +171,15 @@ export default function PortfolioScanner({
 
   return (
     <div className="space-y-5" style={isConsumer ? monoFont : bodyFont}>
-      <GlassCard accent={audience === 'consumer' ? 'sentinel' : 'default'} className="p-5">
+      <NeonForensicPanel
+        title="Portfolio scan"
+        subtitle="Wallet holdings · risk scoring · desk CSV export"
+        tone={audience === 'consumer' ? 'capacity' : 'neutral'}
+      >
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-[0.65rem] uppercase tracking-[0.2em]" style={{ color: terminalTokens.colors.textMuted }}>
-              Portfolio Scan
-            </p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-100">Scan wallet holdings for risk</h2>
+          <div className="min-w-0">
+            <p className="font-space text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Active desk</p>
+            <p className="mt-1 font-space text-lg font-bold text-slate-100">Scan wallet holdings for risk</p>
           </div>
           <div className="flex items-center gap-2">
             <span
@@ -202,13 +205,11 @@ export default function PortfolioScanner({
             value={walletAddress}
             onChange={(e) => setWalletAddress(e.target.value)}
             placeholder="Enter Solana wallet address"
-            className="rounded-lg border bg-black/30 px-3 py-2 text-sm text-slate-100 outline-none transition"
-            style={{ borderColor: terminalTokens.colors.borderDefault }}
+            className="rounded-xl border border-white/10 bg-black/30 px-3 py-3 font-mono-terminal text-sm text-slate-100 outline-none transition focus:border-cyan-500/40 focus:ring-1 focus:ring-cyan-500/25"
           />
           <button
             type="button"
-            className="rounded-lg border px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-300"
-            style={{ borderColor: terminalTokens.colors.borderEmphasis, background: 'rgba(255,255,255,0.04)' }}
+            className="rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 font-space text-xs font-bold uppercase tracking-[0.14em] text-slate-300"
           >
             Connect Wallet
           </button>
@@ -216,13 +217,7 @@ export default function PortfolioScanner({
             type="button"
             disabled={loading}
             onClick={runScan}
-            className="rounded-lg border px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] disabled:opacity-50"
-            style={{
-              borderColor: terminalTokens.colors.borderActive,
-              background: terminalTokens.colors.primaryDim,
-              color: terminalTokens.colors.primary,
-              boxShadow: isConsumer ? terminalTokens.shadows.terminal : undefined,
-            }}
+            className="rounded-xl border border-cyan-500/35 bg-gradient-to-r from-cyan-500/20 to-emerald-500/15 px-4 py-2.5 font-space text-xs font-bold uppercase tracking-[0.14em] text-cyan-100 disabled:opacity-50"
           >
             {loading ? 'Scanning...' : 'Scan Portfolio'}
           </button>
@@ -323,12 +318,10 @@ export default function PortfolioScanner({
             </label>
           </div>
         )}
-      </GlassCard>
+      </NeonForensicPanel>
 
       {audience === 'dashboard' && (
-        <GlassCard className="p-5">
-          <p className="text-[0.65rem] uppercase tracking-[0.2em] text-slate-500">Snapshot History</p>
-          <h3 className="mt-1 text-base font-semibold text-slate-100">Last 10 scans</h3>
+        <NeonForensicPanel title="Snapshot history" subtitle="Last 10 desk scans" tone="capacity">
           <div className="mt-4 overflow-x-auto rounded-lg border border-white/10">
             <table className="min-w-full text-left text-xs">
               <thead className="bg-white/[0.03] text-slate-400">
@@ -361,7 +354,7 @@ export default function PortfolioScanner({
               </tbody>
             </table>
           </div>
-        </GlassCard>
+        </NeonForensicPanel>
       )}
     </div>
   )

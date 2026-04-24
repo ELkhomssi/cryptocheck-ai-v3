@@ -166,9 +166,13 @@ export default function SecurityPage() {
   return (
     <div className="space-y-10">
       <header className="max-w-2xl">
-        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-slate-500">SENTINEL + credentials</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-200">Security &amp; API keys</h1>
-        <p className="mt-2 text-sm font-medium leading-relaxed text-slate-400">
+        <p className="font-space text-xs font-bold uppercase tracking-[0.22em] text-emerald-400/80">
+          SENTINEL + credentials
+        </p>
+        <h1 className="mt-2 font-space text-3xl font-bold tracking-tight text-slate-100 md:text-4xl">
+          Security &amp; API keys
+        </h1>
+        <p className="mt-3 text-base leading-relaxed text-slate-400">
           Issue and rotate keys alongside threat telemetry. FREE tier shows a full layout with masked sample keys — upgrade
           to provision working credentials.
         </p>
@@ -321,9 +325,11 @@ export default function SecurityPage() {
       </section>
 
       <header className="max-w-2xl">
-        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-slate-500">SENTINEL</p>
-        <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-200">Security intelligence</h2>
-        <p className="mt-2 text-sm font-medium leading-relaxed text-slate-400">{data.trust_note}</p>
+        <p className="font-space text-xs font-bold uppercase tracking-[0.22em] text-cyan-400/80">SENTINEL</p>
+        <h2 className="mt-2 font-space text-2xl font-bold tracking-tight text-slate-100 md:text-3xl">
+          Security intelligence
+        </h2>
+        <p className="mt-3 text-base leading-relaxed text-slate-400">{data.trust_note}</p>
       </header>
 
       <div className="grid grid-cols-12 gap-6">

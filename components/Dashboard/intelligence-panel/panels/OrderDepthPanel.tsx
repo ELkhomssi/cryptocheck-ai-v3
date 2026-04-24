@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { GlassCard } from '../shared/GlassCard'
+import { NeonForensicPanel } from '@/components/Dashboard/forensic-terminal/NeonForensicPanel'
 
 type Level = { price: number; size: number }
 
@@ -39,7 +39,7 @@ export function OrderDepthPanel({ mint }: { mint: string }) {
   }, [mint])
 
   return (
-    <GlassCard title="Order Depth" badge="Jupiter ref">
+    <NeonForensicPanel title="Order Depth" badge="Jupiter ref" tone="neutral">
       <div className="grid grid-cols-2 gap-4 text-sm">
         <div>
           <h4 className="mb-2 font-space text-xs font-bold uppercase tracking-widest text-cyan-300">Bids</h4>
@@ -60,6 +60,6 @@ export function OrderDepthPanel({ mint }: { mint: string }) {
           ))}
         </div>
       </div>
-    </GlassCard>
+    </NeonForensicPanel>
   )
 }
