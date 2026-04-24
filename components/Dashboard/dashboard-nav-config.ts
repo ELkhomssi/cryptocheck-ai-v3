@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import {
+  Brain,
   BarChart3,
   Bell,
   CreditCard,
@@ -19,6 +20,7 @@ export type DashboardNavItem = {
   href: string
   label: string
   icon: LucideIcon
+  badge?: string
 }
 
 /** Five in-app dashboard routes (control plane). */
@@ -33,6 +35,7 @@ export const primaryNavItems: DashboardNavItem[] = [
 /** Separate product surface — authenticated console + public demo */
 export const secondaryNavItems: DashboardNavItem[] = [
   { href: '/dashboard/intelligence-terminal', label: 'Analysis Console', icon: Scan },
+  { href: '/dashboard/investigate', label: 'AI Agent', icon: Brain, badge: 'NEW' },
   { href: '/dashboard/batch', label: 'Batch scan', icon: Layers },
   { href: '/dashboard/compliance', label: 'Compliance', icon: Scale },
   { href: '/dashboard/portfolio', label: 'Portfolio', icon: Wallet },

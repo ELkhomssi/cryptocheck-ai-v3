@@ -10,7 +10,7 @@ import {
 } from '@/components/Dashboard/dashboard-nav-config'
 
 function NavLinkRow({ item, pathname }: { item: DashboardNavItem; pathname: string }) {
-  const { href, label, icon: Icon } = item
+  const { href, label, icon: Icon, badge } = item
   const active = isNavActive(pathname, href)
   return (
     <Link
@@ -28,6 +28,11 @@ function NavLinkRow({ item, pathname }: { item: DashboardNavItem; pathname: stri
         strokeWidth={active ? 2 : 1.35}
       />
       <span className="truncate">{label}</span>
+      {badge ? (
+        <span className="ml-auto rounded border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-cyan-300">
+          {badge}
+        </span>
+      ) : null}
       {active && (
         <span className="pointer-events-none absolute inset-x-2 bottom-1.5 h-px bg-gradient-to-r from-transparent via-[#00d4aa]/35 to-transparent opacity-90" />
       )}

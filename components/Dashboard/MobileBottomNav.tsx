@@ -91,7 +91,7 @@ export function MobileBottomNav({ pathname }: { pathname: string }) {
               More
             </p>
             {moreSheetNavItems.map((item) => {
-              const { href, label, icon: Icon } = item
+              const { href, label, icon: Icon, badge } = item
               const active = isNavActive(pathname, href)
               return (
                 <Link
@@ -106,7 +106,12 @@ export function MobileBottomNav({ pathname }: { pathname: string }) {
                   }`}
                 >
                   <Icon className="h-5 w-5 shrink-0" strokeWidth={1.5} />
-                  {label}
+                  <span>{label}</span>
+                  {badge ? (
+                    <span className="ml-auto rounded border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-cyan-300">
+                      {badge}
+                    </span>
+                  ) : null}
                 </Link>
               )
             })}

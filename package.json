@@ -14,6 +14,8 @@
     "test:terminal-reducer": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-terminal-reducer.ts"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.53",
+    "@ai-sdk/react": "^3.0.170",
     "@solana/spl-token": "^0.4.14",
     "@solana/wallet-adapter-base": "^0.9.27",
     "@solana/wallet-adapter-react": "^0.15.39",
@@ -25,6 +27,7 @@
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.37.0",
     "@vercel/analytics": "^2.0.1",
+    "ai": "^6.0.168",
     "chart.js": "^4.4.0",
     "clsx": "^2.1.1",
     "dotenv": "^17.3.1",

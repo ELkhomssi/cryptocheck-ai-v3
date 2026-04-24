@@ -368,6 +368,9 @@ function ProDashboardClientInner({
             </code>
             .
           </p>
+          <p style={{ color: '#6ee7b7', fontSize: 12, marginTop: 8 }}>
+            AI agents investigate Solana tokens for you.
+          </p>
           {tierHint ? <p style={{ marginTop: 8, fontSize: 12, color: '#64748b' }}>{tierHint}</p> : null}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 18, alignItems: 'center' }}>
             <Link
