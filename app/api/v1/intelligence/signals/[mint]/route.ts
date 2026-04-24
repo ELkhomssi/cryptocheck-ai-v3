@@ -11,10 +11,33 @@ function classifySignalFailure(err: unknown): { code: string; hint: string } {
   const msg = err instanceof Error ? err.message : String(err)
   const m = msg.toLowerCase()
 
-  if (m.includes('openai_api_key') || m.includes('not configured')) {
+  if (msg.includes('Helius API 401') || /helius api\s*401/i.test(msg)) {
+    return {
+      code: 'HELIUS_UNAUTHORIZED',
+      hint: 'Helius returned 401 — key missing, revoked, or wrong project. Set HELIUS_API_KEY (or legacy HELIUS_KEY) in Vercel with no quotes/spaces.',
+    }
+  }
+  if (
+    m.includes('incorrect api key') ||
+    m.includes('invalid_api_key') ||
+    (m.includes('401') && m.includes('openai')) ||
+    msg.includes('AuthenticationError')
+  ) {
+    return {
+      code: 'OPENAI_UNAUTHORIZED',
+      hint: 'OpenAI rejected the key (401). Set OPENAI_API_KEY (or legacy OPENAI_KEY) and redeploy.',
+    }
+  }
+  if (m.includes('openai_api_key') || m.includes('openai_key') || (m.includes('openai') && m.includes('not configured'))) {
     return {
       code: 'OPENAI_NOT_CONFIGURED',
       hint: 'Server is missing OPENAI_API_KEY. Add it in Vercel/host env to enable consensus.',
+    }
+  }
+  if (m.includes('helius') && (m.includes('403') || m.includes('429'))) {
+    return {
+      code: 'HELIUS_QUOTA_OR_FORBIDDEN',
+      hint: 'Helius returned 403/429 — check plan limits and HELIUS_API_KEY scope.',
     }
   }
   if (m.includes('helius')) {

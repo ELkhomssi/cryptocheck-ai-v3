@@ -11,7 +11,8 @@
     "test:intelligence": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/smoke-intelligence.ts",
     "test:portfolio-alerts": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/smoke-portfolio-alerts.ts",
     "test:key-store": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-key-store.ts",
-    "test:terminal-reducer": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-terminal-reducer.ts"
+    "test:terminal-reducer": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-terminal-reducer.ts",
+    "test:api-probe": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-api.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.53",

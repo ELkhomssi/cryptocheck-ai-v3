@@ -132,8 +132,21 @@ export function runInvestigationStream(params: { mint: string; userId: string })
         push({ type: 'done' })
         controller.close()
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Investigation failed'
-        push({ type: 'text', content: `Investigation unavailable right now: ${message}` })
+        const message = error instanceof Error ? error.message : String(error)
+        console.error('[investigation-stream]', message)
+        let hint = message
+        const low = message.toLowerCase()
+        if (message.includes('Helius API 401') || /helius api\s*401/i.test(message)) {
+          hint =
+            '[Helius 401] Invalid or missing API key — fix HELIUS_API_KEY (or HELIUS_KEY) in server env and redeploy. Raw: ' +
+            message
+        } else if (low.includes('incorrect api key') || low.includes('invalid_api_key') || low.includes('openai_api_key')) {
+          hint =
+            '[OpenAI] Key missing or rejected — fix OPENAI_API_KEY (or OPENAI_KEY). Raw: ' + message
+        } else if (low.includes('supabase') || low.includes('fetch failed')) {
+          hint = '[Supabase / network] ' + message
+        }
+        push({ type: 'text', content: `Investigation unavailable: ${hint}` })
         push({ type: 'done' })
         controller.close()
       }

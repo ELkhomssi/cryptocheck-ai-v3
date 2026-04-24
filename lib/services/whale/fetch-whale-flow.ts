@@ -1,6 +1,7 @@
 import 'server-only'
-import { fetchSmartMoneyWallets } from './fetch-smart-money'
 import { redis } from '@/lib/cache/redis'
+import { getHeliusApiKeyFromEnv } from '@/lib/helius-server'
+import { fetchSmartMoneyWallets } from './fetch-smart-money'
 
 export type WhaleTransaction = {
   signature: string
@@ -28,9 +29,9 @@ export async function fetchWhaleFlowForMint(
   const smartWallets = await fetchSmartMoneyWallets({ limit: 100 })
   if (smartWallets.length === 0) return []
 
-  const heliusKey = process.env.HELIUS_API_KEY
+  const heliusKey = getHeliusApiKeyFromEnv()
   if (!heliusKey) {
-    console.warn('[whale-flow] HELIUS_API_KEY missing — skipping on-chain wallet sweep (empty flow)')
+    console.warn('[whale-flow] HELIUS_API_KEY / HELIUS_KEY missing — skipping on-chain wallet sweep (empty flow)')
     return []
   }
 

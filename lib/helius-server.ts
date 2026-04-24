@@ -12,11 +12,17 @@ import type {
 /** Helius REST v0 base URL (no key — append `?api-key=` server-side only). */
 export const HELIUS_API = 'https://api.helius.xyz/v0'
 
-/** Canonical Helius API key — set `HELIUS_API_KEY` in Vercel / `.env.local`. */
+/**
+ * Canonical: `HELIUS_API_KEY`. Also accepts legacy `HELIUS_KEY` so renamed Vercel envs still work.
+ */
+export function getHeliusApiKeyFromEnv(): string | undefined {
+  return process.env.HELIUS_API_KEY?.trim() || process.env.HELIUS_KEY?.trim() || undefined
+}
+
 function requireHeliusKey(): string {
-  const k = process.env.HELIUS_API_KEY?.trim()
+  const k = getHeliusApiKeyFromEnv()
   if (!k) {
-    throw new Error('HELIUS_API_KEY is not configured')
+    throw new Error('HELIUS_API_KEY is not configured (set HELIUS_API_KEY or legacy HELIUS_KEY)')
   }
   return k
 }

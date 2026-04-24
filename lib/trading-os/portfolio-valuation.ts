@@ -2,7 +2,7 @@ import 'server-only'
 
 import { PublicKey } from '@solana/web3.js'
 import { PUBLIC_SOLANA_RPC_URL } from '@/lib/helius'
-import { rpcCall } from '@/lib/helius-server'
+import { getHeliusApiKeyFromEnv, rpcCall } from '@/lib/helius-server'
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112'
 const TOKEN_PROGRAM = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
@@ -22,7 +22,7 @@ type TokenAccountRow = {
 
 /** Prefer Helius when `HELIUS_API_KEY` is set; otherwise public mainnet (read-only). */
 async function solanaRpcForPortfolio<T>(method: string, params: unknown[]): Promise<T> {
-  const key = process.env.HELIUS_API_KEY?.trim()
+  const key = getHeliusApiKeyFromEnv()
   if (key) {
     return rpcCall<T>(method, params)
   }
