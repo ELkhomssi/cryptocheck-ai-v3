@@ -32,15 +32,18 @@
     "geist": "^1.7.0",
     "lucide-react": "^1.8.0",
     "next": "14.2.5",
+    "openai": "^4.104.0",
     "pdfkit": "^0.18.0",
     "react": "^18.3.1",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.3.1",
+    "react-force-graph-2d": "^1.29.1",
     "react-markdown": "^10.1.0",
     "recharts": "^3.8.1",
     "server-only": "^0.0.1",
     "stripe": "^22.0.2",
-    "swr": "^2.4.1"
+    "swr": "^2.4.1",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^20",

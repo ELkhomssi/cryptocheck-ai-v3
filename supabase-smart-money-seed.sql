@@ -1,0 +1,35 @@
+-- Seed smart money wallets from public Solana validator vote accounts snapshot
+-- Source: getVoteAccounts (current) at seed generation time
+INSERT INTO public.smart_money_wallets (address, label, tier, historical_pnl_usd, win_rate_pct, active) VALUES
+  ('7PdKhpKz7T39vZHFL1UfcYNDsLvay6hp4KPQq1aUckFf','Validator whale #1 (vote account snapshot)','whale',0,95,TRUE),
+  ('6qwYjs5vCSEKaTMBbHinnW8fvdGj1r8cpzPoAV1EHKsw','Validator whale #2 (vote account snapshot)','whale',0,95,TRUE),
+  ('CTwsruptUccEtZGNxBDbuusHYxkBX3P6ndrxVjSG213y','Validator whale #3 (vote account snapshot)','whale',0,100,TRUE),
+  ('RoYLttggWwa2st3KAGEjnPhsq4NPD5QwaNVyyR8pTz4','Validator whale #4 (vote account snapshot)','whale',0,95,TRUE),
+  ('F1REzm2dJW1wfj2yHjCMV3FxVs8TXQG9qoW4MFEz6uYo','Validator whale #5 (vote account snapshot)','whale',0,0,TRUE),
+  ('5pPRHniefFjkiaArbGX3Y8NUysJmQ9tMZg3FrFGwHzSm','Validator whale #6 (vote account snapshot)','whale',0,95,TRUE),
+  ('9Wmaz9VPpEnH67ZqrvYd9bcH66DtsGaEKcSQE1ac5wkf','Validator whale #7 (vote account snapshot)','whale',0,100,TRUE),
+  ('DZKTNGR3r4Akj3G42ReZatKhkmgEXoZjk5Ed2tFwRyqm','Validator whale #8 (vote account snapshot)','whale',0,100,TRUE),
+  ('AiDoLWFKzNxSXKeZ4zym2TEPkg6F4kQ3YBA8WhANVPEq','Validator whale #9 (vote account snapshot)','whale',0,100,TRUE),
+  ('9U4WqNGVywKt3gG9HSt9tGVXBDXJvgid6BVweRysaJmg','Validator whale #10 (vote account snapshot)','whale',0,0,TRUE),
+  ('te1ee9rGf369wxYQkuxkvuvMuTJ9cksgZySmNUF8rNY','Validator whale #11 (vote account snapshot)','whale',0,95,TRUE),
+  ('AccReGBNBdUCEJ7ZyP231jw7uVJ3eF9u4cLBFAyqQuWm','Validator whale #12 (vote account snapshot)','whale',0,97,TRUE),
+  ('DZv25oNCWFvGXu9tH63BiAXvG94syweGZhbvdN3HxDxT','Validator whale #13 (vote account snapshot)','whale',0,90,TRUE),
+  ('ZoD1XLMhxdMveAJL4x9oab4FhRKP5NThTnSCH19Tdjp','Validator whale #14 (vote account snapshot)','whale',0,95,TRUE),
+  ('4aRPyjsqqFsf5488a9QAaHJLQJMGwoL5P6wRtLmroe2d','Validator whale #15 (vote account snapshot)','whale',0,100,TRUE),
+  ('Bs19Z9SokV1s46jutN9tqqaCgYf1GsVyyytVfkzwn9qK','Validator whale #16 (vote account snapshot)','whale',0,95,TRUE),
+  ('Atom7LRkdXj6MBoWJPgjaetrCMrgB9nnkQBYXTWE8Z3S','Validator whale #17 (vote account snapshot)','whale',0,20,TRUE),
+  ('3Rv6ZVGUuRczP76322LyhTTYw2iM4avV4B5xFJocQJer','Validator whale #18 (vote account snapshot)','whale',0,95,TRUE),
+  ('7y5VhV4fkz6r4zUmH2UiwPjLwXzPL1PcV28or5NWkWRL','Validator whale #19 (vote account snapshot)','whale',0,100,TRUE),
+  ('mds1WWedpezW3qvgML4WgP341jZksYAy5SbMLwjP5KC','Validator whale #20 (vote account snapshot)','whale',0,90,TRUE),
+  ('CMPSSdrTnRQBiBGTyFpdCc3VMNuLWYWaSkE8Zh5z6gbd','Validator whale #21 (vote account snapshot)','whale',0,100,TRUE),
+  ('EtoMApqP2h1vVm9XLTTp5HERNezm5btkqrdAGQ9fZRnp','Validator whale #22 (vote account snapshot)','whale',0,95,TRUE),
+  ('9hQqNe3DQTiwhspatewA8EXhz12e6sq5UJVJ2qNRwnTf','Validator whale #23 (vote account snapshot)','whale',0,93,TRUE),
+  ('omeg2wsojzB7tfyAxsFhp8npxHL8yxVnaf51poXCwSd','Validator whale #24 (vote account snapshot)','whale',0,100,TRUE),
+  ('4W3jdXyqhLCjzA3Liu8ZNjViwrc6N9YjSB7obbxfjcKE','Validator whale #25 (vote account snapshot)','whale',0,100,TRUE),
+  ('FoigPJ6kL6Gth5Er6t9d1Nkh96Skadqw63Ciyjxc1f8H','Validator whale #26 (vote account snapshot)','whale',0,0,TRUE),
+  ('FWwwP9tNttSy9dJFxwf6ebXWfc6VJXqFNMTccrMiLFTH','Validator whale #27 (vote account snapshot)','whale',0,100,TRUE),
+  ('ANC1u9sY36q3mi2MyVhtz71un8yLgTsFBUuyLcSPzKsk','Validator whale #28 (vote account snapshot)','whale',0,95,TRUE),
+  ('8a4juhtQScHcXPAcqVF3otxLMqxZMDALcE3FEVGBnKu8','Validator whale #29 (vote account snapshot)','whale',0,100,TRUE),
+  ('BR1aTt4ZZUCwWJDkSYf1hqkYJjo7Mb7Ar8iVTkeSwUB8','Validator whale #30 (vote account snapshot)','whale',0,100,TRUE);
+
+ON CONFLICT (address) DO UPDATE SET active = EXCLUDED.active, label = EXCLUDED.label;

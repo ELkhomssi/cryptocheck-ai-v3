@@ -1,15 +1,20 @@
-import { TerminalProvider } from '@/components/Dashboard/intelligence-terminal/TerminalProvider'
-import { TerminalShell } from '@/components/Dashboard/intelligence-terminal/TerminalShell'
+import { IntelligencePanel } from '@/components/Dashboard/intelligence-panel/IntelligencePanel'
 
 export const metadata = {
   title: 'Analysis Console — CryptoCheck AI',
   description: 'Authenticated Solana intelligence terminal.',
 }
 
-export default async function IntelligenceTerminalPage() {
+export default async function IntelligenceTerminalPage({
+  searchParams,
+}: {
+  searchParams?: { mint?: string }
+}) {
+  const mint =
+    typeof searchParams?.mint === 'string' && searchParams.mint.length >= 32
+      ? searchParams.mint
+      : 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263'
   return (
-    <TerminalProvider>
-      <TerminalShell />
-    </TerminalProvider>
+    <IntelligencePanel mint={mint} />
   )
 }
