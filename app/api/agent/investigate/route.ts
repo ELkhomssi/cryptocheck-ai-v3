@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { runInvestigationStream } from '@/lib/agents/investigation/stream'
 import { redis } from '@/lib/cache/redis'
+import { normalizeProfileTierForSignals } from '@/lib/api/intelligence-signal-tier'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60 // up to 60s for multi-step agent
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
     .select('tier')
     .eq('id', user.id)
     .single()
-  const tier = profile?.tier ?? 'free'
+  const tierKey = normalizeProfileTierForSignals(profile?.tier)
 
   const limits: Record<string, number> = {
     free: 3,
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
     developer: 50,
     enterprise: 500,
   }
-  const dailyLimit = limits[tier] ?? 0
+  const dailyLimit = limits[tierKey] ?? 0
   if (dailyLimit === 0) {
     return Response.json({ error: 'Upgrade required' }, { status: 403 })
   }

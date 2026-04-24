@@ -29,7 +29,10 @@ export async function fetchWhaleFlowForMint(
   if (smartWallets.length === 0) return []
 
   const heliusKey = process.env.HELIUS_API_KEY
-  if (!heliusKey) throw new Error('HELIUS_API_KEY missing')
+  if (!heliusKey) {
+    console.warn('[whale-flow] HELIUS_API_KEY missing — skipping on-chain wallet sweep (empty flow)')
+    return []
+  }
 
   const hoursBack = opts?.hoursBack ?? 24
   const cutoff = Date.now() - hoursBack * 3600 * 1000

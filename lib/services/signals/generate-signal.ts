@@ -71,7 +71,7 @@ async function persistSignal(signal: Signal) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  await supabase.from('intelligence_signals').insert({
+  const { error } = await supabase.from('intelligence_signals').insert({
     mint: signal.mint,
     signal_type: signal.verdict.includes('bullish')
       ? 'entry'
@@ -89,4 +89,7 @@ async function persistSignal(signal: Signal) {
     data_sources: { whale_flow: true, ai_model: 'gpt-4o-mini' },
     valid_until: new Date(Date.now() + 2 * 3600 * 1000).toISOString(),
   })
+  if (error) {
+    console.error('[signals] intelligence_signals insert failed:', error.message, error)
+  }
 }

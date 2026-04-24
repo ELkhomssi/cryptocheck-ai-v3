@@ -16,17 +16,25 @@ type SignalResponse = {
 export function AISignalPanel({ mint }: { mint: string }) {
   const [data, setData] = useState<SignalResponse | null>(null)
   const [error, setError] = useState('')
+  const [diag, setDiag] = useState<{ code?: string; hint?: string; detail?: string }>({})
 
   useEffect(() => {
     let active = true
     async function run() {
       try {
         setError('')
+        setDiag({})
         const res = await fetch(`/api/v1/intelligence/signals/${mint}`, { cache: 'no-store' })
-        const json = (await res.json()) as SignalResponse & { error?: string }
+        const json = (await res.json()) as SignalResponse & {
+          error?: string
+          code?: string
+          hint?: string
+          detail?: string
+        }
         if (!active) return
         if (!res.ok) {
           setError(json.error ?? 'Intelligence unavailable')
+          setDiag({ code: json.code, hint: json.hint, detail: json.detail })
           return
         }
         setData(json)
@@ -43,7 +51,18 @@ export function AISignalPanel({ mint }: { mint: string }) {
   return (
     <GlassCard title="AI Signal Panel" badge="Consensus">
       {error ? (
-        <p className="text-sm text-amber-300">{error}</p>
+        <div className="space-y-2">
+          <p className="text-sm text-amber-300">{error}</p>
+          {diag.code ? (
+            <p className="font-mono-terminal text-[11px] uppercase tracking-wider text-cyan-500/80">
+              code: {diag.code}
+            </p>
+          ) : null}
+          {diag.hint ? <p className="text-xs leading-relaxed text-slate-400">{diag.hint}</p> : null}
+          {diag.detail ? (
+            <p className="font-mono-terminal text-[10px] text-rose-300/80">{diag.detail}</p>
+          ) : null}
+        </div>
       ) : !data ? (
         <p className="text-sm text-slate-400">Analyzing on-chain observations...</p>
       ) : (

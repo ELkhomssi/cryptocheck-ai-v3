@@ -2,17 +2,43 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateSignalForMint } from '@/lib/services/signals/generate-signal'
 import { redis } from '@/lib/cache/redis'
+import { getSignalLimitsForProfileTier } from '@/lib/api/intelligence-signal-tier'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-const TIER_LIMITS = {
-  free: { allowed: false },
-  micropack: { allowed: false },
-  pro: { allowed: true, callsPerDay: 20 },
-  elite: { allowed: true, callsPerDay: 100 },
-  developer: { allowed: true, callsPerDay: 50 },
-  enterprise: { allowed: true, callsPerDay: 1000 },
+function classifySignalFailure(err: unknown): { code: string; hint: string } {
+  const msg = err instanceof Error ? err.message : String(err)
+  const m = msg.toLowerCase()
+
+  if (m.includes('openai_api_key') || m.includes('not configured')) {
+    return {
+      code: 'OPENAI_NOT_CONFIGURED',
+      hint: 'Server is missing OPENAI_API_KEY. Add it in Vercel/host env to enable consensus.',
+    }
+  }
+  if (m.includes('helius')) {
+    return {
+      code: 'HELIUS_DEGRADED',
+      hint: 'Helius-related step failed. Whale flow may be empty; check HELIUS_API_KEY and RPC limits.',
+    }
+  }
+  if (m.includes('zod') || m.includes('invalid_type') || m.includes('required') || m.includes('expected')) {
+    return {
+      code: 'MODEL_OUTPUT_INVALID',
+      hint: 'OpenAI returned JSON that did not match the signal schema. Check logs for the raw validation error.',
+    }
+  }
+  if (m.includes('supabase') || m.includes('intelligence_signals')) {
+    return {
+      code: 'DATABASE',
+      hint: 'Supabase insert or query failed. Confirm supabase-signals-migration ran and service role key is set.',
+    }
+  }
+  return {
+    code: 'UNKNOWN',
+    hint: msg.slice(0, 200) || 'See server logs for [signals] entries.',
+  }
 }
 
 export async function GET(
@@ -24,21 +50,23 @@ export async function GET(
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Auth required' }, { status: 401 })
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Auth required', code: 'AUTH_REQUIRED', hint: 'Sign in to request AI signals.' },
+        { status: 401 }
+      )
+    }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('tier')
-      .eq('id', user.id)
-      .single()
+    const { data: profile } = await supabase.from('profiles').select('tier').eq('id', user.id).single()
 
-    const tier = (profile?.tier ?? 'free') as keyof typeof TIER_LIMITS
-    const limits = TIER_LIMITS[tier]
+    const { key: tierKey, limits } = getSignalLimitsForProfileTier(profile?.tier)
 
     if (!limits.allowed) {
       return NextResponse.json(
         {
           error: 'AI Intelligence requires Pro or higher',
+          code: 'TIER_NOT_ENTITLED',
+          hint: `Your profile tier resolved to "${tierKey}". Upgrade for signal access.`,
           upgradeUrl: '/app',
         },
         { status: 403 }
@@ -51,7 +79,14 @@ export async function GET(
     const count = await redis.incr(key)
     if (count === 1) await redis.expire(key, 86400)
     if ('callsPerDay' in limits && count > limits.callsPerDay) {
-      return NextResponse.json({ error: 'Daily limit reached' }, { status: 429 })
+      return NextResponse.json(
+        {
+          error: 'Daily limit reached',
+          code: 'RATE_LIMIT',
+          hint: `Limit is ${limits.callsPerDay} requests per day for tier "${tierKey}".`,
+        },
+        { status: 429 }
+      )
     }
 
     // 5-min cache
@@ -70,9 +105,14 @@ export async function GET(
     return NextResponse.json(signal)
   } catch (err) {
     console.error('[signals]', err)
+    const { code, hint } = classifySignalFailure(err)
+    const exposeDetail = process.env.NODE_ENV !== 'production'
     return NextResponse.json(
       {
         error: 'Signal generation failed',
+        code,
+        hint,
+        ...(exposeDetail && err instanceof Error ? { detail: err.message } : {}),
       },
       { status: 500 }
     )
