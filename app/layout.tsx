@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { IBM_Plex_Mono, IBM_Plex_Sans, JetBrains_Mono } from 'next/font/google'
 import { SolanaProvider } from '@/components/SolanaProvider'
+import { DisclaimerModal } from '@/components/legal/DisclaimerModal'
 import { Analytics } from '@vercel/analytics/react'
 import './globals.css'
 // ── Bloomberg-style monospace + companion sans ──
@@ -53,6 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-mono antialiased" style={{ backgroundColor: "#050510", minHeight: "100vh" }}>
         <SolanaProvider>
           {children}
+          <DisclaimerModal />
         </SolanaProvider>
         <Analytics />
       </body>

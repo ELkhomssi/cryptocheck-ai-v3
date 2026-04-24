@@ -3,6 +3,7 @@ import { ScannerEngine } from '@/lib/services/scanner-engine'
 import { buildWeightedSecurityScore } from '@/lib/services/scanner/weighted-score'
 import { getPrimaryConnection } from '@/lib/services/scanner/RpcProviderManager'
 import { ProDashboardClient } from './pro-dashboard-client'
+import { DisclaimerBanner } from '@/components/legal/DisclaimerBanner'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,11 +24,14 @@ export default async function ProDashboardPage() {
   const demoRpcLabel = getPrimaryConnection().label
 
   return (
-    <ProDashboardClient
-      session={session}
-      demoReasoning={demoReasoning}
-      demoWeighted={demoWeighted}
-      demoRpcLabel={demoRpcLabel}
-    />
+    <>
+      <DisclaimerBanner variant="default" />
+      <ProDashboardClient
+        session={session}
+        demoReasoning={demoReasoning}
+        demoWeighted={demoWeighted}
+        demoRpcLabel={demoRpcLabel}
+      />
+    </>
   )
 }

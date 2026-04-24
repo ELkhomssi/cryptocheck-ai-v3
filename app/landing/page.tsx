@@ -262,7 +262,9 @@ Authorization: Bearer cc_live_…
             <span style={{ fontSize:12,color:'#6e7681' }}>© 2026 CryptoCheck AI, Inc. · Delaware C-Corp</span>
           </div>
           <div style={{ display:'flex',gap:20 }}>
-            {['Privacy','Terms','Docs'].map(l => <a key={l} href="#" style={{ fontSize:11,color:'#484f58',textDecoration:'none' }}>{l}</a>)}
+            <Link href="/privacy" style={{ fontSize:11,color:'#484f58',textDecoration:'none' }}>Privacy</Link>
+            <Link href="/terms" style={{ fontSize:11,color:'#484f58',textDecoration:'none' }}>Terms of Service</Link>
+            <Link href="/docs" style={{ fontSize:11,color:'#484f58',textDecoration:'none' }}>Docs</Link>
           </div>
         </div>
       </footer>

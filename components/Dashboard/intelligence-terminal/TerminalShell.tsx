@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react'
 import { TerminalGate } from './TerminalGate'
 import { useTerminal } from './TerminalProvider'
 import { Console } from './Console'
+import { DisclaimerBanner } from '@/components/legal/DisclaimerBanner'
 
 function TerminalSkeleton() {
   return (
@@ -24,13 +25,14 @@ export function TerminalShell() {
     return <TerminalSkeleton />
   }
 
-  if (state.phase === 'idle' || state.phase === 'locked' || state.phase === 'verifying') {
-    return <TerminalGate />
-  }
-
-  if (state.phase === 'unlocked') {
-    return <Console />
-  }
-
-  return null
+  return (
+    <>
+      <DisclaimerBanner variant="whale" />
+      {state.phase === 'idle' || state.phase === 'locked' || state.phase === 'verifying' ? (
+        <TerminalGate />
+      ) : state.phase === 'unlocked' ? (
+        <Console />
+      ) : null}
+    </>
+  )
 }

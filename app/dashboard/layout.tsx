@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { ensureFreeTierSubscription } from '@/lib/services/saas-entitlement.service'
 import { getUserSubscription } from '@/lib/services/user-subscription.service'
 import { DashboardShell } from '@/components/Dashboard/DashboardShell'
+import { DisclaimerBanner } from '@/components/legal/DisclaimerBanner'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -37,7 +38,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
         effectiveTier={effectiveTier}
         isAnonymousPreview={!user}
       >
-        {children}
+        <>
+          <DisclaimerBanner variant="default" />
+          {children}
+        </>
       </DashboardShell>
     </div>
   )

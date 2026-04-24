@@ -3539,9 +3539,16 @@ export default function Dashboard() {
           <span className="text-[#4b5563]"> · Powered by Helius Real-Time RPC · {NETWORK_LABEL} · {ENGINE_LABEL}</span>
         </p>
         <div className="flex gap-3 items-center text-[0.55rem] flex-shrink-0 flex-wrap">
-          {['Privacy','Terms','Docs','Contact'].map(l => (
-            <a key={l} href="#" className="text-[#8b949e] hover:text-[#00d4aa] transition-colors no-underline">{l}</a>
-          ))}
+          <Link href="/privacy" className="text-[#8b949e] hover:text-[#00d4aa] transition-colors no-underline">
+            Privacy
+          </Link>
+          <Link href="/terms" className="text-[#8b949e] hover:text-[#00d4aa] transition-colors no-underline">
+            Terms of Service
+          </Link>
+          <Link href="/docs" className="text-[#8b949e] hover:text-[#00d4aa] transition-colors no-underline">
+            Docs
+          </Link>
+          <span className="text-[#4b5563]">CryptoCheck AI, Inc. © 2026 · Delaware C-Corp</span>
         </div>
       </footer>
 
