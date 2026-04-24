@@ -60,7 +60,7 @@ Vercel injects **`Authorization: Bearer ${CRON_SECRET}`** when **`CRON_SECRET`**
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client + server Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | Admin paths, health DB check, webhooks, retries |
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Rate limits, scan cache, **uptime probe list** |
-| `HELIUS_KEY` | RPC health check |
+| `HELIUS_API_KEY` | Helius RPC + REST (server); RPC health check |
 | `STATUS_ACTIVE_INCIDENTS_JSON` | Optional JSON array for `/status` banners |
 | Stripe / API signing keys | Billing and scan API auth (unchanged from product) |
 

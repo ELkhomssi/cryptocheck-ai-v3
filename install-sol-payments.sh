@@ -162,7 +162,7 @@ const newHandleBuy = `  const [solPrice, setSolPrice] = React.useState(80)
       }
 
       const { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } = await import('@solana/web3.js')
-      const connection = new Connection(process.env.NEXT_PUBLIC_HELIUS_RPC_URL || 'https://api.mainnet-beta.solana.com', 'confirmed')
+      const connection = new Connection(`${window.location.origin}/api/solana/rpc`, 'confirmed')
 
       // Calculate SOL amount
       const plan = planId === 'starter' ? 'starter' : planId === 'elite' ? (billing === 'monthly' ? 'elite' : 'elite_yearly') : billing === 'monthly' ? 'pro' : 'yearly'

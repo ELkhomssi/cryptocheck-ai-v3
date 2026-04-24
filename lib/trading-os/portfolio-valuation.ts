@@ -20,9 +20,9 @@ type TokenAccountRow = {
   }
 }
 
-/** Prefer Helius when `HELIUS_KEY` is set; otherwise public mainnet (read-only). */
+/** Prefer Helius when `HELIUS_API_KEY` is set; otherwise public mainnet (read-only). */
 async function solanaRpcForPortfolio<T>(method: string, params: unknown[]): Promise<T> {
-  const key = process.env.HELIUS_KEY?.trim()
+  const key = process.env.HELIUS_API_KEY?.trim()
   if (key) {
     return rpcCall<T>(method, params)
   }

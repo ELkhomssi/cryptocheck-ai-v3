@@ -30,9 +30,9 @@ export async function collectHealthSnapshot(): Promise<HealthSnapshot> {
 
   try {
     const t0 = Date.now()
-    const key = process.env.HELIUS_KEY
+    const key = process.env.HELIUS_API_KEY
     if (!key) {
-      checks.rpc_primary = { ok: false, error: 'HELIUS_KEY not configured' }
+      checks.rpc_primary = { ok: false, error: 'HELIUS_API_KEY not configured' }
     } else {
       const r = await fetch(`https://mainnet.helius-rpc.com/?api-key=${key}`, {
         method: 'POST',
