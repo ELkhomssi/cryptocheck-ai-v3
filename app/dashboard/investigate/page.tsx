@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { DisclaimerBanner } from '@/components/legal/DisclaimerBanner'
-import { loadEncryptedKey } from '@/lib/crypto/client-key-store'
 
 type ToolState = 'running' | 'result'
 type ToolEvent = { type: 'tool'; toolName: string; state: ToolState; detail: string }
@@ -33,12 +32,17 @@ export default function InvestigatePage() {
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const [terminalKey] = await Promise.all([loadEncryptedKey()])
-      const hasProviderKey = Boolean(
-        (window.localStorage.getItem('cc_user_helius_api_key') ?? '').trim() ||
-          (window.localStorage.getItem('cc_user_openai_api_key') ?? '').trim()
-      )
-      if (!cancelled) setHasApiAccess(Boolean(terminalKey?.trim() || hasProviderKey))
+      const key = (window.localStorage.getItem('cryptocheck_access_key') ?? '').trim()
+      if (!key) {
+        if (!cancelled) setHasApiAccess(false)
+        return
+      }
+      const r = await fetch('/api/v1/keys/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key }),
+      })
+      if (!cancelled) setHasApiAccess(r.ok)
     })()
     return () => {
       cancelled = true

@@ -19,7 +19,6 @@ import { WhyItMattersBlock } from '@/components/pro/institutional/WhyItMattersBl
 import { WalletIntelGraph } from '@/components/pro/institutional/WalletIntelGraph'
 import { InstitutionalI18nProvider, useInstitutionalTranslation } from '@/lib/i18n/institutional-context'
 import type { InstitutionalLocale } from '@/lib/i18n/institutional-catalog'
-import { loadEncryptedKey } from '@/lib/crypto/client-key-store'
 
 type Props = {
   session: ProDashboardSession
@@ -28,8 +27,7 @@ type Props = {
   demoRpcLabel: string
 }
 
-const USER_HELIUS_KEY_STORAGE = 'cc_user_helius_api_key'
-const USER_OPENAI_KEY_STORAGE = 'cc_user_openai_api_key'
+const ACCESS_KEY_STORAGE = 'cryptocheck_access_key'
 const API_REQUIRED_TOOLTIP = 'Action restricted: API Key required.'
 
 function scanApiErrorMessage(data: unknown): string {
@@ -134,24 +132,45 @@ function ProDashboardClientInner({
   const [toast, setToast] = useState<string | null>(null)
   const [apiError, setApiError] = useState<string | null>(null)
   const [dlBusy, setDlBusy] = useState<'pdf' | 'copy' | null>(null)
-  const [heliusApiKey, setHeliusApiKey] = useState('')
-  const [openaiApiKey, setOpenaiApiKey] = useState('')
-  const [hasTerminalKey, setHasTerminalKey] = useState(false)
+  const [accessKeyInput, setAccessKeyInput] = useState('')
   const [keysHydrated, setKeysHydrated] = useState(false)
-  const [keyConfigNote, setKeyConfigNote] = useState<string | null>(null)
+  const [hasApiAccess, setHasApiAccess] = useState(false)
+  const [verifyingAccessKey, setVerifyingAccessKey] = useState(false)
+  const [accessKeyStatus, setAccessKeyStatus] = useState<string | null>(null)
+  const [diagnostics, setDiagnostics] = useState<string | null>(null)
   const { connect, disconnect, isConnected, shortAddr, isConnecting } = useSolana()
 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       try {
-        const storedHelius = window.localStorage.getItem(USER_HELIUS_KEY_STORAGE) ?? ''
-        const storedOpenAi = window.localStorage.getItem(USER_OPENAI_KEY_STORAGE) ?? ''
-        const terminalKey = await loadEncryptedKey()
-        if (!cancelled) {
-          setHeliusApiKey(storedHelius)
-          setOpenaiApiKey(storedOpenAi)
-          setHasTerminalKey(Boolean(terminalKey?.trim()))
+        const storedAccessKey = window.localStorage.getItem(ACCESS_KEY_STORAGE) ?? ''
+        if (!cancelled) setAccessKeyInput(storedAccessKey)
+        if (storedAccessKey.trim()) {
+          const r = await fetch('/api/v1/keys/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: storedAccessKey }),
+          })
+          const j = (await r.json().catch(() => ({}))) as {
+            keyTier?: string
+            subscriptionTier?: string
+            rateLimit?: { maxRequests?: number; windowSeconds?: number }
+          }
+          if (!cancelled) {
+            const ok = r.ok
+            setHasApiAccess(ok)
+            if (ok) {
+              setDiagnostics(
+                `Diagnostics: ${String(j.keyTier ?? 'n/a').toUpperCase()} · ${String(
+                  j.subscriptionTier ?? 'n/a'
+                ).toUpperCase()} · ${j.rateLimit?.maxRequests ?? 'n/a'}/${j.rateLimit?.windowSeconds ?? 'n/a'}s`
+              )
+            } else {
+              setDiagnostics(null)
+              setAccessKeyStatus('Stored CryptoCheck AI Access Key is invalid.')
+            }
+          }
         }
       } finally {
         if (!cancelled) setKeysHydrated(true)
@@ -167,11 +186,6 @@ function ProDashboardClientInner({
     if (!session.hasDeepAccess) return t('institutional.page.tier_hint_upgrade')
     return null
   }, [session, t])
-
-  const hasApiAccess = useMemo(() => {
-    if (!keysHydrated) return false
-    return Boolean(heliusApiKey.trim() || openaiApiKey.trim() || hasTerminalKey)
-  }, [keysHydrated, heliusApiKey, openaiApiKey, hasTerminalKey])
 
   const reasoning = scanResponse?.reasoning ?? demoReasoning
   const weighted: WeightedSecurityScore = scanResponse
@@ -198,16 +212,50 @@ function ProDashboardClientInner({
     })
   }, [])
 
-  const saveProviderKeys = useCallback(() => {
-    const h = heliusApiKey.trim()
-    const o = openaiApiKey.trim()
-    if (h) window.localStorage.setItem(USER_HELIUS_KEY_STORAGE, h)
-    else window.localStorage.removeItem(USER_HELIUS_KEY_STORAGE)
-    if (o) window.localStorage.setItem(USER_OPENAI_KEY_STORAGE, o)
-    else window.localStorage.removeItem(USER_OPENAI_KEY_STORAGE)
-    setKeyConfigNote('Keys saved locally for this browser session.')
-    window.setTimeout(() => setKeyConfigNote(null), 3200)
-  }, [heliusApiKey, openaiApiKey])
+  const verifyAndSaveAccessKey = useCallback(async () => {
+    const key = accessKeyInput.trim()
+    if (!key) {
+      window.localStorage.removeItem(ACCESS_KEY_STORAGE)
+      setHasApiAccess(false)
+      setDiagnostics(null)
+      setAccessKeyStatus('CryptoCheck AI Access Key is required.')
+      return
+    }
+
+    setVerifyingAccessKey(true)
+    setAccessKeyStatus(null)
+    try {
+      const r = await fetch('/api/v1/keys/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key }),
+      })
+      const j = (await r.json().catch(() => ({}))) as {
+        error?: string
+        keyTier?: string
+        subscriptionTier?: string
+        rateLimit?: { maxRequests?: number; windowSeconds?: number }
+      }
+      if (!r.ok) {
+        window.localStorage.removeItem(ACCESS_KEY_STORAGE)
+        setHasApiAccess(false)
+        setDiagnostics(null)
+        setAccessKeyStatus(j.error || 'Invalid CryptoCheck AI Access Key.')
+        return
+      }
+
+      window.localStorage.setItem(ACCESS_KEY_STORAGE, key)
+      setHasApiAccess(true)
+      setAccessKeyStatus('Access granted. Pro features unlocked.')
+      setDiagnostics(
+        `Diagnostics: ${String(j.keyTier ?? 'n/a').toUpperCase()} · ${String(
+          j.subscriptionTier ?? 'n/a'
+        ).toUpperCase()} · ${j.rateLimit?.maxRequests ?? 'n/a'}/${j.rateLimit?.windowSeconds ?? 'n/a'}s`
+      )
+    } finally {
+      setVerifyingAccessKey(false)
+    }
+  }, [accessKeyInput])
 
   const handleLiveResult = useCallback((scan: ScanV1ApiResponse, _perf: LivePerfMeta, mint: string) => {
     setScanResponse(scan)
@@ -464,30 +512,15 @@ function ProDashboardClientInner({
             padding: '14px 14px 16px',
           }}
         >
-          <div style={{ fontSize: 10, letterSpacing: '0.12em', color: '#64748b' }}>API CONFIGURATION</div>
+          <div style={{ fontSize: 10, letterSpacing: '0.12em', color: '#64748b' }}>CRYPTOCHECK AI ACCESS</div>
           <p style={{ fontSize: 12, color: '#94a3b8', margin: '8px 0 10px' }}>
-            Configure your provider keys to unlock live Scan, Investigate, and Monitor actions.
+            Use your CryptoCheck AI API key (`cc_live_` or `cc_sentinel_2_`) to unlock live Scan, Investigate, and Monitor actions.
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: 10 }}>
             <input
-              value={heliusApiKey}
-              onChange={(e) => setHeliusApiKey(e.target.value)}
-              placeholder="Helius API Key"
-              autoComplete="off"
-              spellCheck={false}
-              style={{
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: '0.5px solid rgba(255,255,255,0.12)',
-                background: 'rgba(0,0,0,0.25)',
-                color: '#e2e8f0',
-                fontSize: 12,
-              }}
-            />
-            <input
-              value={openaiApiKey}
-              onChange={(e) => setOpenaiApiKey(e.target.value)}
-              placeholder="OpenAI API Key"
+              value={accessKeyInput}
+              onChange={(e) => setAccessKeyInput(e.target.value)}
+              placeholder="CryptoCheck AI Access Key"
               autoComplete="off"
               spellCheck={false}
               style={{
@@ -503,7 +536,8 @@ function ProDashboardClientInner({
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10, alignItems: 'center' }}>
             <button
               type="button"
-              onClick={saveProviderKeys}
+              onClick={() => void verifyAndSaveAccessKey()}
+              disabled={verifyingAccessKey}
               style={{
                 fontSize: 11,
                 fontWeight: 700,
@@ -512,14 +546,18 @@ function ProDashboardClientInner({
                 border: '0.5px solid rgba(16,185,129,0.45)',
                 background: 'rgba(16,185,129,0.12)',
                 color: '#6ee7b7',
+                cursor: verifyingAccessKey ? 'wait' : 'pointer',
               }}
             >
-              Save Keys
+              {verifyingAccessKey ? 'Verifying…' : 'Unlock Pro Features'}
             </button>
             <span style={{ fontSize: 11, color: hasApiAccess ? '#6ee7b7' : '#fbbf24' }}>
-              {hasApiAccess ? 'API access enabled' : API_REQUIRED_TOOLTIP}
+              {keysHydrated ? (hasApiAccess ? 'CryptoCheck AI access enabled' : API_REQUIRED_TOOLTIP) : 'Checking access…'}
             </span>
-            {keyConfigNote ? <span style={{ fontSize: 11, color: '#93c5fd' }}>{keyConfigNote}</span> : null}
+            {accessKeyStatus ? (
+              <span style={{ fontSize: 11, color: hasApiAccess ? '#93c5fd' : '#fca5a5' }}>{accessKeyStatus}</span>
+            ) : null}
+            {diagnostics ? <span style={{ fontSize: 11, color: '#94a3b8' }}>{diagnostics}</span> : null}
           </div>
         </section>
 
@@ -606,7 +644,6 @@ function ProDashboardClientInner({
           initialConfidence={demoWeighted.confidence}
           hasApiAccess={hasApiAccess}
           restrictionTooltip={API_REQUIRED_TOOLTIP}
-          userHeliusApiKey={heliusApiKey.trim() || null}
         />
         {toast ? (
           <div

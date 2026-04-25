@@ -34,7 +34,6 @@ export type HeroScannerProps = {
   initialConfidence: number
   hasApiAccess?: boolean
   restrictionTooltip?: string
-  userHeliusApiKey?: string | null
 }
 
 export function HeroScanner({
@@ -46,7 +45,6 @@ export function HeroScanner({
   initialConfidence,
   hasApiAccess = true,
   restrictionTooltip = 'Action restricted: API Key required.',
-  userHeliusApiKey = null,
 }: HeroScannerProps) {
   const formId = useId()
   const [mint, setMint] = useState('')
@@ -73,10 +71,7 @@ export function HeroScanner({
     try {
       const r = await fetch('/api/v1/scan/public', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(userHeliusApiKey ? { 'X-Helius-Api-Key': userHeliusApiKey } : {}),
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mint: trimmed }),
       })
       const j = (await r.json()) as ScanV1ApiResponse | Record<string, unknown>
@@ -107,7 +102,7 @@ export function HeroScanner({
     } finally {
       setLoading(false)
     }
-  }, [mint, onLiveResult, userHeliusApiKey])
+  }, [mint, onLiveResult])
 
   const displayScan = live
   const score = displayScan?.score ?? initialScore
