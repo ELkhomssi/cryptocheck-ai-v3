@@ -98,8 +98,9 @@ export async function canonicalScan(mint: string): Promise<CanonicalScanResult> 
 
   const generatedAt = new Date().toISOString()
   const cacheKey = `scan:canonical:v1:${cleanMint}`
+  const fallbackReason = 'Canonical scan fallback: upstream intelligence unavailable.'
 
-  const rawCached = await redis.get(cacheKey)
+  const rawCached = await redis.get(cacheKey).catch(() => null)
   if (rawCached) {
     try {
       const parsed = JSON.parse(rawCached) as unknown
@@ -117,7 +118,7 @@ export async function canonicalScan(mint: string): Promise<CanonicalScanResult> 
       publicTier: 'PRO',
       scanId: randomUUID(),
       onlyTicker: false,
-    }),
+    }).catch(() => null),
   ])
 
   let liquidity: CanonicalScanResult['liquidity']
@@ -132,16 +133,17 @@ export async function canonicalScan(mint: string): Promise<CanonicalScanResult> 
     const lock = await detectLiquidityLock({
       dexId: dex.pair?.dexId,
       pairAddress,
-    })
+    }).catch(() => ({ status: 'unknown' as const, burnedPct: null, lockUntil: null, reason: fallbackReason }))
     liquidity = liquidityFromLockResult({
       ...lock,
       dexPairAddress: pairAddress,
     })
   }
 
-  const riskScore = typeof report.riskScore === 'number' ? Math.max(0, Math.min(100, Math.round(report.riskScore))) : 50
+  const riskScore =
+    typeof report?.riskScore === 'number' ? Math.max(0, Math.min(100, Math.round(report.riskScore))) : 50
   const verdictInfo = scoreToVerdict(riskScore)
-  const signals = normalizeSignals(report.riskSignals)
+  const signals = normalizeSignals(report?.riskSignals)
   const verdictReason =
     signals[0]?.message ??
     liquidity.reason ??
@@ -155,11 +157,11 @@ export async function canonicalScan(mint: string): Promise<CanonicalScanResult> 
     signals,
     liquidity,
     authorities: {
-      mint: authorityState(report.mintAuthority),
-      freeze: authorityState(report.freezeAuthority),
-      update: authorityState(report.updateAuthority),
+      mint: authorityState(report?.mintAuthority),
+      freeze: authorityState(report?.freezeAuthority),
+      update: authorityState(report?.updateAuthority),
     },
-    topHolderConcentration: Number(report.top10Concentration ?? 0),
+    topHolderConcentration: Number(report?.top10Concentration ?? 0),
     generatedAt,
     cacheKey,
   }

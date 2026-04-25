@@ -48,6 +48,7 @@ function jsonWithScanHeaders(
 export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessContext) => {
   const started = Date.now()
   const requestId = randomUUID()
+  console.log('[api/v1/scan] start', { requestId, tier: ctx.tier, via: ctx.via })
   const priority = req.headers.get('x-cryptocheck-priority')?.toLowerCase() === PRIORITY_HEADER
 
   const rawText = await req.text()

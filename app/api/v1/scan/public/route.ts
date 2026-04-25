@@ -23,6 +23,7 @@ export const revalidate = 0
 export async function POST(req: NextRequest) {
   const started = Date.now()
   const requestId = randomUUID()
+  console.log('[api/v1/scan/public] start', { requestId })
   const ip = scanClientIp(req) || 'unknown'
   const limit = await enforcePublicProScanLimit(ip)
   if (!limit.ok) {
@@ -112,6 +113,7 @@ export async function POST(req: NextRequest) {
     })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Scan failed'
+    console.error('[api/v1/scan/public] fail', { requestId, message: msg })
     return NextResponse.json(scanApiErrorPayload(msg, 500, 'INTERNAL', { reason: 'INTERNAL', severity: 'high' }), {
       status: 500,
     })

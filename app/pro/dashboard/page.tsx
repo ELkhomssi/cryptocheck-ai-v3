@@ -11,7 +11,31 @@ export const dynamic = 'force-dynamic'
 export default async function ProDashboardPage() {
   const session = await getProDashboardSession()
   const featuredMint = 'So11111111111111111111111111111111111111112'
-  const canonical = await canonicalScan(featuredMint)
+  const canonical = await canonicalScan(featuredMint).catch((e) => {
+    console.error('[pro/dashboard] canonicalScan fallback', {
+      mint: featuredMint,
+      error: e instanceof Error ? e.message : String(e),
+    })
+    return {
+      mint: featuredMint,
+      riskScore: 50,
+      verdict: 'CAUTION' as const,
+      verdictReason: 'Live canonical scan temporarily unavailable; showing fallback demo.',
+      signals: [],
+      liquidity: {
+        status: 'unverified' as const,
+        reason: 'Live liquidity verification temporarily unavailable.',
+      },
+      authorities: {
+        mint: 'unknown' as const,
+        freeze: 'unknown' as const,
+        update: 'unknown' as const,
+      },
+      topHolderConcentration: 0,
+      generatedAt: new Date().toISOString(),
+      cacheKey: `scan:canonical:v1:${featuredMint}:fallback`,
+    }
+  })
   const demoVerdict =
     canonical.verdict === 'AVOID' ? 'CRITICAL_RISK' : canonical.verdict === 'HIGH_RISK' ? 'HIGH_RISK' : canonical.verdict
 
