@@ -1,0 +1,5 @@
+export type { ProductBand, TradingOsFeature } from '@/lib/access-control/types'
+export { FEATURE_MATRIX } from '@/lib/access-control/types'
+export { inferProductBandFromTiers } from '@/lib/access-control/infer-band'
+export { hasAccess, getProductBand, type AccessContext } from '@/lib/access-control/has-access'
+export { tradingOsTierBadge } from '@/lib/access-control/ui-labels'

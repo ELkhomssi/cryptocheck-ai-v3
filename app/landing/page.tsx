@@ -1,7 +1,40 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
+import { GeistSans } from 'geist/font/sans'
+import { CryptoCheckLogo } from '@/components/brand/CryptoCheckLogo'
 import { supabase } from '@/lib/supabase'
+
+/** Injected as raw CSS to avoid hydration mismatches from React normalizing `<style>` text children. */
+const LANDING_PAGE_CSS = `
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700;800&display=swap');
+@keyframes fadeInUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+@keyframes lp-pulse { 0%,100% { opacity:1; box-shadow:0 0 0 0 rgba(32,178,170,0.4); } 50% { opacity:0.6; box-shadow:0 0 0 4px rgba(32,178,170,0); } }
+@keyframes lp-float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
+html { scroll-behavior:smooth; }
+.lp-cta:hover { transform:translateY(-2px); box-shadow:0 0 40px rgba(32,178,170,0.45),0 8px 30px rgba(0,0,0,0.4) !important; }
+.lp-feature-card:hover { border-color:rgba(32,178,170,0.3) !important; transform:translateY(-2px); }
+.lp-float-badge { animation:lp-float 3s ease-in-out infinite; }
+.lp-float-badge-delay { animation:lp-float 3s ease-in-out infinite 1.5s; }
+.lp-hero-grid { grid-template-columns:1fr 1fr; }
+.lp-steps-grid { grid-template-columns:repeat(3,1fr); }
+.lp-features-grid { grid-template-columns:repeat(3,1fr); }
+.lp-stats-grid { grid-template-columns:repeat(4,1fr); }
+@media (max-width:900px) {
+  .lp-hero-grid { grid-template-columns:1fr !important; }
+  .lp-steps-grid { grid-template-columns:1fr !important; }
+  .lp-features-grid { grid-template-columns:1fr !important; }
+  .lp-stats-grid { grid-template-columns:repeat(2,1fr) !important; }
+  .lp-institutional-grid { grid-template-columns:1fr !important; }
+  .lp-nav-link { display:none !important; }
+  .lp-mobile-nav { display:flex !important; }
+  .lp-float-badge,.lp-float-badge-delay { display:none !important; }
+}
+::-webkit-scrollbar { width:6px; }
+::-webkit-scrollbar-track { background:#000; }
+::-webkit-scrollbar-thumb { background:rgba(32,178,170,0.3); border-radius:3px; }
+`.trim()
 
 export default function LandingPage() {
   const [scrollY, setScrollY] = useState(0)
@@ -12,6 +45,16 @@ export default function LandingPage() {
   }, [])
 
   function handleGoogleSignup() {
+    if (typeof navigator !== 'undefined') {
+      const ua = navigator.userAgent.toLowerCase()
+      const inAppWallet = ['phantom', 'metamask', 'trust', 'coinbasewallet', 'tokenpocket', 'okx', 'rainbow'].some(s => ua.includes(s))
+      if (inAppWallet) {
+        const appUrl = 'https://www.cryptocheckai.com/app'
+        navigator.clipboard?.writeText(appUrl).catch(() => {})
+        alert('Google sign-in may be blocked in wallet browsers. Link copied — open in Safari/Chrome: ' + appUrl)
+        return
+      }
+    }
     supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: 'https://www.cryptocheckai.com/app', queryParams: { access_type: 'offline', prompt: 'consent' } },
@@ -39,23 +82,33 @@ export default function LandingPage() {
   ]
 
   return (
-    <div style={{ background:'#000', color:'#e2e8f0', overflow:'hidden', fontFamily:"'IBM Plex Mono','JetBrains Mono',monospace" }}>
+    <div className={GeistSans.className} style={{ background:'#000', color:'#e2e8f0', overflow:'hidden', fontFamily:"var(--font-geist-sans), 'IBM Plex Mono', 'JetBrains Mono', monospace" }}>
       {/* NAV */}
-      <nav style={{ position:'fixed',top:0,left:0,right:0,zIndex:1000,height:56,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 clamp(16px,4vw,32px)',background:scrollY>50?'rgba(0,0,0,0.92)':'transparent',backdropFilter:scrollY>50?'blur(20px)':'none',borderBottom:scrollY>50?'1px solid rgba(32,178,170,0.1)':'1px solid transparent',transition:'all 0.3s ease' }}>
-        <div style={{ display:'flex',alignItems:'center',gap:10 }}>
-          <div style={{ width:32,height:32,background:'linear-gradient(135deg,#20b2aa,#00d4aa)',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:800,color:'#000' }}>CC</div>
-          <span style={{ fontSize:14,fontWeight:700,color:'#fff',letterSpacing:'-0.02em' }}>Crypto<span style={{ color:'#20b2aa' }}>Check</span>AI</span>
-        </div>
+      <nav style={{ position:'fixed',top:0,left:0,right:0,zIndex:1000,minHeight:56,display:'flex',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',padding:'8px clamp(16px,4vw,32px)',background:scrollY>50?'rgba(0,0,0,0.92)':'transparent',backdropFilter:scrollY>50?'blur(20px)':'none',borderBottom:scrollY>50?'1px solid rgba(32,178,170,0.1)':'1px solid transparent',transition:'all 0.3s ease' }}>
+        <CryptoCheckLogo />
         <div style={{ display:'flex',alignItems:'center',gap:20 }}>
           <a href="#how-it-works" className="lp-nav-link" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.05em' }}>How it Works</a>
           <a href="#features" className="lp-nav-link" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.05em' }}>Features</a>
+          <a href="#institutional" className="lp-nav-link" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.05em' }}>Institutional</a>
           <a href="#demo" className="lp-nav-link" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.05em' }}>Demo</a>
+          <a href="/dashboard" style={{ fontSize:11,color:'#e2e8f0',textDecoration:'none',letterSpacing:'0.06em',fontWeight:600 }}>Dashboard</a>
+          <a href="/dashboard/intelligence-terminal" style={{ fontSize:11,color:'#a5b4fc',textDecoration:'none',letterSpacing:'0.06em',fontWeight:600 }}>Terminal</a>
+          <a href="/dashboard/compliance" style={{ fontSize:11,color:'#94a3b8',textDecoration:'none',letterSpacing:'0.06em',fontWeight:600 }}>Compliance</a>
+          <a href="/pro/dashboard" style={{ fontSize:11,color:'#818cf8',textDecoration:'none',letterSpacing:'0.05em',fontWeight:600 }}>Inst. Terminal</a>
           <a href="/app" style={{ padding:'7px 16px',fontSize:11,fontWeight:700,background:'linear-gradient(135deg,#20b2aa,#00d4aa)',color:'#000',borderRadius:6,textDecoration:'none',letterSpacing:'0.04em' }}>Launch App →</a>
+        </div>
+        <div className="lp-mobile-nav" style={{ width:'100%',display:'none',flexWrap:'wrap',gap:10,paddingTop:6,alignItems:'center',justifyContent:'flex-start',borderTop:'1px solid rgba(255,255,255,0.06)' }}>
+          <Link href="/" style={{ fontSize:11,color:'#e2e8f0',textDecoration:'none',letterSpacing:'0.04em',padding:'6px 10px',borderRadius:6,border:'0.5px solid rgba(255,255,255,0.12)' }}>Home</Link>
+          <a href="/app" style={{ fontSize:11,color:'#20b2aa',textDecoration:'none',letterSpacing:'0.04em' }}>App</a>
+          <a href="/dashboard" style={{ fontSize:11,color:'#e2e8f0',textDecoration:'none',letterSpacing:'0.04em',fontWeight:600 }}>Dashboard</a>
+          <a href="/dashboard/intelligence-terminal" style={{ fontSize:11,color:'#a5b4fc',textDecoration:'none',letterSpacing:'0.04em',fontWeight:600 }}>Terminal</a>
+          <a href="/dashboard/compliance" style={{ fontSize:11,color:'#94a3b8',textDecoration:'none',letterSpacing:'0.04em',fontWeight:600 }}>Compliance</a>
+          <a href="/landing" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.04em' }}>Landing page</a>
         </div>
       </nav>
 
       {/* HERO */}
-      <section style={{ minHeight:'100vh',display:'flex',alignItems:'center',position:'relative',overflow:'hidden',paddingTop:56 }}>
+      <section style={{ minHeight:'100vh',display:'flex',alignItems:'center',position:'relative',overflow:'hidden',paddingTop:'clamp(64px,14vw,96px)' }}>
         <div style={{ position:'absolute',inset:0,pointerEvents:'none',backgroundImage:'linear-gradient(rgba(32,178,170,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(32,178,170,0.03) 1px,transparent 1px)',backgroundSize:'60px 60px' }}/>
         <div style={{ position:'absolute',top:'20%',left:'5%',width:500,height:500,borderRadius:'50%',background:'radial-gradient(circle,rgba(32,178,170,0.08) 0%,transparent 70%)',filter:'blur(60px)',pointerEvents:'none' }}/>
         <div className="lp-hero-grid" style={{ maxWidth:1280,margin:'0 auto',padding:'40px clamp(16px,4vw,32px)',display:'grid',gap:40,alignItems:'center',width:'100%',position:'relative',zIndex:1 }}>
@@ -140,6 +193,32 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* INSTITUTIONAL / DEVELOPER */}
+      <section id="institutional" style={{ padding:'clamp(56px,9vw,96px) clamp(16px,4vw,32px)',background:'linear-gradient(180deg,#050a06 0%,#030306 100%)',borderTop:'1px solid rgba(99,102,241,0.12)',borderBottom:'1px solid rgba(99,102,241,0.08)' }}>
+        <div style={{ maxWidth:1100,margin:'0 auto',display:'grid',gap:28,gridTemplateColumns:'minmax(0,1.1fr) minmax(0,0.9fr)',alignItems:'center' }} className="lp-institutional-grid">
+          <div>
+            <div style={{ fontSize:10,fontWeight:700,letterSpacing:'0.2em',color:'#818cf8',marginBottom:12 }}>FOR TEAMS &amp; DEVELOPERS</div>
+            <h2 style={{ fontSize:'clamp(22px,3vw,32px)',fontWeight:800,color:'#fff',margin:0,letterSpacing:'-0.02em' }}>Institutional-grade <span style={{ color:'#a5b4fc' }}>security infrastructure</span></h2>
+            <p style={{ fontSize:14,color:'#8b949e',lineHeight:1.7,marginTop:14,maxWidth:520 }}>
+              Explainable AI reasoning, fingerprint-matched rug archetypes, and Pro-tier APIs. Built for desks that need evidence, not just a number.
+            </p>
+            <div style={{ display:'flex',flexWrap:'wrap',gap:12,marginTop:22 }}>
+              <a href="/pro/dashboard" style={{ padding:'14px 24px',fontSize:13,fontWeight:700,background:'linear-gradient(135deg,#4f46e5,#6366f1)',color:'#fff',borderRadius:8,textDecoration:'none',letterSpacing:'0.04em',border:'0.5px solid rgba(255,255,255,0.12)',boxShadow:'0 12px 40px rgba(79,70,229,0.25)' }}>Access Institutional Terminal →</a>
+              <a href="/app" style={{ padding:'14px 24px',fontSize:13,fontWeight:700,background:'transparent',border:'0.5px solid rgba(129,140,248,0.35)',borderRadius:8,color:'#a5b4fc',textDecoration:'none' }}>Open consumer app</a>
+            </div>
+          </div>
+          <div style={{ background:'rgba(15,23,42,0.5)',border:'0.5px solid rgba(99,102,241,0.2)',borderRadius:12,padding:'20px 22px',backdropFilter:'blur(12px)' }}>
+            <div style={{ fontSize:10,letterSpacing:'0.14em',color:'#64748b',marginBottom:10 }}>PRO API</div>
+            <pre style={{ margin:0,fontSize:11,color:'#94a3b8',lineHeight:1.6,fontFamily:"'IBM Plex Mono',monospace",whiteSpace:'pre-wrap' }}>{`POST /api/v1/scan/reasoning
+Authorization: Bearer cc_live_…
+
+→ ReasoningObject
+  evidence[], fingerprint match,
+  clusterAnalysis (Pro+)`}</pre>
+          </div>
+        </div>
+      </section>
+
       {/* LIVE DEMO */}
       <section id="demo" style={{ padding:'clamp(60px,10vw,100px) clamp(16px,4vw,32px)',background:'linear-gradient(180deg,#000 0%,#050a06 100%)' }}>
         <div style={{ maxWidth:1100,margin:'0 auto' }}>
@@ -183,38 +262,14 @@ export default function LandingPage() {
             <span style={{ fontSize:12,color:'#6e7681' }}>© 2026 CryptoCheck AI, Inc. · Delaware C-Corp</span>
           </div>
           <div style={{ display:'flex',gap:20 }}>
-            {['Privacy','Terms','Docs'].map(l => <a key={l} href="#" style={{ fontSize:11,color:'#484f58',textDecoration:'none' }}>{l}</a>)}
+            <Link href="/privacy" style={{ fontSize:11,color:'#484f58',textDecoration:'none' }}>Privacy</Link>
+            <Link href="/terms" style={{ fontSize:11,color:'#484f58',textDecoration:'none' }}>Terms of Service</Link>
+            <Link href="/docs" style={{ fontSize:11,color:'#484f58',textDecoration:'none' }}>Docs</Link>
           </div>
         </div>
       </footer>
 
-      {/* STYLES */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700;800&display=swap');
-        @keyframes fadeInUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes lp-pulse { 0%,100% { opacity:1; box-shadow:0 0 0 0 rgba(32,178,170,0.4); } 50% { opacity:0.6; box-shadow:0 0 0 4px rgba(32,178,170,0); } }
-        @keyframes lp-float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
-        html { scroll-behavior:smooth; }
-        .lp-cta:hover { transform:translateY(-2px); box-shadow:0 0 40px rgba(32,178,170,0.45),0 8px 30px rgba(0,0,0,0.4) !important; }
-        .lp-feature-card:hover { border-color:rgba(32,178,170,0.3) !important; transform:translateY(-2px); }
-        .lp-float-badge { animation:lp-float 3s ease-in-out infinite; }
-        .lp-float-badge-delay { animation:lp-float 3s ease-in-out infinite 1.5s; }
-        .lp-hero-grid { grid-template-columns:1fr 1fr; }
-        .lp-steps-grid { grid-template-columns:repeat(3,1fr); }
-        .lp-features-grid { grid-template-columns:repeat(3,1fr); }
-        .lp-stats-grid { grid-template-columns:repeat(4,1fr); }
-        @media (max-width:900px) {
-          .lp-hero-grid { grid-template-columns:1fr !important; }
-          .lp-steps-grid { grid-template-columns:1fr !important; }
-          .lp-features-grid { grid-template-columns:1fr !important; }
-          .lp-stats-grid { grid-template-columns:repeat(2,1fr) !important; }
-          .lp-nav-link { display:none !important; }
-          .lp-float-badge,.lp-float-badge-delay { display:none !important; }
-        }
-        ::-webkit-scrollbar { width:6px; }
-        ::-webkit-scrollbar-track { background:#000; }
-        ::-webkit-scrollbar-thumb { background:rgba(32,178,170,0.3); border-radius:3px; }
-      `}</style>
+      <style dangerouslySetInnerHTML={{ __html: LANDING_PAGE_CSS }} />
     </div>
   )
 }

@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import Dashboard from '../dashboard'
+import { SubscriptionProvider } from '@/lib/subscription/SubscriptionContext'
+import { DisclaimerBanner } from '@/components/legal/DisclaimerBanner'
 
 export default function AppPage() {
   const [status, setStatus] = useState<'loading'|'ready'>('loading')
@@ -54,7 +56,10 @@ export default function AppPage() {
 
   return (
     <ErrorBoundary name="Dashboard">
-      <Dashboard />
+      <SubscriptionProvider>
+        <DisclaimerBanner variant="default" />
+        <Dashboard />
+      </SubscriptionProvider>
     </ErrorBoundary>
   )
 }

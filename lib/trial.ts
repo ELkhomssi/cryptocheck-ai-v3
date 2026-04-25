@@ -26,15 +26,22 @@ export async function checkTrialStatus(walletAddress?: string | null): Promise<T
     if (user) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('trial_started_at, is_pro')
+        .select('trial_started_at, is_pro, plan')
         .eq('id', user.id)
         .single()
 
       if (profile) {
-        return computeTrial(
-          profile.trial_started_at,
-          profile.is_pro
-        )
+        const plan = String(profile.plan || '').toLowerCase()
+        const hasPaidPlan =
+          !!profile.is_pro ||
+          plan === 'starter' ||
+          plan === 'deep' ||
+          plan === 'elite' ||
+          plan === 'pro' ||
+          plan === 'whale' ||
+          plan === 'institutional' ||
+          plan === 'enterprise'
+        return computeTrial(profile.trial_started_at, hasPaidPlan)
       }
     }
 

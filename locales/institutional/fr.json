@@ -1,0 +1,171 @@
+{
+  "institutional": {
+    "page": {
+      "kicker": "INFRASTRUCTURE DE RENSEIGNEMENT SÉCURITAIRE",
+      "title": "Terminal d'intelligence de sécurité IA",
+      "subtitle": "Détectez les rug pulls, honeypots et portefeuilles insiders en temps réel",
+      "description": "Scoring explicable, transparence du pipeline et simulation attestée RPC — unifié sur",
+      "tier_hint_signed_out": "Connectez-vous pour synchroniser vos droits institutionnels.",
+      "tier_hint_upgrade": "Passez Pro ou Institutionnel pour l'API live, les exports et la simulation complète.",
+      "consumer_app": "Application grand public",
+      "sign_in": "Connexion",
+      "pro_lock": "🔒 API live et exports réservés aux offres Pro / Institutionnel."
+    },
+    "nav": {
+      "home": "Accueil",
+      "dashboard": "Tableau de bord",
+      "connecting": "Connexion…",
+      "connect_wallet": "Connecter le wallet"
+    },
+    "hero": {
+      "security_score": "SCORE DE SÉCURITÉ",
+      "status": "STATUT",
+      "decision": "DÉCISION",
+      "risk_tier_prefix": "Niveau de risque :",
+      "pipeline_ms": "Pipeline {ms} ms",
+      "api_ms": "API {ms} ms",
+      "urgency": "Analyse temps réel — les conditions on-chain évoluent à chaque bloc."
+    },
+    "cta": {
+      "run_scan": "Nouvelle analyse",
+      "running": "Analyse en cours…"
+    },
+    "trust_strip": {
+      "audit_ready": "Prêt pour audit",
+      "api_verified": "API vérifiée",
+      "realtime_scan": "Analyse temps réel",
+      "source": "Source",
+      "updated": "Mis à jour",
+      "confidence_label": "Confiance",
+      "cache_warm": "cache chaud",
+      "cache_fresh": "neuf",
+      "cache_prefix": "Cache",
+      "time_just_now": "à l'instant",
+      "confidence_high": "Élevée",
+      "confidence_medium": "Moyenne",
+      "confidence_low": "Faible"
+    },
+    "confidence": {
+      "data_confidence": "CONFIANCE DES DONNÉES",
+      "strong_signal": "Signal fort",
+      "moderate_signal": "Signal modéré",
+      "limited_signal": "Signal limité"
+    },
+    "decision": {
+      "risk_tier": {
+        "low": "Risque faible",
+        "moderate": "Risque modéré",
+        "high": "Risque élevé"
+      },
+      "assets": {
+        "low": "Actif à faible risque",
+        "moderate": "Actif à risque modéré",
+        "high": "Actif à haut risque"
+      }
+    },
+    "status": {
+      "safe": "SÛR",
+      "caution": "PRUDENCE",
+      "danger": "DANGER"
+    },
+    "why": {
+      "title_safe": "Pourquoi ce verdict",
+      "title_caution": "Pourquoi ce verdict",
+      "title_high": "Pourquoi ce verdict",
+      "bullets": {
+        "liquidity_ok": "Liquidité correcte, mais les gros ordres peuvent faire bouger le marché.",
+        "liquidity_status": "Statut de liquidité : {status}. {reason}",
+        "liquidity_thin": "Liquidité faible — risque d'exécution élevé, dimensionnez avec prudence.",
+        "holders_ok": "Pas de concentration extrême des top détenteurs dans ce modèle.",
+        "holders_mid": "Part notable entre les top wallets — surveillez la distribution.",
+        "holders_heavy": "Forte concentration — risque insider significatif.",
+        "scam_none": "Aucun lien de cluster suspect signalé pour ce créateur.",
+        "scam_hits": "Contreparties liées à l'historique scam : {count} — risque comportemental accru.",
+        "mint_fixed": "Les règles d'émission semblent figées — pas de levier de mint actif dans cette analyse.",
+        "mint_active": "Le contrôle mint peut encore être actif — l'offre peut changer.",
+        "contract_clean": "Signaux contrat et motifs alignés avec un profil propre vs empreintes connues.",
+        "contract_review": "Signaux contrat / motifs à examiner avant d'augmenter la taille."
+      }
+    },
+    "risk_panel": {
+      "title": "DIMENSIONS DU RISQUE",
+      "liquidity": "Liquidité & exécution",
+      "wallet": "Portefeuilles & distribution",
+      "contract": "Contrat & motifs",
+      "footnote": "Valeurs = sommes explicables sur les lignes de preuve — pas une boîte noire.",
+      "upgrade_title": "Passer Pro",
+      "upgrade_sub": "Dimensions de risque live & API"
+    },
+    "simulation": {
+      "layer_title": "COUCHE DE SIMULATION",
+      "upgrade_hint": "🔒 Passez Pro pour simulation complète + export d'audit.",
+      "narrative_empty": "Simulation exécutée via bac à sable RPC. Les routes sont composées et validées sans diffusion de transactions. L'accès institutionnel active des chemins buy/sell attestés sur chaîne.",
+      "narrative_live": "Simulation exécutée via bac à sable RPC. Route de swap composée et contrôlée au niveau exécution. Sortie {sellState} pour la sécurité de sortie. Évaluation honeypot : {honeypot}.",
+      "sell_cleared": "validée",
+      "sell_flagged": "signalée"
+    },
+    "wallet": {
+      "title": "RENSEIGNEMENT PORTEFEUILLES 2.0",
+      "subtitle": "L'état du graphe dépend du risque de cluster, des liens scam et de la concentration des détenteurs.",
+      "graph_title": "GRAPHE DE RELATIONS",
+      "hub": "Noyau",
+      "graph_caption_flagged": "{count} cluster(s) signalé(s)",
+      "graph_caption_clear": "Liens conformes au modèle",
+      "graph_legend": "Les nœuds et arêtes émeraude sont des chemins sains ; le rouge marque les satellites alignés avec un cluster suspect ou des liens scam.",
+      "emerald_word": "Émeraude",
+      "red_word": "rouge",
+      "distribution_title": "RÉPARTITION DE L'OFFRE",
+      "distribution_line": "Top {top}% · Milieu {mid}% · Longue traîne {tail}%",
+      "distribution_top": "Top",
+      "distribution_mid": "Milieu",
+      "distribution_tail": "Traîne",
+      "insight_title": "PANNEAU D'INSIGHT",
+      "metric1_title": "1 · Risque de cluster",
+      "metric1_foot": "Correspond aux nœuds rouges ({count} relevé(s)).",
+      "metric2_title": "2 · Concentration top détenteurs",
+      "metric2_foot": "Même valeur que la barre de distribution ci-dessus.",
+      "metric3_title": "3 · Signaux scam liés",
+      "metric3_value_none": "Aucun",
+      "metric3_value_flagged": "{count} signalé(s)",
+      "metric3_foot": "Renforce les nœuds rouges lorsque hits ≥ 1.",
+      "cluster_risk": {
+        "low": "Faible",
+        "medium": "Moyen",
+        "high": "Élevé"
+      }
+    },
+    "wallet_reputation": {
+      "prefix": "Réputation portefeuille",
+      "score": "(score {score}/100)"
+    },
+    "evidence": {
+      "section_label": "PREUVES & JOURNAUX · TERMINAL",
+      "grade_line": "Note {grade} · Verdict {verdict} · Confiance modèle {confidence}%",
+      "pdf_audit": "Audit PDF",
+      "export_json": "Export JSON (API)",
+      "download_json_local": "Télécharger JSON (local)",
+      "upgrade_pro_block": "🔒 Clés API, analytics et export serveur avec Pro —",
+      "upgrade_pro": "Passer Pro",
+      "upgrade_pro_suffix": "pour une démo institutionnelle prête.",
+      "dynamic_simulation": "Simulation dynamique",
+      "tax_est": "Taxe / slippage est.",
+      "raw_evidence": "// PREUVES BRUTES (lignes principales)",
+      "risk_prefix": "· risque −",
+      "flags": "// DRAPEAUX",
+      "none_flags": "— aucun —",
+      "pipeline": "// ÉTAPES PIPELINE",
+      "pipeline_empty": "Lancez une analyse live pour enregistrer les durées.",
+      "fingerprint": "// MEILLEURE EMPREINTE",
+      "fingerprint_none": "— pas de chevauchement significatif —",
+      "cluster": "// CLUSTER CRÉATEUR",
+      "simulation_detail_placeholder_ok": "Simulation exécutée via bac à sable RPC — chemin vérifié en validation en lecture seule. Ajoutez un swap sérialisé pour une confirmation complète du chemin de sortie.",
+      "simulation_detail_honeypot": "Simulation exécutée via bac à sable RPC — le chemin de sortie ne s'est pas terminé ; risque honeypot / liste noire accru.",
+      "simulation_detail_sandbox": "évaluation bac à sable",
+      "dynamic_rpc_placeholder": "bac à sable RPC"
+    },
+    "session_footer": "Session : {email} · offre : {tier}",
+    "locale_switch": {
+      "label": "Langue"
+    }
+  }
+}

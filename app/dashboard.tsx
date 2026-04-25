@@ -1,7 +1,11 @@
 'use client'
 import React from 'react'
+import Link from 'next/link'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Home, LayoutDashboard, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import MintInput from '@/components/MintInput'
+import { Buffer } from 'buffer'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
@@ -9,6 +13,7 @@ import {
   getAiChatReply,
   getAiEdgeAnalysis,
 } from '@/app/actions/ai'
+import { loadEncryptedKey } from '@/lib/crypto/client-key-store'
 import RugForensicsLab from '@/components/RugForensicsLab'
 import SignupTrialModal from '@/components/SignupTrialModal'
 import ChartSwapModal from '@/components/ChartSwapModal'
@@ -18,11 +23,18 @@ import NeuralScanV4 from '@/components/NeuralScanV4'
 import ValueProtectedWidget from '@/components/ValueProtectedWidget'
 import NeuralAuditLog from '@/components/NeuralAuditLog'
 import InsiderWhaleIntel from '@/components/InsiderWhaleIntel'
+import { CryptoCheckLogo } from '@/components/brand/CryptoCheckLogo'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import ProMaxEliteDashboard from '@/components/ProMaxEliteDashboard'
+import BentoGrid, { type StressTestApiResult } from '@/components/Dashboard/BentoGrid'
+import SecurityTerminal from '@/components/SecurityTerminal'
+import { safetyScoreToEliteGrade } from '@/lib/elite-grade'
 import ProMaxDeepDashboard from '@/components/ProMaxDeepDashboard'
-import { TrialBanner, TrialWall, useTrialStatus } from '@/components/TrialSystem'
+import { hasAccess } from '@/lib/access-control'
+import { useSubscription } from '@/lib/subscription/SubscriptionContext'
 import { AiAutoSniper } from '@/components/AiAutoSniper'
+import PortfolioScanner from '@/components/portfolio/PortfolioScanner'
+import WatchlistPanel from '@/components/watchlist/WatchlistPanel'
 import { Doughnut } from 'react-chartjs-2'
 import {
   Chart as ChartJS,
@@ -30,15 +42,21 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js'
+import {
+  ResponsiveContainer,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+} from 'recharts'
 import { useSolana } from '@/components/SolanaProvider'
 import {
-  scanToken,
-  fetchPortfolio,
-  getSlot,
   formatSupply,
   truncate,
   calcChartData,
   computeRisk,
+  getClientSolanaRpcUrl,
   type ScanData,
   type PortfolioHolding,
   NETWORK_LABEL,
@@ -590,6 +608,22 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
   const topLineCls  = risk.cardClass === 'safe' ? 'card-top-safe' : risk.cardClass === 'warn' ? 'card-top-warn' : 'card-top-danger'
   const cardBorder  = risk.cardClass === 'safe' ? 'border-emerald-800/30' : risk.cardClass === 'warn' ? 'border-amber-800/30' : 'border-red-800/40'
 
+  const elite = safetyScoreToEliteGrade(risk.score)
+  const tierColor =
+    elite.accent === 'safe' ? '#c8ff00' : elite.accent === 'mid' ? '#f59e0b' : '#ff5722'
+  const radarRows = [
+    { axis: 'Authority', value: mintAuth ? 28 : 93 },
+    { axis: 'Distribution', value: Math.max(8, Math.round(100 - top10Pct)) },
+    { axis: 'Liquidity', value: Math.min(100, Math.round(liqPct * 2.8)) },
+    { axis: 'Metadata', value: name !== 'Unknown Token' ? 86 : 40 },
+    {
+      axis: 'Tx depth',
+      value: data.txs?.length
+        ? Math.min(100, 42 + Math.min(45, Math.floor((data.txs.length || 0) / 2)))
+        : 44,
+    },
+  ]
+
   const checks = [
     { label:'Mint Authority',   val: mintAuth ? 'Active'   : 'None',    ok: !mintAuth, warn: false },
     { label:'Freeze Authority', val: 'None',                             ok: true,      warn: false },
@@ -625,7 +659,7 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
       <AiSummaryCard loading={aiLoading} summary={aiSummary} />
 
       {/* ── RISK SCORE CARD ── */}
-      <div className={`term-card border ${cardBorder} p-4 mb-3`}>
+      <div className={`term-card border ${cardBorder} p-4 mb-3 backdrop-blur-xl bg-[#050508]/75`}>
         <div className={`absolute top-0 left-0 right-0 h-px ${topLineCls}`} />
 
         <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
@@ -634,12 +668,40 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
               {name} <span className="text-[0.7rem] text-[#8b949e]">({sym})</span>
             </div>
             <div className="text-[0.56rem] text-[#8b949e] mt-0.5 break-all">{data.mint}</div>
+            <Link
+              href={`/report/${data.mint}`}
+              onClick={() => {
+                try {
+                  sessionStorage.setItem(
+                    `cc_elite_report_${data.mint}`,
+                    JSON.stringify({
+                      mint: data.mint,
+                      name,
+                      sym,
+                      safetyScore: risk.score,
+                      elite,
+                      verdict: risk.verdict,
+                      timestamp: Date.now(),
+                    })
+                  )
+                } catch {}
+              }}
+              className="inline-block mt-2 text-[0.55rem] font-mono font-bold tracking-wider uppercase text-[#c8ff00] border border-[#c8ff00]/35 rounded px-2 py-1 hover:bg-[#c8ff00]/10 transition-colors"
+            >
+              Intelligence Briefing →
+            </Link>
           </div>
 
-          {/* Score + Edge Alert badge */}
+          {/* Elite tier + safety index */}
           <div className="text-right flex-shrink-0">
-            <div className={`text-4xl font-bold font-mono leading-none ${scoreColor}`}>{risk.score}</div>
-            <div className={`text-[0.58rem] font-bold tracking-widest uppercase mt-0.5 ${scoreColor}`}>{risk.verdict}</div>
+            <div className="font-mono font-black leading-none" style={{ fontSize: '2.6rem', color: tierColor }}>
+              {elite.tier}
+            </div>
+            <div className="text-[0.58rem] font-bold tracking-widest uppercase mt-0.5" style={{ color: tierColor }}>
+              {elite.tier === 'S' ? 'Iron Dome Certified' : elite.label}
+            </div>
+            <div className={`text-xl font-bold font-mono leading-none mt-1 ${scoreColor}`}>{risk.score}</div>
+            <div className="text-[0.5rem] text-[#8b949e]">Safety index · {risk.verdict}</div>
             <div className="text-[0.53rem] text-[#8b949e] mt-0.5">Conf: {risk.conf}%</div>
             {/* ── EDGE ALERT BADGE ── */}
             {hasEdge && (
@@ -686,6 +748,32 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
               ))}
             </tbody>
           </table>
+        </div>
+
+        <div className="mb-3 rounded-[4px] border border-white/[0.06] bg-[#030308]/90 p-2">
+          <div className="text-[0.55rem] font-mono font-bold tracking-wider uppercase text-[#8b949e] mb-1 px-1">
+            Risk distribution — Attack Surface Radar
+          </div>
+          <div className="h-[200px] w-full min-w-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart data={radarRows} cx="50%" cy="52%" outerRadius="78%">
+                <PolarGrid stroke="rgba(200,255,0,0.12)" />
+                <PolarAngleAxis
+                  dataKey="axis"
+                  tick={{ fill: '#8b949e', fontSize: 9, fontFamily: 'IBM Plex Mono, monospace' }}
+                />
+                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                <Radar
+                  name="Safety"
+                  dataKey="value"
+                  stroke="#c8ff00"
+                  fill="#c8ff00"
+                  fillOpacity={0.22}
+                  strokeWidth={1.2}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         {/* Neural summary */}
@@ -821,10 +909,14 @@ function JupiterInlinePanel({ mint, sym, onFullScreen, enabled }: {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const w = window as any
         if (!w.Jupiter) return
+        // Use our in-origin Solana RPC proxy. It forwards JSON-RPC to Helius
+        // server-side without ever attaching CryptoCheck auth headers or
+        // cookies, and avoids the public mainnet-beta rate limits that were
+        // surfacing as "RPC not responding" in Jupiter Terminal.
         w.Jupiter.init({
           displayMode: 'integrated',
           integratedTargetId: panelId,
-          endpoint: 'https://mainnet.helius-rpc.com/?api-key=35530e51-dad1-480b-af8f-11c8af2ab3fd',
+          endpoint: getClientSolanaRpcUrl(),
           defaultExplorer: 'Solscan',
           strictTokenList: false,
           enableWalletPassthrough: !!(window as any).solana,
@@ -1327,174 +1419,226 @@ function JupiterSwapModal({ mint, sym, onClose }: {
 }
 
 
-// ── Pro Modal ──
-// Solana logo inline SVG — no external dep
-function SolanaLogo({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 397.7 311.7" xmlns="http://www.w3.org/2000/svg">
-      <linearGradient id="sol-g" x1="90.9" y1="319.6" x2="296" y2="-12.6" gradientUnits="userSpaceOnUse">
-        <stop offset="0" stopColor="#9945ff"/><stop offset=".42" stopColor="#5497d5"/>
-        <stop offset=".82" stopColor="#28e0b9"/><stop offset="1" stopColor="#19fb9b"/>
-      </linearGradient>
-      <path fill="url(#sol-g)" d="M64.6 237.9a10 10 0 0 1 7-2.9h317.4c4.4 0 6.6 5.3 3.5 8.4l-62.7 62.7a10 10 0 0 1-7 2.9H5.4c-4.4 0-6.6-5.3-3.5-8.4l62.7-62.7zm0-165.1a10 10 0 0 1 7-2.9h317.4c4.4 0 6.6 5.3 3.5 8.4L329.8 141a10 10 0 0 1-7 2.9H5.4c-4.4 0-6.6-5.3-3.5-8.4l62.7-62.8zM329.8 6.9a10 10 0 0 0-7-2.9H5.4C1 4-1.2 9.3 1.9 12.4l62.7 62.7a10 10 0 0 0 7 2.9h317.4c4.4 0 6.6-5.3 3.5-8.4L329.8 6.9z"/>
-    </svg>
-  )
-}
-
-// Plan definitions — single source of truth
-const PLANS = [
-  {
-    id:       'weekly'  as const,
-    label:    'Weekly',
-    price:    '$5',
-    period:   '/week',
-    solAmt:   0.03,
-    usdcAmt:  5,
-    accentColor: '#00d4aa',
-    badge:    null,
-    features: ['Unlimited Neural Scans','Portfolio Risk Scanner','Whale Tracker','Alpha Feed','Priority Support'],
-    btnStyle: { background:'transparent', border:'1px solid rgba(48,54,61,1)', color:'#8b949e' },
-  },
-  {
-    id:       'yearly'  as const,
-    label:    'Yearly',
-    price:    '$200',
-    period:   '/year',
-    solAmt:   1.2,
-    usdcAmt:  200,
-    accentColor: '#00d4aa',
-    badge:    '⭐ BEST VALUE — SAVE 77%',
-    badgeStyle: { background:'linear-gradient(135deg,#00d4aa,#06b6d4)' },
-    features: ['Everything in Weekly','Institutional Analytics','API Access (1M calls/mo)','Telegram Alerts Bot','Early Feature Access'],
-    btnStyle: { background:'linear-gradient(135deg,#00d4aa,#00b894)', boxShadow:'0 0 12px rgba(48,54,61,1)', color:'#fff', border:'none' },
-  },
-  {
-    id:       'vip'     as const,
-    label:    'AI Auto-Sniper',
-    price:    '$30',
-    period:   '/mo',
-    solAmt:   0.2,
-    usdcAmt:  30,
-    accentColor: '#f59e0b',
-    badge:    '⚡ VIP EXCLUSIVE',
-    badgeStyle: { background:'linear-gradient(135deg,#f59e0b,#7c3aed)' },
-    cardStyle: { background:'linear-gradient(135deg,rgba(251,191,36,0.06),rgba(124,58,237,0.08))', border:'1px solid rgba(251,191,36,0.3)' },
-    priceStyle: { color:'#fbbf24' },
-    featureColor: '#fbbf24',
-    features: ['Everything in Yearly','AI Auto-Sniper Bot','Neural Risk Filtering','Jupiter Auto-Execution','Priority RPC Access'],
-    btnStyle: { background:'linear-gradient(135deg,#f59e0b,#7c3aed)', boxShadow:'0 0 12px rgba(245,158,11,0.3)', color:'#fff', border:'none' },
-  },
-] as const
-
-type PlanId = typeof PLANS[number]['id']
-type CryptoStep = 'idle'|'connecting'|'confirm'|'sending'|'success'|'error'
-type Coin = 'SOL'|'USDC'
-
-const DEST_WALLET = '5jbWsijUWqXLyuaNtzkiu2JM1C5jNPUP9oRjKmmJx15i'
-const USDC_MINT   = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
-const HELIUS_RPC  = 'https://mainnet.helius-rpc.com/?api-key=35530e51-dad1-480b-af8f-11c8af2ab3fd'
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DexQuote = any
 
+type ProModalPlan = {
+  id: 'starter' | 'deep' | 'elite'
+  name: string
+  price: number
+  period: string
+  badge: string | null
+  badgeColor: string
+  color: string
+  features: string[]
+}
+
 function ProModal({ onClose }: { onClose: () => void }) {
-  const [solPrice, setSolPrice] = React.useState(80)
-  const [txStatus, setTxStatus] = React.useState<string|null>(null)
-  const [loading, setLoading] = React.useState<string|null>(null)
-  const [payMethod, setPayMethod] = React.useState<Record<string,string>>({})
-  React.useEffect(() => { fetch('/api/sol-price').then(r=>r.json()).then(d=>{ if(d.price) setSolPrice(d.price) }).catch(()=>{}) }, [])
-  const plans = [
-    { id:'starter', name:'Micro Pack', price:5, period:'/one-time', badge:null as string|null, badgeColor:'', color:'#20b2aa', features:['10 Deep Neural Scans','Rug Detection Reports','Basic Risk Scoring','Valid 30 days'] },
-    { id:'deep', name:'Pro Max Deep', price:30, period:'/month', badge:'GOLD TIER' as string|null, badgeColor:'#d4af37', color:'#d4af37', features:['Unlimited Neural Scans','GNN Cluster Mapping','Heuristic Scoring (523K)','LP Exit Prediction','0% Performance Fees'] },
-    { id:'pro', name:'Pro Trader', price:30, period:'/month', badge:'BEST VALUE' as string|null, badgeColor:'#00d4aa', color:'#00d4aa', features:['Unlimited Neural Scans','Portfolio Risk Scanner','Whale Tracker','Alpha Feed','Priority Support'] },
-    { id:'elite', name:'Pro Max Elite', price:40, period:'/month', badge:'COMMAND CENTER' as string|null, badgeColor:'#8b5cf6', color:'#8b5cf6', features:['Everything in Pro','AI Auto-Sniper Bot','Neural Risk Filtering','Jupiter Auto-Execution','Priority RPC Access'] },
+  const [txStatus, setTxStatus] = React.useState<string | null>(null)
+  const [txStatusIsError, setTxStatusIsError] = React.useState(false)
+  const [loading, setLoading] = React.useState<string | null>(null)
+
+  const plans: ProModalPlan[] = [
+    {
+      id: 'starter',
+      name: 'Micro Pack',
+      price: 5,
+      period: '/one-time',
+      badge: 'STARTER',
+      badgeColor: '#475569',
+      color: '#20b2aa',
+      features: ['10 Deep Neural Scans', 'Rug Detection Reports', 'Basic Risk Scoring', 'Valid 30 days'],
+    },
+    {
+      id: 'deep',
+      name: 'Pro Max Deep',
+      price: 30,
+      period: '/month',
+      badge: 'BEST VALUE',
+      badgeColor: '#00d4aa',
+      color: '#d4af37',
+      features: ['Deep Neural Scan Engine', 'Unlimited Neural Scans', 'GNN Cluster Mapping', 'LP Exit Prediction', '0% Performance Fees'],
+    },
+    {
+      id: 'elite',
+      name: 'Pro Max Elite',
+      price: 40,
+      period: '/month',
+      badge: 'COMMAND CENTER',
+      badgeColor: '#8b5cf6',
+      color: '#8b5cf6',
+      features: ['Everything in Deep', 'Elite Whale Alerts', 'AI Auto-Sniper Bot', 'Neural Risk Filtering', 'Priority RPC Access'],
+    },
   ]
-  async function handleSolPay(planId: string) {
-    setLoading(planId); setTxStatus(null)
-    try {
-      const provider = (window as any).phantom?.solana || (window as any).solana
-      if (!provider?.publicKey) { alert('Connect your Phantom wallet first'); setLoading(null); return }
-      const web3 = await import('@solana/web3.js')
-      const connection = new web3.Connection(process.env.NEXT_PUBLIC_HELIUS_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=35530e51-dad1-480b-af8f-11c8af2ab3fd', 'confirmed')
-      const plan = plans.find(p => p.id === planId)!
-      const solAmount = plan.price / solPrice
-      setTxStatus('Requesting wallet approval...')
-      const tx = new web3.Transaction().add(web3.SystemProgram.transfer({ fromPubkey: provider.publicKey, toPubkey: new web3.PublicKey('5jbWsijUWqXLyuaNtzkiu2JM1C5jNPUP9oRjKmmJx15i'), lamports: Math.round(solAmount * web3.LAMPORTS_PER_SOL) }))
-      const { blockhash } = await connection.getLatestBlockhash()
-      tx.recentBlockhash = blockhash; tx.feePayer = provider.publicKey
-      setTxStatus('Confirm in wallet...')
-      const signed = await provider.signTransaction(tx)
-      setTxStatus('Broadcasting to Solana...')
-      const sig = await connection.sendRawTransaction(signed.serialize())
-      setTxStatus('Confirming on-chain...')
-      await connection.confirmTransaction(sig, 'confirmed')
-      setTxStatus('Verifying payment...')
-      const { supabase } = await import('@/lib/supabase')
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user?.id) throw new Error('Not logged in')
-      const res = await fetch('/api/payments/verify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ signature:sig, plan:planId, userId:session.user.id, solPrice }) })
-      const result = await res.json()
-      if (!res.ok) throw new Error(result.error || 'Verification failed')
-      setTxStatus('Payment confirmed!')
-      setTimeout(() => window.location.reload(), 1500)
-    } catch(e: any) {
-      setTxStatus(e?.message?.includes('User rejected') ? 'Transaction cancelled' : (e?.message || 'Failed'))
-    } finally { setTimeout(() => setLoading(null), 2000) }
+
+  type ConsumerPaymentLinks = { micropack: string; proMaxDeep: string; proMaxElite: string }
+
+  async function fetchConsumerPaymentLinks(): Promise<ConsumerPaymentLinks> {
+    const res = await fetch('/api/billing/payment-links', { cache: 'no-store' })
+    const j = (await res.json().catch(() => ({}))) as Record<string, unknown>
+    if (!res.ok) {
+      const msg = typeof j.error === 'string' && j.error ? j.error : 'Could not load payment options'
+      throw new Error(msg)
+    }
+    const micropack = typeof j.micropack === 'string' ? j.micropack.trim() : ''
+    const proMaxDeep = typeof j.proMaxDeep === 'string' ? j.proMaxDeep.trim() : ''
+    const proMaxElite = typeof j.proMaxElite === 'string' ? j.proMaxElite.trim() : ''
+    if (!micropack || !proMaxDeep || !proMaxElite) {
+      throw new Error('Payment not configured')
+    }
+    return { micropack, proMaxDeep, proMaxElite }
   }
-  async function handleCardPay(planId: string) {
+
+  function paymentUrlForPlan(links: ConsumerPaymentLinks, planId: ProModalPlan['id']): string {
+    if (planId === 'starter') return links.micropack
+    if (planId === 'deep') return links.proMaxDeep
+    return links.proMaxElite
+  }
+
+  /** Card checkout: fresh Payment Link URLs from `/api/billing/payment-links`, then Stripe-hosted redirect. */
+  async function handlePayWithCard(planId: ProModalPlan['id']) {
     setLoading(planId)
+    setTxStatus(null)
+    setTxStatusIsError(false)
     try {
-      const res = await fetch('/api/stripe/checkout', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ plan: planId }) })
-      const data = await res.json()
-      if (data.url) window.location.assign(data.url)
-      else throw new Error(data.error || 'Failed')
-    } catch(e: any) { alert('Payment error: ' + (e?.message || 'Unknown')) }
-    finally { setLoading(null) }
+      const { supabase } = await import('@/lib/supabase')
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (!session?.user?.id) {
+        setTxStatus('Sign in to continue — we attach your purchase to your account.')
+        setTxStatusIsError(true)
+        return
+      }
+
+      const links = await fetchConsumerPaymentLinks()
+      const raw = paymentUrlForPlan(links, planId)
+      if (!raw) {
+        setTxStatus('This plan is not available. Contact support.')
+        setTxStatusIsError(true)
+        return
+      }
+
+      const q = new URLSearchParams()
+      q.set('client_reference_id', session.user.id)
+      if (session.user.email) q.set('prefilled_email', session.user.email)
+      const sep = raw.includes('?') ? '&' : '?'
+      window.location.href = `${raw}${sep}${q.toString()}`
+    } catch (e: unknown) {
+      console.error('[Payment] Card pay error:', e)
+      setTxStatus(e instanceof Error ? e.message : 'Could not start checkout. Please try again.')
+      setTxStatusIsError(true)
+    } finally {
+      setLoading(null)
+    }
   }
+
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.8)',backdropFilter:'blur(20px)',display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
-      <div onClick={e=>e.stopPropagation()} style={{width:'min(920px,95vw)',maxHeight:'90vh',overflowY:'auto',background:'#0a0e14',border:'1px solid rgba(0,212,170,0.12)',borderRadius:16,overflow:'hidden',boxShadow:'0 32px 80px rgba(0,0,0,0.8)',fontFamily:"'IBM Plex Mono','Inter',monospace"}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:'min(920px, calc(100vw - 32px))',minWidth:0,boxSizing:'border-box',maxHeight:'90vh',overflowY:'auto',overflowX:'hidden',background:'#0a0e14',border:'1px solid rgba(0,212,170,0.12)',borderRadius:16,boxShadow:'0 32px 80px rgba(0,0,0,0.8)',fontFamily:"'IBM Plex Mono','Inter',monospace"}}>
         <div style={{textAlign:'center',padding:'28px 20px 20px',position:'relative'}}>
           <button onClick={onClose} style={{position:'absolute',top:12,right:16,background:'none',border:'none',color:'#484f58',cursor:'pointer',fontSize:20}}>&times;</button>
           <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 12px',borderRadius:16,border:'1px solid rgba(0,212,170,0.2)',background:'rgba(0,212,170,0.05)',marginBottom:12}}>
             <span style={{fontSize:8,fontWeight:700,color:'#00d4aa',letterSpacing:'0.1em'}}>INSTITUTIONAL ACCESS</span>
           </div>
           <h2 style={{fontSize:24,fontWeight:800,color:'#fff',margin:'0 0 6px'}}>Upgrade to <span style={{color:'#00d4aa'}}>PRO</span></h2>
-          <p style={{fontSize:12,color:'#6e7681',margin:0}}>Pay with card or crypto on Solana — instant access.</p>
+          <p style={{fontSize:12,color:'#6e7681',margin:0}}>Secure checkout via Stripe — instant access after payment.</p>
         </div>
-        {txStatus && <div style={{margin:'0 20px 12px',padding:'8px 14px',borderRadius:8,fontSize:11,fontWeight:600,fontFamily:"'IBM Plex Mono',monospace",textAlign:'center',background:'rgba(0,212,170,0.06)',border:'1px solid rgba(0,212,170,0.15)',color:'#00d4aa'}}>{txStatus}</div>}
-        <div className="pm-modal-grid" style={{display:'grid',gap:12,padding:'0 20px 16px'}}>
-          {plans.map(pl => (
-            <div key={pl.id} style={{background:'#0d1420',border:'1px solid ' + (pl.badge ? pl.color + '30' : 'rgba(0,212,170,0.08)'),borderRadius:12,padding:'20px 16px',position:'relative'}}>
-              {pl.badge && <div style={{position:'absolute',top:-10,left:'50%',transform:'translateX(-50%)',background:pl.badgeColor,color:pl.badgeColor==='#8b5cf6'?'#fff':'#0a0a0a',fontSize:8,fontWeight:700,padding:'3px 10px',borderRadius:10,whiteSpace:'nowrap',letterSpacing:'0.06em'}}>{pl.badge}</div>}
-              <div style={{textAlign:'center',marginBottom:14}}>
-                <div style={{fontSize:11,fontWeight:600,color:'#8b949e',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.08em'}}>{pl.name}</div>
-                <div style={{fontSize:32,fontWeight:800,color:'#fff',lineHeight:1}}>${pl.price}</div>
-                <div style={{fontSize:11,color:'#484f58'}}>{pl.period}</div>
-                <div style={{fontSize:9,color:'#303030',fontFamily:"'IBM Plex Mono',monospace",marginTop:2}}>{'~'} {(pl.price / solPrice).toFixed(2)} SOL</div>
-              </div>
-              <div style={{display:'flex',flexDirection:'column',gap:5,marginBottom:16}}>
-                {pl.features.map((f: string) => <div key={f} style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:'#8b949e'}}><span style={{color:pl.color,fontSize:10}}>{'✓'}</span>{f}</div>)}
-              </div>
-              <button onClick={()=>handleCardPay(pl.id)} disabled={loading===pl.id} style={{width:'100%',padding:'10px 0',borderRadius:8,border:'1px solid rgba(0,212,170,0.2)',background:'rgba(0,212,170,0.05)',color:'#fff',fontSize:12,fontWeight:600,cursor:'pointer',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontFamily:"'IBM Plex Mono',monospace"}}>Pay with Card</button>
-              <div style={{textAlign:'center',fontSize:9,color:'#303030',margin:'4px 0 8px',letterSpacing:'0.05em'}}>or pay with crypto</div>
-              <div style={{display:'flex',gap:4,marginBottom:8}}>
-                {['SOL','USDC'].map((c: string) => <button key={c} onClick={()=>setPayMethod(prev=>({...prev,[pl.id]:c}))} style={{flex:1,padding:'5px 0',borderRadius:6,border:'1px solid ' + ((payMethod[pl.id]||'SOL')===c?'rgba(0,212,170,0.3)':'rgba(255,255,255,0.06)'),background:(payMethod[pl.id]||'SOL')===c?'rgba(0,212,170,0.08)':'transparent',color:(payMethod[pl.id]||'SOL')===c?'#00d4aa':'#484f58',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:"'IBM Plex Mono',monospace"}}>{c}</button>)}
-              </div>
-              <button onClick={()=>handleSolPay(pl.id)} disabled={loading===pl.id} style={{width:'100%',padding:'10px 0',borderRadius:8,border:'none',background:'linear-gradient(135deg,#00d4aa,#059669)',color:'#000',fontSize:11,fontWeight:700,cursor:loading===pl.id?'not-allowed':'pointer',opacity:loading===pl.id?0.6:1,fontFamily:"'IBM Plex Mono',monospace"}}>
-                {loading===pl.id ? 'Processing...' : 'Pay ' + (pl.price / solPrice).toFixed(2) + ' SOL on Solana'}
+        {txStatus && (
+          <div
+            style={{
+              margin: '0 20px 12px',
+              padding: '10px 14px',
+              borderRadius: 8,
+              fontSize: 11,
+              fontWeight: 600,
+              fontFamily: "'IBM Plex Mono',monospace",
+              textAlign: 'left',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 10,
+              lineHeight: 1.45,
+              wordBreak: 'break-word',
+              background: txStatusIsError ? 'rgba(251,191,36,0.08)' : 'rgba(0,212,170,0.06)',
+              border: txStatusIsError ? '1px solid rgba(251,191,36,0.35)' : '1px solid rgba(0,212,170,0.15)',
+              color: txStatusIsError ? '#fcd34d' : '#00d4aa',
+              position: 'relative',
+              paddingRight: txStatusIsError ? 36 : 14,
+            }}
+          >
+            {txStatusIsError && (
+              <AlertCircle size={18} style={{ flexShrink: 0, marginTop: 1, opacity: 0.95 }} aria-hidden />
+            )}
+            <span style={{ flex: 1, textAlign: txStatusIsError ? 'left' : 'center' }}>{txStatus}</span>
+            {txStatusIsError && (
+              <button
+                type="button"
+                onClick={() => { setTxStatus(null); setTxStatusIsError(false) }}
+                aria-label="Dismiss message"
+                style={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 10,
+                  background: 'none',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  fontSize: 18,
+                  lineHeight: 1,
+                  padding: 2,
+                }}
+              >
+                &times;
               </button>
+            )}
+          </div>
+        )}
+        <div className="pm-modal-grid" style={{display:'grid',gap:12,padding:'14px 20px 16px',width:'100%',maxWidth:'100%',boxSizing:'border-box'}}>
+          {plans.map((pl) => {
+            const recommended = pl.id === 'deep'
+            const cardBorder = recommended
+              ? '1px solid rgba(0,212,170,0.42)'
+              : ('1px solid ' + (pl.badge && pl.id !== 'starter' ? pl.color + '30' : 'rgba(0,212,170,0.08)'))
+            const cardShadow = recommended
+              ? '0 0 28px rgba(0,212,170,0.12), inset 0 1px 0 rgba(0,212,170,0.05)'
+              : undefined
+            const badgeText =
+              pl.badgeColor === '#8b5cf6' || pl.badge === 'STARTER' ? '#f8fafc' : '#0a0a0a'
+            return (
+            <div key={pl.id} className="pm-plan-card" style={{background:'#0d1420',border:cardBorder,boxShadow:cardShadow,borderRadius:12,position:'relative',minWidth:0,overflow:'visible',width:'100%'}}>
+              {pl.badge && <div style={{position:'absolute',top:-10,left:'50%',transform:'translateX(-50%)',zIndex:2,background:pl.badgeColor,color:badgeText,fontSize:8,fontWeight:700,padding:'3px 10px',borderRadius:10,whiteSpace:'nowrap',letterSpacing:'0.06em',boxShadow:'0 2px 8px rgba(0,0,0,0.35)'}}>{pl.badge}</div>}
+              <div className="pm-plan-card-inner" style={{overflow:'hidden',borderRadius:12,padding:'20px 16px'}}>
+                <div style={{textAlign:'center',marginBottom:14}}>
+                  <div style={{fontSize:11,fontWeight:600,color:'#8b949e',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.08em'}}>{pl.name}</div>
+                  <div style={{fontSize:32,fontWeight:800,color:'#fff',lineHeight:1}}>${pl.price}</div>
+                  <div style={{fontSize:11,color:'#484f58'}}>{pl.period}</div>
+                </div>
+                <div style={{display:'flex',flexDirection:'column',gap:5,marginBottom:16}}>
+                  {pl.features.map((f: string) => <div key={f} style={{display:'flex',alignItems:'flex-start',gap:6,fontSize:'clamp(10px,2.8vw,11px)',lineHeight:1.45,color:'#8b949e'}}><span style={{color:pl.color,fontSize:10,marginTop:1}}>{'✓'}</span><span>{f}</span></div>)}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void handlePayWithCard(pl.id)}
+                  disabled={loading === pl.id}
+                  style={{width:'100%',padding:'10px 0',borderRadius:8,border:'1px solid rgba(0,212,170,0.2)',background:'rgba(0,212,170,0.05)',color:'#fff',fontSize:12,fontWeight:600,cursor:loading===pl.id ? 'not-allowed' : 'pointer',opacity:loading===pl.id ? 0.65 : 1,fontFamily:"'IBM Plex Mono',monospace"}}
+                >
+                  {loading === pl.id ? 'Redirecting…' : 'Pay with Card'}
+                </button>
+              </div>
             </div>
-          ))}
+            )
+          })}
         </div>
         <div className='pm-feat-grid' style={{display:'grid',gap:12,padding:'8px 20px 20px'}}>
           {[{icon:'W',name:'Whale Tracker',desc:'Follow top wallets with >$500K PnL'},{icon:'A',name:'Alpha Feed',desc:'Rug alerts, accumulation signals'},{icon:'S',name:'AI Auto-Sniper',desc:'Neural auto-trade on Jupiter'}].map(f => <div key={f.name} style={{background:'rgba(0,212,170,0.02)',border:'1px solid rgba(0,212,170,0.06)',borderRadius:10,padding:'14px 12px',textAlign:'center'}}><div style={{fontSize:16,marginBottom:6,color:'#00d4aa'}}>{f.icon}</div><div style={{fontSize:11,fontWeight:700,color:'#e2e8f0',marginBottom:3}}>{f.name}</div><div style={{fontSize:9,color:'#484f58',lineHeight:1.5}}>{f.desc}</div></div>)}
         </div>
         <div style={{padding:'10px 20px 14px',borderTop:'1px solid rgba(255,255,255,0.04)',textAlign:'center'}}>
-          <span style={{fontSize:9,color:'#303030'}}>Crypto payments on Solana Mainnet | Card payments via Stripe | No refunds</span>
+          <span style={{fontSize:9,color:'#303030'}}>
+            Card payments via Stripe Payment Links | No refunds
+          </span>
         </div>
       </div>
-      <style>{'.pm-modal-grid{grid-template-columns:repeat(2,1fr)}@media(min-width:900px){.pm-modal-grid{grid-template-columns:repeat(4,1fr)}}@media(max-width:600px){.pm-modal-grid{grid-template-columns:1fr!important}}'}</style>
+      <style>{'.pm-modal-grid{display:grid;grid-template-columns:1fr;width:100%;max-width:100%;gap:12px;box-sizing:border-box}.pm-plan-card{width:100%;min-width:0;max-width:none}.pm-plan-card *{word-break:break-word;overflow-wrap:anywhere}.pm-plan-card-inner{box-sizing:border-box}@media(min-width:768px){.pm-modal-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:767px){.pm-modal-grid{display:flex!important;flex-direction:column!important;align-items:center!important;padding:14px 12px 16px!important}.pm-plan-card{width:100%!important;max-width:400px!important;min-width:0!important}.pm-plan-card-inner{padding:16px 12px!important}}'}</style>
     </div>
   )
 }
@@ -2031,6 +2175,7 @@ function ProMaxView({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => voi
 export default function Dashboard() {
 
   const { walletAddress, isConnected, isConnecting, connect, disconnect, shortAddr } = useSolana()
+  const sub = useSubscription()
 
   const [view,        setView]        = useState<View>('scanner')
   const [scanTab,     setScanTab]     = useState<ScanTab>('verdict')
@@ -2046,6 +2191,7 @@ export default function Dashboard() {
   const [showModal,   setShowModal]   = useState(false)
   const [showAuth,    setShowAuth]    = useState(false)
   const [authUser,    setAuthUser]    = useState<any>(null)
+  const [authResolved, setAuthResolved] = useState(false)
 
   // ── Auth session listener (picks up OAuth redirect + existing session) ──
   useEffect(() => {
@@ -2055,6 +2201,7 @@ export default function Dashboard() {
         setIsPro(data.session.user.user_metadata?.is_pro || false)
         loadCreditsFromProfile(data.session.user.id)
       }
+      setAuthResolved(true)
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
@@ -2077,47 +2224,112 @@ export default function Dashboard() {
         setIsPro(false)
         setCredits(10)
       }
+      setAuthResolved(true)
     })
     return () => subscription.unsubscribe()
   }, [])
 
+  const referralCode = authUser?.id || ''
+  const referralLink = referralCode ? `https://cryptocheckai.com?ref=${referralCode}` : ''
+
   async function loadCreditsFromProfile(userId: string) {
     try {
-      const { data } = await supabase.from('profiles').select('credits, is_pro').eq('id', userId).single()
+      const { data } = await supabase
+        .from('profiles')
+        .select('credits, is_pro, plan, plan_type, tier, is_elite')
+        .eq('id', userId)
+        .single()
       if (data) {
         if (data.credits !== null && data.credits !== undefined) {
           setCredits(data.credits)
         }
-        if (data.is_pro) { setIsPro(true); localStorage.setItem('cc_is_pro', 'true') }
+        const p = String(data.plan || '').toLowerCase()
+        const pt = String(data.plan_type ?? '').trim().toLowerCase()
+        const tierRaw = String(data.tier ?? '').trim()
+        const tier = tierRaw.toLowerCase()
+        const tierU = tierRaw.toUpperCase()
+        const tierProLike =
+          tierU === 'PRO' ||
+          tierU === 'ENTERPRISE' ||
+          tierU === 'PRO_MAX_DEEP' ||
+          tierU === 'PRO_MAX_ELITE' ||
+          tier === 'micropack' ||
+          tier === 'starter' ||
+          tier === 'pro' ||
+          tier === 'deep' ||
+          tier === 'whale' ||
+          tier === 'elite' ||
+          tier === 'pro_max_deep' ||
+          tier === 'pro_max_elite' ||
+          tier === 'institutional' ||
+          tier === 'enterprise'
+        const proLike =
+          !!data.is_pro ||
+          !!data.is_elite ||
+          p === 'pro' ||
+          p === 'deep' ||
+          p === 'whale' ||
+          p === 'elite' ||
+          p === 'institutional' ||
+          p === 'enterprise' ||
+          pt === 'pro' ||
+          pt === 'deep' ||
+          pt === 'whale' ||
+          pt === 'elite' ||
+          pt === 'institutional' ||
+          pt === 'enterprise' ||
+          tierProLike
+        if (proLike) {
+          setIsPro(true)
+          localStorage.setItem('cc_is_pro', 'true')
+        }
+        if (
+          data.is_elite ||
+          tierU === 'ENTERPRISE' ||
+          tierU === 'PRO_MAX_ELITE' ||
+          tier === 'elite' ||
+          tier === 'pro_max_elite' ||
+          tier === 'enterprise' ||
+          tier === 'institutional' ||
+          p === 'institutional' ||
+          p === 'enterprise' ||
+          pt === 'elite' ||
+          pt === 'enterprise' ||
+          pt === 'institutional'
+        )
+          setIsElite(true)
       }
+      void sub.refresh()
     } catch { /* fallback to localStorage */ }
-  }
-
-  async function useCredit(): Promise<boolean> {
-    if (isPro) return true
-    if (credits <= 0) return false
-    const nc = credits - 1
-    setCredits(nc)
-    if (authUser?.id) {
-      supabase.from('profiles').update({ credits: nc }).eq('id', authUser.id).then(() => {})
-    }
-    return true
   }
 
   async function handleSignOut() {
     await supabase.auth.signOut()
     setAuthUser(null)
     setIsPro(false)
+    setIsElite(false)
     localStorage.removeItem('cc_is_pro')
+    void sub.refresh()
   }
   const [isPro,setIsPro] = useState(false)
   const [isElite, setIsElite] = useState(false)
+  /** Merged with {@link useSubscription}; DB ENTERPRISE is full stack (see {@link hasAccess}). */
+  const entitlementPro = isPro || sub.hasFullAccess
+  const entitlementElite = isElite || sub.isEliteActive
+  const headerVipStyle =
+    sub.currentTier === 'ENTERPRISE' || sub.currentTier === 'PRO_MAX_ELITE'
+  const headerTierLabel =
+    sub.currentTier === 'ENTERPRISE'
+      ? '◆ PRO MAX · Full stack'
+      : sub.currentTier === 'PRO_MAX_ELITE'
+        ? '◆ PRO MAX ELITE'
+        : sub.currentTier === 'PRO_MAX_DEEP'
+          ? '◆ PRO MAX DEEP'
+          : '⭐ PRO'
   const [credits, setCredits] = useState(10) // Server-synced via loadCreditsFromProfile
   const [trialActivated, setTrialActivated] = useState(false)
   const [showSignup, setShowSignup] = useState(false)
   const [chartSwapModal, setChartSwapModal] = useState<{mint:string;symbol:string;tab?:string}|null>(null)
-  const { trial } = useTrialStatus(walletAddress)
-  const isTrialExpired = trial?.expired ?? false
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const pro = localStorage.getItem('cc_is_pro') === 'true'
@@ -2168,6 +2380,25 @@ export default function Dashboard() {
   const [chatLoading,  setChatLoading]  = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
+  // AI Stress Test (Proactive Defense)
+  const [stressLoading, setStressLoading] = useState(false)
+  const [stressPhase, setStressPhase] = useState<'idle' | 'analyzing' | 'simulating'>('idle')
+  const [stressResult, setStressResult] = useState<StressTestApiResult | null>(null)
+  const [stressModalOpen, setStressModalOpen] = useState(false)
+  const [stressError, setStressError] = useState('')
+  // Stable close handler so memo(BentoGrid) isn't invalidated every dashboard render.
+  const closeStressModal = useCallback(() => setStressModalOpen(false), [])
+
+  useEffect(() => {
+    if (!stressLoading) {
+      setStressPhase('idle')
+      return
+    }
+    setStressPhase('analyzing')
+    const t = setTimeout(() => setStressPhase('simulating'), 2800)
+    return () => clearTimeout(t)
+  }, [stressLoading])
+
   // Portfolio
   const [pfState,     setPfState]     = useState<'idle'|'loading'|'done'|'error'>('idle')
   const [pfHoldings,  setPfHoldings]  = useState<PortfolioHolding[]>([])
@@ -2177,7 +2408,11 @@ export default function Dashboard() {
   useEffect(() => {
     let cancelled = false
     const tick = async () => {
-      try { const s = await getSlot(); if (!cancelled) setSlot(s.toLocaleString()) } catch {}
+      try {
+        const r = await fetch('/api/solana/slot', { cache: 'no-store' })
+        const j = (await r.json()) as { slot?: number }
+        if (!cancelled && typeof j.slot === 'number') setSlot(j.slot.toLocaleString())
+      } catch {}
     }
     tick()
     const iv = setInterval(tick, 60000)
@@ -2204,7 +2439,12 @@ export default function Dashboard() {
     async function fetchRealFeed() {
       if (document.hidden) return
       try {
-        const res = await fetch('/api/live-feed')
+        const apiKey = await loadEncryptedKey()
+        if (!apiKey) return
+        const res = await fetch('/api/live-feed', {
+          headers: { Authorization: `Bearer ${apiKey}` },
+        })
+        if (!res.ok) return
         const data = await res.json()
         if (data.events && data.events.length > 0) {
           const batch = data.events.map((ev: any) => {
@@ -2307,36 +2547,57 @@ export default function Dashboard() {
     setScanError('')
     if (!mint || mint.length < 32 || mint.length > 44) { setScanError('Please paste a valid Solana token address (32-44 chars).'); setScanState('error'); return }
 
-    // ── CREDIT GATE: Check before scanning ──
-    if (!isPro && credits <= 0) {
-      setScanError('No credits remaining. Refill to continue scanning.')
-      setScanState('error')
-      setShowModal(true) // Open pricing modal
-      return
-    }
-
-    // Optimistic UI: deduct immediately
-    if (!isPro) {
-      setCredits(prev => Math.max(0, prev - 1)) // Optimistic, server syncs
-    }
+    let creditConsumed = false
 
     setScanState('loading')
     setScanData(null)
     try {
-      // Server-side credit deduction (parallel with scan)
-      const creditPromise = authUser?.id
-        ? fetch('/api/scan/use-credit', { method: 'POST' }).then(r => r.json()).catch(() => null)
-        : Promise.resolve(null)
+      if (!entitlementPro) {
+        const checkRes = await fetch('/api/scan/use-credit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'check' }),
+        })
+        const checkJson = await checkRes.json().catch(() => ({}))
+        if (!checkRes.ok) {
+          setScanError(checkJson?.error || 'No credits remaining. Refill to continue scanning.')
+          setScanState('error')
+          setShowModal(true)
+          return
+        }
+        if (typeof checkJson?.credits === 'number') {
+          setCredits(checkJson.credits)
+        }
+      }
 
-      const data = await scanToken(mint)
+      const scanRes = await fetch('/api/solana/scan-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mint }),
+      })
+      const scanJson = (await scanRes.json().catch(() => ({}))) as ScanData & { error?: string }
+      if (!scanRes.ok) {
+        throw new Error(scanJson?.error || 'Scan failed')
+      }
+      const data = scanJson as ScanData
       setScanData(data)
       setScanState('done')
       setScanCount(c => c + 1)
 
-      // Sync server credit count
-      const creditResult = await creditPromise
-      if (creditResult?.credits !== undefined && creditResult.credits >= 0) {
-        setCredits(creditResult.credits)
+      if (!entitlementPro) {
+        const consumeRes = await fetch('/api/scan/use-credit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'consume' }),
+        })
+        const consumeJson = await consumeRes.json().catch(() => ({}))
+        if (!consumeRes.ok) {
+          throw new Error(consumeJson?.error || 'Failed to consume scan credit')
+        }
+        creditConsumed = true
+        if (typeof consumeJson?.credits === 'number' && consumeJson.credits >= 0) {
+          setCredits(consumeJson.credits)
+        }
       }
       setDexMint(mint)
       setCurrentMint(mint)   // sync chart + Jupiter to scanned token
@@ -2363,6 +2624,17 @@ export default function Dashboard() {
       setChatMessages([])
       triggerAiSummary(data)
     } catch(e: unknown) {
+      if (!entitlementPro && !creditConsumed) {
+        try {
+          const syncRes = await fetch('/api/scan/use-credit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'check' }),
+          })
+          const syncJson = await syncRes.json().catch(() => ({}))
+          if (syncRes.ok && typeof syncJson?.credits === 'number') setCredits(syncJson.credits)
+        } catch {}
+      }
       const msg = e instanceof Error ? e.message : 'Unknown error'
       setScanError('Scan failed: ' + msg)
       setScanState('error')
@@ -2393,6 +2665,43 @@ export default function Dashboard() {
     doScan(mint)
   }, [doScan])
 
+  const runAiStressTest = useCallback(async () => {
+    const addr = (scanData?.mint || mintInput).trim()
+    if (addr.length < 32) {
+      setStressError('Enter a valid Solana address (32+ characters) in the scan bar or complete a scan first.')
+      return
+    }
+    setStressError('')
+    setStressLoading(true)
+    try {
+      const apiKey = await loadEncryptedKey()
+      if (!apiKey) {
+        setStressError('API key required — paste your key in the Intelligence Terminal first.')
+        return
+      }
+      const res = await fetch('/api/analyze-contract', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({ address: addr }),
+      })
+      if (res.status === 401) {
+        setStressError('Session expired or invalid API key — paste your key again.')
+        return
+      }
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'AI Stress Test failed')
+      setStressResult(json as StressTestApiResult)
+      setStressModalOpen(true)
+    } catch (e) {
+      setStressError(e instanceof Error ? e.message : 'Stress test failed')
+    } finally {
+      setStressLoading(false)
+    }
+  }, [scanData?.mint, mintInput])
+
   // ── Portfolio scan ──
   const doPortfolioScan = useCallback(async () => {
     if (!isConnected || !walletAddress) {
@@ -2402,7 +2711,17 @@ export default function Dashboard() {
     setPfState('loading')
     setPfError('')
     try {
-      const holdings = await fetchPortfolio(walletAddress)
+      const pfRes = await fetch('/api/solana/portfolio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletAddress }),
+      })
+      const pfJson = (await pfRes.json().catch(() => [])) as PortfolioHolding[] | { error?: string }
+      if (!pfRes.ok) {
+        const err = pfJson && typeof pfJson === 'object' && 'error' in pfJson ? (pfJson as { error?: string }).error : undefined
+        throw new Error(err || 'Portfolio fetch failed')
+      }
+      const holdings = Array.isArray(pfJson) ? pfJson : []
       if (!holdings.length) throw new Error('No SPL token holdings found with non-zero balances.')
       setPfHoldings(holdings)
       setPfState('done')
@@ -2468,118 +2787,162 @@ export default function Dashboard() {
 
   // ── Portfolio content ──
   const renderPortfolioContent = () => {
-    if (pfState === 'idle') return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-center gap-4 p-10">
-        <div className="text-5xl">📂</div>
-        <div className="text-base font-bold text-[#e2e8f0] font-sans">Portfolio Risk Scanner</div>
-        <div className="text-[0.7rem] text-[#8b949e] max-w-xs leading-relaxed">Connect your Phantom wallet to scan all token holdings. The AI generates a Global Portfolio Risk Score by analyzing every position via Helius DAS API.</div>
-        <button onClick={doPortfolioScan} disabled={isConnecting} className="unlock-btn max-w-xs">{isConnecting ? 'Connecting…' : isConnected ? '🔍 Scan My Portfolio' : '🔗 Connect & Scan Portfolio'}</button>
-        <div className="flex flex-col md:flex-row gap-1.5 justify-center">
-          <span className="ds-badge ds-badge-rpc"><span className="w-1.5 h-1.5 rounded-full bg-cyan-400 inline-block dot-pulse" />Helius DAS API</span>
-          <span className="ds-badge ds-badge-net">{NETWORK_LABEL}</span>
-          <span className="ds-badge ds-badge-engine">{ENGINE_LABEL}</span>
-        </div>
+    return (
+      <div className="space-y-4">
+        <PortfolioScanner audience="consumer" />
+        <WatchlistPanel audience="consumer" />
       </div>
     )
-
-    if (pfState === 'loading') return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 p-10">
-        <NeuralSpinner />
-        <div className="text-center">
-          <div className="text-sm font-bold text-[#e2e8f0] font-sans mb-1">Portfolio Risk Scan</div>
-          <div className="text-[0.62rem] text-[#8b949e]">Fetching holdings via Helius DAS API…</div>
-        </div>
-        <div className="w-full max-w-xs bg-[#0c0c18] border border-[rgba(0,212,130,0.15)] rounded-[4px] p-3">
-          {['$ portfolio_scan --wallet helius-das', '⚡ Querying token accounts…', '📋 Analyzing balances…', '🧠 Running neural risk scoring…', '📊 Generating Global Risk Score…'].map((l,i) => (
-            <div key={i} className="log-line" style={{ animationDelay: `${i*0.18}s` }}>{l}</div>
-          ))}
-        </div>
-      </div>
-    )
-
-    if (pfState === 'error') return (
-      <div className="p-6">
-        <div className="p-3 bg-red-950/20 border border-red-800/25 rounded-[4px] text-red-400 text-[0.7rem] mb-4">⚠ {pfError}</div>
-        <button onClick={() => setPfState('idle')} className="unlock-btn max-w-xs">← Try Again</button>
-      </div>
-    )
-
-    if (pfState === 'done' && walletAddress) return <PortfolioResults holdings={pfHoldings} wallet={walletAddress} />
-    return null
   }
 
   // ── Main scan content ──
   const renderScanContent = () => {
+    const motionProps = {
+      initial: { opacity: 0, y: 10 },
+      animate: { opacity: 1, y: 0 },
+      exit: { opacity: 0, y: -8 },
+      transition: { duration: 0.38 },
+    }
+
+    if (scanState === 'loading') {
+      return (
+        <motion.div
+          key="loading"
+          {...motionProps}
+          className="flex flex-col items-center justify-center h-full gap-5 p-10"
+        >
+          <NeuralSpinner />
+          <div className="text-center">
+            <div className="text-sm font-bold text-[#e2e8f0] font-sans mb-1">Neural Scan Active</div>
+            <div className="text-[0.62rem] text-[#8b949e]">Multi-vector simulation · {NETWORK_LABEL}</div>
+          </div>
+          <SecurityTerminal active variant="scan" />
+        </motion.div>
+      )
+    }
+    if (scanState === 'error') {
+      return (
+        <motion.div key="error" {...motionProps} className="p-4">
+          <div className="p-3 bg-red-950/20 border border-red-800/25 rounded-[4px] text-red-400 text-[0.7rem] flex items-start gap-2">
+            <span className="text-base flex-shrink-0">⚠</span>
+            <span>{scanError}</span>
+          </div>
+        </motion.div>
+      )
+    }
+
     // Chart tab can show even without a full scan if we have a dexMint
     if (scanTab === 'chart') {
       const chartMint = (scanData?.mint ?? dexMint).trim()
-      if (chartMint.length >= 32) return <DexChartTab mint={chartMint} chartKey={chartKey} onConnectWallet={isConnected ? disconnect : connect} isConnected={isConnected} shortAddr={shortAddr} currentSymbol={scanData?.meta?.onChainMetadata?.metadata?.data?.symbol ?? scanData?.meta?.legacyMetadata?.symbol ?? '???'} neuralScore={scanData ? computeRisk(scanData).score : null} />
+      if (chartMint.length >= 32) {
+        return (
+          <motion.div key={`chart-${chartMint}`} {...motionProps}>
+            <DexChartTab
+              mint={chartMint}
+              chartKey={chartKey}
+              onConnectWallet={isConnected ? disconnect : connect}
+              isConnected={isConnected}
+              shortAddr={shortAddr}
+              currentSymbol={
+                scanData?.meta?.onChainMetadata?.metadata?.data?.symbol ??
+                scanData?.meta?.legacyMetadata?.symbol ??
+                '???'
+              }
+              neuralScore={scanData ? computeRisk(scanData).score : null}
+            />
+          </motion.div>
+        )
+      }
       return (
-        <div className="flex flex-col items-center justify-center h-full gap-3 text-center p-10">
-          <div className="text-4xl">📈</div>
-          <div className="text-sm font-bold text-[#e2e8f0] font-sans">No Token Selected</div>
-          <div className="text-[0.68rem] text-[#8b949e] max-w-xs leading-relaxed">
-            Scan a token or paste a mint address into the DexScreener search bar in the sidebar to load the live price chart.
+        <motion.div key="chart-empty" {...motionProps}>
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-center p-10">
+            <div className="text-4xl">📈</div>
+            <div className="text-sm font-bold text-[#e2e8f0] font-sans">No Token Selected</div>
+            <div className="text-[0.68rem] text-[#8b949e] max-w-xs leading-relaxed">
+              Scan a token or paste a mint address into the DexScreener search bar in the sidebar to load the live price chart.
+            </div>
           </div>
-        </div>
+        </motion.div>
       )
     }
-    if (scanState === 'idle') return (
-      <div style={{flex:1,minHeight:0,overflow:'hidden'}}>
-        <TokenListDashboard
-          onScanToken={(mint) => { setMintInput(mint); doScan(mint) }}
-          showModal={() => setShowModal(true)}
-        />
-      </div>
-    )
-    if (scanState === 'loading') return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 p-10">
-        <NeuralSpinner />
-        <div className="text-center">
-          <div className="text-sm font-bold text-[#e2e8f0] font-sans mb-1">Neural Scan Active</div>
-          <div className="text-[0.62rem] text-[#8b949e]">Querying Helius {NETWORK_LABEL}…</div>
-        </div>
-        <div className="w-full max-w-sm bg-[#0c0c18] border border-[rgba(0,212,130,0.15)] rounded-[4px] p-3">
-          {[`$ init_scan --mint ${mintInput.slice(0,8)}... --rpc helius`,'⚡ Connecting Helius RPC...','📋 Fetching DAS metadata...','🔍 Analyzing authority structure...','👥 Loading top holders...','🧠 Running neural recognition...','📊 Building distribution chart...','✓ Neural Engine v2 verdict ready'].map((l,i) => (
-            <div key={i} className="log-line" style={{ animationDelay: `${i*0.17}s` }}>{l}</div>
-          ))}
-        </div>
-      </div>
-    )
-    if (scanState === 'error') return (
-      <div className="p-4">
-        <div className="p-3 bg-red-950/20 border border-red-800/25 rounded-[4px] text-red-400 text-[0.7rem] flex items-start gap-2">
-          <span className="text-base flex-shrink-0">⚠</span><span>{scanError}</span>
-        </div>
-      </div>
-    )
+    if (scanState === 'idle') {
+      return (
+        <motion.div key="idle" {...motionProps} style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <TokenListDashboard
+            onScanToken={(mint) => {
+              setMintInput(mint)
+              doScan(mint)
+            }}
+            showModal={() => setShowModal(true)}
+          />
+        </motion.div>
+      )
+    }
     if (scanState === 'done' && scanData) {
-      if (scanTab === 'verdict')   return (
-        <VerdictTab
-          data={scanData}
-          onTradeClick={(m,s)=>{setSwapMint(m);setSwapSym(s);setShowSwap(true)}}
-          onChartClick={(m)=>{setDexMint(m);setScanTab('chart')}}
-          aiSummary={aiSummary}
-          aiLoading={aiLoading}
-          chatMessages={chatMessages}
-          chatLoading={chatLoading}
-          chatInput={chatInput}
-          onChatInput={setChatInput}
-          onChatSend={sendChatMessage}
-        />
-      )
-      if (scanTab === 'holders')   return <HoldersTab data={scanData} />
-      if (scanTab === 'liquidity') return <LiquidityTab data={scanData} />
-      if (scanTab === 'transfers') return <TransfersTab data={scanData} />
-      if (scanTab === 'edge')      return (
-        <AlphaEdgeTab
-          data={scanData}
-          onTradeClick={(m,s)=>{setSwapMint(m);setSwapSym(s);setShowSwap(true)}}
-          aiEdge={aiEdge}
-          aiEdgeLoading={aiEdgeLoading}
-          onAnalyzeEdge={(ep,bb,bs)=>triggerAiEdge(scanData,ep,bb,bs)}
-        />
-      )
+      const mk = scanData.mint
+      if (scanTab === 'verdict') {
+        return (
+          <motion.div key={`verdict-${mk}`} {...motionProps}>
+            <VerdictTab
+              data={scanData}
+              onTradeClick={(m, s) => {
+                setSwapMint(m)
+                setSwapSym(s)
+                setShowSwap(true)
+              }}
+              onChartClick={(m) => {
+                setDexMint(m)
+                setScanTab('chart')
+              }}
+              aiSummary={aiSummary}
+              aiLoading={aiLoading}
+              chatMessages={chatMessages}
+              chatLoading={chatLoading}
+              chatInput={chatInput}
+              onChatInput={setChatInput}
+              onChatSend={sendChatMessage}
+            />
+          </motion.div>
+        )
+      }
+      if (scanTab === 'holders') {
+        return (
+          <motion.div key={`holders-${mk}`} {...motionProps}>
+            <HoldersTab data={scanData} />
+          </motion.div>
+        )
+      }
+      if (scanTab === 'liquidity') {
+        return (
+          <motion.div key={`liq-${mk}`} {...motionProps}>
+            <LiquidityTab data={scanData} />
+          </motion.div>
+        )
+      }
+      if (scanTab === 'transfers') {
+        return (
+          <motion.div key={`tx-${mk}`} {...motionProps}>
+            <TransfersTab data={scanData} />
+          </motion.div>
+        )
+      }
+      if (scanTab === 'edge') {
+        return (
+          <motion.div key={`edge-${mk}`} {...motionProps}>
+            <AlphaEdgeTab
+              data={scanData}
+              onTradeClick={(m, s) => {
+                setSwapMint(m)
+                setSwapSym(s)
+                setShowSwap(true)
+              }}
+              aiEdge={aiEdge}
+              aiEdgeLoading={aiEdgeLoading}
+              onAnalyzeEdge={(ep, bb, bs) => triggerAiEdge(scanData, ep, bb, bs)}
+            />
+          </motion.div>
+        )
+      }
     }
     return null
   }
@@ -2600,11 +2963,35 @@ export default function Dashboard() {
     return () => window.removeEventListener('openChartSwap', handleChartSwap)
   }, [])
 
-  if (!mounted) return (
-    <>
-      {/* SignupModal disabled - using Gated Access instead */}
-    </>
-  )
+  if (!mounted) {
+    return (
+      <div
+        style={{
+          background: '#000',
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 14,
+          fontFamily: "'JetBrains Mono',monospace",
+        }}
+      >
+        <div
+          style={{
+            width: 26,
+            height: 26,
+            border: '2px solid rgba(52,211,153,0.15)',
+            borderTop: '2px solid #34d399',
+            borderRadius: '50%',
+            animation: 'spin 0.7s linear infinite',
+          }}
+        />
+        <div style={{ fontSize: 10, color: 'rgba(52,211,153,0.5)', letterSpacing: '0.1em' }}>LOADING</div>
+        <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -2627,14 +3014,15 @@ export default function Dashboard() {
       {chartSwapModal && <ChartSwapModal mint={chartSwapModal.mint} symbol={chartSwapModal.symbol} initialTab={chartSwapModal.tab as any} onClose={() => setChartSwapModal(null)} />}
       {/* TrialWall removed - using Gated Access */}
       <header className="sticky top-0 z-[300] min-h-[48px] flex items-center justify-between px-3 md:px-4 flex-wrap gap-y-1 backdrop-blur-xl" style={{background:'#000',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
-        <a href="/" className="flex items-center gap-2 font-mono text-[0.82rem] font-bold text-white tracking-wider uppercase no-underline">
-          <img src="/logo.jpg" alt="CryptoCheck AI" style={{width:30,height:26,borderRadius:5,objectFit:'cover',flexShrink:0}}/>
-          CryptoCheck<span className="text-[#00d4aa]">AI</span>
-          <span className="text-[0.5rem] text-[#8b949e] ml-0.5">v3</span>
-          {isPro ? (
-            <span style={{fontSize:'9px',fontWeight:700,padding:'2px 8px',borderRadius:4,fontFamily:'IBM Plex Mono,monospace',letterSpacing:'0.08em',background:'linear-gradient(135deg,rgba(212,175,55,0.15),rgba(212,175,55,0.05))',border:'1px solid rgba(212,175,55,0.35)',color:'#d4af37'}}>⭐ PRO</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <CryptoCheckLogo href="/dashboard" />
+          <span className="text-[0.5rem] text-[#8b949e] ml-0.5 font-mono">v3</span>
+          {entitlementPro ? (
+            <span style={{fontSize:'9px',fontWeight:700,padding:'2px 8px',borderRadius:4,fontFamily:'IBM Plex Mono,monospace',letterSpacing:'0.08em',background: headerVipStyle ? 'linear-gradient(135deg,rgba(139,92,246,0.2),rgba(99,102,241,0.08))' : 'linear-gradient(135deg,rgba(212,175,55,0.15),rgba(212,175,55,0.05))', border: headerVipStyle ? '1px solid rgba(139,92,246,0.45)' : '1px solid rgba(212,175,55,0.35)', color: headerVipStyle ? '#c4b5fd' : '#d4af37'}}>
+              {headerTierLabel}
+            </span>
           ) : null}
-        </a>
+        </div>
 
         {/* Desktop nav */}
         <div className="hidden lg:flex gap-0.5">
@@ -2647,10 +3035,12 @@ export default function Dashboard() {
 
         <div className="flex items-center gap-1.5">
           <div className="live-badge bg-emerald-950/30 border border-emerald-800/25 text-emerald-400 px-2 py-0.5 rounded-[3px] text-[0.58rem] font-bold tracking-wider hidden sm:block">● MAINNET-BETA</div>
-          {isPro ? (
+          {entitlementPro ? (
             <div style={{display:'flex',alignItems:'center',gap:6,fontSize:'0.6rem',fontFamily:'IBM Plex Mono,monospace'}}>
               <span style={{color:'#6e7681'}}>∞ scans</span>
-              <button onClick={() => setShowModal(true)} className="btn-terminal px-3 py-1 rounded-[4px] text-[0.62rem]" style={{color:'#d4af37',border:'1px solid rgba(212,175,55,0.3)',background:'rgba(212,175,55,0.06)'}}>⭐ PRO</button>
+              <button type="button" onClick={() => setShowModal(true)} className="btn-terminal px-3 py-1 rounded-[4px] text-[0.62rem]" style={{ color: headerVipStyle ? '#c4b5fd' : '#d4af37', border: headerVipStyle ? '1px solid rgba(139,92,246,0.35)' : '1px solid rgba(212,175,55,0.3)', background: headerVipStyle ? 'rgba(139,92,246,0.08)' : 'rgba(212,175,55,0.06)' }}>
+                {headerTierLabel}
+              </button>
             </div>
           ) : (
             <div style={{display:'flex',alignItems:'center',gap:6}}>
@@ -2662,10 +3052,10 @@ export default function Dashboard() {
                 animation:credits<3?'pulse 1.5s infinite':'none'
               }}>
                 <span style={{fontSize:'11px'}}>◆</span>
-                <span style={{fontSize:'0.6rem',fontWeight:700,color:credits<=0?'#ff4444':credits<3?'#f0a500':'#20b2aa',fontFamily:'IBM Plex Mono,monospace'}}>{isPro ? '∞' : credits}</span>
+                <span style={{fontSize:'0.6rem',fontWeight:700,color:credits<=0?'#ff4444':credits<3?'#f0a500':'#20b2aa',fontFamily:'IBM Plex Mono,monospace'}}>{entitlementPro ? '∞' : credits}</span>
                 <span style={{fontSize:'0.45rem',color:'#6e7681',fontWeight:600}}><span className='hidden sm:inline'>SCANS</span></span>
               </button>
-              {!isPro && credits < 5 && (
+              {!entitlementPro && credits < 5 && (
                 <button onClick={() => setShowModal(true)} style={{padding:'3px 8px',fontSize:'0.55rem',fontWeight:700,background:'rgba(32,178,170,0.1)',border:'1px solid rgba(32,178,170,0.3)',borderRadius:4,color:'#20b2aa',cursor:'pointer',fontFamily:'IBM Plex Mono,monospace',animation:'pulse 2s infinite'}}>
                   + REFILL
                 </button>
@@ -2686,11 +3076,49 @@ export default function Dashboard() {
                 Sign In
               </button>
             )}
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-[4px] text-[0.55rem] md:text-[0.62rem] font-bold tracking-wider uppercase font-mono border border-[rgba(255,255,255,0.08)] text-[#8b949e] hover:text-[#c9d1d9] hover:border-[rgba(255,255,255,0.15)] no-underline bg-transparent"
+            title="Landing page"
+          >
+            <Home className="w-3.5 h-3.5 shrink-0 opacity-80" aria-hidden />
+            Home
+          </Link>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-[4px] text-[0.55rem] md:text-[0.62rem] font-bold tracking-wider uppercase font-mono border border-[rgba(255,255,255,0.08)] text-[#8b949e] hover:text-[#c9d1d9] hover:border-[rgba(255,255,255,0.15)] no-underline bg-transparent"
+            title="Developer control plane"
+          >
+            <LayoutDashboard className="w-3.5 h-3.5 shrink-0 opacity-80" aria-hidden />
+            Dashboard
+          </Link>
           <button onClick={isConnected ? disconnect : connect} disabled={isConnecting} className={`btn-terminal px-2 md:px-3 py-1 rounded-[4px] text-[0.5rem] md:text-[0.62rem] ${isConnected ? 'bg-emerald-950/30 border-emerald-800/25 text-emerald-400' : 'bg-[rgba(0,212,130,0.08)] border-[rgba(0,212,130,0.15)] text-[#00d4aa]'}`}>
             {isConnecting ? 'Connecting…' : isConnected ? `✓ ${shortAddr}` : 'Connect Wallet'}
           </button>
         </div>
       </header>
+
+      <div className="lg:hidden px-3 py-2 border-b border-[rgba(139,92,246,0.15)] bg-[#0b1118] overflow-x-auto">
+        <div className="flex gap-2 min-w-max items-center">
+          <Link href="/" className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border text-xs font-bold text-[#c9d1d9] border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.04)] no-underline shrink-0">
+            <Home className="w-3.5 h-3.5" aria-hidden />
+            Home
+          </Link>
+          <Link href="/dashboard" className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border text-xs font-bold text-[#c9d1d9] border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.04)] no-underline shrink-0">
+            <LayoutDashboard className="w-3.5 h-3.5" aria-hidden />
+            Dashboard
+          </Link>
+          <button onClick={() => setView('promax')} className={`px-2.5 py-1.5 rounded-md border text-xs font-bold ${view === 'promax' ? 'text-[#FFD700] border-[rgba(255,215,0,0.35)] bg-[rgba(255,215,0,0.08)]' : 'text-[#8b949e] border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)]'}`}>
+            Deep Neural Scan
+          </button>
+          <button onClick={() => setView('elite')} className={`px-2.5 py-1.5 rounded-md border text-xs font-bold ${view === 'elite' ? 'text-[#a78bfa] border-[rgba(167,139,250,0.35)] bg-[rgba(139,92,246,0.08)]' : 'text-[#8b949e] border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)]'}`}>
+            Elite Whale Alerts
+          </button>
+          <button onClick={() => setShowModal(true)} className="px-2.5 py-1.5 rounded-md border text-xs font-bold text-[#20b2aa] border-[rgba(32,178,170,0.35)] bg-[rgba(32,178,170,0.08)]">
+            Subscription Details
+          </button>
+        </div>
+      </div>
 
       {/* ── TICKER TAPE ── */}
       <div className="h-[26px] bg-[#161b22] border-b border-[rgba(0,212,130,0.15)] overflow-hidden relative z-10 hidden sm:block">
@@ -2713,7 +3141,7 @@ export default function Dashboard() {
           {/* Scan zone — stable external MintInput */}
           <div ref={scanTopRef}>
             <MintInput onScan={(v) => {
-              if (!isPro && credits <= 0) {
+              if (!entitlementPro && credits <= 0) {
                 setShowModal(true)
                 return
               }
@@ -2849,7 +3277,10 @@ export default function Dashboard() {
         </aside>
 
         {/* MAIN */}
-        <main className="flex flex-col flex-1 overflow-y-auto min-w-0" style={{background:'#000',width:'100%'}}>
+        <main
+          className="flex flex-col flex-1 overflow-y-auto min-w-0 bg-[#030308]"
+          style={{ width: '100%' }}
+        >
           {/* Scanner view */}
           {view === 'scanner' && (
             <>
@@ -2890,6 +3321,16 @@ export default function Dashboard() {
                 )}
               </div>
               <ValueProtectedWidget compact />
+              <BentoGrid
+                address={scanData?.mint || mintInput}
+                onRunStressTest={runAiStressTest}
+                stressLoading={stressLoading}
+                stressPhase={stressPhase}
+                stressError={stressError}
+                stressResult={stressResult}
+                reportOpen={stressModalOpen}
+                onCloseReport={closeStressModal}
+              />
               {/* PERSISTENT SCAN INPUT — outside renderScanContent to prevent re-mount */}
               <div className="flex items-center gap-2 px-3 py-2 bg-[#161b22] border-b border-[rgba(0,212,130,0.15)] flex-shrink-0">
                 <input
@@ -2914,7 +3355,7 @@ export default function Dashboard() {
                 />
                 <button
                   onClick={() => doScan()}
-                  disabled={scanState === 'loading' || (credits <= 0 && !isPro)}
+                  disabled={scanState === 'loading' || (credits <= 0 && !entitlementPro)}
                   style={{
                     background: scanState === 'loading' ? 'rgba(48,54,61,1)' : 'linear-gradient(135deg,#00d4aa,#00b894)',
                     border: 'none', borderRadius: '6px',
@@ -2925,7 +3366,7 @@ export default function Dashboard() {
                     letterSpacing: '0.05em', whiteSpace: 'nowrap',
                   }}
                 >
-                  {scanState === 'loading' ? '⟳ SCANNING…' : credits <= 0 && !isPro ? '🔒 NO CREDITS' : '⚡ NEURAL SCAN'}
+                  {scanState === 'loading' ? '⟳ SCANNING…' : credits <= 0 && !entitlementPro ? '🔒 NO CREDITS' : '⚡ NEURAL SCAN'}
                 </button>
               </div>
               <div className="flex overflow-x-auto border-b border-[rgba(0,212,130,0.15)] bg-[#161b22] flex-shrink-0 scrollbar-none" style={{WebkitOverflowScrolling:'touch'}}>
@@ -2937,7 +3378,9 @@ export default function Dashboard() {
                   </button>
                 ))}
               </div>
-              <div className={`flex-1 overflow-y-auto pb-[70px] md:pb-0 ${(scanTab === 'chart') ? 'p-0' : 'p-3 md:p-4'}`}>{renderScanContent()}</div>
+              <div className={`flex-1 overflow-y-auto pb-[70px] md:pb-0 ${scanTab === 'chart' ? 'p-0' : 'p-3 md:p-4'}`}>
+                <AnimatePresence mode="wait">{renderScanContent()}</AnimatePresence>
+              </div>
             </>
           )}
 
@@ -2980,12 +3423,27 @@ export default function Dashboard() {
           )}
           {view === 'promax' && (
             <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', background: '#050505' }}>
-              <ProMaxDeepDashboard isPro={isPro} onUpgrade={() => setShowModal(true)} />
+              <ProMaxDeepDashboard
+                isPro={entitlementPro}
+                hasPremiumAccess={entitlementElite}
+                mint={(scanData?.mint || currentMint || '').trim()}
+                deepLiveIntel={hasAccess(
+                  { profileTier: sub.currentTier, saasTier: sub.currentTier },
+                  'deep_chain_intel'
+                )}
+                onUpgrade={() => setShowModal(true)}
+              />
             </div>
           )}
           {view === 'elite' && (
             <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', background: '#030308' }}>
-              <ProMaxEliteDashboard isPro={isPro} tier="elite" onUpgrade={() => setShowModal(true)} />
+              <ProMaxEliteDashboard
+                isPro={entitlementPro}
+                hasPremiumAccess={entitlementElite}
+                tier="elite"
+                onUpgrade={() => setShowModal(true)}
+                mint={(scanData?.mint || currentMint || '').trim()}
+              />
             </div>
           )}
           {/* Feed — Mobile fullscreen Alpha Feed */}
@@ -3038,8 +3496,26 @@ export default function Dashboard() {
   <h3 className="text-xl font-bold text-white flex items-center gap-2">🚀 Affiliate Program</h3> 
   <p className="text-gray-400 text-sm mt-2">Share your link and earn 20% in SOL.</p> 
   <div className="mt-4 flex flex-col sm:flex-row gap-3"> 
-    <input readOnly value={`https://cryptocheckai.com?ref=${typeof window !== "undefined" ? localStorage.getItem("cc_ref") : ""}`} className="flex-1 bg-black/50 border border-gray-700 p-3 rounded-lg text-green-400 font-mono text-sm" /> 
-    <button onClick={() => alert("Link Copied!")} className="bg-purple-600 text-white px-6 py-3 rounded-lg font-bold">Copy Link</button> 
+    <input
+      readOnly
+      value={!authResolved ? 'Loading referral link...' : referralLink || 'Sign in to generate your referral link'}
+      className="flex-1 bg-black/50 border border-gray-700 p-3 rounded-lg text-green-400 font-mono text-sm"
+    />
+    <button
+      onClick={async () => {
+        if (!referralLink) return
+        try {
+          await navigator.clipboard.writeText(referralLink)
+          alert('Link Copied!')
+        } catch {
+          alert('Copy failed. Please copy manually.')
+        }
+      }}
+      disabled={!referralLink}
+      className="bg-purple-600 disabled:bg-gray-700 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-bold"
+    >
+      Copy Link
+    </button> 
   </div> 
 </div>        </main>
       </div>
@@ -3063,9 +3539,16 @@ export default function Dashboard() {
           <span className="text-[#4b5563]"> · Powered by Helius Real-Time RPC · {NETWORK_LABEL} · {ENGINE_LABEL}</span>
         </p>
         <div className="flex gap-3 items-center text-[0.55rem] flex-shrink-0 flex-wrap">
-          {['Privacy','Terms','Docs','Contact'].map(l => (
-            <a key={l} href="#" className="text-[#8b949e] hover:text-[#00d4aa] transition-colors no-underline">{l}</a>
-          ))}
+          <Link href="/privacy" className="text-[#8b949e] hover:text-[#00d4aa] transition-colors no-underline">
+            Privacy
+          </Link>
+          <Link href="/terms" className="text-[#8b949e] hover:text-[#00d4aa] transition-colors no-underline">
+            Terms of Service
+          </Link>
+          <Link href="/docs" className="text-[#8b949e] hover:text-[#00d4aa] transition-colors no-underline">
+            Docs
+          </Link>
+          <span className="text-[#4b5563]">CryptoCheck AI, Inc. © 2026 · Delaware C-Corp</span>
         </div>
       </footer>
 

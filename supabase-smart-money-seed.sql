@@ -1,0 +1,35 @@
+-- Seed smart money wallets from public Solana validator entities (StakeWiz snapshot)
+-- Source: https://api.stakewiz.com/validators
+-- Generated: 2026-04-24T15:50:53.372Z
+INSERT INTO public.smart_money_wallets (address, label, tier, historical_pnl_usd, win_rate_pct, active) VALUES
+  ('HLXktVmNFeELB5uL5nrpP4WL7jyi3TMyekxASVjDhZ1t','🧬 HelixNode 0% fee 🧬 (StakeWiz)','whale',0,99.60,TRUE),
+  ('DTwEEF6VSrmTBYkDcj3BKAc52qhvP8CEQUEAMMT1cG3','Capital Alliance 🔥 (StakeWiz)','whale',0,99.81,TRUE),
+  ('NoRDTy8jpkpjPR7yxahVdoEUPngbojPhFU5jb8TtY4m','nordstar ⭐ reliable staking +MEV (StakeWiz)','whale',0,99.70,TRUE),
+  ('91413b9eEvG6UofpSgwdUgH9Lz4QBF1G3J325Bw7JwGR','Sign Labs 🤟 (StakeWiz)','whale',0,99.77,TRUE),
+  ('cover89z945JotsCRGdbjakJm4rnL5XspFSPgN1mVZj','Coverlet+MEV | 0% ALL FEES ✅ (StakeWiz)','whale',0,99.67,TRUE),
+  ('HeTyhZdUKswQoonJJTXqAnDN48ceyVAeFaKfYKayGPNS','Code-Breader (StakeWiz)','whale',0,99.70,TRUE),
+  ('2g2QU1NDRax6i2mKzRwgRfdBFoDkMC6bj7Zp5Q3i8sCq','Grassets Tech | Jito-BAM | IBRL (StakeWiz)','whale',0,99.74,TRUE),
+  ('pt1LsjkNwqCKdYYfc35ToDkqtEG9pswLTJNaMo8inft','ParaFi Technologies (StakeWiz)','whale',0,99.70,TRUE),
+  ('9gANMngbGUmAaLXL1RC3JdiaLjRowJXNbzCTh53ht7mq','Yurbason (StakeWiz)','whale',0,99.61,TRUE),
+  ('vanFfAkyFXFnj6TpmVwet6pJBnS4nBWNcJiE5GEsZ4K','Quantix (StakeWiz)','whale',0,99.56,TRUE),
+  ('vahVByZszdHguLa7U7GLz8UdUFN85mcwdkefiqVjtGt','StakeITeasy🚀High APY + 0% fee✅ + MEV🔥 (StakeWiz)','smart_money',0,99.63,TRUE),
+  ('voEskim7SFWrPx1tV2PVisqyrJejxmDEARX11mtZ5vo','polkachu.com (StakeWiz)','smart_money',0,99.50,TRUE),
+  ('CV7uvPY1Hk5Avb2NvkGJoUzGnipZrEZK27j5rQJoUae9','Theta (StakeWiz)','smart_money',0,99.66,TRUE),
+  ('3iPuTgpWaaC6jYEY7kd993QBthGsQTK3yPCrNJyPMhCD','ART3MIS.CLOUD ☘️ (StakeWiz)','smart_money',0,99.67,TRUE),
+  ('FahWJg2PkphJaMUUCzdYhXkD5NngUuuFRFD3YCE3BSwb','Vault X | 0% fee +MEV (StakeWiz)','smart_money',0,99.56,TRUE),
+  ('644K33yWfSzc32VvY5fRUfUqphw8LTaLQntCkyEpJ8h7','fat tails lab (StakeWiz)','smart_money',0,99.67,TRUE),
+  ('3Xn3K5zeTzs4sURj1PCRaF6rvFg2hPgT49B4SiM998f7','NuFi (StakeWiz)','smart_money',0,99.67,TRUE),
+  ('1234LB7uvDC23rdCQoK8C3jNwnovUNyeKxz8wC3dghJ5','BlueLotus 👩‍💻 (StakeWiz)','smart_money',0,99.70,TRUE),
+  ('LunarE7WQyxpPwKo2hkEZZquu6UDWMNjvf3JyzGmdfp','Luminal (StakeWiz)','smart_money',0,99.63,TRUE),
+  ('4MU64AyHBkRBUAYgAm91sP5vFgzUUgFHuS82CVhE8Q2Q','Solid State Nodes (StakeWiz)','smart_money',0,99.74,TRUE),
+  ('so1arJJbp9sis5XpovLyjTZPk8bDjfs37Meghi5wXbu','Solar | Empowering Youth | 0% Fee + MEV Rewards (StakeWiz)','smart_money',0,99.70,TRUE),
+  ('VaCdXKupamusfRsDf9Ai7e8Up36Z4f3MP6SqhnM7c76','CyberAlex 👑 MEV (StakeWiz)','smart_money',0,99.63,TRUE),
+  ('BeSov1og3sEYyH9JY3ap7QcQDvVX8f4sugfNPf9YLkcV','Yonta Labs - LST 0%Fee MEV - (StakeWiz)','smart_money',0,99.70,TRUE),
+  ('49DJjUX3cwFvaZD5rCAwubiz7qdRWDez9xmB381XdHru','Staker Space (StakeWiz)','smart_money',0,99.77,TRUE),
+  ('soLStAckuvkHtNzHF1cwmeSRG1FzVxKxwsdWZ1yrHrz','SolStack by Corvus Labs (StakeWiz)','smart_money',0,99.56,TRUE),
+  ('6JfBwvcz5QUKQJ37BMKTLrf968DDJBtwoZLw19aHwFtQ','Spectrum Staking (StakeWiz)','insider',0,99.74,TRUE),
+  ('LimeNKYH66uR9BwnrPtxPbpqmkambxHVcutGoSaWPiq','LimeChain (StakeWiz)','insider',0,99.74,TRUE),
+  ('AY271jdvcyo5VzBiWsMGLEjpZFFrarq8FDydJHLmYgCG','OranG3cluB (StakeWiz)','insider',0,99.74,TRUE),
+  ('2QE9X9X4tdDUTYic1DgBBJjU7cWUNPbKYGerCb9KqDQN','val37 (StakeWiz)','insider',0,99.74,TRUE),
+  ('6anBvYWGwkkZPAaPF6BmzF6LUPfP2HFVhQUAWckKH9LZ','4BLOCK 0% Fee + Jito All MEV (StakeWiz)','insider',0,99.56,TRUE)
+ON CONFLICT (address) DO UPDATE SET active = EXCLUDED.active, label = EXCLUDED.label, tier = EXCLUDED.tier, win_rate_pct = EXCLUDED.win_rate_pct;

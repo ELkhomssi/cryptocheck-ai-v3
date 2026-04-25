@@ -1,8 +1,11 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { buildHeliusApiUrl } from '@/lib/helius-server'
+import { withApiAuth } from '@/lib/middleware/with-api-auth'
+import { scanApiErrorPayload } from '@/lib/api/scan-api-errors'
 
-const HELIUS_KEY = process.env.HELIUS_KEY || '8948de2b-6114-45cd-839d-1a81eb273cd9'
+export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export const GET = withApiAuth(async (_req: NextRequest) => {
   try {
     // Get recent transactions from top Solana tokens
     const mints = [
@@ -14,7 +17,7 @@ export async function GET() {
 
     const results = await Promise.allSettled(
       mints.slice(0, 2).map(mint =>
-        fetch(`https://api.helius.xyz/v0/addresses/${mint}/transactions?api-key=${HELIUS_KEY}&limit=5`)
+        fetch(buildHeliusApiUrl(`/addresses/${mint}/transactions`, { limit: 5 }))
           .then(r => r.json())
           .then(txs => ({ mint, txs: Array.isArray(txs) ? txs : [] }))
       )
@@ -65,7 +68,10 @@ export async function GET() {
 
     // Get real mint events
     const mintCheck = await fetch(
-      `https://api.helius.xyz/v0/addresses/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263/transactions?api-key=${HELIUS_KEY}&limit=3&type=MINT_TO`
+      buildHeliusApiUrl('/addresses/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263/transactions', {
+        limit: 3,
+        type: 'MINT_TO',
+      })
     ).then(r => r.json()).catch(() => [])
 
     if (Array.isArray(mintCheck) && mintCheck.length > 0) {
@@ -83,6 +89,13 @@ export async function GET() {
       timestamp: new Date().toISOString()
     })
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    console.error('[live-feed]', err)
+    return NextResponse.json(
+      scanApiErrorPayload('Upstream intelligence sources unavailable', 502, 'UPSTREAM_ERROR', {
+        reason: 'UPSTREAM_ERROR',
+        severity: 'high',
+      }),
+      { status: 502 }
+    )
   }
-}
+})

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { buildHeliusApiUrl } from '@/lib/helius-server'
+import { withApiAuth } from '@/lib/middleware/with-api-auth'
+import { scanApiErrorPayload } from '@/lib/api/scan-api-errors'
 
-const HELIUS_KEY = process.env.HELIUS_KEY || '8948de2b-6114-45cd-839d-1a81eb273cd9'
+export const dynamic = 'force-dynamic'
 
 function predictScore(data: {
   volumeSpike: number, buySellRatio: number, smartMoney: number,
@@ -26,11 +29,22 @@ function predictScore(data: {
   return { score: Math.round(score), confidence, signal, rugProb: Math.min(rugProb, 100) }
 }
 
-export async function POST(req: NextRequest) {
+export const POST = withApiAuth(async (req: NextRequest) => {
   try {
-    const { mint } = await req.json()
-    if (!mint) return NextResponse.json({ error: 'mint required' }, { status: 400 })
-    const txRes = await fetch(`https://api.helius.xyz/v0/addresses/${mint}/transactions?api-key=${HELIUS_KEY}&limit=20`).then(r => r.json()).catch(() => [])
+    const body = await req.json().catch(() => ({}))
+    const mint = typeof body?.mint === 'string' ? body.mint.trim() : ''
+    if (!mint) {
+      return NextResponse.json(
+        scanApiErrorPayload('Invalid mint address', 400, 'INVALID_MINT', {
+          reason: 'INVALID_MINT',
+          severity: 'low',
+        }),
+        { status: 400 }
+      )
+    }
+    const txRes = await fetch(buildHeliusApiUrl(`/addresses/${mint}/transactions`, { limit: 20 }))
+      .then((r) => r.json())
+      .catch(() => [])
     let buyCount = 0, sellCount = 0, whaleBuys = 0, whaleSells = 0, totalVolume = 0
     if (Array.isArray(txRes)) {
       for (const tx of txRes) {
@@ -49,6 +63,13 @@ export async function POST(req: NextRequest) {
     })
     return NextResponse.json({ mint, ...result, whaleBuys, whaleSells, engine: 'CryptoCheck Neural v2.1' })
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    console.error('[predict]', err)
+    return NextResponse.json(
+      scanApiErrorPayload('Upstream intelligence sources unavailable', 502, 'UPSTREAM_ERROR', {
+        reason: 'UPSTREAM_ERROR',
+        severity: 'high',
+      }),
+      { status: 502 }
+    )
   }
-}
+})

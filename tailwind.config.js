@@ -8,8 +8,22 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
+        /** Dashboard forensic titles — loaded via `app/dashboard/layout.tsx` */
+        space: ['var(--font-space-grotesk)', 'Space Grotesk', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        mono: ['"JetBrains Mono"', '"IBM Plex Mono"', 'ui-monospace', 'monospace'],
+        // Global dashboard mono stays IBM Plex Mono.
+        mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
+        // Terminal-only. Opt in by using `font-mono-terminal` inside
+        // components under `components/Dashboard/intelligence-terminal/`.
+        // Backed by the `--font-mono-terminal` CSS variable loaded via
+        // next/font/google in app/layout.tsx.
+        'mono-terminal': [
+          'var(--font-mono-terminal)',
+          '"JetBrains Mono"',
+          '"IBM Plex Mono"',
+          'ui-monospace',
+          'monospace',
+        ],
       },
       colors: {
         'bg-base':     '#0e1117',
@@ -51,8 +65,19 @@ module.exports = {
         'ring-2':     'spinReverse 1.8s linear infinite',
         'ring-3':     'spin 2.4s linear infinite',
         'pulse-dot':  'pulseDot 1.5s ease-in-out infinite',
+        'neon-pulse': 'neonPulseShadow 2.8s ease-in-out infinite',
       },
       keyframes: {
+        neonPulseShadow: {
+          '0%, 100%': {
+            boxShadow:
+              'inset 0 0 0 1px rgba(6,182,212,0.12), 0 0 18px rgba(6,182,212,0.14), 0 0 40px rgba(6,182,212,0.06)',
+          },
+          '50%': {
+            boxShadow:
+              'inset 0 0 0 1px rgba(6,182,212,0.18), 0 0 28px rgba(6,182,212,0.28), 0 0 56px rgba(244,114,182,0.08)',
+          },
+        },
         blink:       { '0%, 100%': { opacity: '1' }, '50%': { opacity: '0.4' } },
         float:       { '0%, 100%': { transform: 'translateY(0px)' }, '50%': { transform: 'translateY(-6px)' } },
         slideIn:     { from: { opacity: '0', transform: 'translateX(-5px)' }, to: { opacity: '1', transform: 'none' } },

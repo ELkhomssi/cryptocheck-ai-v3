@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    instrumentationHook: true,
+  },
   async redirects() {
     return [
       {
@@ -8,6 +11,9 @@ const nextConfig = {
         destination: 'https://www.cryptocheckai.com/:path*',
         permanent: false,
       },
+      // Exact / prefix paths (substring "company" anywhere else is handled in middleware.ts)
+      { source: '/company', destination: '/', permanent: true },
+      { source: '/company/:path*', destination: '/', permanent: true },
     ]
   },
   async headers() {

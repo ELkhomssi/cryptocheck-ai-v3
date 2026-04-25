@@ -1,46 +1,22 @@
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
-  // ---- FORCE WWW: prevent cookie domain mismatch ----
-  const url = request.nextUrl.clone()
-  if (url.hostname === 'cryptocheckai.com') {
-    url.hostname = 'www.cryptocheckai.com'
-    return NextResponse.redirect(url, 301)
+/**
+ * Permanent redirects for legacy / spam URLs (e.g. "company website" crawl noise).
+ * next.config.js `redirects` cannot match arbitrary substrings in a path; this middleware can.
+ * Does not gate `/app` or auth — consumer app routes pass through unchanged.
+ */
+export function middleware(request: NextRequest) {
+  const { pathname, search } = request.nextUrl
+  const haystack = `${pathname}${search}`.toLowerCase()
+  if (haystack.includes('company')) {
+    return NextResponse.redirect(new URL('/', request.url), 308)
   }
-
-  // ---- Supabase session refresh ----
-  let supabaseResponse = NextResponse.next({ request })
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
-          supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
-
-  // Refresh session — use getUser() not getSession()
-  await supabase.auth.getUser()
-
-  return supabaseResponse
+  return NextResponse.next()
 }
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api/|_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)',
   ],
 }

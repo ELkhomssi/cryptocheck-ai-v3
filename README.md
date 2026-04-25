@@ -34,22 +34,28 @@ cryptocheck/
 └── package.json
 ```
 
-## 🔑 API Keys (pre-configured for local testing)
+## 🔑 Environment variables (canonical)
 
-All hardcoded in `lib/helius.ts`:
+Server-side Solana / Helius (never expose the API key in `NEXT_PUBLIC_*`):
 
-```typescript
-HELIUS_KEY    = '8948de2b-6114-45cd-839d-1a81eb273cd9'
-HELIUS_RPC    = 'https://mainnet.helius-rpc.com/?api-key=...'
-HELIUS_API    = 'https://api.helius.xyz/v0'
-HELIUS_DAS    = HELIUS_RPC   // DAS uses same endpoint
-```
-
-Move to `.env.local` for production:
 ```env
-NEXT_PUBLIC_HELIUS_KEY=8948de2b-6114-45cd-839d-1a81eb273cd9
-NEXT_PUBLIC_HELIUS_RPC=https://mainnet.helius-rpc.com/?api-key=...
+HELIUS_API_KEY=your_helius_api_key
+# Optional: override default public RPC for specific routes (e.g. payments)
+HELIUS_RPC_URL=https://api.mainnet-beta.solana.com
+# Optional: extra failover JSON-RPC URL
+SOLANA_RPC_FALLBACK_URL=
 ```
+
+Supabase + OpenAI (see Vercel project settings):
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+OPENAI_API_KEY=
+```
+
+The app builds Helius REST and RPC URLs from `HELIUS_API_KEY` inside `lib/helius-server.ts` (server-only). The browser uses `/api/solana/rpc` so the key is not bundled client-side.
 
 ## 💳 Stripe (Paywall)
 

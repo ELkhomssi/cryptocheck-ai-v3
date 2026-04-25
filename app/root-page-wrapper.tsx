@@ -33,10 +33,9 @@ export default function RootWrapper({ children }: { children: React.ReactNode })
 
   if (status === 'guest') return <LandingPage />
 
-  // User is logged in — redirect to /app
+  // Logged-in users still see the landing page at `/` (no auto-redirect to `/app`).
   if (typeof window !== 'undefined' && window.location.pathname === '/') {
-    window.location.replace('/app')
-    return null
+    return <LandingPage />
   }
   return <>{children}</>
 }

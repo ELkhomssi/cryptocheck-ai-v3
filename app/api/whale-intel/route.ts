@@ -1,27 +1,30 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { buildHeliusApiUrl } from '@/lib/helius-server'
+import { withApiAuth } from '@/lib/middleware/with-api-auth'
+import { scanApiErrorPayload } from '@/lib/api/scan-api-errors'
 
-const HELIUS_KEY = process.env.HELIUS_KEY || '8948de2b-6114-45cd-839d-1a81eb273cd9'
-const HELIUS_RPC = `https://mainnet.helius-rpc.com/?api-key=${HELIUS_KEY}`
+export const dynamic = 'force-dynamic'
 
-async function rpc(method: string, params: unknown[]) {
-  const r = await fetch(HELIUS_RPC, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params })
-  })
-  const d = await r.json()
-  return d.result
-}
-
-export async function GET() {
+export const GET = withApiAuth(async (_req: NextRequest) => {
   try {
-    // Get top holders of BONK as real whale wallets
     const holders = await fetch(
-      `https://api.helius.xyz/v0/addresses/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263/transactions?api-key=${HELIUS_KEY}&limit=10`
+      buildHeliusApiUrl('/addresses/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263/transactions', {
+        limit: 10,
+      })
     ).then(r => r.json()).catch(() => [])
 
-    const whales = []
-    const seen = new Set()
+    const whales: Array<{
+      address: string
+      shortAddr: string
+      pnl: string
+      winRate: number
+      trades: number
+      score: number
+      lastAction: string
+      badge: string
+      tier: string
+    }> = []
+    const seen = new Set<string>()
 
     if (Array.isArray(holders)) {
       for (const tx of holders) {
@@ -53,6 +56,13 @@ export async function GET() {
 
     return NextResponse.json({ success: true, whales, timestamp: new Date().toISOString() })
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    console.error('[whale-intel]', err)
+    return NextResponse.json(
+      scanApiErrorPayload('Upstream intelligence sources unavailable', 502, 'UPSTREAM_ERROR', {
+        reason: 'UPSTREAM_ERROR',
+        severity: 'high',
+      }),
+      { status: 502 }
+    )
   }
-}
+})

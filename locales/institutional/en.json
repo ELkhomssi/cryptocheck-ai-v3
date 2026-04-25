@@ -1,0 +1,171 @@
+{
+  "institutional": {
+    "page": {
+      "kicker": "SECURITY INTELLIGENCE INFRASTRUCTURE",
+      "title": "AI Security Intelligence Terminal",
+      "subtitle": "Detect rugs, honeypots & insider wallets in real-time",
+      "description": "Explainable scoring, pipeline transparency, and RPC-attested simulation — unified on",
+      "tier_hint_signed_out": "Sign in to sync institutional entitlements.",
+      "tier_hint_upgrade": "Upgrade to Pro or Institutional for live API, exports, and full simulation.",
+      "consumer_app": "Consumer app",
+      "sign_in": "Sign in",
+      "pro_lock": "🔒 Live API & exports require Pro / Institutional tier."
+    },
+    "nav": {
+      "home": "Home",
+      "dashboard": "Dashboard",
+      "connecting": "Connecting…",
+      "connect_wallet": "Connect Wallet"
+    },
+    "hero": {
+      "security_score": "SECURITY SCORE",
+      "status": "STATUS",
+      "decision": "DECISION",
+      "risk_tier_prefix": "Risk tier:",
+      "pipeline_ms": "Pipeline {ms}ms",
+      "api_ms": "API {ms}ms",
+      "urgency": "Real-time analysis — on-chain conditions change every block."
+    },
+    "cta": {
+      "run_scan": "Run New Scan",
+      "running": "Running scan…"
+    },
+    "trust_strip": {
+      "audit_ready": "Audit Ready",
+      "api_verified": "API Verified",
+      "realtime_scan": "Real-time Scan",
+      "source": "Source",
+      "updated": "Updated",
+      "confidence_label": "Confidence",
+      "cache_warm": "warm",
+      "cache_fresh": "fresh",
+      "cache_prefix": "Cache",
+      "time_just_now": "just now",
+      "confidence_high": "High",
+      "confidence_medium": "Medium",
+      "confidence_low": "Low"
+    },
+    "confidence": {
+      "data_confidence": "DATA CONFIDENCE",
+      "strong_signal": "Strong signal",
+      "moderate_signal": "Moderate signal",
+      "limited_signal": "Limited signal"
+    },
+    "decision": {
+      "risk_tier": {
+        "low": "Low Risk",
+        "moderate": "Moderate Risk",
+        "high": "High Risk"
+      },
+      "assets": {
+        "low": "Low Risk Asset",
+        "moderate": "Moderate Risk Asset",
+        "high": "High Risk Asset"
+      }
+    },
+    "status": {
+      "safe": "SAFE",
+      "caution": "CAUTION",
+      "danger": "DANGER"
+    },
+    "why": {
+      "title_safe": "Why this verdict",
+      "title_caution": "Why this verdict",
+      "title_high": "Why this verdict",
+      "bullets": {
+        "liquidity_ok": "Liquidity is acceptable but large orders may move the market.",
+        "liquidity_status": "Liquidity status: {status}. {reason}",
+        "liquidity_thin": "Thin liquidity raises execution risk — size carefully.",
+        "holders_ok": "No extreme top-holder concentration in this model view.",
+        "holders_mid": "Meaningful supply sits with top wallets — watch distribution shifts.",
+        "holders_heavy": "Heavy concentration among top wallets — insider risk is material.",
+        "scam_none": "No suspicious wallet cluster ties flagged for this creator.",
+        "scam_hits": "Linked counterparties with scam history: {count} — treat as elevated behavioral risk.",
+        "mint_fixed": "Supply rules look fixed — no active mint lever in this assessment.",
+        "mint_active": "Mint control may still be active — supply can change.",
+        "contract_clean": "Contract and pattern signals look clean versus known exploit fingerprints.",
+        "contract_review": "Contract or pattern signals warrant extra review before sizing up."
+      }
+    },
+    "risk_panel": {
+      "title": "RISK DIMENSIONS",
+      "liquidity": "Liquidity & execution",
+      "wallet": "Wallet & distribution",
+      "contract": "Contract & patterns",
+      "footnote": "Values are explainable sums from evidence lines — not a black box.",
+      "upgrade_title": "Upgrade to Pro",
+      "upgrade_sub": "Live risk dimensions & API"
+    },
+    "simulation": {
+      "layer_title": "SIMULATION LAYER",
+      "upgrade_hint": "🔒 Upgrade for full simulation + audit export.",
+      "narrative_empty": "Simulation executed via RPC sandbox. Routes are composed and validated without broadcasting transactions. Institutional access enables full chain-attested buy/sell paths.",
+      "narrative_live": "Simulation executed via RPC sandbox. Swap route composed and checked for execution behavior. Sell path {sellState} for exit safety. Honeypot assessment: {honeypot}.",
+      "sell_cleared": "cleared",
+      "sell_flagged": "flagged"
+    },
+    "wallet": {
+      "title": "WALLET INTELLIGENCE 2.0",
+      "subtitle": "Graph state is driven by cluster risk, scam-link hits, and holder concentration from the active scan.",
+      "graph_title": "RELATIONSHIP GRAPH",
+      "hub": "Core",
+      "graph_caption_flagged": "{count} cluster(s) flagged",
+      "graph_caption_clear": "All links clear vs model",
+      "graph_legend": "Emerald nodes and edges are healthy paths; red marks satellites that align with suspicious cluster or scam-link evidence.",
+      "emerald_word": "Emerald",
+      "red_word": "red",
+      "distribution_title": "SUPPLY DISTRIBUTION",
+      "distribution_line": "Top {top}% · Mid {mid}% · Tail {tail}%",
+      "distribution_top": "Top",
+      "distribution_mid": "Mid",
+      "distribution_tail": "Tail",
+      "insight_title": "INSIGHT PANEL",
+      "metric1_title": "1 · Cluster risk",
+      "metric1_foot": "Matches red nodes in the graph ({count} elevated).",
+      "metric2_title": "2 · Top holder concentration",
+      "metric2_foot": "Same figure as the distribution bar above.",
+      "metric3_title": "3 · Linked scam signals",
+      "metric3_value_none": "None",
+      "metric3_value_flagged": "{count} flagged",
+      "metric3_foot": "Drives additional red nodes when hits ≥ 1.",
+      "cluster_risk": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      }
+    },
+    "wallet_reputation": {
+      "prefix": "Wallet reputation",
+      "score": "(score {score}/100)"
+    },
+    "evidence": {
+      "section_label": "EVIDENCE & LOGS · TERMINAL",
+      "grade_line": "Grade {grade} · Verdict {verdict} · Model confidence {confidence}%",
+      "pdf_audit": "PDF audit",
+      "export_json": "Export JSON (API)",
+      "download_json_local": "Download JSON (local)",
+      "upgrade_pro_block": "🔒 API keys, usage analytics, and server-side export unlock with Pro —",
+      "upgrade_pro": "Upgrade to Pro",
+      "upgrade_pro_suffix": "for institutional demo readiness.",
+      "dynamic_simulation": "Dynamic simulation",
+      "tax_est": "Est. tax/slippage",
+      "raw_evidence": "// RAW EVIDENCE (primary lines)",
+      "risk_prefix": "· risk −",
+      "flags": "// FLAGS",
+      "none_flags": "— none —",
+      "pipeline": "// PIPELINE STAGES",
+      "pipeline_empty": "Run a live scan to record stage timings.",
+      "fingerprint": "// FINGERPRINT BEST MATCH",
+      "fingerprint_none": "— no significant overlap —",
+      "cluster": "// CREATOR CLUSTER",
+      "simulation_detail_placeholder_ok": "Simulation executed via RPC sandbox — path verified under read-only validation. Add a serialized swap for full exit-path confirmation.",
+      "simulation_detail_honeypot": "Simulation executed via RPC sandbox — exit path did not complete; elevated honeypot / blacklist risk.",
+      "simulation_detail_sandbox": "sandbox evaluation",
+      "dynamic_rpc_placeholder": "RPC sandbox"
+    },
+    "session_footer": "Session: {email} · tier: {tier}",
+    "locale_switch": {
+      "label": "Language"
+    }
+  }
+}
