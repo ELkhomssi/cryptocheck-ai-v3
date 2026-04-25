@@ -69,12 +69,12 @@
       "danger": "DANGER"
     },
     "why": {
-      "title_safe": "Why this is safe",
-      "title_caution": "Why we're cautious",
-      "title_high": "Why this is high risk",
+      "title_safe": "Why this verdict",
+      "title_caution": "Why this verdict",
+      "title_high": "Why this verdict",
       "bullets": {
-        "liquidity_strong": "Strong liquidity depth lowers manipulation and exit risk.",
         "liquidity_ok": "Liquidity is acceptable but large orders may move the market.",
+        "liquidity_status": "Liquidity status: {status}. {reason}",
         "liquidity_thin": "Thin liquidity raises execution risk — size carefully.",
         "holders_ok": "No extreme top-holder concentration in this model view.",
         "holders_mid": "Meaningful supply sits with top wallets — watch distribution shifts.",
@@ -100,7 +100,7 @@
       "layer_title": "SIMULATION LAYER",
       "upgrade_hint": "🔒 Upgrade for full simulation + audit export.",
       "narrative_empty": "Simulation executed via RPC sandbox. Routes are composed and validated without broadcasting transactions. Institutional access enables full chain-attested buy/sell paths.",
-      "narrative_live": "Simulation executed via RPC sandbox. Buy path composed and liquidity screened. Sell path {sellState} for exit safety. Honeypot assessment: {honeypot}.",
+      "narrative_live": "Simulation executed via RPC sandbox. Swap route composed and checked for execution behavior. Sell path {sellState} for exit safety. Honeypot assessment: {honeypot}.",
       "sell_cleared": "cleared",
       "sell_flagged": "flagged"
     },

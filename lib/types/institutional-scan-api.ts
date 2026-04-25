@@ -4,6 +4,7 @@ import type {
   TransactionSimulatorResult,
   WeightedSecurityScore,
 } from '@/lib/services/scanner/types'
+import type { CanonicalScanResult } from '@/lib/types/canonical-scan'
 
 /** POST `/api/v1/scan` JSON body (institutional). */
 export type ScanV1ApiResponse = {
@@ -18,6 +19,7 @@ export type ScanV1ApiResponse = {
   pipeline_ms: number
   last_updated: string
   cache: 'hit' | 'miss'
+  canonical?: CanonicalScanResult
   meta: {
     response_time_ms: number
     auth_via: 'api_key' | 'session'

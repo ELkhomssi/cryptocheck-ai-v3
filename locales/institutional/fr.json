@@ -69,12 +69,12 @@
       "danger": "DANGER"
     },
     "why": {
-      "title_safe": "Pourquoi c'est sûr",
-      "title_caution": "Pourquoi nous restons prudents",
-      "title_high": "Pourquoi le risque est élevé",
+      "title_safe": "Pourquoi ce verdict",
+      "title_caution": "Pourquoi ce verdict",
+      "title_high": "Pourquoi ce verdict",
       "bullets": {
-        "liquidity_strong": "Une liquidité solide réduit le risque de manipulation et de sortie.",
         "liquidity_ok": "Liquidité correcte, mais les gros ordres peuvent faire bouger le marché.",
+        "liquidity_status": "Statut de liquidité : {status}. {reason}",
         "liquidity_thin": "Liquidité faible — risque d'exécution élevé, dimensionnez avec prudence.",
         "holders_ok": "Pas de concentration extrême des top détenteurs dans ce modèle.",
         "holders_mid": "Part notable entre les top wallets — surveillez la distribution.",
@@ -100,7 +100,7 @@
       "layer_title": "COUCHE DE SIMULATION",
       "upgrade_hint": "🔒 Passez Pro pour simulation complète + export d'audit.",
       "narrative_empty": "Simulation exécutée via bac à sable RPC. Les routes sont composées et validées sans diffusion de transactions. L'accès institutionnel active des chemins buy/sell attestés sur chaîne.",
-      "narrative_live": "Simulation exécutée via bac à sable RPC. Achat composé et liquidité contrôlée. Sortie {sellState} pour la sécurité de sortie. Évaluation honeypot : {honeypot}.",
+      "narrative_live": "Simulation exécutée via bac à sable RPC. Route de swap composée et contrôlée au niveau exécution. Sortie {sellState} pour la sécurité de sortie. Évaluation honeypot : {honeypot}.",
       "sell_cleared": "validée",
       "sell_flagged": "signalée"
     },

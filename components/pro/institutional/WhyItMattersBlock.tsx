@@ -4,16 +4,18 @@ import type { ReasoningObject, Verdict } from '@/lib/services/scanner-engine'
 import type { WeightedSecurityScore } from '@/lib/services/scanner/types'
 import { useInstitutionalTranslation } from '@/lib/i18n/institutional-context'
 import { generateWhyBulletRefs, whyBlockTitleKey } from '@/components/pro/institutional/why-insights'
+import type { CanonicalScanResult } from '@/lib/types/canonical-scan'
 
 type Props = {
   verdict: Verdict
   reasoning: ReasoningObject
   weighted: WeightedSecurityScore
+  canonical?: CanonicalScanResult | null
 }
 
-export function WhyItMattersBlock({ verdict, reasoning, weighted }: Props) {
+export function WhyItMattersBlock({ verdict, reasoning, weighted, canonical }: Props) {
   const { t } = useInstitutionalTranslation()
-  const bullets = generateWhyBulletRefs(reasoning, weighted)
+  const bullets = generateWhyBulletRefs(reasoning, weighted, canonical)
   const title = t(whyBlockTitleKey(verdict))
 
   return (

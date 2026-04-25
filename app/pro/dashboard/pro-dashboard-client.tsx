@@ -432,7 +432,12 @@ function ProDashboardClientInner({
           </div>
         ) : null}
 
-        <WhyItMattersBlock verdict={reasoning.verdict} reasoning={reasoning} weighted={weighted} />
+        <WhyItMattersBlock
+          verdict={reasoning.verdict}
+          reasoning={reasoning}
+          weighted={weighted}
+          canonical={scanResponse?.canonical ?? null}
+        />
 
         <div
           style={{

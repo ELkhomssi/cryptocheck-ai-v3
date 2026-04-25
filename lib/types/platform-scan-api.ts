@@ -1,4 +1,5 @@
 import type { RiskAssessment } from '@/lib/services/scanner/risk-assessment'
+import type { CanonicalScanResult } from '@/lib/types/canonical-scan'
 
 /**
  * Public developer-facing scan payload (B2B / integrations).
@@ -34,4 +35,6 @@ export type PlatformScanResponse = {
     tier: string
     environment?: 'live' | 'sandbox'
   }
+  /** Present when mint was valid and canonical overlay succeeded. */
+  canonical?: CanonicalScanResult
 }

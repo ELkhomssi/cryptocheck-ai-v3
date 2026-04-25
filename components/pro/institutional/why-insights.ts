@@ -1,6 +1,7 @@
 import type { ReasoningObject, Verdict } from '@/lib/services/scanner-engine'
 import type { WeightedSecurityScore } from '@/lib/services/scanner/types'
 import { extractTopHolderPct } from '@/components/pro/institutional/model-helpers'
+import type { CanonicalScanResult } from '@/lib/types/canonical-scan'
 
 export type WhyBulletRef = { key: string; vars?: Record<string, string | number> }
 
@@ -13,15 +14,22 @@ export function whyBlockTitleKey(verdict: Verdict): string {
 /**
  * 3–4 bullets as translation keys (with optional interpolation) derived from scan output.
  */
-export function generateWhyBulletRefs(reasoning: ReasoningObject, weighted: WeightedSecurityScore): WhyBulletRef[] {
+export function generateWhyBulletRefs(
+  reasoning: ReasoningObject,
+  weighted: WeightedSecurityScore,
+  canonical?: CanonicalScanResult | null
+): WhyBulletRef[] {
   const rb = weighted.risk_breakdown
   const top = extractTopHolderPct(reasoning)
   const hits = reasoning.clusterAnalysis.scamLinkedFundingHits
   const bullets: WhyBulletRef[] = []
 
-  if (rb.liquidity_risk < 12) {
-    bullets.push({ key: 'institutional.why.bullets.liquidity_strong' })
-  } else if (rb.liquidity_risk < 28) {
+  if (canonical) {
+    bullets.push({
+      key: 'institutional.why.bullets.liquidity_status',
+      vars: { status: canonical.liquidity.status, reason: canonical.liquidity.reason },
+    })
+  } else if (rb.liquidity_risk < 12) {
     bullets.push({ key: 'institutional.why.bullets.liquidity_ok' })
   } else {
     bullets.push({ key: 'institutional.why.bullets.liquidity_thin' })

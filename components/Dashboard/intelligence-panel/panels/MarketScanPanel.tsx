@@ -1,14 +1,14 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { computeRisk, type ScanData } from '@/lib/helius'
 import { NeonForensicPanel } from '@/components/Dashboard/forensic-terminal/NeonForensicPanel'
 import { supabase } from '@/lib/supabase'
 import { AlertTriangle, CheckCircle2, Scale, ShieldAlert } from 'lucide-react'
 import { motion } from 'framer-motion'
+import type { CanonicalScanResult } from '@/lib/types/canonical-scan'
 
 export function MarketScanPanel({ mint }: { mint: string }) {
-  const [scan, setScan] = useState<ScanData | null>(null)
+  const [scan, setScan] = useState<CanonicalScanResult | null>(null)
   const [tracking, setTracking] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -22,12 +22,8 @@ export function MarketScanPanel({ mint }: { mint: string }) {
       }
       setLoading(true)
       try {
-        const res = await fetch('/api/solana/scan-token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mint }),
-        })
-        const json = (await res.json()) as ScanData
+        const res = await fetch(`/api/v1/sentinel/canonical-scan/${mint}`, { cache: 'no-store' })
+        const json = (await res.json()) as CanonicalScanResult
         if (active && res.ok) setScan(json)
         else if (active) setScan(null)
       } catch {
@@ -42,11 +38,9 @@ export function MarketScanPanel({ mint }: { mint: string }) {
     }
   }, [mint])
 
-  const risk = scan ? computeRisk(scan) : null
-
   const verdictVisual = useMemo(() => {
-    const v = (risk?.verdict ?? '').toUpperCase()
-    if (v.includes('SAFE')) {
+    const v = scan?.verdict
+    if (v === 'SAFE') {
       return {
         Icon: CheckCircle2,
         gradient: 'from-emerald-400/30 via-cyan-500/20 to-emerald-500/25',
@@ -56,7 +50,7 @@ export function MarketScanPanel({ mint }: { mint: string }) {
         iconClass: 'text-emerald-300',
       }
     }
-    if (v.includes('CAUTION') || v.includes('⚠')) {
+    if (v === 'CAUTION') {
       return {
         Icon: Scale,
         gradient: 'from-amber-400/25 via-fuchsia-500/15 to-cyan-500/20',
@@ -66,7 +60,7 @@ export function MarketScanPanel({ mint }: { mint: string }) {
         iconClass: 'text-amber-300',
       }
     }
-    if (v.includes('HIGH') || v.includes('AVOID') || v.includes('✕')) {
+    if (v === 'HIGH_RISK' || v === 'AVOID') {
       return {
         Icon: ShieldAlert,
         gradient: 'from-rose-500/30 via-fuchsia-600/25 to-rose-900/30',
@@ -84,7 +78,7 @@ export function MarketScanPanel({ mint }: { mint: string }) {
       text: 'text-slate-100',
       iconClass: 'text-cyan-300',
     }
-  }, [risk?.verdict])
+  }, [scan?.verdict])
 
   const { Icon, gradient, border, glow, text, iconClass } = verdictVisual
 
@@ -129,16 +123,22 @@ export function MarketScanPanel({ mint }: { mint: string }) {
                 Institutional verdict
               </p>
               <p className={`mt-2 font-space text-xl font-bold leading-tight tracking-tight sm:text-2xl ${text}`}>
-                {loading ? 'Scanning chain state…' : risk?.verdict ?? 'Awaiting scan data'}
+                {loading ? 'Scanning chain state…' : scan?.verdict ?? 'Awaiting scan data'}
               </p>
-              {risk?.summary ? (
-                <p className="mt-3 text-sm leading-relaxed text-slate-200/90">{risk.summary}</p>
+              {scan?.verdictReason ? (
+                <p className="mt-3 text-sm leading-relaxed text-slate-200/90">{scan.verdictReason}</p>
               ) : !loading ? (
                 <p className="mt-3 text-sm text-slate-500">Run a valid mint to populate the verdict module.</p>
               ) : null}
             </div>
           </div>
         </motion.div>
+        {scan ? (
+          <div className="rounded-xl border border-white/[0.08] bg-slate-950/70 p-3 font-mono-terminal text-xs text-slate-300">
+            Liquidity <span className="font-semibold text-cyan-200">{scan.liquidity.status}</span> ·{' '}
+            {scan.liquidity.reason}
+          </div>
+        ) : null}
 
         <button
           type="button"

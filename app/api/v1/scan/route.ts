@@ -15,6 +15,9 @@ import {
   assertScanTimestamp,
 } from '@/lib/middleware/scan-v1-security'
 import { SentinelServerMisconfigurationError } from '@/lib/security/signing'
+import { canonicalScan } from '@/lib/sentinel/canonical-scan'
+import { mergeReasoningWithCanonical } from '@/lib/sentinel/merge-canonical-institutional'
+import type { CanonicalScanResult } from '@/lib/types/canonical-scan'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -128,6 +131,23 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
   }
 
   const { snapshot, meta } = result
+  const mint = String(body.mint ?? '').trim()
+  let effectiveSnapshot = snapshot
+  let canonical: CanonicalScanResult | undefined
+  if (mint.length >= 32) {
+    try {
+      const c = await canonicalScan(mint)
+      canonical = c
+      effectiveSnapshot = {
+        ...snapshot,
+        weighted: { ...snapshot.weighted, score: c.riskScore },
+        reasoning: mergeReasoningWithCanonical(snapshot.reasoning, c),
+      }
+    } catch {
+      /* institutional scan still valid without canonical overlay */
+    }
+  }
+
   const responseTimeMs = Date.now() - started
 
   await logApiUsageEvent({
@@ -143,14 +163,15 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
   })
 
   if (mode === 'platform') {
-    const platform = mapSnapshotToPlatformResponse(snapshot, {
+    const platform = mapSnapshotToPlatformResponse(effectiveSnapshot, {
       responseTimeMs,
       cache: meta.cache,
       tier: ctx.tier,
       environment: 'live',
       requestId,
     })
-    return jsonWithScanHeaders(ctx, platform, 200, {
+    const platformBody = canonical ? { ...platform, canonical } : platform
+    return jsonWithScanHeaders(ctx, platformBody, 200, {
       'X-Cache': meta.cache === 'hit' ? 'HIT' : 'MISS',
       'X-Cache-Hit': meta.cache === 'hit' ? 'true' : 'false',
       'X-Response-Time-Ms': String(responseTimeMs),
@@ -161,17 +182,18 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
   }
 
   const payload = {
-    score: snapshot.weighted.score,
-    confidence: snapshot.weighted.confidence,
-    risk_breakdown: snapshot.weighted.risk_breakdown,
-    reasoning: snapshot.reasoning,
-    wallet_reputation: snapshot.walletReputation,
-    simulator: snapshot.simulator,
-    rpc_provider: snapshot.rpcProviderLabel,
-    pipeline_stages: snapshot.stages,
-    pipeline_ms: snapshot.totalPipelineMs,
-    last_updated: snapshot.updatedAt,
+    score: effectiveSnapshot.weighted.score,
+    confidence: effectiveSnapshot.weighted.confidence,
+    risk_breakdown: effectiveSnapshot.weighted.risk_breakdown,
+    reasoning: effectiveSnapshot.reasoning,
+    wallet_reputation: effectiveSnapshot.walletReputation,
+    simulator: effectiveSnapshot.simulator,
+    rpc_provider: effectiveSnapshot.rpcProviderLabel,
+    pipeline_stages: effectiveSnapshot.stages,
+    pipeline_ms: effectiveSnapshot.totalPipelineMs,
+    last_updated: effectiveSnapshot.updatedAt,
     cache: meta.cache,
+    ...(canonical ? { canonical } : {}),
     meta: {
       response_time_ms: meta.responseTimeMs,
       auth_via: meta.authVia,

@@ -1,11 +1,9 @@
 import 'server-only'
 import { z } from 'zod'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
-import { scanTokenIntelligence } from '@/lib/services/scanner/execute-scan'
+import { canonicalScan } from '@/lib/sentinel/canonical-scan'
 import { fetchWhaleFlowForMint } from '@/lib/services/whale/fetch-whale-flow'
 import { buildRelationshipGraph } from '@/lib/services/whale/relationship-graph'
-import { fetchTokenMetricsWithPair } from '@/lib/dexscreener/fetch-token-metrics'
-import { detectLiquidityLock } from '@/lib/sentinel/liquidity-lock'
 import { complete } from '@/lib/services/ai/openai-client'
 
 /** Models often return `analysis`, `summary`, etc. under `json_object` instead of `report`. */
@@ -84,13 +82,13 @@ export function runInvestigationStream(params: { mint: string; userId: string })
 
       try {
         push({ type: 'tool', toolName: 'scanTokenSecurity', state: 'running', detail: 'Running Sentinel risk scan...' })
-        const scan = await scanTokenIntelligence({ mint: params.mint, mode: 'full' })
+        const scan = await canonicalScan(params.mint)
         await logUsage(params.userId, 'investigation_tool:scanTokenSecurity')
         push({
           type: 'tool',
           toolName: 'scanTokenSecurity',
           state: 'result',
-          detail: `Risk ${scan.riskScore} (${scan.verdict}).`,
+          detail: `Risk ${scan.riskScore} (${scan.verdict}) · liquidity ${scan.liquidity.status}.`,
         })
 
         push({ type: 'tool', toolName: 'fetchWhaleFlow', state: 'running', detail: 'Tracing smart-money flow (24h)...' })
@@ -115,14 +113,12 @@ export function runInvestigationStream(params: { mint: string; userId: string })
         })
 
         push({ type: 'tool', toolName: 'checkLiquidityLock', state: 'running', detail: 'Checking LP lock status...' })
-        const metrics = await fetchTokenMetricsWithPair(params.mint).catch(() => ({ pair: null }))
-        const lock = await detectLiquidityLock(metrics.pair ?? null)
         await logUsage(params.userId, 'investigation_tool:checkLiquidityLock')
         push({
           type: 'tool',
           toolName: 'checkLiquidityLock',
           state: 'result',
-          detail: `Liquidity status: ${lock.status}.`,
+          detail: `Liquidity status: ${scan.liquidity.status}. ${scan.liquidity.reason}`,
         })
 
         push({ type: 'tool', toolName: 'matchHistoricalPatterns', state: 'running', detail: 'Matching historical patterns...' })
@@ -149,14 +145,19 @@ export function runInvestigationStream(params: { mint: string; userId: string })
           userMessage: JSON.stringify(
             {
               mint: params.mint,
-              security: { riskScore: scan.riskScore, verdict: scan.verdict, topSignals: scan.topSignals?.slice(0, 6) ?? [] },
+              security: {
+                riskScore: scan.riskScore,
+                verdict: scan.verdict,
+                topSignals: scan.signals.slice(0, 6).map((s) => s.message),
+              },
               whales: {
                 txCount: whaleFlow.length,
                 uniqueWallets: new Set(whaleFlow.map((t) => t.walletAddress)).size,
                 netFlowUsd: Math.round(netFlow),
               },
               relationshipGraph: { nodes: graph.nodes.length, edges: graph.edges.length },
-              liquidityLock: lock,
+              liquidity: scan.liquidity,
+              authorities: scan.authorities,
               historicalMatches: (recentSignals ?? []).slice(0, 10),
             },
             null,

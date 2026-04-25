@@ -9,6 +9,8 @@ import { normalizeScanBody } from '@/lib/services/scanner/normalize-scan-body'
 import { ScanServiceError } from '@/lib/services/scanner/ErrorHandler'
 import type { ProFeatureContext } from '@/lib/auth/pro-feature-access'
 import { SentinelServerMisconfigurationError } from '@/lib/security/signing'
+import { canonicalScan } from '@/lib/sentinel/canonical-scan'
+import { mergeReasoningWithCanonical } from '@/lib/sentinel/merge-canonical-institutional'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -72,12 +74,15 @@ export async function POST(req: NextRequest) {
     }
 
     const { snapshot, meta } = result
+    const mint = String(body.mint ?? body.tokenAddress ?? '').trim()
+    const canonical = await canonicalScan(mint)
+    const canonicalReasoning = mergeReasoningWithCanonical(snapshot.reasoning, canonical)
     const responseTimeMs = Date.now() - started
     const payload = {
-      score: snapshot.weighted.score,
+      score: canonical.riskScore,
       confidence: snapshot.weighted.confidence,
       risk_breakdown: snapshot.weighted.risk_breakdown,
-      reasoning: snapshot.reasoning,
+      reasoning: canonicalReasoning,
       wallet_reputation: snapshot.walletReputation,
       simulator: snapshot.simulator,
       rpc_provider: snapshot.rpcProviderLabel,
@@ -85,6 +90,7 @@ export async function POST(req: NextRequest) {
       pipeline_ms: snapshot.totalPipelineMs,
       last_updated: snapshot.updatedAt,
       cache: meta.cache,
+      canonical,
       meta: {
         response_time_ms: responseTimeMs,
         auth_via: 'session' as const,
