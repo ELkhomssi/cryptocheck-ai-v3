@@ -66,8 +66,9 @@ export async function POST(req: Request) {
   }
 
   let endpoints: string[]
+  const userHeliusApiKey = req.headers.get('x-helius-api-key') ?? undefined
   try {
-    endpoints = getRpcEndpoints()
+    endpoints = getRpcEndpoints(userHeliusApiKey)
   } catch {
     endpoints = ['https://api.mainnet-beta.solana.com']
   }

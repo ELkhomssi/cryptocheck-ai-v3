@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { DisclaimerBanner } from '@/components/legal/DisclaimerBanner'
+import { loadEncryptedKey } from '@/lib/crypto/client-key-store'
 
 type ToolState = 'running' | 'result'
 type ToolEvent = { type: 'tool'; toolName: string; state: ToolState; detail: string }
@@ -27,9 +28,25 @@ export default function InvestigatePage() {
   const [runStartedAt, setRunStartedAt] = useState<number | null>(null)
   const [toolStartedAt, setToolStartedAt] = useState<Record<string, number>>({})
   const [elapsedNow, setElapsedNow] = useState(Date.now())
+  const [hasApiAccess, setHasApiAccess] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const [terminalKey] = await Promise.all([loadEncryptedKey()])
+      const hasProviderKey = Boolean(
+        (window.localStorage.getItem('cc_user_helius_api_key') ?? '').trim() ||
+          (window.localStorage.getItem('cc_user_openai_api_key') ?? '').trim()
+      )
+      if (!cancelled) setHasApiAccess(Boolean(terminalKey?.trim() || hasProviderKey))
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function startInvestigation() {
-    if (!mint) return
+    if (!mint || !hasApiAccess) return
     setLoading(true)
     setReport('')
     setToolEvents([])
@@ -127,12 +144,16 @@ export default function InvestigatePage() {
           />
           <button
             onClick={() => void startInvestigation()}
-            disabled={loading || !mint}
+            disabled={loading || !mint || !hasApiAccess}
+            title={!hasApiAccess ? 'Action restricted: API Key required.' : undefined}
             className="cyber-glow rounded-xl border border-cyan-300/40 bg-gradient-to-r from-cyan-400 to-emerald-400 px-6 py-3 font-space text-sm font-bold uppercase tracking-wide text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? 'Investigating...' : 'Start Investigation'}
           </button>
         </div>
+        {!hasApiAccess ? (
+          <p className="mb-4 text-xs text-amber-300">Action restricted: API Key required.</p>
+        ) : null}
         <p className="mb-6 font-mono-terminal text-xs font-bold uppercase tracking-[0.18em] text-cyan-300/80">
           Session Runtime:{' '}
           <span className="text-emerald-300">

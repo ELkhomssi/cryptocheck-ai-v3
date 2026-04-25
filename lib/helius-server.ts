@@ -20,6 +20,13 @@ export function getHeliusApiKeyFromEnv(): string | undefined {
   return raw ? normalizeHeliusApiKey(raw) : undefined
 }
 
+/** Optional per-request user override (e.g. UI-provided key). */
+export function normalizeUserHeliusApiKey(raw: string | null | undefined): string | undefined {
+  const v = raw?.trim()
+  if (!v) return undefined
+  return normalizeHeliusApiKey(v)
+}
+
 /** Trim BOM/quotes — bad paste in Vercel often causes Helius `-32401` / HTTP 401. */
 function normalizeHeliusApiKey(raw: string): string {
   let s = raw.replace(/^\uFEFF/, '').trim()
@@ -29,8 +36,12 @@ function normalizeHeliusApiKey(raw: string): string {
   return s
 }
 
-function requireHeliusKey(): string {
-  const k = getHeliusApiKeyFromEnv()
+function resolveHeliusKey(preferredKey?: string): string | undefined {
+  return normalizeUserHeliusApiKey(preferredKey) || getHeliusApiKeyFromEnv()
+}
+
+function requireHeliusKey(preferredKey?: string): string {
+  const k = resolveHeliusKey(preferredKey)
   if (!k) {
     throw new Error('HELIUS_API_KEY is not configured (set HELIUS_API_KEY or legacy HELIUS_KEY)')
   }
@@ -38,14 +49,14 @@ function requireHeliusKey(): string {
 }
 
 /** Primary authenticated Helius JSON-RPC URL — server-only; never expose to the client. */
-export function getHeliusPrimaryRpcUrl(): string {
-  const key = encodeURIComponent(requireHeliusKey())
+export function getHeliusPrimaryRpcUrl(preferredKey?: string): string {
+  const key = encodeURIComponent(requireHeliusKey(preferredKey))
   return `https://mainnet.helius-rpc.com/?api-key=${key}`
 }
 
 /** Build a Helius REST URL with the API key — server-only (key is URL-encoded). */
-export function buildHeliusRestUrl(path: string): string {
-  const key = requireHeliusKey()
+export function buildHeliusRestUrl(path: string, preferredKey?: string): string {
+  const key = requireHeliusKey(preferredKey)
   const p = path.startsWith('/') ? path : `/${path}`
   const u = new URL(`${HELIUS_API}${p}`)
   u.searchParams.set('api-key', key)
@@ -58,9 +69,10 @@ export function buildHeliusRestUrl(path: string): string {
  */
 export function buildHeliusApiUrl(
   path: string,
-  extraQuery?: Record<string, string | number | undefined>
+  extraQuery?: Record<string, string | number | undefined>,
+  preferredKey?: string
 ): string {
-  const key = requireHeliusKey()
+  const key = requireHeliusKey(preferredKey)
   const p = path.startsWith('/') ? path : `/${path}`
   const u = new URL(`${HELIUS_API}${p}`)
   u.searchParams.set('api-key', key)
@@ -94,16 +106,20 @@ function rpcErrorIsFailoverWorthy(err: { code?: number; message?: string } | und
   )
 }
 
-export function getRpcEndpoints(): string[] {
-  const primary = getHeliusPrimaryRpcUrl()
+export function getRpcEndpoints(preferredKey?: string): string[] {
+  const primary = getHeliusPrimaryRpcUrl(preferredKey)
   const extra = [process.env.SOLANA_RPC_FALLBACK_URL].filter(Boolean) as string[]
   const publicFallback = 'https://api.mainnet-beta.solana.com'
   return Array.from(new Set([primary, ...extra, publicFallback]))
 }
 
-export async function rpcCall<T = unknown>(method: string, params: unknown[] = []): Promise<T> {
+export async function rpcCall<T = unknown>(
+  method: string,
+  params: unknown[] = [],
+  options?: { heliusApiKey?: string }
+): Promise<T> {
   const payload = { jsonrpc: '2.0', id: 1, method, params }
-  const endpoints = getRpcEndpoints()
+  const endpoints = getRpcEndpoints(options?.heliusApiKey)
   let lastMessage = 'RPC error'
   for (let i = 0; i < endpoints.length; i++) {
     const url = endpoints[i]
@@ -130,8 +146,12 @@ export async function rpcCall<T = unknown>(method: string, params: unknown[] = [
   throw new Error(lastMessage)
 }
 
-export async function heliusRest<T = unknown>(path: string, body?: unknown): Promise<T> {
-  const url = buildHeliusRestUrl(path)
+export async function heliusRest<T = unknown>(
+  path: string,
+  body?: unknown,
+  options?: { heliusApiKey?: string }
+): Promise<T> {
+  const url = buildHeliusRestUrl(path, options?.heliusApiKey)
   let lastErr: Error | null = null
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
@@ -154,8 +174,12 @@ export async function heliusRest<T = unknown>(path: string, body?: unknown): Pro
   throw lastErr ?? new Error('Helius API failed')
 }
 
-export async function dasCall<T = unknown>(method: string, params: unknown): Promise<T> {
-  const res = await fetch(getHeliusPrimaryRpcUrl(), {
+export async function dasCall<T = unknown>(
+  method: string,
+  params: unknown,
+  options?: { heliusApiKey?: string }
+): Promise<T> {
+  const res = await fetch(getHeliusPrimaryRpcUrl(options?.heliusApiKey), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),

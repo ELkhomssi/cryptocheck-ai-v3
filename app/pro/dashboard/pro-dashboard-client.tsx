@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Home, LayoutDashboard } from 'lucide-react'
 import { GeistMono } from 'geist/font/mono'
@@ -19,6 +19,7 @@ import { WhyItMattersBlock } from '@/components/pro/institutional/WhyItMattersBl
 import { WalletIntelGraph } from '@/components/pro/institutional/WalletIntelGraph'
 import { InstitutionalI18nProvider, useInstitutionalTranslation } from '@/lib/i18n/institutional-context'
 import type { InstitutionalLocale } from '@/lib/i18n/institutional-catalog'
+import { loadEncryptedKey } from '@/lib/crypto/client-key-store'
 
 type Props = {
   session: ProDashboardSession
@@ -26,6 +27,10 @@ type Props = {
   demoWeighted: WeightedSecurityScore
   demoRpcLabel: string
 }
+
+const USER_HELIUS_KEY_STORAGE = 'cc_user_helius_api_key'
+const USER_OPENAI_KEY_STORAGE = 'cc_user_openai_api_key'
+const API_REQUIRED_TOOLTIP = 'Action restricted: API Key required.'
 
 function scanApiErrorMessage(data: unknown): string {
   if (!data || typeof data !== 'object') return 'Request failed'
@@ -129,13 +134,44 @@ function ProDashboardClientInner({
   const [toast, setToast] = useState<string | null>(null)
   const [apiError, setApiError] = useState<string | null>(null)
   const [dlBusy, setDlBusy] = useState<'pdf' | 'copy' | null>(null)
+  const [heliusApiKey, setHeliusApiKey] = useState('')
+  const [openaiApiKey, setOpenaiApiKey] = useState('')
+  const [hasTerminalKey, setHasTerminalKey] = useState(false)
+  const [keysHydrated, setKeysHydrated] = useState(false)
+  const [keyConfigNote, setKeyConfigNote] = useState<string | null>(null)
   const { connect, disconnect, isConnected, shortAddr, isConnecting } = useSolana()
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const storedHelius = window.localStorage.getItem(USER_HELIUS_KEY_STORAGE) ?? ''
+        const storedOpenAi = window.localStorage.getItem(USER_OPENAI_KEY_STORAGE) ?? ''
+        const terminalKey = await loadEncryptedKey()
+        if (!cancelled) {
+          setHeliusApiKey(storedHelius)
+          setOpenaiApiKey(storedOpenAi)
+          setHasTerminalKey(Boolean(terminalKey?.trim()))
+        }
+      } finally {
+        if (!cancelled) setKeysHydrated(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const tierHint = useMemo(() => {
     if (!session.userId) return t('institutional.page.tier_hint_signed_out')
     if (!session.hasDeepAccess) return t('institutional.page.tier_hint_upgrade')
     return null
   }, [session, t])
+
+  const hasApiAccess = useMemo(() => {
+    if (!keysHydrated) return false
+    return Boolean(heliusApiKey.trim() || openaiApiKey.trim() || hasTerminalKey)
+  }, [keysHydrated, heliusApiKey, openaiApiKey, hasTerminalKey])
 
   const reasoning = scanResponse?.reasoning ?? demoReasoning
   const weighted: WeightedSecurityScore = scanResponse
@@ -161,6 +197,17 @@ function ProDashboardClientInner({
       document.getElementById('pro-live-scanner')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     })
   }, [])
+
+  const saveProviderKeys = useCallback(() => {
+    const h = heliusApiKey.trim()
+    const o = openaiApiKey.trim()
+    if (h) window.localStorage.setItem(USER_HELIUS_KEY_STORAGE, h)
+    else window.localStorage.removeItem(USER_HELIUS_KEY_STORAGE)
+    if (o) window.localStorage.setItem(USER_OPENAI_KEY_STORAGE, o)
+    else window.localStorage.removeItem(USER_OPENAI_KEY_STORAGE)
+    setKeyConfigNote('Keys saved locally for this browser session.')
+    window.setTimeout(() => setKeyConfigNote(null), 3200)
+  }, [heliusApiKey, openaiApiKey])
 
   const handleLiveResult = useCallback((scan: ScanV1ApiResponse, _perf: LivePerfMeta, mint: string) => {
     setScanResponse(scan)
@@ -408,6 +455,148 @@ function ProDashboardClientInner({
           </div>
         </header>
 
+        <section
+          style={{
+            marginBottom: 18,
+            borderRadius: 14,
+            border: '0.5px solid rgba(255,255,255,0.1)',
+            background: 'rgba(2,6,23,0.5)',
+            padding: '14px 14px 16px',
+          }}
+        >
+          <div style={{ fontSize: 10, letterSpacing: '0.12em', color: '#64748b' }}>API CONFIGURATION</div>
+          <p style={{ fontSize: 12, color: '#94a3b8', margin: '8px 0 10px' }}>
+            Configure your provider keys to unlock live Scan, Investigate, and Monitor actions.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 10 }}>
+            <input
+              value={heliusApiKey}
+              onChange={(e) => setHeliusApiKey(e.target.value)}
+              placeholder="Helius API Key"
+              autoComplete="off"
+              spellCheck={false}
+              style={{
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: '0.5px solid rgba(255,255,255,0.12)',
+                background: 'rgba(0,0,0,0.25)',
+                color: '#e2e8f0',
+                fontSize: 12,
+              }}
+            />
+            <input
+              value={openaiApiKey}
+              onChange={(e) => setOpenaiApiKey(e.target.value)}
+              placeholder="OpenAI API Key"
+              autoComplete="off"
+              spellCheck={false}
+              style={{
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: '0.5px solid rgba(255,255,255,0.12)',
+                background: 'rgba(0,0,0,0.25)',
+                color: '#e2e8f0',
+                fontSize: 12,
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10, alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={saveProviderKeys}
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '7px 12px',
+                borderRadius: 8,
+                border: '0.5px solid rgba(16,185,129,0.45)',
+                background: 'rgba(16,185,129,0.12)',
+                color: '#6ee7b7',
+              }}
+            >
+              Save Keys
+            </button>
+            <span style={{ fontSize: 11, color: hasApiAccess ? '#6ee7b7' : '#fbbf24' }}>
+              {hasApiAccess ? 'API access enabled' : API_REQUIRED_TOOLTIP}
+            </span>
+            {keyConfigNote ? <span style={{ fontSize: 11, color: '#93c5fd' }}>{keyConfigNote}</span> : null}
+          </div>
+        </section>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+          <button
+            type="button"
+            onClick={() => document.getElementById('pro-live-scanner')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            disabled={!hasApiAccess}
+            title={!hasApiAccess ? API_REQUIRED_TOOLTIP : undefined}
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              padding: '7px 12px',
+              borderRadius: 8,
+              border: '0.5px solid rgba(16,185,129,0.45)',
+              background: 'rgba(16,185,129,0.1)',
+              color: hasApiAccess ? '#6ee7b7' : '#64748b',
+              cursor: hasApiAccess ? 'pointer' : 'not-allowed',
+            }}
+          >
+            Scan
+          </button>
+          {hasApiAccess ? (
+            <Link
+              href="/dashboard/investigate"
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '7px 12px',
+                borderRadius: 8,
+                border: '0.5px solid rgba(255,255,255,0.18)',
+                background: 'rgba(255,255,255,0.06)',
+                color: '#e2e8f0',
+                textDecoration: 'none',
+              }}
+            >
+              Investigate
+            </Link>
+          ) : (
+            <button
+              type="button"
+              disabled
+              title={API_REQUIRED_TOOLTIP}
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '7px 12px',
+                borderRadius: 8,
+                border: '0.5px solid rgba(255,255,255,0.12)',
+                background: 'rgba(255,255,255,0.04)',
+                color: '#64748b',
+                cursor: 'not-allowed',
+              }}
+            >
+              Investigate
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => document.getElementById('pro-monitor-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            disabled={!hasApiAccess}
+            title={!hasApiAccess ? API_REQUIRED_TOOLTIP : undefined}
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              padding: '7px 12px',
+              borderRadius: 8,
+              border: '0.5px solid rgba(251,191,36,0.35)',
+              background: 'rgba(251,191,36,0.1)',
+              color: hasApiAccess ? '#fcd34d' : '#64748b',
+              cursor: hasApiAccess ? 'pointer' : 'not-allowed',
+            }}
+          >
+            Monitor
+          </button>
+        </div>
+
         <HeroScanner
           prefillMint={prefillMint}
           onPrefillConsumed={handlePrefillConsumed}
@@ -415,6 +604,9 @@ function ProDashboardClientInner({
           initialScore={demoWeighted.score}
           initialVerdict={demoReasoning.verdict}
           initialConfidence={demoWeighted.confidence}
+          hasApiAccess={hasApiAccess}
+          restrictionTooltip={API_REQUIRED_TOOLTIP}
+          userHeliusApiKey={heliusApiKey.trim() || null}
         />
         {toast ? (
           <div
@@ -498,7 +690,7 @@ function ProDashboardClientInner({
           </div>
         ) : null}
 
-        <div style={{ marginTop: 28 }}>
+        <div id="pro-monitor-section" style={{ marginTop: 28 }}>
           <PulseFeed onPickMint={onPulsePick} />
         </div>
 

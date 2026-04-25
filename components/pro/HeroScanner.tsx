@@ -32,6 +32,9 @@ export type HeroScannerProps = {
   initialScore: number
   initialVerdict: ScanV1ApiResponse['reasoning']['verdict']
   initialConfidence: number
+  hasApiAccess?: boolean
+  restrictionTooltip?: string
+  userHeliusApiKey?: string | null
 }
 
 export function HeroScanner({
@@ -41,6 +44,9 @@ export function HeroScanner({
   initialScore,
   initialVerdict,
   initialConfidence,
+  hasApiAccess = true,
+  restrictionTooltip = 'Action restricted: API Key required.',
+  userHeliusApiKey = null,
 }: HeroScannerProps) {
   const formId = useId()
   const [mint, setMint] = useState('')
@@ -67,7 +73,10 @@ export function HeroScanner({
     try {
       const r = await fetch('/api/v1/scan/public', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(userHeliusApiKey ? { 'X-Helius-Api-Key': userHeliusApiKey } : {}),
+        },
         body: JSON.stringify({ mint: trimmed }),
       })
       const j = (await r.json()) as ScanV1ApiResponse | Record<string, unknown>
@@ -98,7 +107,7 @@ export function HeroScanner({
     } finally {
       setLoading(false)
     }
-  }, [mint, onLiveResult])
+  }, [mint, onLiveResult, userHeliusApiKey])
 
   const displayScan = live
   const score = displayScan?.score ?? initialScore
@@ -172,7 +181,8 @@ export function HeroScanner({
           <button
             type="button"
             onClick={() => void runScan()}
-            disabled={loading}
+            disabled={loading || !hasApiAccess}
+            title={!hasApiAccess ? restrictionTooltip : undefined}
             style={{
               padding: '12px 22px',
               borderRadius: 10,
@@ -180,14 +190,20 @@ export function HeroScanner({
               fontWeight: 700,
               fontSize: 13,
               letterSpacing: '0.06em',
-              cursor: loading ? 'wait' : 'pointer',
+              cursor: loading ? 'wait' : !hasApiAccess ? 'not-allowed' : 'pointer',
               color: '#020617',
-              background: loading ? 'rgba(16,185,129,0.45)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              background:
+                loading || !hasApiAccess
+                  ? 'rgba(16,185,129,0.45)'
+                  : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
             }}
           >
             {loading ? 'Scanning…' : 'Run scan'}
           </button>
         </div>
+        {!hasApiAccess ? (
+          <p style={{ marginTop: 10, fontSize: 12, color: '#fbbf24' }}>{restrictionTooltip}</p>
+        ) : null}
         {error ? (
           <p style={{ marginTop: 10, fontSize: 12, color: '#f87171' }} role="alert">
             {error}
