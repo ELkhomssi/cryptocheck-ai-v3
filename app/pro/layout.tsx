@@ -1,6 +1,5 @@
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
-import { GlobalAccessKeyDiagnostics } from '@/components/access/GlobalAccessKeyDiagnostics'
 
 export default function ProLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -14,9 +13,6 @@ export default function ProLayout({ children }: { children: React.ReactNode }) {
         fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
       }}
     >
-      <div style={{ maxWidth: 1180, margin: '0 auto', padding: 'clamp(12px,3vw,20px) clamp(14px,4vw,40px) 0' }}>
-        <GlobalAccessKeyDiagnostics variant="pro" />
-      </div>
       {children}
     </div>
   )
