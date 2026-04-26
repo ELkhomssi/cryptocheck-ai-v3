@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import { Loader2 } from 'lucide-react'
 import { TerminalGate } from './TerminalGate'
 import { useTerminal } from './TerminalProvider'
@@ -18,7 +19,7 @@ function TerminalSkeleton() {
   )
 }
 
-export function TerminalShell() {
+export function TerminalShell({ unlockedChildren }: { unlockedChildren?: ReactNode }) {
   const { state } = useTerminal()
 
   if (state.hydrating) {
@@ -31,7 +32,10 @@ export function TerminalShell() {
       {state.phase === 'idle' || state.phase === 'locked' || state.phase === 'verifying' ? (
         <TerminalGate />
       ) : state.phase === 'unlocked' ? (
-        <Console />
+        <>
+          <Console />
+          {unlockedChildren}
+        </>
       ) : null}
     </>
   )
