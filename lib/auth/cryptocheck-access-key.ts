@@ -4,6 +4,18 @@
  */
 export const CRYPTOCHECK_ACCESS_KEY_STORAGE = 'cryptocheck_access_key'
 
+/** Fired after flat `cryptocheck_access_key` changes so UI can refresh diagnostics site-wide. */
+export const CRYPTOCHECK_ACCESS_KEY_SYSTEM_EVENT = 'cryptocheck-access-key-system-changed'
+
+function emitAccessKeySystemChanged(): void {
+  if (typeof window === 'undefined') return
+  try {
+    window.dispatchEvent(new CustomEvent(CRYPTOCHECK_ACCESS_KEY_SYSTEM_EVENT))
+  } catch {
+    /* ignore */
+  }
+}
+
 export function readCryptocheckAccessKeyFromLocalStorage(): string {
   if (typeof window === 'undefined') return ''
   try {
@@ -25,6 +37,7 @@ export function writeCryptocheckAccessKeyToLocalStorage(raw: string): void {
   } catch {
     /* ignore */
   }
+  emitAccessKeySystemChanged()
 }
 
 export function clearCryptocheckAccessKeyFromLocalStorage(): void {
@@ -34,4 +47,5 @@ export function clearCryptocheckAccessKeyFromLocalStorage(): void {
   } catch {
     /* ignore */
   }
+  emitAccessKeySystemChanged()
 }

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { ensureFreeTierSubscription } from '@/lib/services/saas-entitlement.service'
 import { getUserSubscription } from '@/lib/services/user-subscription.service'
 import { DashboardShell } from '@/components/Dashboard/DashboardShell'
+import { GlobalAccessKeyDiagnostics } from '@/components/access/GlobalAccessKeyDiagnostics'
 import { DisclaimerBanner } from '@/components/legal/DisclaimerBanner'
 
 const inter = Inter({
@@ -54,6 +55,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       >
         <>
           <DisclaimerBanner variant="default" />
+          <GlobalAccessKeyDiagnostics variant="dashboard" />
           {children}
         </>
       </DashboardShell>
