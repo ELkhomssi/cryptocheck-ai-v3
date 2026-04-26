@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef } from 'react'
-import { loadEncryptedKey } from '@/lib/crypto/client-key-store'
+import { loadAccessKeyMaterial } from '@/lib/crypto/client-key-store'
 
 interface Signal {
   label: string
@@ -113,7 +113,7 @@ export default function NeuralScanV4() {
     }
 
     try {
-      const apiKey = await loadEncryptedKey()
+      const apiKey = await loadAccessKeyMaterial()
       if (!apiKey) {
         setError('API key required — paste your key in the Intelligence Terminal first.')
         return

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Home, LayoutDashboard } from 'lucide-react'
 import { GeistMono } from 'geist/font/mono'
@@ -19,12 +19,7 @@ import { WhyItMattersBlock } from '@/components/pro/institutional/WhyItMattersBl
 import { WalletIntelGraph } from '@/components/pro/institutional/WalletIntelGraph'
 import { InstitutionalI18nProvider, useInstitutionalTranslation } from '@/lib/i18n/institutional-context'
 import type { InstitutionalLocale } from '@/lib/i18n/institutional-catalog'
-import {
-  clearCryptocheckAccessKeyFromLocalStorage,
-  readCryptocheckAccessKeyFromLocalStorage,
-  writeCryptocheckAccessKeyToLocalStorage,
-} from '@/lib/auth/cryptocheck-access-key'
-import { clearKey as clearTerminalEncryptedKey, storeEncryptedKey } from '@/lib/crypto/client-key-store'
+import { useVerifiedCryptocheckAccessKey } from '@/lib/hooks/useVerifiedCryptocheckAccessKey'
 
 type Props = {
   session: ProDashboardSession
@@ -34,6 +29,35 @@ type Props = {
 }
 
 const API_REQUIRED_TOOLTIP = 'Action restricted: API Key required.'
+
+function asPlainText(value: unknown, context: string): string {
+  if (value == null) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No'
+  if (process.env.NODE_ENV === 'development') {
+    console.warn(`[pro/dashboard] Expected plain text for ${context}:`, value)
+  }
+  return ''
+}
+
+function formatPipelineStages(stages: unknown): string {
+  if (!Array.isArray(stages) || stages.length === 0) return ''
+  return stages
+    .map((raw) => {
+      const s = raw as Record<string, unknown>
+      const name = typeof s?.name === 'string' ? s.name : asPlainText(s?.name, 'pipeline_stage.name')
+      const msRaw = s?.durationMs
+      const ms = typeof msRaw === 'number' && Number.isFinite(msRaw) ? msRaw : 0
+      return `${name || 'stage'}:${ms}ms`
+    })
+    .join(' · ')
+}
+
+function formatSignalList(signals: unknown): string {
+  if (!Array.isArray(signals)) return ''
+  return signals.map((x) => asPlainText(x, 'fingerprint.signal')).filter(Boolean).join(', ')
+}
 
 function scanApiErrorMessage(data: unknown): string {
   if (!data || typeof data !== 'object') return 'Request failed'
@@ -137,56 +161,8 @@ function ProDashboardClientInner({
   const [toast, setToast] = useState<string | null>(null)
   const [apiError, setApiError] = useState<string | null>(null)
   const [dlBusy, setDlBusy] = useState<'pdf' | 'copy' | null>(null)
-  const [accessKeyInput, setAccessKeyInput] = useState('')
-  const [keysHydrated, setKeysHydrated] = useState(false)
-  const [hasApiAccess, setHasApiAccess] = useState(false)
-  const [verifyingAccessKey, setVerifyingAccessKey] = useState(false)
-  const [accessKeyStatus, setAccessKeyStatus] = useState<string | null>(null)
-  const [diagnostics, setDiagnostics] = useState<string | null>(null)
+  const { ready: accessReady, hasValidKey: hasApiAccess } = useVerifiedCryptocheckAccessKey()
   const { connect, disconnect, isConnected, shortAddr, isConnecting } = useSolana()
-
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      try {
-        const storedAccessKey = readCryptocheckAccessKeyFromLocalStorage()
-        if (!cancelled) setAccessKeyInput(storedAccessKey)
-        if (storedAccessKey.trim()) {
-          const r = await fetch('/api/v1/keys/verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key: storedAccessKey }),
-          })
-          const j = (await r.json().catch(() => ({}))) as {
-            keyTier?: string
-            subscriptionTier?: string
-            rateLimit?: { maxRequests?: number; windowSeconds?: number }
-          }
-          if (!cancelled) {
-            const ok = r.ok
-            setHasApiAccess(ok)
-            if (ok) {
-              setDiagnostics(
-                `Diagnostics: ${String(j.keyTier ?? 'n/a').toUpperCase()} · ${String(
-                  j.subscriptionTier ?? 'n/a'
-                ).toUpperCase()} · ${j.rateLimit?.maxRequests ?? 'n/a'}/${j.rateLimit?.windowSeconds ?? 'n/a'}s`
-              )
-            } else {
-              clearTerminalEncryptedKey()
-              clearCryptocheckAccessKeyFromLocalStorage()
-              setDiagnostics(null)
-              setAccessKeyStatus('Stored CryptoCheck AI Access Key is invalid.')
-            }
-          }
-        }
-      } finally {
-        if (!cancelled) setKeysHydrated(true)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   const tierHint = useMemo(() => {
     if (!session.userId) return t('institutional.page.tier_hint_signed_out')
@@ -218,54 +194,6 @@ function ProDashboardClientInner({
       document.getElementById('pro-live-scanner')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     })
   }, [])
-
-  const verifyAndSaveAccessKey = useCallback(async () => {
-    const key = accessKeyInput.trim()
-    if (!key) {
-      clearTerminalEncryptedKey()
-      clearCryptocheckAccessKeyFromLocalStorage()
-      setHasApiAccess(false)
-      setDiagnostics(null)
-      setAccessKeyStatus('CryptoCheck AI Access Key is required.')
-      return
-    }
-
-    setVerifyingAccessKey(true)
-    setAccessKeyStatus(null)
-    try {
-      const r = await fetch('/api/v1/keys/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key }),
-      })
-      const j = (await r.json().catch(() => ({}))) as {
-        error?: string
-        keyTier?: string
-        subscriptionTier?: string
-        rateLimit?: { maxRequests?: number; windowSeconds?: number }
-      }
-      if (!r.ok) {
-        clearTerminalEncryptedKey()
-        clearCryptocheckAccessKeyFromLocalStorage()
-        setHasApiAccess(false)
-        setDiagnostics(null)
-        setAccessKeyStatus(j.error || 'Invalid CryptoCheck AI Access Key.')
-        return
-      }
-
-      await storeEncryptedKey(key)
-      writeCryptocheckAccessKeyToLocalStorage(key)
-      setHasApiAccess(true)
-      setAccessKeyStatus('Access granted. Pro features unlocked.')
-      setDiagnostics(
-        `Diagnostics: ${String(j.keyTier ?? 'n/a').toUpperCase()} · ${String(
-          j.subscriptionTier ?? 'n/a'
-        ).toUpperCase()} · ${j.rateLimit?.maxRequests ?? 'n/a'}/${j.rateLimit?.windowSeconds ?? 'n/a'}s`
-      )
-    } finally {
-      setVerifyingAccessKey(false)
-    }
-  }, [accessKeyInput])
 
   const handleLiveResult = useCallback((scan: ScanV1ApiResponse, _perf: LivePerfMeta, mint: string) => {
     setScanResponse(scan)
@@ -519,73 +447,35 @@ function ProDashboardClientInner({
             borderRadius: 14,
             border: '0.5px solid rgba(255,255,255,0.1)',
             background: 'rgba(2,6,23,0.5)',
-            padding: '14px 14px 16px',
+            padding: '12px 14px',
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: 10,
           }}
         >
-          <div style={{ fontSize: 10, letterSpacing: '0.12em', color: '#64748b' }}>CRYPTOCHECK AI ACCESS</div>
-          <p style={{ fontSize: 12, color: '#94a3b8', margin: '8px 0 6px' }}>
-            Use your CryptoCheck AI API key (`cc_live_` or `cc_sentinel_2_`) to unlock live Scan, Investigate, and Monitor actions.
-            The same key is used in the Analysis Console neural terminal.
-          </p>
-          <p style={{ fontSize: 11, color: '#64748b', margin: '0 0 10px' }}>
-            <Link
-              href="/dashboard/intelligence-terminal"
-              style={{ color: '#6ee7b7', textDecoration: 'none' }}
-            >
-              Open Analysis Console →
-            </Link>
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: 10 }}>
-            <input
-              value={accessKeyInput}
-              onChange={(e) => setAccessKeyInput(e.target.value)}
-              placeholder="CryptoCheck AI Access Key"
-              autoComplete="off"
-              spellCheck={false}
-              style={{
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: '0.5px solid rgba(255,255,255,0.12)',
-                background: 'rgba(0,0,0,0.25)',
-                color: '#e2e8f0',
-                fontSize: 12,
-              }}
-            />
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10, alignItems: 'center' }}>
-            <button
-              type="button"
-              onClick={() => void verifyAndSaveAccessKey()}
-              disabled={verifyingAccessKey}
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                padding: '7px 12px',
-                borderRadius: 8,
-                border: '0.5px solid rgba(16,185,129,0.45)',
-                background: 'rgba(16,185,129,0.12)',
-                color: '#6ee7b7',
-                cursor: verifyingAccessKey ? 'wait' : 'pointer',
-              }}
-            >
-              {verifyingAccessKey ? 'Verifying…' : 'Unlock Pro Features'}
-            </button>
-            <span style={{ fontSize: 11, color: hasApiAccess ? '#6ee7b7' : '#fbbf24' }}>
-              {keysHydrated ? (hasApiAccess ? 'CryptoCheck AI access enabled' : API_REQUIRED_TOOLTIP) : 'Checking access…'}
+          <div style={{ fontSize: 10, letterSpacing: '0.12em', color: '#64748b' }}>CRYPTOCHECK ACCESS</div>
+          {!accessReady ? (
+            <span style={{ fontSize: 11, color: '#94a3b8' }}>Checking session…</span>
+          ) : hasApiAccess ? (
+            <span style={{ fontSize: 11, color: '#6ee7b7' }}>Access key active — live tools enabled.</span>
+          ) : (
+            <span style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.45 }}>
+              Add your key once in the{' '}
+              <Link href="/dashboard/intelligence-terminal" style={{ color: '#6ee7b7', textDecoration: 'none', fontWeight: 600 }}>
+                Analysis Console
+              </Link>
+              . It unlocks Scan, Investigate, and Monitor across the product.
             </span>
-            {accessKeyStatus ? (
-              <span style={{ fontSize: 11, color: hasApiAccess ? '#93c5fd' : '#fca5a5' }}>{accessKeyStatus}</span>
-            ) : null}
-            {diagnostics ? <span style={{ fontSize: 11, color: '#94a3b8' }}>{diagnostics}</span> : null}
-          </div>
+          )}
         </section>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
           <button
             type="button"
             onClick={() => document.getElementById('pro-live-scanner')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-            disabled={!hasApiAccess}
-            title={!hasApiAccess ? API_REQUIRED_TOOLTIP : undefined}
+            disabled={!accessReady || !hasApiAccess}
+            title={accessReady && !hasApiAccess ? API_REQUIRED_TOOLTIP : undefined}
             style={{
               fontSize: 11,
               fontWeight: 700,
@@ -593,13 +483,13 @@ function ProDashboardClientInner({
               borderRadius: 8,
               border: '0.5px solid rgba(16,185,129,0.45)',
               background: 'rgba(16,185,129,0.1)',
-              color: hasApiAccess ? '#6ee7b7' : '#64748b',
-              cursor: hasApiAccess ? 'pointer' : 'not-allowed',
+              color: accessReady && hasApiAccess ? '#6ee7b7' : '#64748b',
+              cursor: accessReady && hasApiAccess ? 'pointer' : 'not-allowed',
             }}
           >
             Scan
           </button>
-          {hasApiAccess ? (
+          {accessReady && hasApiAccess ? (
             <Link
               href="/dashboard/investigate"
               style={{
@@ -619,7 +509,7 @@ function ProDashboardClientInner({
             <button
               type="button"
               disabled
-              title={API_REQUIRED_TOOLTIP}
+              title={accessReady ? API_REQUIRED_TOOLTIP : undefined}
               style={{
                 fontSize: 11,
                 fontWeight: 700,
@@ -637,8 +527,8 @@ function ProDashboardClientInner({
           <button
             type="button"
             onClick={() => document.getElementById('pro-monitor-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-            disabled={!hasApiAccess}
-            title={!hasApiAccess ? API_REQUIRED_TOOLTIP : undefined}
+            disabled={!accessReady || !hasApiAccess}
+            title={accessReady && !hasApiAccess ? API_REQUIRED_TOOLTIP : undefined}
             style={{
               fontSize: 11,
               fontWeight: 700,
@@ -646,8 +536,8 @@ function ProDashboardClientInner({
               borderRadius: 8,
               border: '0.5px solid rgba(251,191,36,0.35)',
               background: 'rgba(251,191,36,0.1)',
-              color: hasApiAccess ? '#fcd34d' : '#64748b',
-              cursor: hasApiAccess ? 'pointer' : 'not-allowed',
+              color: accessReady && hasApiAccess ? '#fcd34d' : '#64748b',
+              cursor: accessReady && hasApiAccess ? 'pointer' : 'not-allowed',
             }}
           >
             Monitor
@@ -661,7 +551,7 @@ function ProDashboardClientInner({
           initialScore={demoWeighted.score}
           initialVerdict={demoReasoning.verdict}
           initialConfidence={demoWeighted.confidence}
-          hasApiAccess={hasApiAccess}
+          hasApiAccess={accessReady && hasApiAccess}
           restrictionTooltip={API_REQUIRED_TOOLTIP}
         />
         {toast ? (
@@ -741,7 +631,8 @@ function ProDashboardClientInner({
               background: 'rgba(16,185,129,0.04)',
             }}
           >
-            <strong style={{ color: '#6ee7b7' }}>{t('institutional.wallet_reputation.prefix')}</strong> — {scanResponse.wallet_reputation.summary}{' '}
+            <strong style={{ color: '#6ee7b7' }}>{t('institutional.wallet_reputation.prefix')}</strong> —{' '}
+            {asPlainText(scanResponse.wallet_reputation.summary, 'wallet_reputation.summary')}{' '}
             {t('institutional.wallet_reputation.score', { score: scanResponse.wallet_reputation.score0to100 })}
           </div>
         ) : null}
@@ -897,24 +788,29 @@ function ProDashboardClientInner({
               </div>
             ))}
             <div style={{ marginTop: 14, color: '#64748b' }}>{t('institutional.evidence.flags')}</div>
-            <div style={{ color: '#fbbf24' }}>{reasoning.flags.length ? reasoning.flags.join(' · ') : t('institutional.evidence.none_flags')}</div>
+            <div style={{ color: '#fbbf24' }}>
+              {reasoning.flags.length
+                ? reasoning.flags.map((f) => asPlainText(f, 'reasoning.flag')).join(' · ')
+                : t('institutional.evidence.none_flags')}
+            </div>
             <div style={{ marginTop: 14, color: '#64748b' }}>{t('institutional.evidence.pipeline')}</div>
             <div style={{ color: '#a7f3d0' }} dir="ltr">
               {scanResponse?.pipeline_stages?.length
-                ? scanResponse.pipeline_stages.map((s) => `${s.name}:${s.durationMs}ms`).join(' · ')
+                ? formatPipelineStages(scanResponse.pipeline_stages)
                 : t('institutional.evidence.pipeline_empty')}
             </div>
             <div style={{ marginTop: 14, color: '#64748b' }}>{t('institutional.evidence.fingerprint')}</div>
             <div style={{ color: '#6ee7b7' }} dir="ltr">
               {reasoning.fingerprintBestMatch
-                ? `${reasoning.fingerprintBestMatch.fingerprint.label} · sim ${(
+                ? `${asPlainText(reasoning.fingerprintBestMatch.fingerprint.label, 'fingerprint.label')} · sim ${(
                     reasoning.fingerprintBestMatch.similarity * 100
-                  ).toFixed(1)}% · [${reasoning.fingerprintBestMatch.matchedSignals.join(', ')}]`
+                  ).toFixed(1)}% · [${formatSignalList(reasoning.fingerprintBestMatch.matchedSignals)}]`
                 : t('institutional.evidence.fingerprint_none')}
             </div>
             <div style={{ marginTop: 14, color: '#64748b' }}>{t('institutional.evidence.cluster')}</div>
             <div style={{ color: '#e2e8f0' }}>
-              {reasoning.clusterAnalysis.summary} ({reasoning.clusterAnalysis.linkedCreatorRisk})
+              {asPlainText(reasoning.clusterAnalysis.summary, 'clusterAnalysis.summary')} (
+              {asPlainText(reasoning.clusterAnalysis.linkedCreatorRisk, 'clusterAnalysis.linkedCreatorRisk')})
             </div>
           </div>
         </section>

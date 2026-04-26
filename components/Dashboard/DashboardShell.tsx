@@ -8,6 +8,7 @@ import { MobileBottomNav } from '@/components/Dashboard/MobileBottomNav'
 import { MobileDrawer } from '@/components/Dashboard/MobileDrawer'
 import { MobileTopBar } from '@/components/Dashboard/MobileTopBar'
 import { ForensicBackdrop } from '@/components/Dashboard/forensic-terminal/ForensicBackdrop'
+import { AccessKeyHeaderChip } from '@/components/access/AccessKeyHeaderChip'
 
 type HealthPayload = {
   status?: string
@@ -116,6 +117,8 @@ export function DashboardShell({
               <span className="text-slate-500">Security</span>
               <span className="font-bold tracking-wide text-cyan-200/90">SENTINEL ACTIVE</span>
             </span>
+            <span className="hidden h-3 w-px bg-white/10 xl:inline" />
+            <AccessKeyHeaderChip />
           </div>
           <div className="hidden shrink-0 items-center gap-2 sm:flex">
             <Activity className="h-3.5 w-3.5 text-slate-500" strokeWidth={1.5} />

@@ -19,11 +19,9 @@ function TerminalSkeleton() {
 /**
  * Analysis Console shell.
  *
- * When `unlockedChildren` is set (dashboard intelligence route): the original tools
- * stay mounted; a session overlay shows TerminalGate until `phase === 'unlocked'`
- * with a verified key — no replacement of the tool grid.
- *
- * Without children: legacy full-page neural `Console` + gate (extension / standalone).
+ * When `unlockedChildren` is set: tools stay mounted; `TerminalGate` overlays only
+ * after hydration completes without a verified session — no “restoring session” flash
+ * while the key in `cryptocheck_access_key` is being verified.
  */
 export function TerminalShell({ unlockedChildren }: { unlockedChildren?: ReactNode }) {
   const { state } = useTerminal()
@@ -34,18 +32,6 @@ export function TerminalShell({ unlockedChildren }: { unlockedChildren?: ReactNo
     return (
       <div className="relative w-full">
         {unlockedChildren}
-
-        {state.hydrating ? (
-          <div
-            aria-busy="true"
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/75 backdrop-blur-sm"
-          >
-            <div className="flex flex-col items-center gap-3 rounded-xl border border-white/10 bg-slate-900/90 px-8 py-6 shadow-xl">
-              <Loader2 className="h-9 w-9 motion-safe:animate-spin text-[#00d4aa]" aria-hidden />
-              <p className="font-mono-terminal text-xs uppercase tracking-widest text-slate-400">Restoring session</p>
-            </div>
-          </div>
-        ) : null}
 
         {!state.hydrating && !hasValidKey ? (
           <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-slate-950/88 backdrop-blur-md px-4 pb-16 pt-10 md:pt-14">

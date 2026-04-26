@@ -13,7 +13,7 @@ import {
   getAiChatReply,
   getAiEdgeAnalysis,
 } from '@/app/actions/ai'
-import { loadEncryptedKey } from '@/lib/crypto/client-key-store'
+import { loadAccessKeyMaterial } from '@/lib/crypto/client-key-store'
 import RugForensicsLab from '@/components/RugForensicsLab'
 import SignupTrialModal from '@/components/SignupTrialModal'
 import ChartSwapModal from '@/components/ChartSwapModal'
@@ -2439,7 +2439,7 @@ export default function Dashboard() {
     async function fetchRealFeed() {
       if (document.hidden) return
       try {
-        const apiKey = await loadEncryptedKey()
+        const apiKey = await loadAccessKeyMaterial()
         if (!apiKey) return
         const res = await fetch('/api/live-feed', {
           headers: { Authorization: `Bearer ${apiKey}` },
@@ -2674,7 +2674,7 @@ export default function Dashboard() {
     setStressError('')
     setStressLoading(true)
     try {
-      const apiKey = await loadEncryptedKey()
+      const apiKey = await loadAccessKeyMaterial()
       if (!apiKey) {
         setStressError('API key required — paste your key in the Intelligence Terminal first.')
         return

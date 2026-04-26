@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { Shield, Brain, Network, Activity, Zap, AlertTriangle, Eye, Lock, TrendingUp, Wallet, Search, Clock, Crosshair } from 'lucide-react'
-import { loadEncryptedKey } from '@/lib/crypto/client-key-store'
+import { loadAccessKeyMaterial } from '@/lib/crypto/client-key-store'
 
 type Tier = 'free' | 'pro' | 'elite'
 
@@ -281,7 +281,7 @@ export default function ProMaxEliteDashboard({
       setExitLoading(true)
       setExitError('')
       try {
-        const apiKey = await loadEncryptedKey()
+        const apiKey = await loadAccessKeyMaterial()
         if (!apiKey) {
           if (!cancelled) {
             setExitError('Paste your Intelligence Terminal API key to load live exit intel.')

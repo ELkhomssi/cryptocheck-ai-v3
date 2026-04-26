@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { DisclaimerBanner } from '@/components/legal/DisclaimerBanner'
-import { readCryptocheckAccessKeyFromLocalStorage } from '@/lib/auth/cryptocheck-access-key'
+import { useVerifiedCryptocheckAccessKey } from '@/lib/hooks/useVerifiedCryptocheckAccessKey'
 
 type ToolState = 'running' | 'result'
 type ToolEvent = { type: 'tool'; toolName: string; state: ToolState; detail: string }
@@ -28,30 +28,10 @@ export default function InvestigatePage() {
   const [runStartedAt, setRunStartedAt] = useState<number | null>(null)
   const [toolStartedAt, setToolStartedAt] = useState<Record<string, number>>({})
   const [elapsedNow, setElapsedNow] = useState(Date.now())
-  const [hasApiAccess, setHasApiAccess] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      const key = readCryptocheckAccessKeyFromLocalStorage()
-      if (!key) {
-        if (!cancelled) setHasApiAccess(false)
-        return
-      }
-      const r = await fetch('/api/v1/keys/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key }),
-      })
-      if (!cancelled) setHasApiAccess(r.ok)
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const { ready: accessReady, hasValidKey: hasApiAccess } = useVerifiedCryptocheckAccessKey()
 
   async function startInvestigation() {
-    if (!mint || !hasApiAccess) return
+    if (!mint || !accessReady || !hasApiAccess) return
     setLoading(true)
     setReport('')
     setToolEvents([])
@@ -149,15 +129,21 @@ export default function InvestigatePage() {
           />
           <button
             onClick={() => void startInvestigation()}
-            disabled={loading || !mint || !hasApiAccess}
-            title={!hasApiAccess ? 'Action restricted: API Key required.' : undefined}
+            disabled={loading || !mint || !accessReady || !hasApiAccess}
+            title={accessReady && !hasApiAccess ? 'Action restricted: API Key required.' : undefined}
             className="cyber-glow rounded-xl border border-cyan-300/40 bg-gradient-to-r from-cyan-400 to-emerald-400 px-6 py-3 font-space text-sm font-bold uppercase tracking-wide text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? 'Investigating...' : 'Start Investigation'}
           </button>
         </div>
-        {!hasApiAccess ? (
-          <p className="mb-4 text-xs text-amber-300">Action restricted: API Key required.</p>
+        {accessReady && !hasApiAccess ? (
+          <p className="mb-4 text-xs text-amber-300">
+            Action restricted: add your CryptoCheck AI access key in the{' '}
+            <a href="/dashboard/intelligence-terminal" className="text-cyan-300 underline-offset-2 hover:underline">
+              Analysis Console
+            </a>
+            .
+          </p>
         ) : null}
         <p className="mb-6 font-mono-terminal text-xs font-bold uppercase tracking-[0.18em] text-cyan-300/80">
           Session Runtime:{' '}

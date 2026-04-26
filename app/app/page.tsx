@@ -5,6 +5,7 @@ import ErrorBoundary from '@/components/ErrorBoundary'
 import Dashboard from '../dashboard'
 import { SubscriptionProvider } from '@/lib/subscription/SubscriptionContext'
 import { DisclaimerBanner } from '@/components/legal/DisclaimerBanner'
+import { TerminalProvider } from '@/components/Dashboard/intelligence-terminal/TerminalProvider'
 
 export default function AppPage() {
   const [status, setStatus] = useState<'loading'|'ready'>('loading')
@@ -57,8 +58,10 @@ export default function AppPage() {
   return (
     <ErrorBoundary name="Dashboard">
       <SubscriptionProvider>
-        <DisclaimerBanner variant="default" />
-        <Dashboard />
+        <TerminalProvider>
+          <DisclaimerBanner variant="default" />
+          <Dashboard />
+        </TerminalProvider>
       </SubscriptionProvider>
     </ErrorBoundary>
   )

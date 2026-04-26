@@ -1,6 +1,8 @@
 /**
  * Platform-wide CryptoCheck AI customer API key (`cc_live_…`, `cc_sentinel_2_…`).
- * Used by Pro dashboard, Investigate, and the Analysis Console (neural terminal) so one unlock applies everywhere.
+ *
+ * **Source of truth:** `cryptocheck_access_key` in `localStorage`. Other legacy blobs
+ * are migrated into this key on read (see `loadAccessKeyMaterial` in client-key-store).
  */
 export const CRYPTOCHECK_ACCESS_KEY_STORAGE = 'cryptocheck_access_key'
 

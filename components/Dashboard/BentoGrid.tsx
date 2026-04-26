@@ -58,13 +58,15 @@ function toDisplayText(content: unknown): string {
     const candidate = obj.text ?? obj.message ?? obj.content ?? obj.value ?? obj.markdown
     if (typeof candidate === 'string') return candidate
     if (candidate != null) return toDisplayText(candidate)
-    try {
-      return JSON.stringify(content)
-    } catch {
-      return ''
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[BentoGrid] Expected stringifiable markdown field; received object:', content)
     }
+    return 'Unable to display this section.'
   }
-  return String(content)
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('[BentoGrid] Unexpected markdown field type:', typeof content, content)
+  }
+  return 'Unable to display this section.'
 }
 
 /**

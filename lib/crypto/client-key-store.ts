@@ -16,6 +16,11 @@
  *   `localStorage` with `console.warn` so older Safari does not crash the UI.
  */
 
+import {
+  readCryptocheckAccessKeyFromLocalStorage,
+  writeCryptocheckAccessKeyToLocalStorage,
+} from '@/lib/auth/cryptocheck-access-key'
+
 export const LOCAL_STORAGE_KEY = 'cc_terminal_key_v1'
 export const SESSION_STORAGE_SALT = 'cc_terminal_salt'
 
@@ -155,6 +160,24 @@ export async function storeEncryptedKey(rawKey: string): Promise<void> {
     const payload: StoredPlainV1 = { v: 0, k: trimmed }
     window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(payload))
   }
+}
+
+/**
+ * Single read path for the CryptoCheck customer key: prefers `cryptocheck_access_key`
+ * (authoritative in localStorage). If empty, migrates a legacy `cc_terminal_key_v1` blob
+ * into flat storage and clears the legacy entry.
+ */
+export async function loadAccessKeyMaterial(): Promise<string | null> {
+  const flat = readCryptocheckAccessKeyFromLocalStorage().trim()
+  if (flat) return flat
+
+  const legacy = await loadEncryptedKey()
+  const t = legacy?.trim() ?? ''
+  if (!t) return null
+
+  writeCryptocheckAccessKeyToLocalStorage(t)
+  clearKey()
+  return t
 }
 
 /**

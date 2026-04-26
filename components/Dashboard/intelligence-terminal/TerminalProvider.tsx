@@ -14,9 +14,8 @@ import {
   clearKey as clearStoredKey,
   isCurrentKeyEncrypted,
   isStrongCryptoAvailable,
-  loadEncryptedKey,
+  loadAccessKeyMaterial,
   maskKey,
-  storeEncryptedKey,
 } from '@/lib/crypto/client-key-store'
 import {
   clearCryptocheckAccessKeyFromLocalStorage,
@@ -129,14 +128,11 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
       let cryptoWarning: 'weak' | 'stale' | null = null
       if (!isStrongCryptoAvailable) cryptoWarning = 'weak'
 
-      const loaded = await loadEncryptedKey()
-      if (!loaded && isCurrentKeyEncrypted()) {
-        cryptoWarning = 'stale'
-      }
+      const keyMaterial = (await loadAccessKeyMaterial())?.trim() || null
 
-      const flatKey =
-        typeof window !== 'undefined' ? readCryptocheckAccessKeyFromLocalStorage() : ''
-      const keyMaterial = (loaded ?? flatKey)?.trim() || null
+      if (!keyMaterial && isCurrentKeyEncrypted()) {
+        cryptoWarning = cryptoWarning ?? 'stale'
+      }
 
       if (!keyMaterial) {
         if (!cancelled) {
@@ -144,8 +140,6 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
         }
         return
       }
-
-      const fromFlatOnly = !loaded
 
       try {
         const res = await fetch('/api/v1/keys/verify', {
@@ -172,7 +166,6 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
         }
 
         if (!res.ok) {
-          if (fromFlatOnly) clearCryptocheckAccessKeyFromLocalStorage()
           dispatch({ type: 'HYDRATE_COMPLETE', key: null, history, cryptoWarning })
           return
         }
@@ -190,20 +183,18 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
             data.subscriptionTier !== 'PRO' &&
             data.subscriptionTier !== 'ENTERPRISE')
         ) {
-          if (fromFlatOnly) clearCryptocheckAccessKeyFromLocalStorage()
+          clearStoredKey()
+          clearCryptocheckAccessKeyFromLocalStorage()
           dispatch({ type: 'HYDRATE_COMPLETE', key: null, history, cryptoWarning })
           return
         }
 
+        clearStoredKey()
         writeCryptocheckAccessKeyToLocalStorage(keyMaterial)
-        if (!loaded) {
-          await storeEncryptedKey(keyMaterial)
-        }
         const key = toVerifiedKey(keyMaterial, data as KeyVerifySuccess)
         dispatch({ type: 'HYDRATE_COMPLETE', key, history, cryptoWarning })
       } catch {
         if (!cancelled) {
-          if (fromFlatOnly) clearCryptocheckAccessKeyFromLocalStorage()
           dispatch({ type: 'HYDRATE_COMPLETE', key: null, history, cryptoWarning })
         }
       }
@@ -258,11 +249,13 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
         typeof data.keyName !== 'string' ||
         !data.rateLimit
       ) {
+        clearStoredKey()
+        clearCryptocheckAccessKeyFromLocalStorage()
         dispatch({ type: 'VERIFY_KEY_FAIL', error: 'Invalid key' })
         return
       }
 
-      await storeEncryptedKey(trimmed)
+      clearStoredKey()
       writeCryptocheckAccessKeyToLocalStorage(trimmed)
       const key = toVerifiedKey(trimmed, data as KeyVerifySuccess)
       dispatch({ type: 'VERIFY_KEY_SUCCESS', key })

@@ -11,7 +11,8 @@ import {
   type MouseEvent,
 } from 'react'
 import { getClientSolanaRpcUrl } from '@/lib/helius'
-import { loadEncryptedKey } from '@/lib/crypto/client-key-store'
+import { CRYPTOCHECK_ACCESS_KEY_SYSTEM_EVENT } from '@/lib/auth/cryptocheck-access-key'
+import { loadAccessKeyMaterial } from '@/lib/crypto/client-key-store'
 
 interface RecentBuy {
   token: string
@@ -245,7 +246,7 @@ function InsiderWhaleIntelImpl({ onScanToken }: Props) {
   const [intelWhales, setIntelWhales] = useState<unknown[]>([])
 
   const apiKeyRef = useRef<string | null>(null)
-  /** Flips true once `loadEncryptedKey` settles — drives whale-intel polling without re-running RPC poll. */
+  /** Flips true once access key material settles — drives whale-intel polling without re-running RPC poll. */
   const [keyHydrated, setKeyHydrated] = useState(false)
 
   useEffect(() => {
@@ -253,20 +254,26 @@ function InsiderWhaleIntelImpl({ onScanToken }: Props) {
     return () => clearInterval(iv)
   }, [])
 
-  /** Load API key exactly once — never inside the live poll loop (avoids re-auth churn + layout thrash). */
+  /** Load API key once + refresh when flat storage changes site-wide. */
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
+    async function load() {
       try {
-        const k = await loadEncryptedKey()
+        const k = await loadAccessKeyMaterial()
         if (!cancelled) apiKeyRef.current = k
       } catch {
         if (!cancelled) apiKeyRef.current = null
       } finally {
         if (!cancelled) setKeyHydrated(true)
       }
-    })()
-    return () => { cancelled = true }
+    }
+    void load()
+    const onSystem = () => void load()
+    window.addEventListener(CRYPTOCHECK_ACCESS_KEY_SYSTEM_EVENT, onSystem)
+    return () => {
+      cancelled = true
+      window.removeEventListener(CRYPTOCHECK_ACCESS_KEY_SYSTEM_EVENT, onSystem)
+    }
   }, [])
 
   const pollRpc = useCallback(async () => {
