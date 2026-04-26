@@ -19,6 +19,11 @@ import {
   storeEncryptedKey,
 } from '@/lib/crypto/client-key-store'
 import {
+  clearCryptocheckAccessKeyFromLocalStorage,
+  readCryptocheckAccessKeyFromLocalStorage,
+  writeCryptocheckAccessKeyToLocalStorage,
+} from '@/lib/auth/cryptocheck-access-key'
+import {
   TERMINAL_HISTORY_STORAGE_KEY,
   initialTerminalState,
   terminalReducer,
@@ -129,24 +134,31 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
         cryptoWarning = 'stale'
       }
 
-      if (!loaded) {
+      const flatKey =
+        typeof window !== 'undefined' ? readCryptocheckAccessKeyFromLocalStorage() : ''
+      const keyMaterial = (loaded ?? flatKey)?.trim() || null
+
+      if (!keyMaterial) {
         if (!cancelled) {
           dispatch({ type: 'HYDRATE_COMPLETE', key: null, history, cryptoWarning })
         }
         return
       }
 
+      const fromFlatOnly = !loaded
+
       try {
         const res = await fetch('/api/v1/keys/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key: loaded }),
+          body: JSON.stringify({ key: keyMaterial }),
         })
 
         if (cancelled) return
 
         if (res.status === 401) {
           clearStoredKey()
+          clearCryptocheckAccessKeyFromLocalStorage()
           dispatch({ type: 'HYDRATE_COMPLETE', key: null, history, cryptoWarning })
           return
         }
@@ -160,6 +172,7 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
         }
 
         if (!res.ok) {
+          if (fromFlatOnly) clearCryptocheckAccessKeyFromLocalStorage()
           dispatch({ type: 'HYDRATE_COMPLETE', key: null, history, cryptoWarning })
           return
         }
@@ -177,14 +190,20 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
             data.subscriptionTier !== 'PRO' &&
             data.subscriptionTier !== 'ENTERPRISE')
         ) {
+          if (fromFlatOnly) clearCryptocheckAccessKeyFromLocalStorage()
           dispatch({ type: 'HYDRATE_COMPLETE', key: null, history, cryptoWarning })
           return
         }
 
-        const key = toVerifiedKey(loaded, data as KeyVerifySuccess)
+        writeCryptocheckAccessKeyToLocalStorage(keyMaterial)
+        if (!loaded) {
+          await storeEncryptedKey(keyMaterial)
+        }
+        const key = toVerifiedKey(keyMaterial, data as KeyVerifySuccess)
         dispatch({ type: 'HYDRATE_COMPLETE', key, history, cryptoWarning })
       } catch {
         if (!cancelled) {
+          if (fromFlatOnly) clearCryptocheckAccessKeyFromLocalStorage()
           dispatch({ type: 'HYDRATE_COMPLETE', key: null, history, cryptoWarning })
         }
       }
@@ -221,6 +240,7 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
 
       if (res.status === 401) {
         clearStoredKey()
+        clearCryptocheckAccessKeyFromLocalStorage()
         dispatch({ type: 'VERIFY_KEY_FAIL', error: 'Invalid key' })
         return
       }
@@ -243,6 +263,7 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
       }
 
       await storeEncryptedKey(trimmed)
+      writeCryptocheckAccessKeyToLocalStorage(trimmed)
       const key = toVerifiedKey(trimmed, data as KeyVerifySuccess)
       dispatch({ type: 'VERIFY_KEY_SUCCESS', key })
     } catch {
@@ -252,6 +273,7 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
 
   const clearKey = useCallback(() => {
     clearStoredKey()
+    clearCryptocheckAccessKeyFromLocalStorage()
     dispatch({ type: 'CLEAR_KEY' })
   }, [])
 
@@ -293,6 +315,7 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
 
         if (res.status === 401) {
           clearStoredKey()
+          clearCryptocheckAccessKeyFromLocalStorage()
           dispatch({ type: 'CLEAR_KEY' })
           dispatch({ type: 'VERIFY_KEY_FAIL', error: 'Session expired. Paste your key again.' })
           return
@@ -355,6 +378,7 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
 
         if (res.status === 401) {
           clearStoredKey()
+          clearCryptocheckAccessKeyFromLocalStorage()
           dispatch({ type: 'CLEAR_KEY' })
           dispatch({ type: 'VERIFY_KEY_FAIL', error: 'Session expired. Paste your key again.' })
           return

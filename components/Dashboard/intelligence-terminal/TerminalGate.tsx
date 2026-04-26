@@ -80,8 +80,10 @@ export function TerminalGate() {
   return (
     <div className="mx-auto w-full max-w-[480px] px-6 py-8 font-mono-terminal md:px-10 md:py-12">
       <div className="rounded-xl border border-white/5 bg-slate-900/60 p-6 shadow-xl backdrop-blur-md md:p-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-100 md:text-3xl">Intelligence Terminal</h1>
-        <p className="mt-2 text-sm text-slate-400">Paste your access key to unlock</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-100 md:text-3xl">Analysis Console</h1>
+        <p className="mt-2 text-sm text-slate-400">
+          Enter your access key to unlock the neural terminal. The same key unlocks Pro features across CryptoCheck AI.
+        </p>
 
         {state.cryptoWarning === 'weak' ? (
           <div
@@ -104,7 +106,7 @@ export function TerminalGate() {
 
         <form className="mt-6" onSubmit={onSubmit}>
           <label htmlFor="terminal-access-key" className="text-xs font-medium uppercase tracking-widest text-slate-500">
-            Access key
+            CryptoCheck AI access key
           </label>
           <div className="relative mt-2">
             <input

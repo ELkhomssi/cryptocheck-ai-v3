@@ -19,6 +19,12 @@ import { WhyItMattersBlock } from '@/components/pro/institutional/WhyItMattersBl
 import { WalletIntelGraph } from '@/components/pro/institutional/WalletIntelGraph'
 import { InstitutionalI18nProvider, useInstitutionalTranslation } from '@/lib/i18n/institutional-context'
 import type { InstitutionalLocale } from '@/lib/i18n/institutional-catalog'
+import {
+  clearCryptocheckAccessKeyFromLocalStorage,
+  readCryptocheckAccessKeyFromLocalStorage,
+  writeCryptocheckAccessKeyToLocalStorage,
+} from '@/lib/auth/cryptocheck-access-key'
+import { clearKey as clearTerminalEncryptedKey, storeEncryptedKey } from '@/lib/crypto/client-key-store'
 
 type Props = {
   session: ProDashboardSession
@@ -27,7 +33,6 @@ type Props = {
   demoRpcLabel: string
 }
 
-const ACCESS_KEY_STORAGE = 'cryptocheck_access_key'
 const API_REQUIRED_TOOLTIP = 'Action restricted: API Key required.'
 
 function scanApiErrorMessage(data: unknown): string {
@@ -144,7 +149,7 @@ function ProDashboardClientInner({
     let cancelled = false
     ;(async () => {
       try {
-        const storedAccessKey = window.localStorage.getItem(ACCESS_KEY_STORAGE) ?? ''
+        const storedAccessKey = readCryptocheckAccessKeyFromLocalStorage()
         if (!cancelled) setAccessKeyInput(storedAccessKey)
         if (storedAccessKey.trim()) {
           const r = await fetch('/api/v1/keys/verify', {
@@ -167,6 +172,8 @@ function ProDashboardClientInner({
                 ).toUpperCase()} · ${j.rateLimit?.maxRequests ?? 'n/a'}/${j.rateLimit?.windowSeconds ?? 'n/a'}s`
               )
             } else {
+              clearTerminalEncryptedKey()
+              clearCryptocheckAccessKeyFromLocalStorage()
               setDiagnostics(null)
               setAccessKeyStatus('Stored CryptoCheck AI Access Key is invalid.')
             }
@@ -215,7 +222,8 @@ function ProDashboardClientInner({
   const verifyAndSaveAccessKey = useCallback(async () => {
     const key = accessKeyInput.trim()
     if (!key) {
-      window.localStorage.removeItem(ACCESS_KEY_STORAGE)
+      clearTerminalEncryptedKey()
+      clearCryptocheckAccessKeyFromLocalStorage()
       setHasApiAccess(false)
       setDiagnostics(null)
       setAccessKeyStatus('CryptoCheck AI Access Key is required.')
@@ -237,14 +245,16 @@ function ProDashboardClientInner({
         rateLimit?: { maxRequests?: number; windowSeconds?: number }
       }
       if (!r.ok) {
-        window.localStorage.removeItem(ACCESS_KEY_STORAGE)
+        clearTerminalEncryptedKey()
+        clearCryptocheckAccessKeyFromLocalStorage()
         setHasApiAccess(false)
         setDiagnostics(null)
         setAccessKeyStatus(j.error || 'Invalid CryptoCheck AI Access Key.')
         return
       }
 
-      window.localStorage.setItem(ACCESS_KEY_STORAGE, key)
+      await storeEncryptedKey(key)
+      writeCryptocheckAccessKeyToLocalStorage(key)
       setHasApiAccess(true)
       setAccessKeyStatus('Access granted. Pro features unlocked.')
       setDiagnostics(
@@ -513,8 +523,17 @@ function ProDashboardClientInner({
           }}
         >
           <div style={{ fontSize: 10, letterSpacing: '0.12em', color: '#64748b' }}>CRYPTOCHECK AI ACCESS</div>
-          <p style={{ fontSize: 12, color: '#94a3b8', margin: '8px 0 10px' }}>
+          <p style={{ fontSize: 12, color: '#94a3b8', margin: '8px 0 6px' }}>
             Use your CryptoCheck AI API key (`cc_live_` or `cc_sentinel_2_`) to unlock live Scan, Investigate, and Monitor actions.
+            The same key is used in the Analysis Console neural terminal.
+          </p>
+          <p style={{ fontSize: 11, color: '#64748b', margin: '0 0 10px' }}>
+            <Link
+              href="/dashboard/intelligence-terminal"
+              style={{ color: '#6ee7b7', textDecoration: 'none' }}
+            >
+              Open Analysis Console →
+            </Link>
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: 10 }}>
             <input

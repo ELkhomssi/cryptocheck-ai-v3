@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { DisclaimerBanner } from '@/components/legal/DisclaimerBanner'
+import { readCryptocheckAccessKeyFromLocalStorage } from '@/lib/auth/cryptocheck-access-key'
 
 type ToolState = 'running' | 'result'
 type ToolEvent = { type: 'tool'; toolName: string; state: ToolState; detail: string }
@@ -32,7 +33,7 @@ export default function InvestigatePage() {
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const key = (window.localStorage.getItem('cryptocheck_access_key') ?? '').trim()
+      const key = readCryptocheckAccessKeyFromLocalStorage()
       if (!key) {
         if (!cancelled) setHasApiAccess(false)
         return
