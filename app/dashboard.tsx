@@ -1,6 +1,7 @@
 'use client'
 import React from 'react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Home, LayoutDashboard, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -25,7 +26,6 @@ import NeuralAuditLog from '@/components/NeuralAuditLog'
 import InsiderWhaleIntel from '@/components/InsiderWhaleIntel'
 import { CryptoCheckLogo } from '@/components/brand/CryptoCheckLogo'
 import ErrorBoundary from '@/components/ErrorBoundary'
-import ProMaxEliteDashboard from '@/components/ProMaxEliteDashboard'
 import BentoGrid, { type StressTestApiResult } from '@/components/Dashboard/BentoGrid'
 import SecurityTerminal from '@/components/SecurityTerminal'
 import { safetyScoreToEliteGrade } from '@/lib/elite-grade'
@@ -62,6 +62,11 @@ import {
   NETWORK_LABEL,
   ENGINE_LABEL,
 } from '@/lib/helius'
+
+const ProMaxEliteDashboard = dynamic(() => import('@/components/ProMaxEliteDashboard'), {
+  ssr: false,
+  loading: () => <div className="min-h-[240px] rounded-xl border border-white/10 bg-black/20" />,
+})
 
 ChartJS.register(ArcElement, Tooltip, Legend)
 
