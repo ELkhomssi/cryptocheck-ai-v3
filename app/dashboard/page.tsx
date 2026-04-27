@@ -1,9 +1,8 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { getDashboardUsageBundle } from '@/lib/services/usage-analytics.service'
 import { getUserSubscription } from '@/lib/services/user-subscription.service'
-import { getSupabaseAdmin } from '@/lib/supabase/admin'
+import { getCachedDashboardUsageBundle, getCachedRecentSecurityRows } from '@/lib/services/dashboard-home-cache'
 import { RadialCapacity } from '@/components/Dashboard/RadialCapacity'
 import { ActivityStream, type StreamEvent } from '@/components/Dashboard/ActivityStream'
 import { NeonForensicPanel } from '@/components/Dashboard/forensic-terminal/NeonForensicPanel'
@@ -76,26 +75,14 @@ export default async function DashboardHomePage() {
 
   const [sub, usage] = await Promise.all([
     getUserSubscription(user.id),
-    getDashboardUsageBundle(user.id, 7),
+    getCachedDashboardUsageBundle(user.id, 7),
   ])
 
   const lastDays = usage.series.slice(-7)
   const analyses7d = lastDays.reduce((a, b) => a + b.count, 0)
   const sentinelMode = ['PRO', 'ENTERPRISE'].includes(sub.effectiveTier.toUpperCase())
 
-  const sb = getSupabaseAdmin()
-  const { data: recentRows } = await sb
-    .from('security_logs')
-    .select('id, action, created_at')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(14)
-
-  const streamInitial: StreamEvent[] = (recentRows ?? []).map((r) => ({
-    id: String(r.id),
-    action: String(r.action),
-    created_at: String(r.created_at),
-  }))
+  const streamInitial: StreamEvent[] = await getCachedRecentSecurityRows(user.id)
 
   return (
     <>
