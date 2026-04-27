@@ -95,13 +95,12 @@ export async function enforceDailyApiLimitCount(
   if (r) {
     try {
       const key = `cc:api:day:${id}`
-      let newVal = 0
-      for (let i = 0; i < count; i++) {
-        newVal = await r.incr(key)
-        if (i === 0) await r.expire(key, 86_400 * 2)
-      }
+      const prevRaw = await r.get<number>(key)
+      const prev = typeof prevRaw === 'number' && Number.isFinite(prevRaw) ? prevRaw : 0
+      const newVal = await r.incrby(key, count)
+      if (prev === 0) await r.expire(key, 86_400 * 2)
       if (newVal > limit) {
-        for (let i = 0; i < count; i++) await r.decr(key)
+        await r.decrby(key, count)
         return { ok: false, limit, remaining: 0, reset }
       }
       const remaining = Math.max(0, limit - newVal)
