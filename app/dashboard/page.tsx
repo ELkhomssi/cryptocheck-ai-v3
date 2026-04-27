@@ -41,10 +41,17 @@ function CyberLink({
 }
 
 export default async function DashboardHomePage() {
+  const reqLabel = `dashboard:${Date.now().toString(36)}`
+
+  console.time(`${reqLabel}:createClient`)
   const supabase = await createClient()
+  console.timeEnd(`${reqLabel}:createClient`)
+
+  console.time(`${reqLabel}:auth.getUser`)
   const {
     data: { user },
   } = await supabase.auth.getUser()
+  console.timeEnd(`${reqLabel}:auth.getUser`)
 
   if (!user) {
     return (
@@ -73,16 +80,20 @@ export default async function DashboardHomePage() {
     )
   }
 
+  console.time(`${reqLabel}:parallel.sub+usage`)
   const [sub, usage] = await Promise.all([
     getUserSubscription(user.id),
     getCachedDashboardUsageBundle(user.id, 7),
   ])
+  console.timeEnd(`${reqLabel}:parallel.sub+usage`)
 
   const lastDays = usage.series.slice(-7)
   const analyses7d = lastDays.reduce((a, b) => a + b.count, 0)
   const sentinelMode = ['PRO', 'ENTERPRISE'].includes(sub.effectiveTier.toUpperCase())
 
+  console.time(`${reqLabel}:cached.securityStream`)
   const streamInitial: StreamEvent[] = await getCachedRecentSecurityRows(user.id)
+  console.timeEnd(`${reqLabel}:cached.securityStream`)
 
   return (
     <>
