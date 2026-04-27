@@ -27,6 +27,7 @@ function BottomItem({
   return (
     <Link
       href={href}
+      prefetch={false}
       onClick={() => tapFeedback()}
       className={`relative flex min-h-[64px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-3 font-space text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#020617] ${
         active ? 'text-emerald-400' : 'text-slate-500'
@@ -97,6 +98,7 @@ export function MobileBottomNav({ pathname }: { pathname: string }) {
                 <Link
                   key={href}
                   href={href}
+                  prefetch={false}
                   onClick={() => {
                     tapFeedback()
                     setMoreOpen(false)

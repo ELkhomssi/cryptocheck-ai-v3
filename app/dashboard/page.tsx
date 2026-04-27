@@ -24,6 +24,7 @@ function CyberLink({
     return (
       <Link
         href={href}
+        prefetch={false}
         className={`${base} border-cyan-400/35 bg-gradient-to-r from-cyan-500/20 to-emerald-500/15 text-cyan-100 shadow-[0_0_22px_rgba(6,182,212,0.15)] hover:border-cyan-300/50 hover:shadow-[0_0_28px_rgba(6,182,212,0.25)]`}
       >
         {children}
@@ -33,6 +34,7 @@ function CyberLink({
   return (
     <Link
       href={href}
+      prefetch={false}
       className={`${base} border-white/[0.1] bg-white/[0.04] text-slate-200 hover:border-cyan-400/25 hover:bg-cyan-500/[0.06] hover:text-cyan-50`}
     >
       {children}
@@ -146,6 +148,7 @@ export default async function DashboardHomePage() {
               </p>
               <Link
                 href="/dashboard/billing"
+                prefetch={false}
                 className="mt-3 inline-flex font-mono-terminal text-xs font-semibold tracking-wide text-cyan-400/90 transition-colors hover:text-cyan-300"
               >
                 manage_subscription →
@@ -161,6 +164,7 @@ export default async function DashboardHomePage() {
               </p>
               <Link
                 href="/dashboard/usage"
+                prefetch={false}
                 className="mt-3 inline-flex font-mono-terminal text-xs font-semibold tracking-wide text-cyan-300/80 transition-colors hover:text-cyan-200"
               >
                 open_intelligence_ops →

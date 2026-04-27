@@ -15,6 +15,7 @@ function NavLinkRow({ item, pathname }: { item: DashboardNavItem; pathname: stri
   return (
     <Link
       href={href}
+      prefetch={false}
       className={`group relative flex items-center gap-3 rounded-lg border-l-2 border-transparent px-3 py-3 font-space text-sm font-bold uppercase tracking-[0.12em] transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#020617] ${
         active
           ? 'border-emerald-400 bg-white/[0.06] pl-[10px] text-slate-100 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]'
@@ -84,7 +85,7 @@ export function DesktopSidebar({
           <p className="font-mono-terminal text-sm text-slate-500">
             <span className="text-amber-200/80">Guest preview</span>
             {' · '}
-            <Link href="/landing?next=%2Fdashboard" className="text-cyan-400/90 hover:text-cyan-300">
+            <Link href="/landing?next=%2Fdashboard" prefetch={false} className="text-cyan-400/90 hover:text-cyan-300">
               Sign in
             </Link>
           </p>

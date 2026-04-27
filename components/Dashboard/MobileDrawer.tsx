@@ -30,6 +30,7 @@ function DrawerLink({
   return (
     <Link
       href={href}
+      prefetch={false}
       onClick={() => {
         tapFeedback()
         onNavigate()
