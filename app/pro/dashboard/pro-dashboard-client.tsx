@@ -471,6 +471,21 @@ function ProDashboardClientInner({
         </section>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+          <Link
+            href="/dashboard/api-keys"
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              padding: '7px 12px',
+              borderRadius: 8,
+              border: '0.5px solid rgba(56,189,248,0.35)',
+              background: 'rgba(56,189,248,0.1)',
+              color: '#7dd3fc',
+              textDecoration: 'none',
+            }}
+          >
+            Manage Keys
+          </Link>
           <button
             type="button"
             onClick={() => document.getElementById('pro-live-scanner')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}

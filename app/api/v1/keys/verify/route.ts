@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 import { isSentinelQaBypassKeyUuid } from '@/lib/config/sentinel-qa-bypass'
 import { TIER_RATE_LIMITS } from '@/lib/config/tiers'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
@@ -91,6 +92,30 @@ export async function POST(req: NextRequest) {
       metadata: { path: '/api/v1/keys/verify', reason: 'invalid_or_revoked' },
     })
     return NextResponse.json({ error: 'Invalid key' }, { status: 401 })
+  }
+
+  // Optional strict mode for UI checks: key must belong to current session user.
+  if (req.nextUrl.searchParams.get('scope') === 'session') {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return req.cookies.getAll()
+          },
+          setAll() {},
+        },
+      }
+    )
+    const {
+      data: { user },
+      error: authErr,
+    } = await supabase.auth.getUser()
+
+    if (authErr || !user || user.id !== verified.userId) {
+      return NextResponse.json({ error: 'Key does not belong to current session' }, { status: 403 })
+    }
   }
 
   clearFailures(ip)

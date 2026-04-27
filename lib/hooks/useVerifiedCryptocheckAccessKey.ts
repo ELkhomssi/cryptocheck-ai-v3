@@ -31,7 +31,7 @@ export function useVerifiedCryptocheckAccessKey(): UseVerifiedCryptocheckAccessK
       return
     }
     try {
-      const r = await fetch('/api/v1/keys/verify', {
+      const r = await fetch('/api/v1/keys/verify?scope=session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: raw }),
