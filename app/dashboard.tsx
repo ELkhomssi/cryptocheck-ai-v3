@@ -904,55 +904,16 @@ function JupiterInlinePanel({ mint, sym, onFullScreen, enabled }: {
   onFullScreen: () => void
   enabled: boolean
 }) {
-  const panelId = `jup-inline-${mint.slice(0,8)}`
+  const jupUrl = `https://jup.ag/swap/SOL-${encodeURIComponent(mint)}`
+  const [frameLoaded, setFrameLoaded] = useState(false)
+  const [frameStalled, setFrameStalled] = useState(false)
 
   useEffect(() => {
-    if (!enabled) return
-    const scriptId = 'jupiter-terminal-script'
-    const init = () => {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const w = window as any
-        if (!w.Jupiter) return
-        // Use our in-origin Solana RPC proxy. It forwards JSON-RPC to Helius
-        // server-side without ever attaching CryptoCheck auth headers or
-        // cookies, and avoids the public mainnet-beta rate limits that were
-        // surfacing as "RPC not responding" in Jupiter Terminal.
-        w.Jupiter.init({
-          displayMode: 'integrated',
-          integratedTargetId: panelId,
-          endpoint: getClientSolanaRpcUrl(),
-          defaultExplorer: 'Solscan',
-          strictTokenList: false,
-          enableWalletPassthrough: !!(window as any).solana,
-          formProps: {
-            initialOutputMint: mint,
-            initialInputMint:  'So11111111111111111111111111111111111111112',
-          },
-          containerStyles: { background:'transparent', fontFamily:'IBM Plex Mono, monospace' },
-        })
-      } catch(e) { console.warn('Jupiter inline init:', e) }
-    }
-    if (!document.getElementById(scriptId)) {
-      const s = document.createElement('script')
-      s.id = scriptId
-      s.src = 'https://terminal.jup.ag/main-v2.js'
-      s.async = true
-      s.onload = init
-      document.head.appendChild(s)
-    } else {
-      // Slight delay — wait for previous terminal to unmount
-      setTimeout(init, 120)
-    }
-    return () => {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const w = window as any
-        if (w.Jupiter) w.Jupiter.close()
-      } catch {}
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mint, enabled])
+    setFrameLoaded(false)
+    setFrameStalled(false)
+    const t = window.setTimeout(() => setFrameStalled(true), 8000)
+    return () => window.clearTimeout(t)
+  }, [mint])
 
   if (!enabled) {
     return (
@@ -966,15 +927,33 @@ function JupiterInlinePanel({ mint, sym, onFullScreen, enabled }: {
 
   return (
     <div className="flex flex-col h-full">
-      <div id={panelId} style={{ flex:1, minHeight:0 }}>
-        {/* Loading skeleton */}
-        <div className="flex flex-col items-center justify-center h-40 gap-2 p-4">
-          <div className="relative w-8 h-8">
-            <div className="spinner-ring spinner-ring-1" />
-            <div className="spinner-ring spinner-ring-2" />
+      <div style={{ flex:1, minHeight:0, position:'relative' }}>
+        <iframe
+          key={mint}
+          src={jupUrl}
+          onLoad={() => {
+            setFrameLoaded(true)
+            setFrameStalled(false)
+          }}
+          allow="clipboard-write"
+          sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"
+          style={{ width: '100%', height: '100%', border: 0, background: '#0a0a16' }}
+          title={`Swap ${sym}`}
+        />
+        {!frameLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="text-[0.6rem] text-[#8b949e]">Loading Jupiter…</div>
           </div>
-          <div className="text-[0.6rem] text-[#8b949e]">Loading Jupiter…</div>
-        </div>
+        )}
+        {frameStalled && !frameLoaded && (
+          <div className="absolute inset-x-3 bottom-3 rounded-[4px] border border-amber-700/40 bg-amber-950/40 p-2 text-[0.56rem] text-amber-300">
+            Jupiter embed is taking longer than usual.{' '}
+            <a href={jupUrl} target="_blank" rel="noopener noreferrer" className="underline text-amber-200">
+              Open swap directly
+            </a>
+            .
+          </div>
+        )}
       </div>
       {/* Full-screen button */}
       <button

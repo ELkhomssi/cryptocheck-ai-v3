@@ -9,33 +9,50 @@ import { DisclaimerBanner } from '@/components/legal/DisclaimerBanner'
 export const dynamic = 'force-dynamic'
 
 export default async function ProDashboardPage() {
-  const session = await getProDashboardSession()
+  const reqLabel = `pro-dashboard:${Date.now().toString(36)}`
+  console.time(`${reqLabel}:total`)
+
   const featuredMint = 'So11111111111111111111111111111111111111112'
-  const canonical = await canonicalScan(featuredMint).catch((e) => {
-    console.error('[pro/dashboard] canonicalScan fallback', {
-      mint: featuredMint,
-      error: e instanceof Error ? e.message : String(e),
-    })
-    return {
-      mint: featuredMint,
-      riskScore: 50,
-      verdict: 'CAUTION' as const,
-      verdictReason: 'Live canonical scan temporarily unavailable; showing fallback demo.',
-      signals: [],
-      liquidity: {
-        status: 'unverified' as const,
-        reason: 'Live liquidity verification temporarily unavailable.',
-      },
-      authorities: {
-        mint: 'unknown' as const,
-        freeze: 'unknown' as const,
-        update: 'unknown' as const,
-      },
-      topHolderConcentration: 0,
-      generatedAt: new Date().toISOString(),
-      cacheKey: `scan:canonical:v1:${featuredMint}:fallback`,
-    }
-  })
+  const fallbackCanonical = {
+    mint: featuredMint,
+    riskScore: 50,
+    verdict: 'CAUTION' as const,
+    verdictReason: 'Live canonical scan temporarily unavailable; showing fallback demo.',
+    signals: [],
+    liquidity: {
+      status: 'unverified' as const,
+      reason: 'Live liquidity verification temporarily unavailable.',
+    },
+    authorities: {
+      mint: 'unknown' as const,
+      freeze: 'unknown' as const,
+      update: 'unknown' as const,
+    },
+    topHolderConcentration: 0,
+    generatedAt: new Date().toISOString(),
+    cacheKey: `scan:canonical:v1:${featuredMint}:fallback`,
+  }
+
+  // Keep first paint fast: don't let a slow upstream canonical scan block the dashboard.
+  const canonicalWithTimeout = Promise.race([
+    canonicalScan(featuredMint),
+    new Promise<typeof fallbackCanonical>((resolve) =>
+      setTimeout(() => resolve(fallbackCanonical), 2500)
+    ),
+  ])
+
+  console.time(`${reqLabel}:parallel.session+canonical`)
+  const [session, canonical] = await Promise.all([
+    getProDashboardSession(),
+    canonicalWithTimeout.catch((e) => {
+      console.error('[pro/dashboard] canonicalScan fallback', {
+        mint: featuredMint,
+        error: e instanceof Error ? e.message : String(e),
+      })
+      return fallbackCanonical
+    }),
+  ])
+  console.timeEnd(`${reqLabel}:parallel.session+canonical`)
   const demoVerdict =
     canonical.verdict === 'AVOID' ? 'CRITICAL_RISK' : canonical.verdict === 'HIGH_RISK' ? 'HIGH_RISK' : canonical.verdict
 
@@ -62,6 +79,7 @@ export default async function ProDashboardPage() {
 
   const demoWeighted = buildWeightedSecurityScore(demoReasoning)
   const demoRpcLabel = getPrimaryConnection().label
+  console.timeEnd(`${reqLabel}:total`)
 
   return (
     <>
