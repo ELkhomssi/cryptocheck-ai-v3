@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { isSentinelQaBypassUserId } from '@/lib/config/sentinel-qa-bypass'
 import type { SubscriptionTier } from '@/lib/types/tier'
@@ -33,8 +34,9 @@ export type UserSubscription = {
 
 /**
  * Fetches the user's SaaS row and merged tier for dashboard/API.
+ * Memoized per request so layout + page + usage bundle share one DB round-trip set.
  */
-export async function getUserSubscription(userId: string): Promise<UserSubscription> {
+async function getUserSubscriptionImpl(userId: string): Promise<UserSubscription> {
   if (isSentinelQaBypassUserId(userId)) {
     return {
       userId,
@@ -80,3 +82,5 @@ export async function getUserSubscription(userId: string): Promise<UserSubscript
     isDefaultFree: false,
   }
 }
+
+export const getUserSubscription = cache(getUserSubscriptionImpl)
