@@ -25,13 +25,22 @@ export default function ApiKeysPage() {
   const [secretOnce, setSecretOnce] = useState<string | null>(null)
   const [copiedKey, setCopiedKey] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [loadErr, setLoadErr] = useState<string | null>(null)
   const [successToast, setSuccessToast] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
+    setLoadErr(null)
     const res = await fetch('/api/v1/keys', { credentials: 'include' })
     const j = await res.json().catch(() => ({}))
-    if (res.ok && Array.isArray(j.keys)) setKeys(j.keys)
+    if (res.ok && Array.isArray(j.keys)) {
+      setKeys(j.keys)
+    } else {
+      setKeys([])
+      setLoadErr(
+        typeof j.error === 'string' && j.error ? j.error : `Could not load keys (${res.status})`
+      )
+    }
     setLoading(false)
   }, [])
 
@@ -197,6 +206,12 @@ export default function ApiKeysPage() {
                 <tr>
                   <td colSpan={7} className="px-5 py-10 text-center font-mono-terminal text-sm text-slate-500">
                     Loading…
+                  </td>
+                </tr>
+              ) : loadErr ? (
+                <tr>
+                  <td colSpan={7} className="px-5 py-10 text-center font-mono-terminal text-sm text-rose-300/95">
+                    {loadErr}
                   </td>
                 </tr>
               ) : keys.length === 0 ? (
