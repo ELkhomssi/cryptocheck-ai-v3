@@ -62,26 +62,36 @@ export async function getUsageLatencyStats(userId: string, days: number): Promis
   return { p50, p95, avg, sample: latencies.length }
 }
 
-export async function getUsageErrorRate(userId: string, days: number): Promise<{ rate: number; errors: number; total: number }> {
-  const sb = getSupabaseAdmin()
-  const since = new Date()
-  since.setUTCDate(since.getUTCDate() - days)
-  const { data, error } = await sb
-    .from('security_logs')
-    .select('metadata, action')
-    .eq('user_id', userId)
-    .in('action', ['api_usage', 'scan_item', 'scan_v1_error'])
-    .gte('created_at', since.toISOString())
-
-  if (error || !data) return { rate: 0, errors: 0, total: 0 }
+function aggregateUsageMetricsFromSecurityRows(
+  data: Array<{ created_at: string; metadata: unknown; action: string }>
+): {
+  series: DailyUsagePoint[]
+  latency: LatencyBucket & { sample: number }
+  errors: { rate: number; errors: number; total: number }
+} {
+  const byDay = new Map<string, number>()
+  const latencies: number[] = []
   let errors = 0
-  let total = data.length
+  const total = data.length
+
   for (const row of data) {
+    const m = row.metadata as Record<string, unknown> | null
+
+    if (row.action === 'api_usage' || row.action === 'scan_item') {
+      const d = new Date(row.created_at)
+      const key = d.toISOString().slice(0, 10)
+      byDay.set(key, (byDay.get(key) ?? 0) + 1)
+
+      const ms =
+        (typeof m?.latency_ms === 'number' ? m.latency_ms : null) ??
+        (typeof m?.duration_ms === 'number' ? m.duration_ms : null)
+      if (typeof ms === 'number' && Number.isFinite(ms) && ms >= 0) latencies.push(ms)
+    }
+
     if (row.action === 'scan_v1_error') {
       errors++
       continue
     }
-    const m = row.metadata as Record<string, unknown> | null
     if (row.action === 'scan_item' && m?.ok === false) {
       errors++
       continue
@@ -91,8 +101,60 @@ export async function getUsageErrorRate(userId: string, days: number): Promise<{
       if (typeof sc === 'number' && sc >= 400) errors++
     }
   }
+
+  const series = [...byDay.entries()].map(([date, count]) => ({ date, count })).sort((a, b) => a.date.localeCompare(b.date))
+
+  let latency: LatencyBucket & { sample: number }
+  if (latencies.length === 0) {
+    latency = { p50: 0, p95: 0, avg: 0, sample: 0 }
+  } else {
+    latencies.sort((a, b) => a - b)
+    const p50 = latencies[Math.floor(latencies.length * 0.5)]
+    const p95 = latencies[Math.floor(latencies.length * 0.95)]
+    const avg = latencies.reduce((a, b) => a + b, 0) / latencies.length
+    latency = { p50, p95, avg, sample: latencies.length }
+  }
+
   const rate = total ? errors / total : 0
-  return { rate, errors, total }
+  return { series, latency, errors: { rate, errors, total } }
+}
+
+/** Single `security_logs` read for dashboard usage (series + latency + error rate). */
+async function getUsageMetricsFromSecurityLogsUnified(
+  userId: string,
+  days: number
+): Promise<{
+  series: DailyUsagePoint[]
+  latency: LatencyBucket & { sample: number }
+  errors: { rate: number; errors: number; total: number }
+}> {
+  const sb = getSupabaseAdmin()
+  const since = new Date()
+  since.setUTCDate(since.getUTCDate() - days)
+  const { data, error } = await sb
+    .from('security_logs')
+    .select('created_at, metadata, action')
+    .eq('user_id', userId)
+    .in('action', ['api_usage', 'scan_item', 'scan_v1_error'])
+    .gte('created_at', since.toISOString())
+    .order('created_at', { ascending: true })
+
+  if (error || !data) {
+    return {
+      series: [],
+      latency: { p50: 0, p95: 0, avg: 0, sample: 0 },
+      errors: { rate: 0, errors: 0, total: 0 },
+    }
+  }
+
+  return aggregateUsageMetricsFromSecurityRows(
+    data as Array<{ created_at: string; metadata: unknown; action: string }>
+  )
+}
+
+export async function getUsageErrorRate(userId: string, days: number): Promise<{ rate: number; errors: number; total: number }> {
+  const { errors } = await getUsageMetricsFromSecurityLogsUnified(userId, days)
+  return errors
 }
 
 export async function getQuotaSnapshot(userId: string, tier: SubscriptionTier) {
@@ -145,12 +207,11 @@ export async function getScanTimingLatencyStats(
 export async function getDashboardUsageBundle(userId: string, days: number) {
   const sub = await getUserSubscription(userId)
   const tier = sub.runtimeTier
-  const [series, latency, errors, quota, scanPipeline] = await Promise.all([
-    getUsageDailySeries(userId, days),
-    getUsageLatencyStats(userId, days),
-    getUsageErrorRate(userId, days),
+  const [usageBlock, quota, scanPipeline] = await Promise.all([
+    getUsageMetricsFromSecurityLogsUnified(userId, days),
     getQuotaSnapshot(userId, tier),
     getScanTimingLatencyStats(userId, days),
   ])
+  const { series, latency, errors } = usageBlock
   return { series, latency, errors, quota, tier: sub.effectiveTier, runtimeTier: tier, scanPipeline }
 }
