@@ -18,6 +18,7 @@ import { loadAccessKeyMaterial } from '@/lib/crypto/client-key-store'
 import RugForensicsLab from '@/components/RugForensicsLab'
 import SignupTrialModal from '@/components/SignupTrialModal'
 import ChartSwapModal from '@/components/ChartSwapModal'
+import { JupiterTerminalEmbed } from '@/components/JupiterTerminalEmbed'
 import AuthModal from '@/components/AuthModal'
 import TokenListDashboard from '@/components/TokenListDashboard'
 import NeuralScanV4 from '@/components/NeuralScanV4'
@@ -569,7 +570,19 @@ function AiEdgeCard({ loading, text }: { loading: boolean; text: string }) {
 }
 
 // ── Verdict Tab ──
-function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, chatMessages, chatLoading, chatInput, onChatInput, onChatSend }: {
+function VerdictTab({
+  data,
+  onTradeClick,
+  onChartClick,
+  aiSummary,
+  aiLoading,
+  chatMessages,
+  chatLoading,
+  chatInput,
+  onChatInput,
+  onChatSend,
+  swapModalOpen = false,
+}: {
   data: ScanData
   onTradeClick: (mint: string, sym: string) => void
   onChartClick: (mint: string) => void
@@ -580,6 +593,8 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
   chatInput: string
   onChatInput: (v:string) => void
   onChatSend: () => void
+  /** True while in-app Jupiter swap modal is open — avoids two Terminal instances. */
+  swapModalOpen?: boolean
 }) {
   const risk    = computeRisk(data)
   const { top10Pct, liqPct, restPct } = calcChartData(data)
@@ -839,12 +854,13 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
           <div className="verdict-swap-col">
             <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-[rgba(33,38,45,0.5)]">
               <span className="text-[0.58rem] font-mono" style={{ color:'#10b981' }}>⚡ Swap {sym}</span>
-              <span className="text-[#484f58] text-[0.52rem]">via Jupiter · nouvel onglet</span>
+              <span className="text-[#484f58] text-[0.52rem]">via Jupiter Terminal · sur site</span>
             </div>
             <div className="verdict-jupiter-mount" id={`jup-verdict-${data.mint.slice(0,8)}`}>
               <JupiterInlinePanel
                 mint={data.mint}
                 sym={sym}
+                swapModalOpen={swapModalOpen}
                 onOpenSwapModal={() => onTradeClick(data.mint, sym)}
                 enabled={risk.score >= 55}
               />
@@ -898,16 +914,20 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
 }
 
 // ── Jupiter Inline Panel (inside Verdict two-column layout) ──
-// jup.ag sets `X-Frame-Options: SAMEORIGIN` + CSP `frame-ancestors 'self'` — iframe embed is blocked off-site.
-function JupiterInlinePanel({ mint, sym, onOpenSwapModal, enabled }: {
+/** Jupiter Terminal (script) — swap stays on CryptoCheck; wallet via `SolanaProvider`. */
+function JupiterInlinePanel({
+  mint,
+  sym,
+  swapModalOpen,
+  onOpenSwapModal,
+  enabled,
+}: {
   mint: string
   sym: string
-  /** Opens in-app modal with link + copy helpers (no iframe). */
+  swapModalOpen: boolean
   onOpenSwapModal: () => void
   enabled: boolean
 }) {
-  const jupUrl = `https://jup.ag/swap/SOL-${encodeURIComponent(mint)}`
-
   if (!enabled) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-3 p-4 text-center">
@@ -919,32 +939,17 @@ function JupiterInlinePanel({ mint, sym, onOpenSwapModal, enabled }: {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div
-        className="flex flex-1 min-h-0 flex-col items-center justify-center gap-3 p-4 text-center"
-        style={{ background: '#0a0a16' }}
-      >
-        <div className="text-[0.58rem] font-bold uppercase tracking-wider text-[#00d4aa]">Jupiter swap</div>
-        <p className="text-[0.56rem] leading-relaxed text-[#8b949e] max-w-[220px]">
-          Jupiter n’autorise pas l’affichage de jup.ag dans un site tiers (anti-clickjacking). Ouvrez l’échange officiel
-          dans un nouvel onglet.
-        </p>
-        <a
-          href={jupUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center justify-center rounded-md border border-emerald-500/40 bg-emerald-500/15 px-4 py-2.5 text-[0.62rem] font-bold uppercase tracking-wide text-emerald-200 hover:bg-emerald-500/25 transition-colors"
-        >
-          Ouvrir sur jup.ag ↗
-        </a>
+    <div className="flex flex-col h-full min-h-0">
+      <div className="flex-1 min-h-0 overflow-hidden" style={{ background: '#0a0a16' }}>
+        <JupiterTerminalEmbed mint={mint} suspend={swapModalOpen} minHeight={360} className="h-full" />
       </div>
       <button
         type="button"
         onClick={onOpenSwapModal}
-        className="flex items-center justify-center gap-1.5 py-2 border-t border-[rgba(0,212,130,0.15)] text-[0.58rem] text-[#00d4aa] font-mono hover:bg-indigo-950/20 transition-all cursor-pointer w-full"
+        className="flex items-center justify-center gap-1.5 py-2 border-t border-[rgba(0,212,130,0.15)] text-[0.58rem] text-[#00d4aa] font-mono hover:bg-indigo-950/20 transition-all cursor-pointer w-full shrink-0"
         style={{ background: 'transparent', border: 'none', borderTop: '1px solid rgba(0,212,130,0.1)' }}
       >
-        ⛶ Panneau swap (lien + détails)
+        ⛶ Agrandir · {sym}
       </button>
     </div>
   )
@@ -1098,7 +1103,16 @@ function TransfersTab({ data }: { data: ScanData }) {
 
 // ── DexScreener + Jupiter Price Chart Tab ──
 // 60% DexScreener chart (iframe OK) | 40% Jupiter: link panel only (jup.ag blocks third-party iframes)
-function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, currentSymbol, neuralScore }: {
+function DexChartTab({
+  mint,
+  chartKey,
+  onConnectWallet,
+  isConnected,
+  shortAddr,
+  currentSymbol,
+  neuralScore,
+  swapModalOpen = false,
+}: {
   mint: string
   chartKey: number
   onConnectWallet: () => void
@@ -1106,10 +1120,10 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
   shortAddr: string
   currentSymbol: string
   neuralScore: number | null
+  swapModalOpen?: boolean
 }) {
   const [rightTab, setRightTab] = useState<'trade'|'sniper'>('trade')
   const dexUrl = `https://dexscreener.com/solana/${mint}?embed=1&theme=dark&trades=0&info=0`
-  const jupUrl = `https://jup.ag/swap/SOL-${mint}`
 
   return (
     <div className="flex flex-col h-full" style={{ minHeight: 0 }}>
@@ -1204,48 +1218,17 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
           {/* Tab content */}
           <div style={{ flex:1, minHeight:0, overflow:'hidden', position:'relative' }}>
 
-            {/* Manual Trade — Jupiter (no iframe: jup.ag blocks third-party embeds) */}
+            {/* Manual Trade — Jupiter Terminal (in-page, not jup.ag iframe) */}
             <div
               style={{
                 position: 'absolute',
                 inset: 0,
-                display: rightTab === 'trade' ? 'flex' : 'none',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 16,
-                padding: 24,
+                display: rightTab === 'trade' ? 'block' : 'none',
+                overflow: 'auto',
                 background: '#0a0a16',
-                textAlign: 'center',
               }}
             >
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: '#00d4aa' }}>JUPITER SWAP</div>
-              <p style={{ fontSize: 10, color: '#8b949e', lineHeight: 1.6, maxWidth: 280, margin: 0 }}>
-                jup.ag refuse l’iframe sur les sites externes (sécurité). Utilisez le lien pour ouvrir le swap officiel
-                avec votre wallet.
-              </p>
-              <a
-                href={jupUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '12px 20px',
-                  borderRadius: 6,
-                  border: '1px solid rgba(16,185,129,0.45)',
-                  background: 'rgba(16,185,129,0.12)',
-                  color: '#a7f3d0',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: '0.08em',
-                  textDecoration: 'none',
-                  fontFamily: 'IBM Plex Mono,monospace',
-                }}
-              >
-                Ouvrir sur jup.ag ↗
-              </a>
+              <JupiterTerminalEmbed mint={mint} suspend={swapModalOpen} minHeight={460} />
             </div>
 
             {/* AI Sniper — VIP component */}
@@ -1353,64 +1336,51 @@ function PortfolioResults({ holdings, wallet }: { holdings: PortfolioHolding[]; 
   )
 }
 
-// ── Jupiter Swap Modal — link only (jup.ag forbids third-party iframes: XFO SAMEORIGIN + frame-ancestors 'self')
-// Widget / Terminal SDK: https://terminal.jup.ag — separate integration if in-page swap is required.
+// ── Jupiter Swap Modal — Terminal intégré (reste sur CryptoCheck)
 function JupiterSwapModal({ mint, sym, onClose }: {
   mint: string
   sym: string
   onClose: () => void
 }) {
-  const jupUrl = `https://jup.ag/swap/SOL-${mint}`
-
   return (
     <div
       className="fixed inset-0 z-[998] bg-black/85 backdrop-blur-[12px] flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
-        className="relative bg-[#0a0a16] border border-[rgba(0,212,130,0.15)] rounded-[6px] overflow-hidden"
-        style={{ width: '100%', maxWidth: '460px', height: 'auto', minHeight: '320px' }}
+        className="relative bg-[#0a0a16] border border-[rgba(0,212,130,0.15)] rounded-[6px] overflow-hidden flex flex-col"
+        style={{ width: '100%', maxWidth: '480px', height: 'min(88vh, 720px)', maxHeight: '88vh' }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(0,212,130,0.15)] bg-[#161b22]">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(0,212,130,0.15)] bg-[#161b22] shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-full flex items-center justify-center text-[0.6rem]"
-              style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}>⚡</div>
-            <span className="text-[0.72rem] font-bold text-[#e2e8f0] font-mono tracking-wider">
-              TRADE {sym}
-            </span>
-            <span className="ds-badge ds-badge-net text-[0.5rem]">Jupiter</span>
+            <div
+              className="w-5 h-5 rounded-full flex items-center justify-center text-[0.6rem]"
+              style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}
+            >
+              ⚡
+            </div>
+            <span className="text-[0.72rem] font-bold text-[#e2e8f0] font-mono tracking-wider">TRADE {sym}</span>
+            <span className="ds-badge ds-badge-net text-[0.5rem]">Jupiter Terminal</span>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="w-6 h-6 rounded-[3px] border border-[rgba(0,212,130,0.15)] bg-[#1c2128] flex items-center justify-center text-[#8b949e] text-xs hover:border-red-700 hover:text-red-400 transition-all"
-          >✕</button>
-        </div>
-
-        <div className="flex flex-col items-center justify-center gap-4 px-5 py-10 text-center">
-          <p className="text-[0.62rem] leading-relaxed text-[#8b949e]">
-            Jupiter ne permet pas d’afficher jup.ag dans une iframe sur un autre domaine (en-têtes{' '}
-            <code className="text-[#64748b]">X-Frame-Options</code> / <code className="text-[#64748b]">CSP</code>
-            ). Connexion wallet et swap se font sur le site officiel.
-          </p>
-          <a
-            href={jupUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center rounded-md border border-emerald-500/40 bg-emerald-500/15 px-5 py-3 text-[0.68rem] font-bold uppercase tracking-wide text-emerald-200 hover:bg-emerald-500/25 transition-colors"
           >
-            Ouvrir le swap sur jup.ag ↗
-          </a>
-          <p className="text-[0.52rem] text-[#484f58] font-mono break-all">{jupUrl}</p>
+            ✕
+          </button>
         </div>
 
-        {/* Footer */}
-        <div className="px-4 py-2 border-t border-[rgba(0,212,130,0.15)] bg-[#161b22] flex items-center justify-between">
-          <span className="text-[0.52rem] text-[#484f58]">Exécution on-chain via Jupiter · Helius RPC pour l’analyse</span>
+        <div className="flex-1 min-h-0 overflow-auto">
+          <JupiterTerminalEmbed mint={mint} minHeight={520} />
+        </div>
+
+        <div className="px-4 py-2 border-t border-[rgba(0,212,130,0.15)] bg-[#161b22] flex items-center justify-between shrink-0">
+          <span className="text-[0.52rem] text-[#484f58]">Swap sur cette page · wallet Phantom / Solflare</span>
           <span className="ds-badge ds-badge-rpc text-[0.5rem]">
             <span className="w-1 h-1 rounded-full bg-cyan-400 inline-block dot-pulse" />
-            Helius RPC
+            RPC proxy
           </span>
         </div>
       </div>
@@ -2840,6 +2810,7 @@ export default function Dashboard() {
             <DexChartTab
               mint={chartMint}
               chartKey={chartKey}
+              swapModalOpen={showSwap}
               onConnectWallet={isConnected ? disconnect : connect}
               isConnected={isConnected}
               shortAddr={shortAddr}
@@ -2885,6 +2856,7 @@ export default function Dashboard() {
           <motion.div key={`verdict-${mk}`} {...motionProps}>
             <VerdictTab
               data={scanData}
+              swapModalOpen={showSwap}
               onTradeClick={(m, s) => {
                 setSwapMint(m)
                 setSwapSym(s)

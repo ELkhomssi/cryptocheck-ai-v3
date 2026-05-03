@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { copyToClipboard } from '@/lib/utils'
+import { JupiterTerminalEmbed } from '@/components/JupiterTerminalEmbed'
 
 interface ChartSwapModalProps {
   mint: string
@@ -12,8 +13,6 @@ interface ChartSwapModalProps {
 export default function ChartSwapModal({ mint, symbol, onClose, initialTab }: ChartSwapModalProps) {
   const [tab, setTab] = useState<'chart'|'swap'>(initialTab || 'chart')
   const [copied, setCopied] = useState(false)
-  const jupUrl = `https://jup.ag/swap/SOL-${mint}`
-
   // Copy mint address
   async function handleCopy() {
     const ok = await copyToClipboard(mint)
@@ -70,15 +69,9 @@ export default function ChartSwapModal({ mint, symbol, onClose, initialTab }: Ch
               style={{width:'100%',height:'100%',border:0,background:'#030308',display:'block'}}
             />
           </div>
-          {/* Swap — jup.ag blocks third-party iframes (X-Frame-Options / CSP) */}
-          <div style={{position:'absolute',inset:0,display:tab==='swap'?'flex':'none',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:16,padding:24,background:'#0d0f1a',textAlign:'center'}}>
-            <span style={{fontSize:10,fontWeight:700,letterSpacing:'0.1em',color:'#34d399'}}>JUPITER</span>
-            <p style={{fontSize:10,color:'#8892a4',lineHeight:1.65,maxWidth:300,margin:0}}>
-              jup.ag n’autorise pas l’affichage dans une iframe depuis un autre site. Ouvrez le swap officiel dans un nouvel onglet.
-            </p>
-            <a href={jupUrl} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'12px 22px',borderRadius:8,border:'1px solid rgba(52,211,153,0.45)',background:'rgba(16,185,129,0.12)',color:'#a7f3d0',fontSize:11,fontWeight:700,letterSpacing:'0.06em',textDecoration:'none',fontFamily:'IBM Plex Mono,monospace'}}>
-              Ouvrir sur jup.ag ↗
-            </a>
+          {/* Swap — Jupiter Terminal (in-page) */}
+          <div style={{ position: 'absolute', inset: 0, display: tab === 'swap' ? 'block' : 'none', overflow: 'auto', background: '#0d0f1a' }}>
+            <JupiterTerminalEmbed mint={mint} minHeight={480} />
           </div>
         </div>
       </div>
