@@ -811,7 +811,7 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
           <div className="s-hdr mb-0" style={{ fontSize:'0.6rem' }}>Integrated Trading Terminal</div>
           <div className="flex gap-1.5">
             <span className="ds-badge ds-badge-rpc text-[0.5rem]"><span className="w-1 h-1 rounded-full bg-cyan-400 inline-block dot-pulse" />DexScreener</span>
-            <span className="ds-badge ds-badge-net text-[0.5rem]">Jupiter SDK</span>
+            <span className="ds-badge ds-badge-net text-[0.5rem]">Jupiter</span>
           </div>
         </div>
 
@@ -835,17 +835,17 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
             </div>
           </div>
 
-          {/* RIGHT — Jupiter Terminal embed */}
+          {/* RIGHT — Jupiter (opens jup.ag; iframe blocked by Jupiter CSP) */}
           <div className="verdict-swap-col">
             <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-[rgba(33,38,45,0.5)]">
               <span className="text-[0.58rem] font-mono" style={{ color:'#10b981' }}>⚡ Swap {sym}</span>
-              <span className="text-[#484f58] text-[0.52rem]">via Jupiter · no redirect</span>
+              <span className="text-[#484f58] text-[0.52rem]">via Jupiter · nouvel onglet</span>
             </div>
             <div className="verdict-jupiter-mount" id={`jup-verdict-${data.mint.slice(0,8)}`}>
               <JupiterInlinePanel
                 mint={data.mint}
                 sym={sym}
-                onFullScreen={() => onTradeClick(data.mint, sym)}
+                onOpenSwapModal={() => onTradeClick(data.mint, sym)}
                 enabled={risk.score >= 55}
               />
             </div>
@@ -898,22 +898,15 @@ function VerdictTab({ data, onTradeClick, onChartClick, aiSummary, aiLoading, ch
 }
 
 // ── Jupiter Inline Panel (inside Verdict two-column layout) ──
-function JupiterInlinePanel({ mint, sym, onFullScreen, enabled }: {
+// jup.ag sets `X-Frame-Options: SAMEORIGIN` + CSP `frame-ancestors 'self'` — iframe embed is blocked off-site.
+function JupiterInlinePanel({ mint, sym, onOpenSwapModal, enabled }: {
   mint: string
   sym: string
-  onFullScreen: () => void
+  /** Opens in-app modal with link + copy helpers (no iframe). */
+  onOpenSwapModal: () => void
   enabled: boolean
 }) {
   const jupUrl = `https://jup.ag/swap/SOL-${encodeURIComponent(mint)}`
-  const [frameLoaded, setFrameLoaded] = useState(false)
-  const [frameStalled, setFrameStalled] = useState(false)
-
-  useEffect(() => {
-    setFrameLoaded(false)
-    setFrameStalled(false)
-    const t = window.setTimeout(() => setFrameStalled(true), 8000)
-    return () => window.clearTimeout(t)
-  }, [mint])
 
   if (!enabled) {
     return (
@@ -927,41 +920,31 @@ function JupiterInlinePanel({ mint, sym, onFullScreen, enabled }: {
 
   return (
     <div className="flex flex-col h-full">
-      <div style={{ flex:1, minHeight:0, position:'relative' }}>
-        <iframe
-          key={mint}
-          src={jupUrl}
-          onLoad={() => {
-            setFrameLoaded(true)
-            setFrameStalled(false)
-          }}
-          allow="clipboard-write"
-          sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"
-          style={{ width: '100%', height: '100%', border: 0, background: '#0a0a16' }}
-          title={`Swap ${sym}`}
-        />
-        {!frameLoaded && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="text-[0.6rem] text-[#8b949e]">Loading Jupiter…</div>
-          </div>
-        )}
-        {frameStalled && !frameLoaded && (
-          <div className="absolute inset-x-3 bottom-3 rounded-[4px] border border-amber-700/40 bg-amber-950/40 p-2 text-[0.56rem] text-amber-300">
-            Jupiter embed is taking longer than usual.{' '}
-            <a href={jupUrl} target="_blank" rel="noopener noreferrer" className="underline text-amber-200">
-              Open swap directly
-            </a>
-            .
-          </div>
-        )}
-      </div>
-      {/* Full-screen button */}
-      <button
-        onClick={onFullScreen}
-        className="flex items-center justify-center gap-1.5 py-2 border-t border-[rgba(0,212,130,0.15)] text-[0.58rem] text-[#00d4aa] font-mono hover:bg-indigo-950/20 transition-all cursor-pointer w-full"
-        style={{ background:'transparent', border:'none', borderTop:'1px solid rgba(0,212,130,0.1)' }}
+      <div
+        className="flex flex-1 min-h-0 flex-col items-center justify-center gap-3 p-4 text-center"
+        style={{ background: '#0a0a16' }}
       >
-        ⛶ Open Full Terminal
+        <div className="text-[0.58rem] font-bold uppercase tracking-wider text-[#00d4aa]">Jupiter swap</div>
+        <p className="text-[0.56rem] leading-relaxed text-[#8b949e] max-w-[220px]">
+          Jupiter n’autorise pas l’affichage de jup.ag dans un site tiers (anti-clickjacking). Ouvrez l’échange officiel
+          dans un nouvel onglet.
+        </p>
+        <a
+          href={jupUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center rounded-md border border-emerald-500/40 bg-emerald-500/15 px-4 py-2.5 text-[0.62rem] font-bold uppercase tracking-wide text-emerald-200 hover:bg-emerald-500/25 transition-colors"
+        >
+          Ouvrir sur jup.ag ↗
+        </a>
+      </div>
+      <button
+        type="button"
+        onClick={onOpenSwapModal}
+        className="flex items-center justify-center gap-1.5 py-2 border-t border-[rgba(0,212,130,0.15)] text-[0.58rem] text-[#00d4aa] font-mono hover:bg-indigo-950/20 transition-all cursor-pointer w-full"
+        style={{ background: 'transparent', border: 'none', borderTop: '1px solid rgba(0,212,130,0.1)' }}
+      >
+        ⛶ Panneau swap (lien + détails)
       </button>
     </div>
   )
@@ -1114,8 +1097,7 @@ function TransfersTab({ data }: { data: ScanData }) {
 }
 
 // ── DexScreener + Jupiter Price Chart Tab ──
-// 60% native DexScreener chart | 40% Jupiter iframe swap
-// iframe approach = 100% reliable, no token list issues
+// 60% DexScreener chart (iframe OK) | 40% Jupiter: link panel only (jup.ag blocks third-party iframes)
 function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, currentSymbol, neuralScore }: {
   mint: string
   chartKey: number
@@ -1222,16 +1204,48 @@ function DexChartTab({ mint, chartKey, onConnectWallet, isConnected, shortAddr, 
           {/* Tab content */}
           <div style={{ flex:1, minHeight:0, overflow:'hidden', position:'relative' }}>
 
-            {/* Manual Trade — Jupiter iframe */}
-            <div style={{ position:'absolute', inset:0, display: rightTab==='trade' ? 'flex' : 'none', flexDirection:'column' }}>
-              <iframe
-                key={`jup-${chartKey}-${mint}`}
-                src={jupUrl}
-                allow="clipboard-write"
-                sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"
-                style={{ flex:1, width:'100%', border:0, background:'#0a0a16', minHeight:'460px' }}
-                title="Jupiter Swap"
-              />
+            {/* Manual Trade — Jupiter (no iframe: jup.ag blocks third-party embeds) */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: rightTab === 'trade' ? 'flex' : 'none',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 16,
+                padding: 24,
+                background: '#0a0a16',
+                textAlign: 'center',
+              }}
+            >
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: '#00d4aa' }}>JUPITER SWAP</div>
+              <p style={{ fontSize: 10, color: '#8b949e', lineHeight: 1.6, maxWidth: 280, margin: 0 }}>
+                jup.ag refuse l’iframe sur les sites externes (sécurité). Utilisez le lien pour ouvrir le swap officiel
+                avec votre wallet.
+              </p>
+              <a
+                href={jupUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '12px 20px',
+                  borderRadius: 6,
+                  border: '1px solid rgba(16,185,129,0.45)',
+                  background: 'rgba(16,185,129,0.12)',
+                  color: '#a7f3d0',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: '0.08em',
+                  textDecoration: 'none',
+                  fontFamily: 'IBM Plex Mono,monospace',
+                }}
+              >
+                Ouvrir sur jup.ag ↗
+              </a>
             </div>
 
             {/* AI Sniper — VIP component */}
@@ -1339,16 +1353,13 @@ function PortfolioResults({ holdings, wallet }: { holdings: PortfolioHolding[]; 
   )
 }
 
-// ── Jupiter Swap Modal (Terminal SDK) ──
-// Uses Jupiter Terminal which loads as a script tag via useEffect
-// Docs: https://terminal.jup.ag
+// ── Jupiter Swap Modal — link only (jup.ag forbids third-party iframes: XFO SAMEORIGIN + frame-ancestors 'self')
+// Widget / Terminal SDK: https://terminal.jup.ag — separate integration if in-page swap is required.
 function JupiterSwapModal({ mint, sym, onClose }: {
   mint: string
   sym: string
   onClose: () => void
 }) {
-  // Jupiter iframe embed — most reliable approach, no SDK token list issues
-  // Uses Jupiter's hosted app directly in an iframe
   const jupUrl = `https://jup.ag/swap/SOL-${mint}`
 
   return (
@@ -1358,7 +1369,7 @@ function JupiterSwapModal({ mint, sym, onClose }: {
     >
       <div
         className="relative bg-[#0a0a16] border border-[rgba(0,212,130,0.15)] rounded-[6px] overflow-hidden"
-        style={{ width: '100%', maxWidth: '460px', height: '620px' }}
+        style={{ width: '100%', maxWidth: '460px', height: 'auto', minHeight: '320px' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -1377,21 +1388,26 @@ function JupiterSwapModal({ mint, sym, onClose }: {
           >✕</button>
         </div>
 
-        {/* Jupiter iframe — fully functional, no token list issues */}
-        <div style={{ position: 'relative', height: 'calc(100% - 90px)', overflow: 'hidden' }}>
-          <iframe
-            key={mint}
-            src={jupUrl}
-            allow="clipboard-write"
-            sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"
-            style={{ width: '100%', height: '100%', border: 0, background: '#0a0a16' }}
-            title={`Swap ${sym}`}
-          />
+        <div className="flex flex-col items-center justify-center gap-4 px-5 py-10 text-center">
+          <p className="text-[0.62rem] leading-relaxed text-[#8b949e]">
+            Jupiter ne permet pas d’afficher jup.ag dans une iframe sur un autre domaine (en-têtes{' '}
+            <code className="text-[#64748b]">X-Frame-Options</code> / <code className="text-[#64748b]">CSP</code>
+            ). Connexion wallet et swap se font sur le site officiel.
+          </p>
+          <a
+            href={jupUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center rounded-md border border-emerald-500/40 bg-emerald-500/15 px-5 py-3 text-[0.68rem] font-bold uppercase tracking-wide text-emerald-200 hover:bg-emerald-500/25 transition-colors"
+          >
+            Ouvrir le swap sur jup.ag ↗
+          </a>
+          <p className="text-[0.52rem] text-[#484f58] font-mono break-all">{jupUrl}</p>
         </div>
 
         {/* Footer */}
         <div className="px-4 py-2 border-t border-[rgba(0,212,130,0.15)] bg-[#161b22] flex items-center justify-between">
-          <span className="text-[0.52rem] text-[#484f58]">Swaps execute on-chain via Jupiter Aggregator</span>
+          <span className="text-[0.52rem] text-[#484f58]">Exécution on-chain via Jupiter · Helius RPC pour l’analyse</span>
           <span className="ds-badge ds-badge-rpc text-[0.5rem]">
             <span className="w-1 h-1 rounded-full bg-cyan-400 inline-block dot-pulse" />
             Helius RPC

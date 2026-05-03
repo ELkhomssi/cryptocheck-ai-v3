@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { copyToClipboard } from '@/lib/utils'
 
 interface ChartSwapModalProps {
@@ -12,16 +12,13 @@ interface ChartSwapModalProps {
 export default function ChartSwapModal({ mint, symbol, onClose, initialTab }: ChartSwapModalProps) {
   const [tab, setTab] = useState<'chart'|'swap'>(initialTab || 'chart')
   const [copied, setCopied] = useState(false)
-  const jupRef = useRef<HTMLDivElement>(null)
-  const jupInited = useRef(false)
+  const jupUrl = `https://jup.ag/swap/SOL-${mint}`
 
   // Copy mint address
   async function handleCopy() {
     const ok = await copyToClipboard(mint)
     if (ok) { setCopied(true); setTimeout(() => setCopied(false), 2000) }
   }
-
-  // No Jupiter SDK needed — use iframe
 
   const dexUrl = `https://dexscreener.com/solana/${mint}?embed=1&theme=dark&trades=0&info=0`
 
@@ -73,14 +70,15 @@ export default function ChartSwapModal({ mint, symbol, onClose, initialTab }: Ch
               style={{width:'100%',height:'100%',border:0,background:'#030308',display:'block'}}
             />
           </div>
-          {/* Swap */}
-          <div style={{position:'absolute',inset:0,display:tab==='swap'?'block':'none'}}>
-            <iframe
-              src={`https://jup.ag/swap/SOL-${mint}`}
-              style={{width:'100%',height:'100%',border:0,background:'#0d0f1a',display:'block'}}
-              allow="clipboard-write"
-              sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"
-            />
+          {/* Swap — jup.ag blocks third-party iframes (X-Frame-Options / CSP) */}
+          <div style={{position:'absolute',inset:0,display:tab==='swap'?'flex':'none',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:16,padding:24,background:'#0d0f1a',textAlign:'center'}}>
+            <span style={{fontSize:10,fontWeight:700,letterSpacing:'0.1em',color:'#34d399'}}>JUPITER</span>
+            <p style={{fontSize:10,color:'#8892a4',lineHeight:1.65,maxWidth:300,margin:0}}>
+              jup.ag n’autorise pas l’affichage dans une iframe depuis un autre site. Ouvrez le swap officiel dans un nouvel onglet.
+            </p>
+            <a href={jupUrl} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',padding:'12px 22px',borderRadius:8,border:'1px solid rgba(52,211,153,0.45)',background:'rgba(16,185,129,0.12)',color:'#a7f3d0',fontSize:11,fontWeight:700,letterSpacing:'0.06em',textDecoration:'none',fontFamily:'IBM Plex Mono,monospace'}}>
+              Ouvrir sur jup.ag ↗
+            </a>
           </div>
         </div>
       </div>
