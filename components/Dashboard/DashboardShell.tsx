@@ -51,7 +51,7 @@ export function DashboardShell({
 
   useEffect(() => {
     void poll()
-    const id = window.setInterval(() => void poll(), 30000)
+    const id = window.setInterval(() => void poll(), 180000)
     return () => window.clearInterval(id)
   }, [poll])
 

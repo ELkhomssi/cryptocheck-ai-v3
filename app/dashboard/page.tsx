@@ -1,11 +1,22 @@
 import type { ReactNode } from 'react'
+import nextDynamic from 'next/dynamic'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getUserSubscription } from '@/lib/services/user-subscription.service'
 import { getCachedDashboardUsageBundle, getCachedRecentSecurityRows } from '@/lib/services/dashboard-home-cache'
 import { RadialCapacity } from '@/components/Dashboard/RadialCapacity'
-import { ActivityStream, type StreamEvent } from '@/components/Dashboard/ActivityStream'
+import type { StreamEvent } from '@/components/Dashboard/ActivityStream'
 import { NeonForensicPanel } from '@/components/Dashboard/forensic-terminal/NeonForensicPanel'
+
+const ActivityStream = nextDynamic(
+  () => import('@/components/Dashboard/ActivityStream').then((m) => m.ActivityStream),
+  {
+    ssr: true,
+    loading: () => (
+      <p className="px-5 py-8 text-center font-mono-terminal text-sm text-slate-500">Loading stream…</p>
+    ),
+  }
+)
 
 export const dynamic = 'force-dynamic'
 
@@ -43,17 +54,10 @@ function CyberLink({
 }
 
 export default async function DashboardHomePage() {
-  const reqLabel = `dashboard:${Date.now().toString(36)}`
-
-  console.time(`${reqLabel}:createClient`)
   const supabase = await createClient()
-  console.timeEnd(`${reqLabel}:createClient`)
-
-  console.time(`${reqLabel}:auth.getUser`)
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  console.timeEnd(`${reqLabel}:auth.getUser`)
 
   if (!user) {
     return (
@@ -82,20 +86,16 @@ export default async function DashboardHomePage() {
     )
   }
 
-  console.time(`${reqLabel}:parallel.sub+usage`)
   const [sub, usage] = await Promise.all([
     getUserSubscription(user.id),
     getCachedDashboardUsageBundle(user.id, 7),
   ])
-  console.timeEnd(`${reqLabel}:parallel.sub+usage`)
 
   const lastDays = usage.series.slice(-7)
   const analyses7d = lastDays.reduce((a, b) => a + b.count, 0)
   const sentinelMode = ['PRO', 'ENTERPRISE'].includes(sub.effectiveTier.toUpperCase())
 
-  console.time(`${reqLabel}:cached.securityStream`)
   const streamInitial: StreamEvent[] = await getCachedRecentSecurityRows(user.id)
-  console.timeEnd(`${reqLabel}:cached.securityStream`)
 
   return (
     <>
