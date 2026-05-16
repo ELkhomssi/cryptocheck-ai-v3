@@ -52,6 +52,7 @@ import {
   Radar,
 } from 'recharts'
 import { useSolana } from '@/components/SolanaProvider'
+import { handleMobileAwareWalletConnect } from '@/lib/solana/mobile-wallet-connect'
 import {
   formatSupply,
   truncate,
@@ -2145,6 +2146,13 @@ function ProMaxView({ isPro, onUpgrade }: { isPro: boolean; onUpgrade: () => voi
 export default function Dashboard() {
 
   const { walletAddress, isConnected, isConnecting, connect, disconnect, shortAddr } = useSolana()
+  const handleWalletConnectClick = useCallback(() => {
+    if (isConnected) {
+      disconnect()
+      return
+    }
+    void handleMobileAwareWalletConnect(connect)
+  }, [isConnected, disconnect, connect])
   const sub = useSubscription()
 
   const [view,        setView]        = useState<View>('scanner')
@@ -2811,7 +2819,7 @@ export default function Dashboard() {
               mint={chartMint}
               chartKey={chartKey}
               swapModalOpen={showSwap}
-              onConnectWallet={isConnected ? disconnect : connect}
+              onConnectWallet={handleWalletConnectClick}
               isConnected={isConnected}
               shortAddr={shortAddr}
               currentSymbol={
@@ -3064,7 +3072,7 @@ export default function Dashboard() {
             <LayoutDashboard className="w-3.5 h-3.5 shrink-0 opacity-80" aria-hidden />
             Dashboard
           </Link>
-          <button onClick={isConnected ? disconnect : connect} disabled={isConnecting} className={`btn-terminal px-2 md:px-3 py-1 rounded-[4px] text-[0.5rem] md:text-[0.62rem] ${isConnected ? 'bg-emerald-950/30 border-emerald-800/25 text-emerald-400' : 'bg-[rgba(0,212,130,0.08)] border-[rgba(0,212,130,0.15)] text-[#00d4aa]'}`}>
+          <button onClick={handleWalletConnectClick} disabled={isConnecting} className={`btn-terminal px-2 md:px-3 py-1 rounded-[4px] text-[0.5rem] md:text-[0.62rem] ${isConnected ? 'bg-emerald-950/30 border-emerald-800/25 text-emerald-400' : 'bg-[rgba(0,212,130,0.08)] border-[rgba(0,212,130,0.15)] text-[#00d4aa]'}`}>
             {isConnecting ? 'Connecting…' : isConnected ? `✓ ${shortAddr}` : 'Connect Wallet'}
           </button>
         </div>

@@ -6,6 +6,7 @@ import { Home, LayoutDashboard } from 'lucide-react'
 import { GeistMono } from 'geist/font/mono'
 import { GeistSans } from 'geist/font/sans'
 import { useSolana } from '@/components/SolanaProvider'
+import { handleMobileAwareWalletConnect } from '@/lib/solana/mobile-wallet-connect'
 import type { ProDashboardSession } from '@/lib/types/pro-dashboard'
 import type { EvidenceLine, ReasoningObject } from '@/lib/services/scanner-engine'
 import type { WeightedSecurityScore } from '@/lib/services/scanner/types'
@@ -163,6 +164,13 @@ function ProDashboardClientInner({
   const [dlBusy, setDlBusy] = useState<'pdf' | 'copy' | null>(null)
   const { ready: accessReady, hasValidKey: hasApiAccess } = useVerifiedCryptocheckAccessKey()
   const { connect, disconnect, isConnected, shortAddr, isConnecting } = useSolana()
+  const handleWalletConnectClick = useCallback(() => {
+    if (isConnected) {
+      disconnect()
+      return
+    }
+    void handleMobileAwareWalletConnect(connect)
+  }, [isConnected, disconnect, connect])
 
   const tierHint = useMemo(() => {
     if (!session.userId) return t('institutional.page.tier_hint_signed_out')
@@ -350,7 +358,7 @@ function ProDashboardClientInner({
             </Link>
             <button
               type="button"
-              onClick={() => (isConnected ? disconnect() : void connect())}
+              onClick={handleWalletConnectClick}
               disabled={isConnecting}
               style={{
                 fontSize: 12,
