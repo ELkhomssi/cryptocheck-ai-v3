@@ -78,6 +78,7 @@ export default async function DashboardHomePage() {
             Sign in
           </CyberLink>
           <CyberLink href="/dashboard/security">API keys — SENTINEL</CyberLink>
+          <CyberLink href="/web4">Web4 Launchpad</CyberLink>
           <CyberLink href="/dashboard/intelligence-terminal">Terminal</CyberLink>
           <CyberLink href="/dashboard/compliance">Compliance</CyberLink>
           <CyberLink href="/dashboard/batch">Batch</CyberLink>
@@ -201,7 +202,10 @@ export default async function DashboardHomePage() {
       </div>
 
       <div className="mt-10 flex flex-wrap gap-3">
-        <CyberLink href="/dashboard/api-keys" variant="primary">
+        <CyberLink href="/web4" variant="primary">
+          Open Web4 Launchpad
+        </CyberLink>
+        <CyberLink href="/dashboard/api-keys">
           Issue API credential
         </CyberLink>
         <CyberLink href="/dashboard/compliance">Compliance &amp; exports</CyberLink>

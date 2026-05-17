@@ -69,7 +69,7 @@ export function Web4PumpDashboard() {
 
   return (
     <motion.div
-      className="relative -mx-4 flex min-h-[calc(100vh-8rem)] flex-col overflow-hidden md:-mx-8"
+      className="relative flex min-h-[calc(100vh-2.5rem)] w-full flex-col overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >

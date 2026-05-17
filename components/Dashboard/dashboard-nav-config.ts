@@ -36,7 +36,6 @@ export const primaryNavItems: DashboardNavItem[] = [
 /** Separate product surface — authenticated console + public demo */
 export const secondaryNavItems: DashboardNavItem[] = [
   { href: '/dashboard/intelligence-terminal', label: 'Analysis Console', icon: Scan },
-  { href: '/dashboard/web4-terminal', label: 'Web4 Terminal', icon: Sparkles, badge: 'WEB4' },
   { href: '/dashboard/investigate', label: 'AI Agent', icon: Brain, badge: 'NEW' },
   { href: '/dashboard/batch', label: 'Batch scan', icon: Layers },
   { href: '/dashboard/compliance', label: 'Compliance', icon: Scale },

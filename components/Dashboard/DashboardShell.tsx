@@ -57,8 +57,6 @@ export function DashboardShell({
 
   const operational = health?.status === 'healthy'
   const latency = typeof health?.latency_ms === 'number' ? Math.round(health.latency_ms) : '—'
-  const isWeb4Terminal = pathname.startsWith('/dashboard/web4-terminal')
-
   return (
     <div className="relative min-h-screen bg-[#020617] text-slate-200">
       <ForensicBackdrop className="pointer-events-none fixed inset-0 z-[1]" />
@@ -144,11 +142,7 @@ export function DashboardShell({
           sentinelMode ? 'pt-[5rem] md:pt-[4.5rem]' : isAnonymousPreview ? 'pt-28 md:pt-24' : 'pt-12 md:pt-10'
         }`}
       >
-        <div
-          className={`relative z-[2] mx-auto px-4 py-8 md:px-8 md:py-10 ${
-            isWeb4Terminal ? 'max-w-[min(100%,1920px)]' : 'max-w-[1200px]'
-          }`}
-        >
+        <div className="relative z-[2] mx-auto max-w-[1200px] px-4 py-8 md:px-8 md:py-10">
           {children}
         </div>
       </main>

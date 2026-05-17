@@ -18,6 +18,7 @@ import {
   randomBotWallet,
 } from './pump-curve'
 import type { DeployForm, DiscoverFilter, Side, TerminalView, Timeframe, TradeRow } from './terminal-types'
+import { WEB4_BASE_PATH } from '@/lib/web4/routes'
 import type { ToastItem } from './components/terminal-primitives'
 import {
   DEFAULT_SOL,
@@ -161,7 +162,7 @@ export function usePumpTerminal() {
       const params = new URLSearchParams()
       params.set('view', nextView)
       params.set('mint', mint)
-      router.replace(`/dashboard/web4-terminal?${params.toString()}`, { scroll: false })
+      router.replace(`${WEB4_BASE_PATH}?${params.toString()}`, { scroll: false })
     },
     [router],
   )
@@ -186,7 +187,7 @@ export function usePumpTerminal() {
       else {
         const params = new URLSearchParams()
         params.set('view', nextView)
-        router.replace(`/dashboard/web4-terminal?${params.toString()}`, { scroll: false })
+        router.replace(`${WEB4_BASE_PATH}?${params.toString()}`, { scroll: false })
       }
     },
     [activeMint, router, syncUrl],
