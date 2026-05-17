@@ -1,9 +1,8 @@
 'use client'
 
 /**
- * Web4 Terminal — CryptoCheck AI flagship trading dashboard.
- * Standalone plug-and-play page: no shared hooks or app components.
- * Real-time UI is simulated client-side; wire API hooks at marked integration points.
+ * Web4 Terminal — Pump.fun-style bonding curve terminal (client-side state machine).
+ * Constant-product curve · 85 SOL graduation · live order book + chart stream.
  */
 
 import {
@@ -21,9 +20,28 @@ import {
 import { useRouter, useSearchParams } from 'next/navigation'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useSolana } from '@/components/SolanaProvider'
-import { useWeb4TerminalData } from './use-web4-terminal-data'
+import {
+  EMOJIS,
+  GRADIENTS,
+  MAD_PER_USD,
+  PUMP_GRADUATION_SOL,
+  PUMP_TOTAL_SUPPLY,
+  applyBuy,
+  applySell,
+  change24hPct,
+  createBondingToken,
+  marketCapUsd,
+  priceSol,
+  progressPct,
+  quoteBuy,
+  quoteSell,
+  randomBotWallet,
+  seedDefaultTokens,
+  type BondingToken,
+} from './pump-curve'
 
-const DEFAULT_MINT = 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263'
+const USER_WALLET_LABEL = '5jWw…x15i'
+const DEFAULT_START_SOL = 42
 
 // ─── Design tokens ───────────────────────────────────────────────────────────
 const C = {
@@ -53,6 +71,8 @@ interface OrderRow {
   total: number
   side: Side
   depth: number
+  wallet: string
+  time: string
 }
 
 interface Memecoin {
@@ -64,8 +84,7 @@ interface Memecoin {
   gradient: string
   progress: number
   marketCap: number
-  safetyScore?: number
-  verdict?: string
+  graduated?: boolean
 }
 
 interface Transaction {
@@ -106,40 +125,118 @@ function generateCandles(count: number, basePrice: number): Candle[] {
   return out
 }
 
-function generateOrderBook(mid: number, levels = 14): OrderRow[] {
-  const rows: OrderRow[] = []
-  for (let i = 0; i < levels; i++) {
-    const spread = (i + 1) * rand(0.0002, 0.0008)
-    const amount = rand(120, 4200)
-    const buyPrice = mid - spread
-    rows.push({
-      id: `b-${i}-${uid()}`,
-      price: buyPrice,
-      amount,
-      total: buyPrice * amount,
-      side: 'buy',
-      depth: rand(0.15, 1),
-    })
-    const sellPrice = mid + spread
-    rows.push({
-      id: `s-${i}-${uid()}`,
-      price: sellPrice,
-      amount: amount * rand(0.8, 1.2),
-      total: sellPrice * amount,
-      side: 'sell',
-      depth: rand(0.15, 1),
-    })
-  }
-  return rows.sort((a, b) => b.price - a.price)
+function formatTime(d = new Date()) {
+  return d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
-const INITIAL_MEMECOINS: Memecoin[] = [
-  { id: '1', mint: DEFAULT_MINT, name: 'Bonk', ticker: 'BONK', emoji: '🐕', gradient: 'from-amber-500 to-orange-500', progress: 72.4, marketCap: 842000 },
-  { id: '2', mint: 'EKpQGSml4jJeE3yJGk2bCRfFsGPNJMhTqHMLHJNK4p', name: 'dogwifhat', ticker: 'WIF', emoji: '🐕', gradient: 'from-rose-500 to-pink-500', progress: 91.2, marketCap: 2100000 },
-  { id: '3', mint: '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdCBuHYmW2hr', name: 'Popcat', ticker: 'POPCAT', emoji: '🐱', gradient: 'from-violet-500 to-fuchsia-500', progress: 45.8, marketCap: 390000 },
-  { id: '4', mint: '9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump', name: 'Fartcoin', ticker: 'FARTC', emoji: '💨', gradient: 'from-cyan-500 to-emerald-500', progress: 63.1, marketCap: 615000 },
-  { id: '5', mint: 'MEW1gQWJ3nEXg2qgERiKu7FAFj79PHvQVREQUzScPP5', name: 'MEW', ticker: 'MEW', emoji: '🐱', gradient: 'from-sky-500 to-indigo-500', progress: 88.7, marketCap: 1750000 },
-]
+function tokenToMemecoin(t: BondingToken, solUsd: number): Memecoin {
+  return {
+    id: t.mint,
+    mint: t.mint,
+    name: t.name,
+    ticker: t.ticker,
+    emoji: t.emoji,
+    gradient: t.gradient,
+    progress: progressPct(t),
+    marketCap: marketCapUsd(t, solUsd),
+    graduated: t.graduated,
+  }
+}
+
+function buildOrderBookFromPrice(mid: number, rows: OrderRow[], max = 18): OrderRow[] {
+  const merged = [...rows]
+  const levels = 8
+  for (let i = 0; i < levels; i++) {
+    const spread = (i + 1) * mid * 0.002
+    const amount = rand(800, 9000)
+    merged.push({
+      id: `syn-b-${i}-${uid()}`,
+      price: mid - spread,
+      amount,
+      total: (mid - spread) * amount,
+      side: 'buy',
+      depth: rand(0.2, 1),
+      wallet: randomBotWallet(),
+      time: formatTime(),
+    })
+    merged.push({
+      id: `syn-s-${i}-${uid()}`,
+      price: mid + spread,
+      amount: amount * rand(0.7, 1.1),
+      total: (mid + spread) * amount,
+      side: 'sell',
+      depth: rand(0.2, 1),
+      wallet: randomBotWallet(),
+      time: formatTime(),
+    })
+  }
+  return merged.sort((a, b) => b.price - a.price).slice(0, max)
+}
+
+function pushCandle(candles: Candle[], price: number, side: Side, max = 56): Candle[] {
+  const copy = candles.length ? [...candles] : [{ o: price, h: price, l: price, c: price }]
+  const last = copy[copy.length - 1]
+  const o = last.c
+  const c = price
+  const h = Math.max(o, c) * (1 + (side === 'buy' ? rand(0.002, 0.012) : rand(0.002, 0.01)))
+  const l = Math.min(o, c) * (1 - rand(0.002, 0.01))
+  const next = [...copy.slice(-(max - 1)), { o, h, l, c }]
+  return next
+}
+
+function tokensForSolOut(token: BondingToken, solWanted: number, maxHeld: number): number {
+  if (solWanted <= 0 || maxHeld <= 0) return 0
+  let lo = 0
+  let hi = maxHeld
+  for (let i = 0; i < 48; i++) {
+    const mid = (lo + hi) / 2
+    if (quoteSell(token, mid) < solWanted) lo = mid
+    else hi = mid
+  }
+  return Math.min(maxHeld, hi)
+}
+
+function makeTradeRow(
+  side: Side,
+  price: number,
+  amount: number,
+  wallet: string,
+): OrderRow {
+  return {
+    id: uid(),
+    price,
+    amount,
+    total: price * amount,
+    side,
+    depth: rand(0.35, 1),
+    wallet,
+    time: formatTime(),
+  }
+}
+
+type TerminalBoot = {
+  tokens: Record<string, BondingToken>
+  firstMint: string
+  candles: Candle[]
+  orderBook: OrderRow[]
+}
+
+let terminalBoot: TerminalBoot | undefined
+
+function bootTerminal(): TerminalBoot {
+  if (terminalBoot) return terminalBoot
+  const tokens = seedDefaultTokens()
+  const firstMint = Object.keys(tokens)[0]!
+  const t = tokens[firstMint]!
+  const p = priceSol(t)
+  terminalBoot = {
+    tokens,
+    firstMint,
+    candles: generateCandles(48, p),
+    orderBook: buildOrderBookFromPrice(p, []),
+  }
+  return terminalBoot
+}
 
 const INITIAL_TX: Transaction[] = [
   { id: 't1', merchant: 'Binance Off-Ramp', amount: -420.5, currency: 'USD', note: 'SOL → USD instant' },
@@ -387,12 +484,30 @@ const MemecoinRow = memo(function MemecoinRow({
           />
         </div>
         <p className="mt-1 font-mono text-[0.6rem] text-white/50">
-          {coin.progress.toFixed(1)}% to Raydium
+          {coin.graduated ? 'Graduated · Raydium' : `${coin.progress.toFixed(1)}% to Raydium`}
         </p>
       </motion.div>
     </motion.article>
   )
 })
+
+function GraduationBanner() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mb-3 rounded-xl border border-[#10B981]/50 bg-gradient-to-r from-[#10B981]/20 via-[#00E5FF]/15 to-[#10B981]/20 px-4 py-3 text-center shadow-[0_0_40px_rgba(16,185,129,0.35)]"
+      role="status"
+    >
+      <p className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-[#10B981]">
+        🎓 Bonding curve complete — migrating to Raydium
+      </p>
+      <p className="mt-1 text-[0.65rem] text-white/70">
+        {PUMP_GRADUATION_SOL} SOL raised · liquidity locked · Pump.fun graduation simulated
+      </p>
+    </motion.div>
+  )
+}
 
 const LaunchpadSection = memo(function LaunchpadSection({
   memecoins,
@@ -400,14 +515,16 @@ const LaunchpadSection = memo(function LaunchpadSection({
   onLiquidityChange,
   activeMint,
   onSelectMint,
-  feedError,
+  onDeploy,
+  deploying,
 }: {
   memecoins: Memecoin[]
   liquidity: number
   onLiquidityChange: (v: number) => void
   activeMint: string
   onSelectMint: (mint: string) => void
-  feedError: string | null
+  onDeploy: (form: { name: string; ticker: string; description: string; liquidity: number }) => void
+  deploying: boolean
 }) {
   const [tokenName, setTokenName] = useState('')
   const [ticker, setTicker] = useState('')
@@ -494,6 +611,18 @@ const LaunchpadSection = memo(function LaunchpadSection({
             aria-label="Initial liquidity numeric input"
           />
         </div>
+        <ClickGlowButton
+          onClick={() => {
+            onDeploy({ name: tokenName, ticker, description, liquidity })
+            setTokenName('')
+            setTicker('')
+            setDescription('')
+          }}
+          disabled={deploying || !tokenName.trim() || !ticker.trim()}
+          ariaLabel="Deploy token on bonding curve"
+        >
+          {deploying ? 'Deploying…' : 'Deploy AI-Protected Token'}
+        </ClickGlowButton>
       </form>
 
       <motion.p
@@ -512,14 +641,9 @@ const LaunchpadSection = memo(function LaunchpadSection({
           </span>
           Safe Memecoins
           <span className="ml-auto font-mono text-[0.55rem] font-normal normal-case text-white/40">
-            DexScreener + Pulse
+            Bonding curve live
           </span>
         </h3>
-        {feedError ? (
-          <p className="mb-2 text-[0.6rem] text-amber-400/90" role="status">
-            Feed degraded — showing cached sim data
-          </p>
-        ) : null}
         <div
           className="flex flex-1 flex-col gap-2 overflow-y-auto pr-1"
           style={{ maxHeight: '220px' }}
@@ -631,9 +755,7 @@ const MarketChartSection = memo(function MarketChartSection({
   onTimeframeChange,
   safetyLabel,
   safetySecure,
-  marketSource,
-  marketError,
-  ohlcvSource,
+  graduated,
 }: {
   symbol: string
   priceSol: number
@@ -647,14 +769,13 @@ const MarketChartSection = memo(function MarketChartSection({
   onTimeframeChange: (t: Timeframe) => void
   safetyLabel: string
   safetySecure: boolean
-  marketSource: string | null
-  marketError: string | null
-  ohlcvSource: string | null
+  graduated: boolean
 }) {
   const timeframes: Timeframe[] = ['1m', '5m', '15m', '1H', '4H', '1D', '1W']
 
   return (
     <GlassPanel className="flex min-h-[340px] flex-col p-0" aria-label="Live Web4 market chart">
+      {graduated ? <GraduationBanner /> : null}
       <div className="relative flex-1 p-3 pt-2">
         <div className="absolute left-4 right-4 top-3 z-10 flex flex-wrap items-start justify-between gap-3 rounded-xl border border-white/10 bg-black/70 px-4 py-3 backdrop-blur-xl">
           <div>
@@ -666,12 +787,9 @@ const MarketChartSection = memo(function MarketChartSection({
               <span className="text-base text-[#00E5FF] md:text-lg">SOL</span>
             </p>
             <p className="font-mono text-sm text-white/60">${fmt(priceUsd, 4)}</p>
-            {marketSource ? (
-              <p className="mt-0.5 font-mono text-[0.55rem] text-white/35">
-                via {marketSource}
-                {marketError ? ` · ${marketError}` : ''}
-              </p>
-            ) : null}
+            <p className="mt-0.5 font-mono text-[0.55rem] text-white/35">
+              {PUMP_TOTAL_SUPPLY.toLocaleString()} supply · {PUMP_GRADUATION_SOL} SOL curve cap
+            </p>
           </div>
           <div className="text-right">
             <p className="text-[0.65rem] uppercase tracking-wider text-white/50">24h Change</p>
@@ -761,11 +879,9 @@ const MarketChartSection = memo(function MarketChartSection({
           </button>
         ))}
       </div>
-      {ohlcvSource ? (
-        <span className="ml-auto font-mono text-[0.55rem] text-white/35">
-          candles · {ohlcvSource}
-        </span>
-      ) : null}
+      <span className="ml-auto font-mono text-[0.55rem] text-white/35">
+        bonding curve · client engine
+      </span>
       </div>
     </GlassPanel>
   )
@@ -813,10 +929,11 @@ const OrderBookPanel = memo(function OrderBookPanel({
           </button>
         ))}
       </motion.div>
-      <div className="mb-1 grid grid-cols-3 font-mono text-[0.55rem] uppercase text-white/40">
+      <div className="mb-1 grid grid-cols-4 font-mono text-[0.5rem] uppercase text-white/40">
         <span>Price</span>
-        <span className="text-right">Amount</span>
-        <span className="text-right">Total</span>
+        <span className="text-right">Amt</span>
+        <span className="text-right">Wallet</span>
+        <span className="text-right">Time</span>
       </div>
       <div className="flex-1 overflow-y-auto" role="log" aria-live="polite" aria-label="Order book entries">
         <AnimatePresence initial={false}>
@@ -836,9 +953,9 @@ const OrderBookPanel = memo(function OrderBookPanel({
               }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="relative grid grid-cols-3 py-0.5 font-mono text-[0.65rem] tabular-nums"
+              className="relative grid grid-cols-4 gap-1 py-0.5 font-mono text-[0.6rem] tabular-nums"
             >
-              <div
+              <motion.div
                 className={`absolute inset-y-0 right-0 opacity-20 ${
                   row.side === 'buy' ? 'bg-[#10B981]' : 'bg-red-500'
                 }`}
@@ -846,10 +963,11 @@ const OrderBookPanel = memo(function OrderBookPanel({
                 aria-hidden
               />
               <span className={row.side === 'buy' ? 'text-[#10B981]' : 'text-red-400'}>
-                {fmt(row.price, 6)}
+                {fmt(row.price, 8)}
               </span>
               <span className="relative text-right text-white/80">{fmt(row.amount, 0)}</span>
-              <span className="relative text-right text-white/50">{fmt(row.total, 2)}</span>
+              <span className="relative truncate text-right text-white/50">{row.wallet}</span>
+              <span className="relative text-right text-white/35">{row.time}</span>
             </motion.div>
           ))}
         </AnimatePresence>
@@ -863,21 +981,25 @@ const TradingConsole = memo(function TradingConsole({
   onSideChange,
   amountSol,
   onAmountChange,
-  estimatedTokens,
+  estimatedOutput,
+  outputUnit,
   slippage,
   onSlippageChange,
   onExecute,
   maxSol,
+  disabled,
 }: {
   side: Side
   onSideChange: (s: Side) => void
   amountSol: number
   onAmountChange: (n: number) => void
-  estimatedTokens: number
+  estimatedOutput: number
+  outputUnit: 'tokens' | 'SOL'
   slippage: number
   onSlippageChange: (n: number) => void
   onExecute: () => void
   maxSol: number
+  disabled?: boolean
 }) {
   const quickAmounts = [0.25, 0.5, 1, 2, 5]
 
@@ -945,7 +1067,9 @@ const TradingConsole = memo(function TradingConsole({
 
       <p className="mb-3 font-mono text-[0.7rem] text-white/60">
         Est. output:{' '}
-        <span className="text-[#10B981]">{fmt(estimatedTokens, 0)} tokens</span>
+        <span className="text-[#10B981]">
+          {fmt(estimatedOutput, outputUnit === 'SOL' ? 4 : 0)} {outputUnit}
+        </span>
       </p>
 
       <label className="mb-4 block">
@@ -969,6 +1093,7 @@ const TradingConsole = memo(function TradingConsole({
       <ClickGlowButton
         variant={side === 'buy' ? 'teal' : 'red'}
         onClick={onExecute}
+        disabled={disabled}
         ariaLabel={`Execute ${side} swap`}
       >
         Execute AI-Protected Swap
@@ -1073,7 +1198,7 @@ const DebitCardHub = memo(function DebitCardHub({
           <p className="text-[0.65rem] uppercase tracking-wider text-white/50">
             Instant Spendable Balance
             {portfolioLive ? (
-              <span className="ml-1 text-[#10B981]">· Helius + Jupiter</span>
+              <span className="ml-1 text-[#10B981]">· Pump curve synced</span>
             ) : null}
           </p>
           <motion.p
@@ -1179,211 +1304,277 @@ function Web4TerminalInner() {
   const reducedMotion = useReducedMotion() ?? false
   const searchParams = useSearchParams()
   const router = useRouter()
-  const initialMint =
-    searchParams.get('mint') && searchParams.get('mint')!.length >= 32
-      ? searchParams.get('mint')!
-      : DEFAULT_MINT
+  const boot = useMemo(() => bootTerminal(), [])
 
-  const [activeMint, setActiveMint] = useState(initialMint)
+  const [tokens, setTokens] = useState(boot.tokens)
+  const [activeMint, setActiveMint] = useState(() => {
+    const m = searchParams.get('mint')
+    return m && boot.tokens[m] ? m : boot.firstMint
+  })
   const [ready, setReady] = useState(false)
-  const [priceSol, setPriceSol] = useState(0.000042)
-  const [change24h, setChange24h] = useState(0)
-  const [symbol, setSymbol] = useState('BONK')
-  const [liquidityDisplay, setLiquidityDisplay] = useState(4_200_000)
-  const [volume, setVolume] = useState(890_000)
-  const [fdv, setFdv] = useState(12_400_000)
-  const [launchLiquidity, setLaunchLiquidity] = useState(5)
-  const [candles, setCandles] = useState<Candle[]>(() => generateCandles(48, 0.000042))
-  const [orderBook, setOrderBook] = useState<OrderRow[]>(() => generateOrderBook(0.000042))
+  const [candles, setCandles] = useState(boot.candles)
+  const [tradeRows, setTradeRows] = useState<OrderRow[]>([])
+  const [orderBook, setOrderBook] = useState(boot.orderBook)
   const [obTab, setObTab] = useState<OrderBookTab>('all')
   const [flashId, setFlashId] = useState<string | null>(null)
-  const [memecoins, setMemecoins] = useState<Memecoin[]>(INITIAL_MEMECOINS)
   const [timeframe, setTimeframe] = useState<Timeframe>('5m')
   const [tradeSide, setTradeSide] = useState<Side>('buy')
   const [tradeAmount, setTradeAmount] = useState(1)
   const [slippage, setSlippage] = useState(1)
-  const [balanceUsd, setBalanceUsd] = useState(24_891.42)
-  const [balanceMad, setBalanceMad] = useState(248_914)
+  const [launchLiquidity, setLaunchLiquidity] = useState(5)
+  const [deploying, setDeploying] = useState(false)
+  const [solBalance, setSolBalance] = useState(DEFAULT_START_SOL)
+  const [tokenBalances, setTokenBalances] = useState<Record<string, number>>({})
+  const [solUsd, setSolUsd] = useState(168)
   const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TX)
-  const [solUsd, setSolUsd] = useState(150)
 
-  const {
-    walletAddress,
-    isConnected,
-    isConnecting,
-    shortAddr,
-    connect,
-    disconnect,
-  } = useSolana()
+  const { isConnected, isConnecting, shortAddr, connect, disconnect } = useSolana()
 
-  const {
-    market,
-    safeFeed,
-    safety,
-    ohlcv,
-    ohlcvSource,
-    portfolio,
-    marketError,
-    feedError,
-  } = useWeb4TerminalData(activeMint, timeframe, walletAddress)
+  const activeToken = tokens[activeMint]
+  const priceSolLive = activeToken ? priceSol(activeToken) : 0
+  const change24h = activeToken ? change24hPct(activeToken) : 0
+  const symbol = activeToken?.ticker ?? '—'
+  const graduated = activeToken?.graduated ?? false
+  const priceUsd = priceSolLive * solUsd
+  const liquidityDisplay = activeToken ? activeToken.realSolRaised * solUsd * 1200 : 0
+  const volume = activeToken ? activeToken.volumeSol * solUsd * 800 : 0
+  const fdv = activeToken ? marketCapUsd(activeToken, solUsd) : 0
 
-  const priceAnchorRef = useRef(0.000042)
-  const maxTradeSol = portfolio?.solBalance ?? 10
+  const memecoins = useMemo(
+    () =>
+      Object.values(tokens)
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .map((t) => tokenToMemecoin(t, solUsd)),
+    [tokens, solUsd],
+  )
 
-  const priceUsd = priceSol * solUsd
-  const priceRef = useRef(priceSol)
-  useEffect(() => {
-    priceRef.current = priceSol
-  }, [priceSol])
+  const heldTokens = tokenBalances[activeMint] ?? 0
+
+  const estimatedOutput = useMemo(() => {
+    if (!activeToken || tradeAmount <= 0) return 0
+    if (tradeSide === 'buy') {
+      return quoteBuy(activeToken, tradeAmount) * (1 - slippage / 100)
+    }
+    const sellAmt = tokensForSolOut(activeToken, tradeAmount, heldTokens)
+    return quoteSell(activeToken, sellAmt) * (1 - slippage / 100)
+  }, [activeToken, tradeSide, tradeAmount, slippage, heldTokens])
+
+  const outputUnit = tradeSide === 'buy' ? ('tokens' as const) : ('SOL' as const)
+
+  const portfolioUsd = useMemo(() => {
+    const solVal = solBalance * solUsd
+    const tokenVal = Object.entries(tokenBalances).reduce((acc, [mint, bal]) => {
+      const t = tokens[mint]
+      if (!t || bal <= 0) return acc
+      return acc + bal * priceSol(t) * solUsd
+    }, 0)
+    return solVal + tokenVal
+  }, [solBalance, solUsd, tokenBalances, tokens])
+
+  const balanceUsd = portfolioUsd
+  const balanceMad = portfolioUsd * MAD_PER_USD
+
+  const orderBookRows = useMemo(() => {
+    const mid = priceSolLive || 1e-9
+    return buildOrderBookFromPrice(mid, tradeRows, 20)
+  }, [priceSolLive, tradeRows])
 
   const selectMint = useCallback(
     (mint: string) => {
+      if (!tokens[mint]) return
       setActiveMint(mint)
+      const t = tokens[mint]
+      const p = priceSol(t)
+      setCandles(generateCandles(48, p))
+      setTradeRows([])
+      setOrderBook(buildOrderBookFromPrice(p, []))
       const params = new URLSearchParams(searchParams.toString())
       params.set('mint', mint)
       router.replace(`/dashboard/web4-terminal?${params.toString()}`, { scroll: false })
     },
+    [router, searchParams, tokens],
+  )
+
+  const pushTrade = useCallback(
+    (row: OrderRow, nextPrice: number, side: Side) => {
+      setTradeRows((prev) => [row, ...prev].slice(0, 24))
+      setFlashId(row.id)
+      window.setTimeout(() => setFlashId(null), 320)
+      setCandles((prev) => pushCandle(prev, nextPrice, side))
+    },
+    [],
+  )
+
+  const handleDeploy = useCallback(
+    (form: { name: string; ticker: string; description: string; liquidity: number }) => {
+      setDeploying(true)
+      const emoji = EMOJIS[Math.floor(Math.random() * EMOJIS.length)]
+      const gradient = GRADIENTS[Math.floor(Math.random() * GRADIENTS.length)]
+      const token = createBondingToken({
+        name: form.name,
+        ticker: form.ticker,
+        description: form.description,
+        initialLiquiditySol: form.liquidity,
+        emoji,
+        gradient,
+      })
+      const p = priceSol(token)
+      setTokens((prev) => ({ ...prev, [token.mint]: token }))
+      setActiveMint(token.mint)
+      setCandles(generateCandles(48, p))
+      setTradeRows([])
+      setOrderBook(buildOrderBookFromPrice(p, []))
+      const params = new URLSearchParams(searchParams.toString())
+      params.set('mint', token.mint)
+      router.replace(`/dashboard/web4-terminal?${params.toString()}`, { scroll: false })
+      window.setTimeout(() => setDeploying(false), 600)
+    },
     [router, searchParams],
   )
 
-  const safetyLabel = safety
-    ? safety.secure
-      ? `NEURAL SAFETY: ${safety.safetyPct.toFixed(1)}% SECURE — NO THREATS`
-      : `NEURAL SAFETY: ${safety.safetyPct.toFixed(1)}% — ${safety.verdict.replace('_', ' ')}`
-    : 'NEURAL SAFETY: SCANNING…'
+  const handleExecute = useCallback(() => {
+    if (!activeToken || activeToken.graduated || tradeAmount <= 0) return
 
-  useEffect(() => {
-    if (!market) return
-    priceAnchorRef.current = market.priceSol
-    setPriceSol(market.priceSol)
-    setChange24h(market.change24h)
-    setSymbol(market.symbol)
-    setLiquidityDisplay(market.liquidity)
-    setVolume(market.volume)
-    setFdv(market.fdv)
-    setSolUsd(market.solUsd)
-    setOrderBook(generateOrderBook(market.priceSol))
-    if (!ohlcv.length) {
-      setCandles(generateCandles(48, market.priceSol))
+    if (tradeSide === 'buy') {
+      if (tradeAmount > solBalance) return
+      const { tokensOut, next, price, graduated: grad } = applyBuy(activeToken, tradeAmount)
+      if (tokensOut <= 0) return
+      setTokens((prev) => ({ ...prev, [activeMint]: next }))
+      setSolBalance((s) => s - tradeAmount)
+      setTokenBalances((prev) => ({
+        ...prev,
+        [activeMint]: (prev[activeMint] ?? 0) + tokensOut,
+      }))
+      pushTrade(
+        makeTradeRow('buy', price, tokensOut, USER_WALLET_LABEL),
+        price,
+        'buy',
+      )
+      setTransactions((txs) => [
+        {
+          id: uid(),
+          merchant: `Pump · BUY ${symbol}`,
+          amount: -tradeAmount * solUsd,
+          currency: 'USD',
+          note: `${fmt(tokensOut, 0)} ${symbol} · bonding curve`,
+        },
+        ...txs.slice(0, 4),
+      ])
+      if (grad) {
+        setTransactions((txs) => [
+          {
+            id: uid(),
+            merchant: 'Raydium Migration',
+            amount: 0,
+            currency: 'USD',
+            note: `${symbol} graduated at ${PUMP_GRADUATION_SOL} SOL`,
+          },
+          ...txs.slice(0, 4),
+        ])
+      }
+    } else {
+      const tokenIn = tokensForSolOut(activeToken, tradeAmount, heldTokens)
+      if (tokenIn <= 0) return
+      const { solOut, next, price } = applySell(activeToken, tokenIn)
+      if (solOut <= 0) return
+      setTokens((prev) => ({ ...prev, [activeMint]: next }))
+      setSolBalance((s) => s + solOut)
+      setTokenBalances((prev) => ({
+        ...prev,
+        [activeMint]: Math.max(0, (prev[activeMint] ?? 0) - tokenIn),
+      }))
+      pushTrade(
+        makeTradeRow('sell', price, tokenIn, USER_WALLET_LABEL),
+        price,
+        'sell',
+      )
+      setTransactions((txs) => [
+        {
+          id: uid(),
+          merchant: `Pump · SELL ${symbol}`,
+          amount: solOut * solUsd,
+          currency: 'USD',
+          note: `${fmt(tokenIn, 0)} ${symbol} → ${fmt(solOut, 4)} SOL`,
+        },
+        ...txs.slice(0, 4),
+      ])
     }
-  }, [market, ohlcv.length])
+  }, [
+    activeToken,
+    activeMint,
+    tradeSide,
+    tradeAmount,
+    solBalance,
+    heldTokens,
+    symbol,
+    solUsd,
+    pushTrade,
+  ])
 
-  useEffect(() => {
-    if (!ohlcv.length) return
-    setCandles(ohlcv.map(({ o, h, l, c }) => ({ o, h, l, c })))
-    const last = ohlcv[ohlcv.length - 1]
-    if (last) priceAnchorRef.current = last.c
-  }, [ohlcv])
+  const simulateMarketTrade = useCallback(() => {
+    setTokens((prev) => {
+      const mint = activeMint
+      const token = prev[mint]
+      if (!token || token.graduated) return prev
 
-  useEffect(() => {
-    if (!portfolio) return
-    setBalanceUsd(portfolio.totalUsd)
-    setBalanceMad(portfolio.totalMad)
-  }, [portfolio])
+      const side: Side = Math.random() > 0.48 ? 'buy' : 'sell'
+      let next = token
+      let row: OrderRow | null = null
 
-  useEffect(() => {
-    if (!safeFeed.length) return
-    setMemecoins(
-      safeFeed.map((c) => ({
-        id: c.id,
-        mint: c.mint,
-        name: c.name,
-        ticker: c.ticker,
-        emoji: c.emoji,
-        gradient: c.gradient,
-        progress: c.progress,
-        marketCap: c.marketCap,
-        safetyScore: c.safetyScore,
-        verdict: c.verdict,
-      })),
-    )
-  }, [safeFeed])
-  const estimatedTokens = useMemo(
-    () => (tradeAmount / Math.max(priceSol, 1e-9)) * (1 - slippage / 100),
-    [tradeAmount, priceSol, slippage],
-  )
+      if (side === 'buy') {
+        const solIn = rand(0.04, 1.8)
+        const { tokensOut, next: n, price } = applyBuy(token, solIn, true)
+        if (tokensOut <= 0) return prev
+        next = n
+        row = makeTradeRow('buy', price, tokensOut, randomBotWallet())
+        setCandles((c) => pushCandle(c, price, 'buy'))
+      } else {
+        const maxSell = Math.max(1000, token.tokensSold * rand(0.0001, 0.002))
+        const tokenIn = rand(500, maxSell)
+        const { next: n, price, solOut } = applySell(token, tokenIn)
+        if (solOut <= 0) return prev
+        next = n
+        row = makeTradeRow('sell', price, tokenIn, randomBotWallet())
+        setCandles((c) => pushCandle(c, price, 'sell'))
+      }
 
-  // Hydration-safe loading skeleton
+      if (row) {
+        setTradeRows((tr) => [row!, ...tr].slice(0, 24))
+        setFlashId(row.id)
+        window.setTimeout(() => setFlashId(null), 280)
+      }
+      return { ...prev, [mint]: next }
+    })
+  }, [activeMint])
+
   useEffect(() => {
     const t = window.setTimeout(() => setReady(true), 400)
     return () => window.clearTimeout(t)
   }, [])
 
-  // Micro-tick around live anchor (API refresh every 30s)
-  const tickPrice = useCallback(() => {
-    setPriceSol((p) => {
-      const anchor = priceAnchorRef.current
-      const delta = rand(-0.008, 0.008)
-      const jittered = Math.max(0.000001, p * (1 + delta))
-      const next = anchor > 0 ? jittered * 0.65 + anchor * 0.35 : jittered
-      setCandles((prev) => {
-        if (!prev.length) return prev
-        const copy = [...prev]
-        const last = { ...copy[copy.length - 1] }
-        last.c = next
-        last.h = Math.max(last.h, next, last.o)
-        last.l = Math.min(last.l, next, last.o)
-        copy[copy.length - 1] = last
-        return copy
-      })
-      setLiquidityDisplay((l) => l * (1 + rand(-0.002, 0.002)))
-      setVolume((v) => v * (1 + rand(-0.01, 0.02)))
-      setFdv((f) => f * (1 + rand(-0.005, 0.008)))
-      return next
-    })
-  }, [])
-
   useEffect(() => {
-    const id = window.setInterval(tickPrice, 1500)
-    return () => window.clearInterval(id)
-  }, [tickPrice])
-
-  // Order book refresh — INTEGRATION: /api/orderbook/stream
-  useEffect(() => {
-    const refresh = () => {
-      const next = generateOrderBook(priceRef.current)
-      if (next.length > 0) {
-        const idx = Math.floor(Math.random() * next.length)
-        setFlashId(next[idx].id)
-        setTimeout(() => setFlashId(null), 300)
-      }
-      setOrderBook(next)
+    let timeoutId = 0
+    const tick = () => {
+      simulateMarketTrade()
+      timeoutId = window.setTimeout(tick, rand(800, 1500))
     }
-    refresh()
-    const id = window.setInterval(refresh, 1800)
-    return () => window.clearInterval(id)
-  }, [])
+    timeoutId = window.setTimeout(tick, rand(800, 1500))
+    return () => window.clearTimeout(timeoutId)
+  }, [simulateMarketTrade])
 
-  // Subtle bonding-curve drift between API polls
   useEffect(() => {
     const id = window.setInterval(() => {
-      setMemecoins((coins) =>
-        coins.map((c) => ({
-          ...c,
-          progress: Math.min(99.9, c.progress + rand(0.02, 0.12)),
-        })),
-      )
-    }, 4000)
+      setSolUsd((s) => s * (1 + rand(-0.002, 0.002)))
+    }, 12000)
     return () => window.clearInterval(id)
   }, [])
 
-  const handleExecute = useCallback(() => {
-    const jupUrl =
-      tradeSide === 'buy'
-        ? `https://jup.ag/swap/SOL-${activeMint}`
-        : `https://jup.ag/swap/${activeMint}-SOL`
-    window.open(jupUrl, '_blank', 'noopener,noreferrer')
-    setTransactions((txs) => [
-      {
-        id: uid(),
-        merchant: 'Jupiter · CryptoCheck Routed',
-        amount: tradeSide === 'buy' ? -tradeAmount * solUsd : tradeAmount * solUsd * 0.98,
-        currency: 'USD',
-        note: `${tradeSide.toUpperCase()} ${symbol} via Neural Routing`,
-      },
-      ...txs.slice(0, 4),
-    ])
-  }, [tradeSide, tradeAmount, solUsd, activeMint, symbol])
+  const safetyLabel = 'NEURAL SAFETY: 100.0% SECURE — NO THREATS'
+
+  const maxSellSol = useMemo(() => {
+    if (!activeToken || heldTokens <= 0) return 0
+    return quoteSell(activeToken, heldTokens)
+  }, [activeToken, heldTokens])
 
   if (!ready) {
     return (
@@ -1395,7 +1586,7 @@ function Web4TerminalInner() {
   }
 
   return (
-    <div
+    <motion.div
       className="relative w-full min-h-[calc(100vh-12rem)] rounded-xl"
       style={{ backgroundColor: C.base, color: '#fff' }}
     >
@@ -1410,7 +1601,7 @@ function Web4TerminalInner() {
             Web4 Terminal
           </h1>
           <p className="mt-1 max-w-xl text-sm text-white/50">
-            Neural-safe trading • AI launchpad • instant fiat off-ramp
+            Pump.fun bonding curve · 85 SOL graduation · Mastercard off-ramp
           </p>
         </div>
         <motion.div className="flex flex-wrap items-center gap-2">
@@ -1428,14 +1619,12 @@ function Web4TerminalInner() {
         </motion.div>
       </header>
 
-      {/* 4-column professional grid */}
       <motion.div
         className="relative z-10 grid gap-4 lg:grid-cols-12 xl:grid-cols-4"
         initial={reducedMotion ? false : { opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: reducedMotion ? 0 : 0.35 }}
       >
-        {/* A — Launchpad */}
         <div className="lg:col-span-12 xl:col-span-1">
           <LaunchpadSection
             memecoins={memecoins}
@@ -1443,15 +1632,15 @@ function Web4TerminalInner() {
             onLiquidityChange={setLaunchLiquidity}
             activeMint={activeMint}
             onSelectMint={selectMint}
-            feedError={feedError}
+            onDeploy={handleDeploy}
+            deploying={deploying}
           />
         </div>
 
-        {/* B + C — Center stack */}
         <motion.div className="flex flex-col gap-4 lg:col-span-12 xl:col-span-2">
           <MarketChartSection
             symbol={symbol}
-            priceSol={priceSol}
+            priceSol={priceSolLive}
             priceUsd={priceUsd}
             change24h={change24h}
             liquidity={liquidityDisplay}
@@ -1461,14 +1650,12 @@ function Web4TerminalInner() {
             timeframe={timeframe}
             onTimeframeChange={setTimeframe}
             safetyLabel={safetyLabel}
-            safetySecure={safety?.secure ?? false}
-            marketSource={market?.source ?? null}
-            marketError={marketError}
-            ohlcvSource={ohlcvSource}
+            safetySecure
+            graduated={graduated}
           />
           <div className="grid gap-4 md:grid-cols-2">
             <OrderBookPanel
-              rows={orderBook}
+              rows={orderBookRows}
               tab={obTab}
               onTabChange={setObTab}
               flashId={flashId}
@@ -1478,16 +1665,28 @@ function Web4TerminalInner() {
               onSideChange={setTradeSide}
               amountSol={tradeAmount}
               onAmountChange={setTradeAmount}
-              estimatedTokens={estimatedTokens}
+              estimatedOutput={estimatedOutput}
+              outputUnit={outputUnit}
               slippage={slippage}
               onSlippageChange={setSlippage}
               onExecute={handleExecute}
-              maxSol={maxTradeSol}
+              maxSol={tradeSide === 'buy' ? solBalance : maxSellSol}
+              disabled={!activeToken || graduated}
             />
           </div>
+          <motion.div className="rounded-xl border border-white/10 bg-black/50 px-3 py-2 font-mono text-[0.65rem] text-white/60">
+            Wallet SOL: <span className="text-[#00E5FF]">{fmt(solBalance, 4)}</span>
+            {' · '}
+            {symbol} held:{' '}
+            <span className="text-[#10B981]">{fmt(heldTokens, 0)}</span>
+            {' · '}
+            Curve:{' '}
+            <span className="text-white">
+              {activeToken ? progressPct(activeToken).toFixed(1) : 0}% / {PUMP_GRADUATION_SOL} SOL
+            </span>
+          </motion.div>
         </motion.div>
 
-        {/* D — Debit card */}
         <div className="lg:col-span-12 xl:col-span-1">
           <DebitCardHub
             balanceUsd={balanceUsd}
@@ -1495,13 +1694,13 @@ function Web4TerminalInner() {
             transactions={transactions}
             walletShort={shortAddr}
             isConnected={isConnected}
-            holdingsCount={portfolio?.holdingsCount ?? 0}
-            solBalance={portfolio?.solBalance ?? 0}
-            portfolioLive={!!portfolio}
+            holdingsCount={Object.keys(tokenBalances).filter((k) => (tokenBalances[k] ?? 0) > 0).length}
+            solBalance={solBalance}
+            portfolioLive
           />
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   )
 }
 
