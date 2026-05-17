@@ -13,7 +13,10 @@
     "test:key-store": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-key-store.ts",
     "test:terminal-reducer": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-terminal-reducer.ts",
     "test:api-probe": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-api.ts",
-    "test:verdict-thresholds": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-verdict-thresholds.ts"
+    "test:verdict-thresholds": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-verdict-thresholds.ts",
+    "web4:build": "bash scripts/web4-docker-build.sh",
+    "web4:deploy:devnet": "bash scripts/web4-deploy-only.sh",
+    "web4:build-and-deploy": "bash scripts/web4-build-and-deploy.sh"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.53",
