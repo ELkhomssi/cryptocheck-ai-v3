@@ -1,0 +1,8 @@
+# Reproducible Web4 program build (avoids local platform-tools v1.42 404 on macOS)
+FROM backpackapp/anchor:v0.30.1
+
+WORKDIR /build
+COPY Anchor.toml Cargo.toml ./
+COPY programs ./programs
+
+RUN anchor build && ls -la target/deploy/
