@@ -1,0 +1,266 @@
+openapi: 3.1.0
+info:
+  title: CryptoCheck AI — CCAI Connect v1
+  version: 1.0.0
+  description: |
+    Institutional token risk API for DEXs, wallets, and trading terminals.
+    Authenticate with `Authorization: Bearer <api_key>`.
+    Enterprise requests should include HMAC headers (`X-CryptoCheck-Timestamp`, `X-CryptoCheck-Signature`).
+servers:
+  - url: https://www.cryptocheckai.com
+    description: Production
+  - url: http://localhost:3000
+    description: Local development
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Scan
+    description: Neural settlement layer — risk assessment
+  - name: Batch
+    description: Bulk platform scans
+  - name: B2B
+    description: Partner integrations (rolling out)
+  - name: Meta
+    description: Health and discovery
+
+paths:
+  /api/v1/ping:
+    get:
+      tags: [Meta]
+      summary: API connectivity check
+      security: []
+      responses:
+        '200':
+          description: OK
+
+  /api/v1/scan:
+    get:
+      tags: [Scan]
+      summary: Fast scan (internal / cron)
+      description: Requires `Authorization: Bearer ${CRON_SECRET}`. Skips canonical overlay.
+      security: []
+      parameters:
+        - name: depth
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [fast]
+        - name: mint
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 32
+      responses:
+        '200':
+          description: Institutional scan payload
+          headers:
+            x-routed-via:
+              schema:
+                type: string
+                example: gateway
+    post:
+      tags: [Scan]
+      summary: Institutional token risk analysis
+      parameters:
+        - name: depth
+          in: query
+          schema:
+            type: string
+            enum: [fast]
+          description: When `fast`, skips canonical intelligence overlay
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScanRequest'
+      responses:
+        '200':
+          description: Full or platform scan response
+          headers:
+            x-routed-via:
+              schema:
+                type: string
+                example: gateway
+            X-Cache:
+              schema:
+                type: string
+                enum: [HIT, MISS]
+        '400':
+          $ref: '#/components/responses/ScanError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /api/v1/scan/public:
+    post:
+      tags: [Scan]
+      summary: Public demo scan (rate limited by IP)
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScanRequest'
+      responses:
+        '200':
+          description: Scan payload
+          headers:
+            x-routed-via:
+              schema:
+                type: string
+
+  /api/v1/scan/batch:
+    post:
+      tags: [Batch]
+      summary: Batch platform scans
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchScanRequest'
+      responses:
+        '200':
+          description: Per-item results
+          headers:
+            x-routed-via:
+              schema:
+                type: string
+
+  /api/v1/scan/sandbox:
+    post:
+      tags: [Scan]
+      summary: Sandbox scan (deterministic demo mint)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScanRequest'
+      responses:
+        '200':
+          description: Platform JSON
+          headers:
+            x-routed-via:
+              schema:
+                type: string
+
+  /api/b2b/v1/risk:
+    post:
+      tags: [B2B]
+      summary: Partner risk assessment
+      description: Planned — fast or full mode with optional webhook delivery
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/B2BRiskRequest'
+      responses:
+        '200':
+          description: Risk score and metadata
+
+  /api/b2b/v1/reputation:
+    get:
+      tags: [B2B]
+      summary: Reputation ledger lookup
+      parameters:
+        - name: chain
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [solana]
+        - name: address
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Reputation snapshot
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API key (cc_live_* or cc_sentinel_*)
+
+  schemas:
+    ScanRequest:
+      type: object
+      properties:
+        tokenAddress:
+          type: string
+          description: Solana mint (base58)
+        mint:
+          type: string
+        chain:
+          type: string
+          enum: [solana, sol]
+          default: solana
+        depth:
+          type: string
+          enum: [fast]
+        responseMode:
+          type: string
+          enum: [platform, full, developer, compact]
+        liquidityUsd:
+          type: number
+        topHolderPct:
+          type: number
+
+    BatchScanRequest:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              tokenAddress:
+                type: string
+              chain:
+                type: string
+        clientRef:
+          type: string
+          maxLength: 80
+
+    B2BRiskRequest:
+      type: object
+      required: [chain, address]
+      properties:
+        chain:
+          type: string
+        address:
+          type: string
+        mode:
+          type: string
+          enum: [fast, institutional]
+        webhookUrl:
+          type: string
+          format: uri
+
+    ScanErrorBody:
+      type: object
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid API key
+    RateLimited:
+      description: Quota or rate limit exceeded
+    ScanError:
+      description: Invalid input or scan failure
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ScanErrorBody'

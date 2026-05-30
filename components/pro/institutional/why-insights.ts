@@ -1,5 +1,4 @@
-import type { ReasoningObject, Verdict } from '@/lib/services/scanner-engine'
-import type { WeightedSecurityScore } from '@/lib/services/scanner/types'
+import type { ReasoningObject, Verdict, WeightedSecurityScore } from '@cryptocheck/types'
 import { extractTopHolderPct } from '@/components/pro/institutional/model-helpers'
 import type { CanonicalScanResult } from '@/lib/types/canonical-scan'
 

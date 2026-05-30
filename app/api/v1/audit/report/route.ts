@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withProFeature } from '@/lib/auth/pro-feature-access'
 import { buildAuditReportJson, buildAuditReportPdfBuffer } from '@/lib/services/audit-report.service'
-import type { ReasoningObject } from '@/lib/services/scanner-engine'
+import type { ScanV1ApiResponse } from '@/lib/types/institutional-scan-api'
+
+type ReasoningObject = ScanV1ApiResponse['reasoning']
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'

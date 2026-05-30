@@ -24,5 +24,6 @@ export type ScanV1ApiResponse = {
     response_time_ms: number
     auth_via: 'api_key' | 'session'
     user_id: string
+    request_id?: string
   }
 }

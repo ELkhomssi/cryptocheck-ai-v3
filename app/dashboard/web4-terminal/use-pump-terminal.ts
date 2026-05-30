@@ -1,5 +1,7 @@
 'use client'
 
+import { useConnection, useWallet } from '@solana/wallet-adapter-react'
+import { PublicKey } from '@solana/web3.js'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSolana } from '@/components/SolanaProvider'
@@ -15,30 +17,46 @@ import {
   progressPct,
   quoteBuy,
   quoteSell,
-  randomBotWallet,
 } from './pump-curve'
 import type { DeployForm, DiscoverFilter, Side, TerminalView, Timeframe, TradeRow } from './terminal-types'
 import { WEB4_BASE_PATH } from '@/lib/web4/routes'
 import type { ToastItem } from './components/terminal-primitives'
+import { useSolBalanceWs } from '@/lib/web4/hooks/use-sol-balance-ws'
+import { useSolPriceWs } from '@/lib/web4/hooks/use-sol-price-ws'
+import { useTransactionLifecycle } from '@/lib/web4/hooks/use-transaction-lifecycle'
+import { useProgramLogsWs } from '@/lib/web4/hooks/use-program-logs-ws'
+import { useTokenBalanceWs } from '@/lib/web4/hooks/use-token-balance-ws'
+import { tradeRowFromLogs } from '@/lib/web4/protocol/parse-trade-logs'
 import {
-  DEFAULT_SOL,
-  USER_WALLET,
+  buyOnChain,
+  createPoolOnChain,
+  graduatePoolOnChain,
+  sellOnChain,
+} from '@/lib/web4/protocol/client'
+import { isWeb4ProgramConfigured } from '@/lib/web4/protocol/config'
+import { fetchAllPools } from '@/lib/web4/protocol/fetch-pools'
+import { poolPda } from '@/lib/web4/protocol/pda'
+import { poolSnapshotToToken } from '@/lib/web4/protocol/pool-mapper'
+import {
   bootTerminal,
   fmt,
   fmtCompact,
   generateCandles,
   makeTradeRow,
   pushCandle,
-  rand,
   tokenToCard,
   tokensForSolOut,
   uid,
 } from './terminal-utils'
 
+const PRODUCTION = isWeb4ProgramConfigured()
+
 export function usePumpTerminal() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const boot = useMemo(() => bootTerminal(), [])
+  const { connection } = useConnection()
+  const wallet = useWallet()
+  const boot = useMemo(() => bootTerminal(PRODUCTION), [])
 
   const [tokens, setTokens] = useState(boot.tokens)
   const [view, setView] = useState<TerminalView>(() => {
@@ -62,12 +80,16 @@ export function usePumpTerminal() {
   const [slippage, setSlippage] = useState(1)
   const [launchLiquidity, setLaunchLiquidity] = useState(5)
   const [deploying, setDeploying] = useState(false)
-  const [solBalance, setSolBalance] = useState(DEFAULT_SOL)
   const [tokenBalances, setTokenBalances] = useState<Record<string, number>>({})
-  const [solUsd, setSolUsd] = useState(168)
+  const { tokenBalance: chainTokenBalance, refresh: refreshTokenBalance } =
+    useTokenBalanceWs(PRODUCTION ? activeMint : null)
   const [toasts, setToasts] = useState<ToastItem[]>([])
   const [flashTradeId, setFlashTradeId] = useState<string | null>(null)
 
+  const { solBalance, refresh: refreshBalance } = useSolBalanceWs()
+  const solUsd = useSolPriceWs()
+  const { lifecycle, onLifecycle, reset: resetTx, label: txLabel, busy: txBusy } =
+    useTransactionLifecycle()
   const { isConnected, isConnecting, shortAddr, connect, disconnect } = useSolana()
 
   const pushToast = useCallback((toast: Omit<ToastItem, 'id'>) => {
@@ -82,14 +104,52 @@ export function usePumpTerminal() {
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }, [])
 
+  const syncPoolsFromChain = useCallback(async () => {
+    if (!PRODUCTION) return
+    try {
+      const pools = await fetchAllPools(connection)
+      const map: Record<string, ReturnType<typeof poolSnapshotToToken>> = {}
+      pools.forEach((p, i) => {
+        map[p.mint] = poolSnapshotToToken(p, i)
+      })
+      setTokens(map)
+      if (!activeMint && pools[0]) setActiveMint(pools[0].mint)
+    } catch {
+      pushToast({ kind: 'info', title: 'Could not sync pools from chain' })
+    }
+  }, [connection, pushToast])
+
+  useEffect(() => {
+    void syncPoolsFromChain()
+  }, [syncPoolsFromChain])
+
+  useProgramLogsWs(
+    useCallback(
+      (_signature, logs) => {
+        const addr = wallet.publicKey?.toBase58() ?? ''
+        const row = tradeRowFromLogs(logs, addr, activeMint)
+        if (row) {
+          setTradeRows((prev) => [row, ...prev].slice(0, 40))
+          setFlashTradeId(row.id)
+          window.setTimeout(() => setFlashTradeId(null), 400)
+        }
+        void syncPoolsFromChain()
+        void refreshTokenBalance()
+      },
+      [activeMint, syncPoolsFromChain, refreshTokenBalance, wallet.publicKey],
+    ),
+  )
+
   const cards = useMemo(
     () => Object.values(tokens).map((t) => tokenToCard(t, solUsd)),
     [tokens, solUsd],
   )
 
-  const activeToken = tokens[activeMint]
+  const activeToken = activeMint ? tokens[activeMint] : undefined
   const activeCard = cards.find((c) => c.mint === activeMint)
-  const heldTokens = tokenBalances[activeMint] ?? 0
+  const heldTokens = PRODUCTION
+    ? chainTokenBalance
+    : (tokenBalances[activeMint] ?? 0)
   const priceSolLive = activeToken ? priceSol(activeToken) : 0
   const priceUsd = priceSolLive * solUsd
 
@@ -161,7 +221,7 @@ export function usePumpTerminal() {
     (mint: string, nextView: TerminalView) => {
       const params = new URLSearchParams()
       params.set('view', nextView)
-      params.set('mint', mint)
+      if (mint) params.set('mint', mint)
       router.replace(`${WEB4_BASE_PATH}?${params.toString()}`, { scroll: false })
     },
     [router],
@@ -200,71 +260,196 @@ export function usePumpTerminal() {
     setCandles((prev) => pushCandle(prev, nextPrice, side))
   }, [])
 
+  const walletShort = wallet.publicKey?.toBase58().slice(0, 4) ?? shortAddr
+
   const handleDeploy = useCallback(
-    (form: DeployForm) => {
+    async (form: DeployForm) => {
+      if (!isConnected) {
+        await connect()
+        return
+      }
+
       setDeploying(true)
-      const token = createBondingToken({
-        name: form.name,
-        ticker: form.ticker,
-        description: form.description,
-        initialLiquiditySol: form.liquidity,
-        emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)],
-        gradient: GRADIENTS[Math.floor(Math.random() * GRADIENTS.length)],
-      })
-      setTokens((prev) => ({ ...prev, [token.mint]: token }))
-      setCreateOpen(false)
-      setDeploying(false)
-      pushToast({
-        kind: 'deploy',
-        title: `${token.ticker} is live`,
-        sub: `${form.liquidity} SOL seeded on bonding curve`,
-      })
-      openTrade(token.mint)
+      resetTx()
+
+      try {
+        if (PRODUCTION && wallet.publicKey) {
+          onLifecycle({ phase: 'building', signature: null })
+          const { mint, signature } = await createPoolOnChain({
+            connection,
+            wallet,
+            name: form.name,
+            symbol: form.ticker,
+            description: form.description,
+            initialBuySol: form.liquidity,
+            onLifecycle,
+          })
+          await syncPoolsFromChain()
+          setCreateOpen(false)
+          pushToast({
+            kind: 'deploy',
+            title: `${form.ticker} deployed on-chain`,
+            sub: signature.slice(0, 20),
+          })
+          openTrade(mint)
+          void refreshBalance()
+          return
+        }
+
+        const token = createBondingToken({
+          name: form.name,
+          ticker: form.ticker,
+          description: form.description,
+          initialLiquiditySol: form.liquidity,
+          emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)],
+          gradient: GRADIENTS[Math.floor(Math.random() * GRADIENTS.length)],
+        })
+        setTokens((prev) => ({ ...prev, [token.mint]: token }))
+        setCreateOpen(false)
+        pushToast({
+          kind: 'deploy',
+          title: `${token.ticker} created (preview)`,
+          sub: 'Deploy program for mainnet',
+        })
+        openTrade(token.mint)
+      } catch (e) {
+        pushToast({
+          kind: 'info',
+          title: 'Deploy failed',
+          sub: e instanceof Error ? e.message : 'Unknown error',
+        })
+      } finally {
+        setDeploying(false)
+        resetTx()
+      }
     },
-    [openTrade, pushToast],
+    [
+      isConnected,
+      connect,
+      resetTx,
+      wallet,
+      connection,
+      onLifecycle,
+      syncPoolsFromChain,
+      pushToast,
+      openTrade,
+      refreshBalance,
+    ],
   )
 
-  const handleExecute = useCallback(() => {
+  const handleExecute = useCallback(async () => {
     if (!activeToken || activeToken.graduated || tradeAmount <= 0) return
-    const symbol = activeToken.ticker
+    if (!isConnected) {
+      await connect()
+      return
+    }
 
-    if (tradeSide === 'buy') {
-      if (tradeAmount > solBalance) return
-      const { tokensOut, next, price, graduated: grad } = applyBuy(activeToken, tradeAmount)
-      if (tokensOut <= 0) return
-      setTokens((prev) => ({ ...prev, [activeMint]: next }))
-      setSolBalance((s) => s - tradeAmount)
-      setTokenBalances((prev) => ({ ...prev, [activeMint]: (prev[activeMint] ?? 0) + tokensOut }))
-      pushTrade(makeTradeRow('buy', price, tokensOut, USER_WALLET), price, 'buy')
-      pushToast({
-        kind: 'buy',
-        title: `Bought ${fmt(tokensOut, 0)} ${symbol}`,
-        sub: `${fmt(tradeAmount, 4)} SOL · ${fmtCompact(tradeAmount * solUsd)}`,
-      })
-      if (grad) {
+    const symbol = activeToken.ticker
+    resetTx()
+
+    try {
+      if (PRODUCTION && wallet.publicKey) {
+        onLifecycle({ phase: 'building', signature: null })
+        let signature: string
+
+        if (tradeSide === 'buy') {
+          if (tradeAmount > solBalance) {
+            pushToast({ kind: 'info', title: 'Insufficient SOL' })
+            return
+          }
+          signature = await buyOnChain({
+            connection,
+            wallet,
+            token: activeToken,
+            solIn: tradeAmount,
+            slippageBps: slippage * 100,
+            onLifecycle,
+          })
+        } else {
+          const tokenIn = tokensForSolOut(activeToken, tradeAmount, heldTokens)
+          if (tokenIn <= 0) return
+          signature = await sellOnChain({
+            connection,
+            wallet,
+            token: activeToken,
+            tokenIn,
+            slippageBps: slippage * 100,
+            onLifecycle,
+          })
+        }
+
+        await syncPoolsFromChain()
+        void refreshBalance()
         pushToast({
-          kind: 'grad',
-          title: `${symbol} graduated!`,
-          sub: `${PUMP_GRADUATION_SOL} SOL raised — Raydium migration`,
+          kind: tradeSide,
+          title: `${tradeSide === 'buy' ? 'Buy' : 'Sell'} confirmed`,
+          sub: signature.slice(0, 20),
+        })
+
+        if (progressPct(activeToken) >= 99 && !activeToken.graduated) {
+          try {
+            await graduatePoolOnChain({
+              connection,
+              wallet,
+              mint: activeMint,
+              onLifecycle,
+            })
+            pushToast({
+              kind: 'grad',
+              title: `${symbol} graduating to Raydium`,
+              sub: 'LP lock bundle submitted',
+            })
+          } catch {
+            /* graduation may be permissionless keeper */
+          }
+        }
+        return
+      }
+
+      if (tradeSide === 'buy') {
+        if (tradeAmount > solBalance) return
+        const { tokensOut, next, price, graduated: grad } = applyBuy(activeToken, tradeAmount)
+        if (tokensOut <= 0) return
+        setTokens((prev) => ({ ...prev, [activeMint]: next }))
+        setTokenBalances((prev) => ({ ...prev, [activeMint]: (prev[activeMint] ?? 0) + tokensOut }))
+        pushTrade(makeTradeRow('buy', price, tokensOut, walletShort), price, 'buy')
+        pushToast({
+          kind: 'buy',
+          title: `Bought ${fmt(tokensOut, 0)} ${symbol}`,
+          sub: `${fmt(tradeAmount, 4)} SOL`,
+        })
+        if (grad) {
+          pushToast({
+            kind: 'grad',
+            title: `${symbol} graduated!`,
+            sub: `${PUMP_GRADUATION_SOL} SOL — Raydium migration`,
+          })
+        }
+      } else {
+        const tokenIn = tokensForSolOut(activeToken, tradeAmount, heldTokens)
+        if (tokenIn <= 0) return
+        const { solOut, next, price } = applySell(activeToken, tokenIn)
+        if (solOut <= 0) return
+        setTokens((prev) => ({ ...prev, [activeMint]: next }))
+        setTokenBalances((prev) => ({
+          ...prev,
+          [activeMint]: Math.max(0, (prev[activeMint] ?? 0) - tokenIn),
+        }))
+        pushTrade(makeTradeRow('sell', price, tokenIn, walletShort), price, 'sell')
+        pushToast({
+          kind: 'sell',
+          title: `Sold ${fmt(tokenIn, 0)} ${symbol}`,
+          sub: `Received ${fmt(solOut, 4)} SOL`,
         })
       }
-    } else {
-      const tokenIn = tokensForSolOut(activeToken, tradeAmount, heldTokens)
-      if (tokenIn <= 0) return
-      const { solOut, next, price } = applySell(activeToken, tokenIn)
-      if (solOut <= 0) return
-      setTokens((prev) => ({ ...prev, [activeMint]: next }))
-      setSolBalance((s) => s + solOut)
-      setTokenBalances((prev) => ({
-        ...prev,
-        [activeMint]: Math.max(0, (prev[activeMint] ?? 0) - tokenIn),
-      }))
-      pushTrade(makeTradeRow('sell', price, tokenIn, USER_WALLET), price, 'sell')
+    } catch (e) {
       pushToast({
-        kind: 'sell',
-        title: `Sold ${fmt(tokenIn, 0)} ${symbol}`,
-        sub: `Received ${fmt(solOut, 4)} SOL`,
+        kind: 'info',
+        title: 'Transaction failed',
+        sub: e instanceof Error ? e.message : 'Unknown error',
       })
+    } finally {
+      resetTx()
     }
   }, [
     activeToken,
@@ -273,9 +458,18 @@ export function usePumpTerminal() {
     tradeAmount,
     solBalance,
     heldTokens,
+    isConnected,
+    connect,
+    wallet,
+    connection,
+    slippage,
     pushTrade,
     pushToast,
-    solUsd,
+    walletShort,
+    resetTx,
+    onLifecycle,
+    syncPoolsFromChain,
+    refreshBalance,
   ])
 
   const quickBuy = useCallback(
@@ -287,49 +481,29 @@ export function usePumpTerminal() {
     [openTrade],
   )
 
-  const simulateMarketTrade = useCallback(() => {
-    setTokens((prev) => {
-      const mint = activeMint
-      const token = prev[mint]
-      if (!token || token.graduated || view !== 'trade') return prev
-
-      const side: Side = Math.random() > 0.48 ? 'buy' : 'sell'
-      if (side === 'buy') {
-        const solIn = rand(0.04, 1.2)
-        const { tokensOut, next, price } = applyBuy(token, solIn, true)
-        if (tokensOut <= 0) return prev
-        setTradeRows((tr) => [makeTradeRow('buy', price, tokensOut, randomBotWallet()), ...tr].slice(0, 40))
-        setCandles((c) => pushCandle(c, price, 'buy'))
-        return { ...prev, [mint]: next }
+  useEffect(() => {
+    if (!PRODUCTION || !activeMint) return
+    try {
+      const mint = new PublicKey(activeMint)
+      const [pool] = poolPda(mint)
+      const sub = connection.onAccountChange(
+        pool,
+        () => {
+          void syncPoolsFromChain()
+        },
+        'confirmed',
+      )
+      return () => {
+        void connection.removeAccountChangeListener(sub)
       }
-      const tokenIn = rand(500, Math.max(1000, token.tokensSold * 0.002))
-      const { next, price, solOut } = applySell(token, tokenIn)
-      if (solOut <= 0) return prev
-      setTradeRows((tr) => [makeTradeRow('sell', price, tokenIn, randomBotWallet()), ...tr].slice(0, 40))
-      setCandles((c) => pushCandle(c, price, 'sell'))
-      return { ...prev, [mint]: next }
-    })
-  }, [activeMint, view])
-
-  useEffect(() => {
-    const t = window.setTimeout(() => setReady(true), 300)
-    return () => window.clearTimeout(t)
-  }, [])
-
-  useEffect(() => {
-    if (view !== 'trade') return
-    let timeoutId = 0
-    const tick = () => {
-      simulateMarketTrade()
-      timeoutId = window.setTimeout(tick, rand(800, 1500))
+    } catch {
+      return undefined
     }
-    timeoutId = window.setTimeout(tick, rand(800, 1500))
-    return () => window.clearTimeout(timeoutId)
-  }, [simulateMarketTrade, view])
+  }, [activeMint, connection, syncPoolsFromChain])
 
   useEffect(() => {
-    const id = window.setInterval(() => setSolUsd((s) => s * (1 + rand(-0.002, 0.002))), 12000)
-    return () => window.clearInterval(id)
+    const t = window.setTimeout(() => setReady(true), 200)
+    return () => window.clearTimeout(t)
   }, [])
 
   return {
@@ -388,5 +562,9 @@ export function usePumpTerminal() {
     toasts,
     dismissToast,
     flashTradeId,
+    txLifecycle: lifecycle,
+    txLabel,
+    txBusy,
+    productionMode: PRODUCTION,
   }
 }

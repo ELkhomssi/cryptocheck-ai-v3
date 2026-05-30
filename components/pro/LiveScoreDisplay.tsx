@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import type { ReasoningObject } from '@/lib/services/scanner-engine'
+import type { ReasoningObject } from '@cryptocheck/types'
 import { ConfidenceMeter } from '@/components/pro/institutional/ConfidenceMeter'
 import { EnterpriseTrustStrip } from '@/components/pro/institutional/EnterpriseTrustStrip'
 

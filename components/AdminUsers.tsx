@@ -1,11 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 
 interface Profile {
   email: string
@@ -23,7 +18,11 @@ export default function AdminUsers() {
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase
+      if (!isSupabaseConfigured()) {
+        setLoading(false)
+        return
+      }
+      const { data } = await getSupabase()
         .from('profiles')
         .select('email, confirmed_at, referral_source, trial_started_at, is_pro, created_at')
         .order('created_at', { ascending: false })

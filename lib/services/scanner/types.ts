@@ -55,4 +55,8 @@ export type ScanExecutionMeta = {
   responseTimeMs: number
   userId: string
   authVia: 'api_key' | 'session'
+  /** True when on-chain enrichment failed (e.g. HELIUS_API_KEY unset) — result is low-confidence. */
+  enrichmentFailed?: boolean
 }
+
+export type { ReasoningObject }

@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { resolveConsumerTier, type ConsumerTier } from '@/lib/billing/consumer-tier'
 import { fetchWalletHoldings } from '@/lib/helius/fetch-wallet-holdings'
-import { scanTokenIntelligence } from '@/lib/services/scanner/execute-scan'
+import { scanTokenIntelligenceViaGateway, gatewayResponseHeaders } from '@/lib/connect/scan-gateway'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
     }
 
     const scanResults = await mapWithConcurrency(holdings, SCAN_CONCURRENCY, async (holding) => {
-      const scan = await scanTokenIntelligence({ mint: holding.mint, mode: 'full' })
+      const scan = await scanTokenIntelligenceViaGateway({ mint: holding.mint, mode: 'full' })
       return {
         ...holding,
         riskScore: scan.riskScore,

@@ -3,16 +3,19 @@ import { randomUUID } from 'crypto'
 import { mapWithConcurrency } from '@/lib/concurrency/pool'
 import { resolveScanAuthOnly, scanClientIp, type ScanAccessContext } from '@/lib/auth/scan-access'
 import { enforceDailyApiLimitCount } from '@/lib/services/api-daily-limit.service'
-import { runInstitutionalScan } from '@/lib/services/scanner/execute-scan'
-import { normalizeScanBody } from '@/lib/services/scanner/normalize-scan-body'
-import { mapSnapshotToPlatformResponse } from '@/lib/services/scanner/map-platform-response'
+import {
+  scanViaGateway,
+  normalizeScanBody,
+  mapSnapshotToPlatformResponse,
+  ScanServiceError,
+  maxBatchSizeForTier,
+  gatewayResponseHeaders,
+} from '@/lib/connect/scan-gateway'
 import { logApiUsageEvent } from '@/lib/services/api-usage.service'
 import { logSecurityEvent } from '@/lib/services/security-log.service'
-import { ScanServiceError } from '@/lib/services/scanner/ErrorHandler'
 import type { ProFeatureContext } from '@/lib/auth/pro-feature-access'
 import type { PlatformScanResponse } from '@/lib/types/platform-scan-api'
 import { getUserSubscription } from '@/lib/services/user-subscription.service'
-import { maxBatchSizeForTier } from '@/lib/services/scanner/batch-limits'
 import { mergeWithRateLimitHeaders } from '@/lib/api/scan-api-errors'
 import { securityLogUserIdForContext } from '@/lib/config/sentinel-qa-bypass'
 
@@ -57,7 +60,7 @@ export async function POST(req: NextRequest) {
   if (items.length === 0) {
     return NextResponse.json(
       { error: 'Provide `items` (array of { tokenAddress, chain }) or `tokenAddresses`', code: 400, reason: 'INVALID_INPUT' },
-      { status: 400 }
+      { status: 400, headers: gatewayResponseHeaders() }
     )
   }
 
@@ -70,7 +73,7 @@ export async function POST(req: NextRequest) {
         reason: 'BATCH_LIMIT',
         limit: max,
       },
-      { status: 400 }
+      { status: 400, headers: gatewayResponseHeaders() }
     )
   }
 
@@ -88,10 +91,10 @@ export async function POST(req: NextRequest) {
       },
       {
         status: 429,
-        headers: {
+        headers: gatewayResponseHeaders({
           'Retry-After': String(retrySec),
           ...mergeWithRateLimitHeaders({ limit: daily.limit, remaining: daily.remaining, reset: daily.reset }),
-        },
+        }),
       }
     )
   }
@@ -103,8 +106,9 @@ export async function POST(req: NextRequest) {
     try {
       const normalized = normalizeScanBody(raw)
       mintForLog = String(normalized.mint ?? normalized.tokenAddress ?? '')
-      const result = await runInstitutionalScan(req, ctx as ProFeatureContext, normalized, {
+      const result = await scanViaGateway(req, ctx as ProFeatureContext, normalized, {
         suppressAudit: true,
+        skipChainEnrich: true,
       })
       if (result.ok === false) {
         const err = result.error
@@ -200,11 +204,11 @@ export async function POST(req: NextRequest) {
     {
       headers: mergeWithRateLimitHeaders(
         { limit: daily.limit, remaining: daily.remaining, reset: daily.reset },
-        {
+        gatewayResponseHeaders({
           'X-Request-Id': requestId,
           'X-Response-Time-Ms': String(Date.now() - started),
           'X-CryptoCheck-Sentinel-Tier': sentinelTier,
-        }
+        })
       ),
     }
   )

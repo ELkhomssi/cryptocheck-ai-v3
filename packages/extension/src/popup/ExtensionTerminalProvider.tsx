@@ -8,14 +8,14 @@ import {
   type Dispatch,
   type ReactNode,
 } from 'react'
-import type { KeyVerifySuccess, TokenIntelligenceReport } from '@/lib/types/intelligence'
+import type { KeyVerifySuccess, TokenIntelligenceReport } from '../types'
 import {
   initialTerminalState,
   terminalReducer,
   type TerminalAction,
   type TerminalState,
   type VerifiedKey,
-} from '@/components/Dashboard/intelligence-terminal/terminal-reducer'
+} from '../lib/terminal-reducer'
 import { apiFetch } from '../lib/api-client'
 import * as keyStore from '../lib/extension-key-store'
 

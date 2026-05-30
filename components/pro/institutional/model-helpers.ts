@@ -1,4 +1,4 @@
-import type { ReasoningObject } from '@/lib/services/scanner-engine'
+import type { ReasoningObject } from '@cryptocheck/types'
 
 export function extractTopHolderPct(r: ReasoningObject): number {
   const line = r.evidence.find((e) => e.id === 'ev_concentration')

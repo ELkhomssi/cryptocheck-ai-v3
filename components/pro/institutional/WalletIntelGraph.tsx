@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReasoningObject } from '@/lib/services/scanner-engine'
+import type { ReasoningObject } from '@cryptocheck/types'
 import { extractTopHolderPct } from '@/components/pro/institutional/model-helpers'
 import { useInstitutionalTranslation } from '@/lib/i18n/institutional-context'
 

@@ -1,7 +1,6 @@
 'use client'
 
-import type { ReasoningObject, Verdict } from '@/lib/services/scanner-engine'
-import type { WeightedSecurityScore } from '@/lib/services/scanner/types'
+import type { ReasoningObject, Verdict, WeightedSecurityScore } from '@cryptocheck/types'
 import { useInstitutionalTranslation } from '@/lib/i18n/institutional-context'
 import { generateWhyBulletRefs, whyBlockTitleKey } from '@/components/pro/institutional/why-insights'
 import type { CanonicalScanResult } from '@/lib/types/canonical-scan'

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { resolveConsumerTier, type ConsumerTier } from '@/lib/billing/consumer-tier'
-import { scanTokenIntelligence } from '@/lib/services/scanner/execute-scan'
+import { scanTokenIntelligenceViaGateway } from '@/lib/connect/scan-gateway'
 import { isValidSolanaMint } from '@/lib/validation/mint'
 
 export const dynamic = 'force-dynamic'
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
     let lastRiskScore: number | null = null
     let lastVerdict: string | null = null
     try {
-      const scan = await scanTokenIntelligence({ mint, mode: 'full' })
+      const scan = await scanTokenIntelligenceViaGateway({ mint, mode: 'full' })
       lastRiskScore = scan.riskScore
       lastVerdict = scan.verdict
     } catch {

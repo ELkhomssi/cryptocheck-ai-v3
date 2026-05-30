@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { scanClientIp } from '@/lib/auth/scan-access'
 import { enforcePublicProAuditLimit } from '@/lib/rate-limit/public-pro-portal'
 import { buildAuditReportJson, buildAuditReportPdfBuffer } from '@/lib/services/audit-report.service'
-import type { ReasoningObject } from '@/lib/services/scanner-engine'
+import type { ScanV1ApiResponse } from '@/lib/types/institutional-scan-api'
+
+type ReasoningObject = ScanV1ApiResponse['reasoning']
 import { mergeWithRateLimitHeaders } from '@/lib/api/scan-api-errors'
 
 export const dynamic = 'force-dynamic'

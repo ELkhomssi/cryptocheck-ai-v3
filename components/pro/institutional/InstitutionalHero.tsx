@@ -1,6 +1,6 @@
 'use client'
 
-import type { Verdict } from '@/lib/services/scanner-engine'
+import type { Verdict } from '@cryptocheck/types'
 import { useInstitutionalTranslation } from '@/lib/i18n/institutional-context'
 import { ConfidenceMeter } from '@/components/pro/institutional/ConfidenceMeter'
 import { EnterpriseTrustStrip } from '@/components/pro/institutional/EnterpriseTrustStrip'

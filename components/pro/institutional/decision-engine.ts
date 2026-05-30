@@ -1,4 +1,4 @@
-import type { Verdict } from '@/lib/services/scanner-engine'
+import type { Verdict } from '@cryptocheck/types'
 
 export type DecisionEngineView = {
   /** UI status chip: SAFE / CAUTION / DANGER */

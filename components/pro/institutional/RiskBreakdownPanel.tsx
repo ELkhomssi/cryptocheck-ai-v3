@@ -1,6 +1,6 @@
 'use client'
 
-import type { WeightedSecurityScore } from '@/lib/services/scanner/types'
+import type { WeightedSecurityScore } from '@cryptocheck/types'
 import { useInstitutionalTranslation } from '@/lib/i18n/institutional-context'
 
 type Props = {

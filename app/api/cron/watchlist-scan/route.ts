@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
-import { scanTokenIntelligence } from '@/lib/services/scanner/execute-scan'
+import { scanTokenIntelligenceViaGateway } from '@/lib/connect/scan-gateway'
 import { sendTelegramAlert } from '@/lib/telegram/send-alert'
 import { sendEmailAlert } from '@/lib/email/send-alert'
 import { dispatchInstitutionalWebhooks } from '@/lib/webhooks/dispatch'
@@ -66,7 +66,7 @@ export async function GET(req: Request) {
 
   for (const item of (watchlist ?? []) as WatchRow[]) {
     try {
-      const newScan = await scanTokenIntelligence({ mint: item.mint, mode: 'full' })
+      const newScan = await scanTokenIntelligenceViaGateway({ mint: item.mint, mode: 'full' })
       const oldScore = item.last_risk_score ?? 0
       const oldVerdict = item.last_verdict ?? 'SAFE'
       const scoreDelta = newScan.riskScore - oldScore

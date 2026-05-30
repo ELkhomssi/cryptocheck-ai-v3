@@ -1,0 +1,30 @@
+{
+  "name": "@cryptocheck/ccai-pay",
+  "version": "1.0.0",
+  "description": "Embeddable Pay with CryptoCheck AI button — risk-verified crypto checkout for any website",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "module",
+  "main": "./dist/ccai-pay.min.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/ccai-pay.min.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node build.mjs",
+    "build:bundle": "node build.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "esbuild": "^0.21.5",
+    "typescript": "^5"
+  }
+}

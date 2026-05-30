@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { withScanAccess, scanClientIp, type ScanAccessContext } from '@/lib/auth/scan-access'
-import { runInstitutionalScan } from '@/lib/services/scanner/execute-scan'
-import { normalizeScanBody } from '@/lib/services/scanner/normalize-scan-body'
-import { mapSnapshotToPlatformResponse } from '@/lib/services/scanner/map-platform-response'
+import {
+  scanViaGateway,
+  normalizeScanBody,
+  mapSnapshotToPlatformResponse,
+  ScanServiceError,
+  buildScanV1Payload,
+  gatewayResponseHeaders,
+} from '@/lib/connect/scan-gateway'
+import { scheduleCanonicalMerge } from '@/lib/connect/canonical-async'
 import { logApiUsageEvent } from '@/lib/services/api-usage.service'
-import { ScanServiceError } from '@/lib/services/scanner/ErrorHandler'
 import type { ProFeatureContext } from '@/lib/auth/pro-feature-access'
 import { mergeWithRateLimitHeaders } from '@/lib/api/scan-api-errors'
 import { securityLogUserIdForContext } from '@/lib/config/sentinel-qa-bypass'
@@ -15,15 +20,77 @@ import {
   assertScanTimestamp,
 } from '@/lib/middleware/scan-v1-security'
 import { SentinelServerMisconfigurationError } from '@/lib/security/signing'
-import { canonicalScan } from '@/lib/sentinel/canonical-scan'
-import { mergeReasoningWithCanonical } from '@/lib/sentinel/merge-canonical-institutional'
-import type { CanonicalScanResult } from '@/lib/types/canonical-scan'
+import { ANONYMOUS_PUBLIC_PRO_SCAN_USER_ID } from '@/lib/config/public-pro-scan'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 export const revalidate = 0
 
 const PRIORITY_HEADER = 'high'
+
+/**
+ * Internal fast scan — GET `/api/v1/scan?depth=fast&mint=<base58>`
+ * Auth: `Authorization: Bearer ${CRON_SECRET}` (server components, crons).
+ */
+export async function GET(req: NextRequest) {
+  const depth = req.nextUrl.searchParams.get('depth')
+  const mint = req.nextUrl.searchParams.get('mint')?.trim() ?? ''
+  if (depth !== 'fast' || mint.length < 32) {
+    return NextResponse.json(
+      { error: 'Required query: depth=fast&mint=<solana_mint>' },
+      { status: 400, headers: gatewayResponseHeaders() }
+    )
+  }
+
+  const authHeader = req.headers.get('authorization')
+  const cronSecret = process.env.CRON_SECRET?.trim()
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const started = Date.now()
+  const requestId = randomUUID()
+  const ctx: ProFeatureContext = {
+    userId: ANONYMOUS_PUBLIC_PRO_SCAN_USER_ID,
+    tier: 'free',
+    via: 'session',
+  }
+  const body = { mint, tokenAddress: mint, depth: 'fast' }
+
+  let normalized: Record<string, unknown>
+  try {
+    normalized = normalizeScanBody(body)
+  } catch (e) {
+    const err = e instanceof ScanServiceError ? e : new ScanServiceError('Invalid request', 'INVALID_INPUT', 400)
+    return NextResponse.json(err.toJSON(), { status: err.httpStatus, headers: gatewayResponseHeaders() })
+  }
+
+  const result = await scanViaGateway(req, ctx, normalized, {
+    suppressAudit: true,
+    skipSessionRateLimit: true,
+    skipChainEnrich: true,
+  })
+
+  if (result.ok === false) {
+    const err = result.error
+    return NextResponse.json(err.toJSON(), { status: err.httpStatus, headers: gatewayResponseHeaders() })
+  }
+
+  const payload = buildScanV1Payload(result.snapshot, result.meta, requestId)
+  const responseTimeMs = Date.now() - started
+
+  return NextResponse.json(payload, {
+    status: 200,
+    headers: gatewayResponseHeaders({
+      'X-Cache': result.meta.cache === 'hit' ? 'HIT' : 'MISS',
+      'X-Cache-Hit': result.meta.cache === 'hit' ? 'true' : 'false',
+      'X-Response-Time-Ms': String(responseTimeMs),
+      'X-RPC-Provider': result.snapshot.rpcProviderLabel,
+      'X-Request-Id': requestId,
+      'X-Scan-Depth': 'fast',
+    }),
+  })
+}
 
 function inferResponseMode(body: Record<string, unknown>, req: NextRequest): 'full' | 'platform' {
   const raw = body.responseMode ?? body.format
@@ -41,7 +108,7 @@ function jsonWithScanHeaders(
 ) {
   return NextResponse.json(body, {
     status,
-    headers: mergeWithRateLimitHeaders(ctx.rateLimitDaily, extraHeaders),
+    headers: mergeWithRateLimitHeaders(ctx.rateLimitDaily, gatewayResponseHeaders(extraHeaders)),
   })
 }
 
@@ -113,7 +180,7 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
   }
 
   const mode = inferResponseMode(rawBody, req)
-  const result = await runInstitutionalScan(req, ctx as ProFeatureContext, body)
+  const result = await scanViaGateway(req, ctx as ProFeatureContext, body, { skipChainEnrich: true })
 
   if (result.ok === false) {
     const err = result.error
@@ -133,20 +200,13 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
 
   const { snapshot, meta } = result
   const mint = String(body.mint ?? '').trim()
-  let effectiveSnapshot = snapshot
-  let canonical: CanonicalScanResult | undefined
-  if (mint.length >= 32) {
-    try {
-      const c = await canonicalScan(mint)
-      canonical = c
-      effectiveSnapshot = {
-        ...snapshot,
-        weighted: { ...snapshot.weighted, score: c.riskScore },
-        reasoning: mergeReasoningWithCanonical(snapshot.reasoning, c),
-      }
-    } catch {
-      /* institutional scan still valid without canonical overlay */
-    }
+  const fastDepth = body.depth === 'fast' || req.nextUrl.searchParams.get('depth') === 'fast'
+
+  // I7 — canonical overlay runs async; never blocks response (full scans merge into cache for next hit).
+  let canonicalPending = false
+  if (!fastDepth && mint.length >= 32) {
+    scheduleCanonicalMerge(mint, snapshot, body)
+    canonicalPending = true
   }
 
   const responseTimeMs = Date.now() - started
@@ -163,6 +223,8 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
     priority,
   })
 
+  const effectiveSnapshot = snapshot
+
   if (mode === 'platform') {
     const platform = mapSnapshotToPlatformResponse(effectiveSnapshot, {
       responseTimeMs,
@@ -171,37 +233,19 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
       environment: 'live',
       requestId,
     })
-    const platformBody = canonical ? { ...platform, canonical } : platform
-    return jsonWithScanHeaders(ctx, platformBody, 200, {
+    return jsonWithScanHeaders(ctx, platform, 200, {
       'X-Cache': meta.cache === 'hit' ? 'HIT' : 'MISS',
       'X-Cache-Hit': meta.cache === 'hit' ? 'true' : 'false',
       'X-Response-Time-Ms': String(responseTimeMs),
       'X-RPC-Provider': snapshot.rpcProviderLabel,
       'X-Request-Id': requestId,
       'X-RateLimit-Tier': ctx.tier,
+      ...(fastDepth ? { 'X-Scan-Depth': 'fast' } : {}),
+      ...(canonicalPending ? { 'X-Canonical-Pending': 'true' } : {}),
     })
   }
 
-  const payload = {
-    score: effectiveSnapshot.weighted.score,
-    confidence: effectiveSnapshot.weighted.confidence,
-    risk_breakdown: effectiveSnapshot.weighted.risk_breakdown,
-    reasoning: effectiveSnapshot.reasoning,
-    wallet_reputation: effectiveSnapshot.walletReputation,
-    simulator: effectiveSnapshot.simulator,
-    rpc_provider: effectiveSnapshot.rpcProviderLabel,
-    pipeline_stages: effectiveSnapshot.stages,
-    pipeline_ms: effectiveSnapshot.totalPipelineMs,
-    last_updated: effectiveSnapshot.updatedAt,
-    cache: meta.cache,
-    ...(canonical ? { canonical } : {}),
-    meta: {
-      response_time_ms: meta.responseTimeMs,
-      auth_via: meta.authVia,
-      user_id: meta.userId,
-      request_id: requestId,
-    },
-  }
+  const payload = buildScanV1Payload(effectiveSnapshot, meta, requestId)
 
   return jsonWithScanHeaders(ctx, payload, 200, {
     'X-Cache': meta.cache === 'hit' ? 'HIT' : 'MISS',
@@ -209,5 +253,7 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
     'X-Response-Time-Ms': String(responseTimeMs),
     'X-RPC-Provider': snapshot.rpcProviderLabel,
     'X-Request-Id': requestId,
+    ...(fastDepth ? { 'X-Scan-Depth': 'fast' } : {}),
+    ...(canonicalPending ? { 'X-Canonical-Pending': 'true' } : {}),
   })
 })

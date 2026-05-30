@@ -1,5 +1,5 @@
 import { Connection } from '@solana/web3.js'
-import { getHeliusPrimaryRpcUrl } from '@/lib/helius-server'
+import { getHeliusPrimaryRpcUrl, getHeliusApiKeyFromEnv } from '@/lib/helius-server'
 
 export type RpcEndpoint = { label: string; url: string }
 
@@ -31,7 +31,12 @@ export function listRpcEndpoints(): RpcEndpoint[] {
     seen.add(url)
     endpoints.push({ label, url })
   }
-  push('Helius (primary)', getHeliusPrimaryRpcUrl())
+  // Only include the authenticated Helius endpoint when a key is configured.
+  // Without this guard, getHeliusPrimaryRpcUrl() throws and breaks getPrimaryConnection()
+  // (called from the frozen pipeline) — degrade to the public RPC instead of 500-ing.
+  if (getHeliusApiKeyFromEnv()) {
+    push('Helius (primary)', getHeliusPrimaryRpcUrl())
+  }
   push('Solana mainnet (public fallback)', 'https://api.mainnet-beta.solana.com')
   return endpoints
 }

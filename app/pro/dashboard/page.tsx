@@ -1,95 +1,111 @@
 import { getProDashboardSession } from '@/lib/auth/pro-dashboard'
-import { ScannerEngine } from '@/lib/services/scanner-engine'
-import { buildWeightedSecurityScore } from '@/lib/services/scanner/weighted-score'
-import { getPrimaryConnection } from '@/lib/services/scanner/RpcProviderManager'
-import { canonicalScan } from '@/lib/sentinel/canonical-scan'
+import { fetchFastScanForMint } from '@/lib/pro-dashboard/fetch-fast-scan'
+import type { ScanV1ApiResponse } from '@/lib/types/institutional-scan-api'
 import { ProDashboardClient } from './pro-dashboard-client'
 import { DisclaimerBanner } from '@/components/legal/DisclaimerBanner'
+import { SignalAlertFeed } from '@/components/trading/SignalAlertFeed'
 
 export const dynamic = 'force-dynamic'
+
+const FEATURED_MINT = 'So11111111111111111111111111111111111111112'
+
+function fallbackDemoPayload(): ScanV1ApiResponse {
+  return {
+    score: 50,
+    confidence: 0.45,
+    risk_breakdown: { liquidity_risk: 35, wallet_risk: 20, contract_risk: 15 },
+    reasoning: {
+      aggregateScore: 50,
+      confidenceScore: 45,
+      verdict: 'CAUTION',
+      institutionalGrade: 'C',
+      evidence: [
+        {
+          id: 'ev_demo_fallback',
+          category: 'liquidity',
+          label: 'Demo fallback',
+          riskContribution: 20,
+          maxWeight: 100,
+          detail: 'Live fast scan temporarily unavailable; showing static demo.',
+        },
+      ],
+      flags: ['demo_fallback'],
+      fingerprintBestMatch: null,
+      clusterAnalysis: {
+        linkedCreatorRisk: 'low',
+        summary: 'Demo mode — connect API for live intelligence.',
+        scamLinkedFundingHits: 0,
+      },
+    },
+    wallet_reputation: { score0to100: 55, summary: 'Demo wallet reputation placeholder.' },
+    simulator: {
+      buy: { ok: true, path: 'demo', summary: 'Not run in fallback.' },
+      sell: { ok: true, path: 'demo', summary: 'Not run in fallback.' },
+      honeypotLikelihood: 'low',
+      notes: 'Fallback demo payload.',
+    },
+    rpc_provider: 'demo (offline)',
+    pipeline_stages: [],
+    pipeline_ms: 0,
+    last_updated: new Date().toISOString(),
+    cache: 'miss',
+    meta: {
+      response_time_ms: 0,
+      auth_via: 'session',
+      user_id: 'public-demo',
+    },
+  }
+}
+
+function toClientProps(scan: ScanV1ApiResponse) {
+  return {
+    demoReasoning: scan.reasoning,
+    demoWeighted: {
+      score: scan.score,
+      confidence: scan.confidence,
+      risk_breakdown: scan.risk_breakdown,
+    },
+    demoRpcLabel: scan.rpc_provider,
+  }
+}
 
 export default async function ProDashboardPage() {
   const reqLabel = `pro-dashboard:${Date.now().toString(36)}`
   console.time(`${reqLabel}:total`)
 
-  const featuredMint = 'So11111111111111111111111111111111111111112'
-  const fallbackCanonical = {
-    mint: featuredMint,
-    riskScore: 50,
-    verdict: 'CAUTION' as const,
-    verdictReason: 'Live canonical scan temporarily unavailable; showing fallback demo.',
-    signals: [],
-    liquidity: {
-      status: 'unverified' as const,
-      reason: 'Live liquidity verification temporarily unavailable.',
-    },
-    authorities: {
-      mint: 'unknown' as const,
-      freeze: 'unknown' as const,
-      update: 'unknown' as const,
-    },
-    topHolderConcentration: 0,
-    generatedAt: new Date().toISOString(),
-    cacheKey: `scan:canonical:v1:${featuredMint}:fallback`,
+  const scanWithTimeout = Promise.race([
+    fetchFastScanForMint(FEATURED_MINT),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500)),
+  ])
+
+  console.time(`${reqLabel}:parallel.session+scan`)
+  const [session, scanResult] = await Promise.all([getProDashboardSession(), scanWithTimeout])
+  console.timeEnd(`${reqLabel}:parallel.session+scan`)
+
+  const scan = scanResult ?? fallbackDemoPayload()
+  if (!scanResult) {
+    console.warn('[pro/dashboard] fast scan fallback', { mint: FEATURED_MINT })
   }
 
-  // Keep first paint fast: don't let a slow upstream canonical scan block the dashboard.
-  const canonicalWithTimeout = Promise.race([
-    canonicalScan(featuredMint),
-    new Promise<typeof fallbackCanonical>((resolve) =>
-      setTimeout(() => resolve(fallbackCanonical), 2500)
-    ),
-  ])
-
-  console.time(`${reqLabel}:parallel.session+canonical`)
-  const [session, canonical] = await Promise.all([
-    getProDashboardSession(),
-    canonicalWithTimeout.catch((e) => {
-      console.error('[pro/dashboard] canonicalScan fallback', {
-        mint: featuredMint,
-        error: e instanceof Error ? e.message : String(e),
-      })
-      return fallbackCanonical
-    }),
-  ])
-  console.timeEnd(`${reqLabel}:parallel.session+canonical`)
-  const demoVerdict =
-    canonical.verdict === 'AVOID' ? 'CRITICAL_RISK' : canonical.verdict === 'HIGH_RISK' ? 'HIGH_RISK' : canonical.verdict
-
-  const demoReasoning = ScannerEngine.analyze({
-    mint: featuredMint,
-    liquidityUsd:
-      canonical.liquidity.status === 'no_pair' || canonical.liquidity.status === 'unverified' ? 10_000 : 200_000,
-    topHolderPct: canonical.topHolderConcentration,
-    pairAgeMinutes: 10080, // keep stable demo age; live scans override this immediately
-    mintAuthorityActive: canonical.authorities.mint !== 'renounced',
-    creatorWallet: 'DemoCreator111111111111111111111111111111111111111',
-    creatorScamLinkedFundingCount: 0,
-  })
-  demoReasoning.aggregateScore = canonical.riskScore
-  demoReasoning.verdict = demoVerdict
-  demoReasoning.evidence.unshift({
-    id: 'ev_canonical_demo_liquidity',
-    category: 'liquidity',
-    label: 'Canonical liquidity status',
-    riskContribution: canonical.liquidity.status === 'no_pair' || canonical.liquidity.status === 'unverified' ? 35 : 5,
-    maxWeight: 100,
-    detail: `${canonical.liquidity.status}: ${canonical.liquidity.reason}`,
-  })
-
-  const demoWeighted = buildWeightedSecurityScore(demoReasoning)
-  const demoRpcLabel = getPrimaryConnection().label
+  const { demoReasoning, demoWeighted, demoRpcLabel } = toClientProps(scan)
   console.timeEnd(`${reqLabel}:total`)
 
   return (
     <>
       <DisclaimerBanner variant="default" />
-      <ProDashboardClient
-        session={session}
-        demoReasoning={demoReasoning}
-        demoWeighted={demoWeighted}
-        demoRpcLabel={demoRpcLabel}
-      />
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-3 xl:flex-row xl:items-start">
+        <div className="min-w-0 flex-1">
+          <ProDashboardClient
+            session={session}
+            demoReasoning={demoReasoning}
+            demoWeighted={demoWeighted}
+            demoRpcLabel={demoRpcLabel}
+          />
+        </div>
+        <aside className="w-full xl:sticky xl:top-6 xl:w-[360px] xl:shrink-0">
+          <SignalAlertFeed locked={!session.hasDeepAccess} filter={{ chain: 'solana' }} />
+        </aside>
+      </div>
     </>
   )
 }

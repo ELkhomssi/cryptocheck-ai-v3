@@ -10,17 +10,17 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#050505',
+  themeColor: '#111111',
 }
 
 export default function Web4RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col bg-[#050505] text-white">
-      <div className="flex shrink-0 items-center justify-between border-b border-white/[0.06] bg-black/40 px-3 py-1.5 text-[0.65rem] text-white/45">
-        <span>Trading demo · bonding curve · not financial advice</span>
+    <div className="flex min-h-screen flex-col bg-[#111] text-white">
+      <div className="flex shrink-0 items-center justify-between border-b border-[#2a2a2a] px-3 py-2 text-xs text-[#666]">
+        <span>Web4 Protocol · mainnet bonding curve · not financial advice</span>
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-1 font-medium text-white/55 transition hover:text-[#86efac]"
+          className="inline-flex items-center gap-1 text-[#888] transition hover:text-[#86efac]"
         >
           Developer console
           <ArrowUpRight className="h-3 w-3" />

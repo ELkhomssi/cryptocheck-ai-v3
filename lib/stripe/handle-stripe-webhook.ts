@@ -10,7 +10,7 @@ type StripeSubscriptionResource = {
   cancel_at_period_end: boolean | null
   customer: string | Stripe.Customer | Stripe.DeletedCustomer | null
 }
-import { createClient } from '@supabase/supabase-js'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { upsertSaasSubscription } from '@/lib/services/saas-subscription.service'
 import type { SaasSubscriptionStatus, SaasTier } from '@/lib/types/saas-subscription'
 
@@ -27,8 +27,6 @@ type CompletedCheckoutSessionPayload = {
   current_period_end?: number | null
   cancel_at_period_end?: boolean | null
 }
-
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 let _stripe: Stripe | null = null
 function getStripe(): Stripe {
@@ -133,7 +131,7 @@ async function syncProfileAndSaas(params: {
             : 'free'
   const isElite = params.tier === 'ENTERPRISE' || params.tier === 'PRO_MAX_ELITE'
 
-  const { error } = await supabase
+  const { error } = await getSupabaseAdmin()
     .from('profiles')
     .update({
       is_pro: isPro,
@@ -146,7 +144,7 @@ async function syncProfileAndSaas(params: {
 
   if (error) console.error('Supabase profile update error:', error)
 
-  const { data: profile } = await supabase.from('profiles').select('id').eq('email', params.email).maybeSingle()
+  const { data: profile } = await getSupabaseAdmin().from('profiles').select('id').eq('email', params.email).maybeSingle()
   if (!profile?.id) return
 
   try {
@@ -200,7 +198,7 @@ async function applyProfileAfterCheckout(
   checkoutSessionId?: string | null
 ) {
   if (resolution.grantStarterCredits && checkoutSessionId) {
-    const { data: existing } = await supabase.from('subscriptions').select('id').eq('tx_signature', checkoutSessionId).maybeSingle()
+    const { data: existing } = await getSupabaseAdmin().from('subscriptions').select('id').eq('tx_signature', checkoutSessionId).maybeSingle()
     if (existing) {
       console.log('[stripe-webhook] duplicate micropack session', checkoutSessionId)
       return
@@ -220,11 +218,11 @@ async function applyProfileAfterCheckout(
   }
 
   if (resolution.grantStarterCredits) {
-    const { data: p, error: selErr } = await supabase.from('profiles').select('credits').eq('id', profileId).maybeSingle()
+    const { data: p, error: selErr } = await getSupabaseAdmin().from('profiles').select('credits').eq('id', profileId).maybeSingle()
     if (selErr) console.error('[stripe-webhook] profile credits select:', selErr)
     const nextCredits = (p?.credits ?? 0) + 10
     upd.credits = nextCredits
-    const { error: insErr } = await supabase.from('credit_transactions').insert({
+    const { error: insErr } = await getSupabaseAdmin().from('credit_transactions').insert({
       user_id: profileId,
       amount: 10,
       reason: 'purchase_micropack',
@@ -233,11 +231,11 @@ async function applyProfileAfterCheckout(
     if (insErr) console.error('[stripe-webhook] credit_transactions insert:', insErr)
   }
 
-  const { error } = await supabase.from('profiles').update(upd).eq('id', profileId)
+  const { error } = await getSupabaseAdmin().from('profiles').update(upd).eq('id', profileId)
   if (error) console.error('[stripe-webhook] profile update:', error)
 
   if (resolution.grantStarterCredits && checkoutSessionId) {
-    const { error: subErr } = await supabase.from('subscriptions').insert({
+    const { error: subErr } = await getSupabaseAdmin().from('subscriptions').insert({
       user_id: profileId,
       plan: 'starter',
       plan_label: 'Micro Pack (Stripe)',
@@ -326,7 +324,7 @@ export async function handleStripeWebhook(req: NextRequest): Promise<NextRespons
         (clientRef && uuidRe.test(clientRef) ? clientRef : null)
 
       if (!profileId && email && typeof email === 'string') {
-        const { data: prof } = await supabase.from('profiles').select('id').eq('email', email.toLowerCase()).maybeSingle()
+        const { data: prof } = await getSupabaseAdmin().from('profiles').select('id').eq('email', email.toLowerCase()).maybeSingle()
         profileId = prof?.id ?? null
       }
 
@@ -410,7 +408,7 @@ export async function handleStripeWebhook(req: NextRequest): Promise<NextRespons
       const userId = meta?.user_id
 
       if (typeof userId === 'string' && userId.length > 0) {
-        await supabase
+        await getSupabaseAdmin()
           .from('profiles')
           .update({ is_pro: false, is_elite: false, plan: 'free', plan_type: 'free', tier: 'FREE' })
           .eq('id', userId)
@@ -429,11 +427,11 @@ export async function handleStripeWebhook(req: NextRequest): Promise<NextRespons
           console.error('[stripe-webhook] saas cancel:', e)
         }
       } else if (delEmail) {
-        await supabase
+        await getSupabaseAdmin()
           .from('profiles')
           .update({ is_pro: false, is_elite: false, plan: 'free', plan_type: 'free', tier: 'FREE' })
           .eq('email', delEmail.toLowerCase())
-        const { data: profile } = await supabase.from('profiles').select('id').eq('email', delEmail.toLowerCase()).maybeSingle()
+        const { data: profile } = await getSupabaseAdmin().from('profiles').select('id').eq('email', delEmail.toLowerCase()).maybeSingle()
         if (profile?.id) {
           try {
             await upsertSaasSubscription({

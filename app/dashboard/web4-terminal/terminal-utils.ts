@@ -124,8 +124,12 @@ type Boot = {
 
 let bootCache: Boot | undefined
 
-export function bootTerminal(): Boot {
+export function bootTerminal(productionMode: boolean): Boot {
   if (bootCache) return bootCache
+  if (productionMode) {
+    bootCache = { tokens: {}, firstMint: '', candles: [] }
+    return bootCache
+  }
   const tokens = seedDefaultTokens()
   const firstMint = Object.keys(tokens)[0]!
   const p = priceSol(tokens[firstMint]!)

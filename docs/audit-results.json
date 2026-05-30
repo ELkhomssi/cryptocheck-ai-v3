@@ -1,0 +1,82 @@
+{
+  "timestamp": "2026-05-30T12:55:24.366Z",
+  "commit": "51b866132b31d5baf5d8183bbeac058b9bfb2ab9",
+  "branch": "connect-mobile",
+  "summary": {
+    "pass": 2,
+    "fail": 0,
+    "skip": 2,
+    "warn": 1
+  },
+  "gate": "pass",
+  "tasks": [
+    {
+      "task": 1,
+      "status": "warn",
+      "details": {
+        "externalImporters": [
+          "lib/types/platform-scan-api.ts",
+          "lib/solana/connection.ts",
+          "lib/sentinel/merge-canonical-institutional.ts",
+          "lib/api/scan-request-security.ts"
+        ],
+        "count": 4,
+        "highRiskViolations": [],
+        "madgeModuleCount": 52,
+        "passGate": "0 external importers; warn 1–5; fail 6+ or HIGH-RISK scanner imports"
+      }
+    },
+    {
+      "task": 2,
+      "status": "skip",
+      "details": {
+        "reason": "no Supabase credentials (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)"
+      }
+    },
+    {
+      "task": 3,
+      "status": "pass",
+      "details": {
+        "packages": {
+          "ccai-connect": {
+            "atImports": [],
+            "tscOk": true
+          },
+          "ccai-pay": {
+            "atImports": [],
+            "tscOk": true
+          },
+          "extension": {
+            "atImports": [],
+            "tscOk": true
+          },
+          "signing": {
+            "atImports": [],
+            "tscOk": true
+          },
+          "types": {
+            "atImports": [],
+            "tscOk": true
+          }
+        }
+      }
+    },
+    {
+      "task": 4,
+      "status": "skip",
+      "details": {
+        "reason": "B2B smoke target unreachable (no running server)",
+        "error": "fetch failed"
+      }
+    },
+    {
+      "task": 5,
+      "status": "pass",
+      "details": {
+        "wordCount": 1588,
+        "missingSections": [],
+        "path": "docs/architecture.md"
+      }
+    }
+  ]
+}

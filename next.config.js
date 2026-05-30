@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ['@cryptocheck/signing', '@cryptocheck/ccai-connect', '@cryptocheck/types'],
   experimental: {
     instrumentationHook: true,
   },

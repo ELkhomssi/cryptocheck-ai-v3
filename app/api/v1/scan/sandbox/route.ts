@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { withScanAccess, scanClientIp, type ScanAccessContext } from '@/lib/auth/scan-access'
-import { mapSnapshotToPlatformResponse } from '@/lib/services/scanner/map-platform-response'
-import { buildSandboxSnapshot } from '@/lib/services/scanner/sandbox-snapshot'
-import { normalizeScanBody } from '@/lib/services/scanner/normalize-scan-body'
+import {
+  normalizeScanBody,
+  mapSnapshotToPlatformResponse,
+  ScanServiceError,
+  buildSandboxSnapshotViaGateway,
+  gatewayResponseHeaders,
+} from '@/lib/connect/scan-gateway'
 import { logApiUsageEvent } from '@/lib/services/api-usage.service'
-import { ScanServiceError } from '@/lib/services/scanner/ErrorHandler'
 import { mergeWithRateLimitHeaders } from '@/lib/api/scan-api-errors'
 import { securityLogUserIdForContext } from '@/lib/config/sentinel-qa-bypass'
 
@@ -47,11 +50,11 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
     })
     return NextResponse.json(err.toJSON(), {
       status: err.httpStatus,
-      headers: mergeWithRateLimitHeaders(ctx.rateLimitDaily),
+      headers: mergeWithRateLimitHeaders(ctx.rateLimitDaily, gatewayResponseHeaders()),
     })
   }
 
-  const snapshot = await buildSandboxSnapshot(overrides)
+  const snapshot = await buildSandboxSnapshotViaGateway(overrides)
   const responseTimeMs = Date.now() - started
 
   await logApiUsageEvent({
@@ -75,10 +78,10 @@ export const POST = withScanAccess(async (req: NextRequest, ctx: ScanAccessConte
   })
 
   return NextResponse.json(platform, {
-    headers: mergeWithRateLimitHeaders(ctx.rateLimitDaily, {
+    headers: mergeWithRateLimitHeaders(ctx.rateLimitDaily, gatewayResponseHeaders({
       'X-Environment': 'sandbox',
       'X-Response-Time-Ms': String(responseTimeMs),
       'X-Request-Id': requestId,
-    }),
+    })),
   })
 })

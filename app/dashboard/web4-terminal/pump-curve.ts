@@ -3,6 +3,15 @@
  * 1B supply · 85 SOL graduation target · quadratic price discovery via x*y=k.
  */
 
+import {
+  applyBuyToken,
+  applySellToken,
+  priceSolToken,
+  progressPctToken,
+  quoteBuyToken,
+  quoteSellToken,
+} from '@/lib/web4/bonding-curve/adapter'
+
 export const PUMP_TOTAL_SUPPLY = 1_000_000_000
 export const PUMP_GRADUATION_SOL = 85
 export const PUMP_VIRTUAL_SOL = 30
@@ -35,14 +44,8 @@ export function mintAddress(): string {
   return s
 }
 
-export function priceSol(token: BondingToken): number {
-  if (token.virtualToken <= 0) return 0
-  return token.virtualSol / token.virtualToken
-}
-
 export function progressPct(token: BondingToken): number {
-  if (token.graduated) return 100
-  return Math.min(100, (token.realSolRaised / PUMP_GRADUATION_SOL) * 100)
+  return progressPctToken(token)
 }
 
 export function marketCapUsd(token: BondingToken, solUsd: number): number {
@@ -85,67 +88,26 @@ export function applyBuy(
   solIn: number,
   skipWallet = false,
 ): { tokensOut: number; solSpent: number; next: BondingToken; price: number; graduated: boolean } {
-  if (token.graduated || solIn <= 0) {
-    return { tokensOut: 0, solSpent: 0, next: token, price: priceSol(token), graduated: token.graduated }
-  }
-  const fee = solIn * PUMP_FEE_RATE
-  const netSol = Math.max(0, solIn - fee)
-  const k = token.virtualSol * token.virtualToken
-  const newVirtualSol = token.virtualSol + netSol
-  const newVirtualToken = k / newVirtualSol
-  const tokensOut = token.virtualToken - newVirtualToken
-  const realSolRaised = Math.min(PUMP_GRADUATION_SOL, token.realSolRaised + netSol)
-  const graduated = realSolRaised >= PUMP_GRADUATION_SOL
-  const next: BondingToken = {
-    ...token,
-    virtualSol: newVirtualSol,
-    virtualToken: newVirtualToken,
-    realSolRaised,
-    tokensSold: token.tokensSold + tokensOut,
-    volumeSol: token.volumeSol + solIn,
-    graduated,
-  }
-  return {
-    tokensOut,
-    solSpent: skipWallet ? 0 : solIn,
-    next,
-    price: priceSol(next),
-    graduated,
-  }
+  return applyBuyToken(token, solIn, skipWallet)
 }
 
 export function applySell(
   token: BondingToken,
   tokenIn: number,
 ): { solOut: number; next: BondingToken; price: number } {
-  if (token.graduated || tokenIn <= 0) {
-    return { solOut: 0, next: token, price: priceSol(token) }
-  }
-  const k = token.virtualSol * token.virtualToken
-  const newVirtualToken = token.virtualToken + tokenIn
-  const newVirtualSol = k / newVirtualToken
-  let solOut = token.virtualSol - newVirtualSol
-  const fee = solOut * PUMP_FEE_RATE
-  solOut = Math.max(0, solOut - fee)
-  const next: BondingToken = {
-    ...token,
-    virtualSol: newVirtualSol,
-    virtualToken: newVirtualToken,
-    tokensSold: Math.max(0, token.tokensSold - tokenIn),
-    volumeSol: token.volumeSol + solOut,
-    realSolRaised: Math.max(0, token.realSolRaised - solOut * 0.98),
-  }
-  return { solOut, next, price: priceSol(next) }
+  return applySellToken(token, tokenIn)
 }
 
-/** Quote buy without mutating state */
 export function quoteBuy(token: BondingToken, solIn: number): number {
-  return applyBuy(token, solIn, true).tokensOut
+  return quoteBuyToken(token, solIn)
 }
 
-/** Quote sell without mutating state */
 export function quoteSell(token: BondingToken, tokenIn: number): number {
-  return applySell(token, tokenIn).solOut
+  return quoteSellToken(token, tokenIn)
+}
+
+export function priceSol(token: BondingToken): number {
+  return priceSolToken(token)
 }
 
 export function change24hPct(token: BondingToken): number {

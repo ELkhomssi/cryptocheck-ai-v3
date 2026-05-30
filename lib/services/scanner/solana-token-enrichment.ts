@@ -119,7 +119,6 @@ export async function enrichScanBodyFromChain(body: Record<string, unknown>): Pr
     }
   }
 
-  const { connection } = getPrimaryConnection()
   let merged: ChainEnrichmentFields = {}
 
   const verified = VERIFIED_DEEP_LIQUIDITY[mint]
@@ -133,7 +132,13 @@ export async function enrichScanBodyFromChain(body: Record<string, unknown>): Pr
     }
   }
 
+  // On-chain enrichment is best-effort: a missing HELIUS_API_KEY (getPrimaryConnection throws)
+  // or an RPC failure must NOT 500 the scan. Degrade to a low-confidence result instead.
+  let enrichmentFailed = false
+  let enrichmentError: string | undefined
+
   try {
+    const { connection } = getPrimaryConnection()
     const mintPk = new PublicKey(mint)
     const [m, largestRows] = await Promise.all([
       getMint(connection, mintPk),
@@ -152,18 +157,31 @@ export async function enrichScanBodyFromChain(body: Record<string, unknown>): Pr
     }
 
     if (merged.enrichmentConfidenceHint == null) merged.enrichmentConfidenceHint = 72
-  } catch {
-    if (merged.enrichmentConfidenceHint == null) merged.enrichmentConfidenceHint = verified ? 88 : 58
+  } catch (e) {
+    enrichmentFailed = true
+    enrichmentError = e instanceof Error ? e.message : String(e)
+    console.error('[enrichScanBodyFromChain] enrichment failed; continuing with degraded data', {
+      mint,
+      error: enrichmentError,
+    })
+    // Low confidence when chain data is unavailable; verified majors retain a modest floor.
+    if (merged.enrichmentConfidenceHint == null) merged.enrichmentConfidenceHint = verified ? 88 : 30
   }
 
   if (!verified) {
     merged.regulatedIssuer = false
     if (merged.enrichmentConfidenceHint == null || merged.enrichmentConfidenceHint > 72)
-      merged.enrichmentConfidenceHint = 60
+      merged.enrichmentConfidenceHint = enrichmentFailed ? 30 : 60
   }
 
-  const out = { ...body, ...merged }
-  if (r) {
+  const out: Record<string, unknown> = { ...body, ...merged }
+  if (enrichmentFailed) {
+    out._enrichment_failed = true
+    out._enrichment_error = enrichmentError
+  }
+
+  // Only cache successful enrichment — never persist a degraded/failed snapshot.
+  if (r && !enrichmentFailed) {
     try {
       await r.set(cacheKey, JSON.stringify(merged), { ex: ENRICH_TTL_SEC })
     } catch {

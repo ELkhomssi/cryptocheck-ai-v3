@@ -1,6 +1,5 @@
 'use client'
 
-import { Zap } from 'lucide-react'
 import { ageLabel, fmtCompact, shortMint } from '../terminal-utils'
 import type { TokenCard } from '../terminal-types'
 import { TokenAvatar } from './TokenAvatar'
@@ -15,11 +14,11 @@ export function TrendingView({
   onQuickBuy: (mint: string) => void
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-[#1f1f1f] bg-[#0d0d0d]">
+    <div className="web4-panel overflow-hidden p-0">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[900px] text-left text-sm">
           <thead>
-            <tr className="border-b border-[#1f1f1f] text-[0.65rem] uppercase tracking-wider text-white/40">
+            <tr className="border-b border-[#2a2a2a] text-xs uppercase tracking-wide text-[#666]">
               <th className="px-4 py-3 font-medium">Pair</th>
               <th className="px-4 py-3 font-medium">Market Cap</th>
               <th className="px-4 py-3 font-medium">Liquidity</th>
@@ -33,7 +32,7 @@ export function TrendingView({
             {cards.map((coin) => (
               <tr
                 key={coin.id}
-                className="border-b border-[#1a1a1a] transition hover:bg-white/[0.02]"
+                className="border-b border-[#2a2a2a] transition hover:bg-[#1a1a1a]"
               >
                 <td className="px-4 py-3">
                   <button
@@ -93,10 +92,9 @@ export function TrendingView({
                   <button
                     type="button"
                     onClick={() => onQuickBuy(coin.mint)}
-                    className="flex items-center gap-1 rounded-lg bg-[#22c55e] px-3 py-1.5 text-xs font-bold text-black hover:bg-[#86efac]"
+                    className="web4-btn-buy px-3 py-1.5 text-xs"
                   >
-                    <Zap className="h-3.5 w-3.5" />
-                    0.1
+                    0.1 SOL
                   </button>
                 </td>
               </tr>

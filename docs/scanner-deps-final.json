@@ -1,0 +1,198 @@
+{
+  "../../api/scan-api-errors.ts": [],
+  "../../auth/pro-feature-access.ts": [
+    "../../middleware/with-api-auth.ts",
+    "../../types/tier.ts",
+    "../subscription.service.ts"
+  ],
+  "../../billing/consumer-tier.ts": [
+    "../../supabase/admin.ts"
+  ],
+  "../../cache/scan-cache.ts": [
+    "types.ts"
+  ],
+  "../../config/public-pro-scan.ts": [],
+  "../../config/sentinel-qa-bypass.ts": [
+    "../../config/public-pro-scan.ts",
+    "../api-key-v2.service.ts"
+  ],
+  "../../config/tiers.ts": [],
+  "../../crypto/hash.ts": [],
+  "../../data/known-rugpull-fingerprints.ts": [],
+  "../../dexscreener/fetch-token-metrics.ts": [],
+  "../../helius-server.ts": [
+    "../../helius.ts"
+  ],
+  "../../helius.ts": [],
+  "../../intelligence/fetch-token-intelligence.ts": [
+    "../../dexscreener/fetch-token-metrics.ts",
+    "../../helius-server.ts",
+    "../../helius.ts",
+    "../../intelligence/risk-score.ts",
+    "../../sentinel/liquidity-lock.ts",
+    "../../types/intelligence.ts"
+  ],
+  "../../intelligence/risk-score.ts": [
+    "../../types/intelligence.ts"
+  ],
+  "../../middleware/with-api-auth.ts": [
+    "../../api/scan-api-errors.ts",
+    "../../types/tier.ts",
+    "../api-key.service.ts",
+    "../rate-limit.service.ts",
+    "../saas-entitlement.service.ts",
+    "../security-log.service.ts",
+    "../subscription.service.ts"
+  ],
+  "../../sentinel/liquidity-lock.ts": [
+    "../../helius-server.ts",
+    "../../types/intelligence.ts"
+  ],
+  "../../solana/connection.ts": [
+    "RpcProviderManager.ts"
+  ],
+  "../../supabase/admin.ts": [],
+  "../../telemetry/scan-timing.ts": [
+    "../../supabase/admin.ts"
+  ],
+  "../../types/intelligence.ts": [
+    "../../types/tier.ts"
+  ],
+  "../../types/saas-subscription.ts": [],
+  "../../types/tier.ts": [
+    "../../config/tiers.ts"
+  ],
+  "../../webhooks/constants.ts": [],
+  "../../webhooks/deliver.ts": [
+    "../../webhooks/signing.ts",
+    "../../webhooks/types.ts"
+  ],
+  "../../webhooks/dispatch.ts": [
+    "../../supabase/admin.ts",
+    "../../webhooks/deliver.ts",
+    "../../webhooks/enterprise-gate.ts",
+    "../../webhooks/retry-queue.ts",
+    "../../webhooks/types.ts"
+  ],
+  "../../webhooks/enterprise-gate.ts": [
+    "../user-subscription.service.ts"
+  ],
+  "../../webhooks/retry-queue.ts": [
+    "../../supabase/admin.ts",
+    "../../webhooks/constants.ts",
+    "../../webhooks/deliver.ts",
+    "../../webhooks/types.ts"
+  ],
+  "../../webhooks/signing.ts": [],
+  "../../webhooks/types.ts": [],
+  "../api-key-v2.service.ts": [
+    "../../crypto/hash.ts",
+    "../../supabase/admin.ts",
+    "../../types/tier.ts"
+  ],
+  "../api-key.service.ts": [
+    "../../config/sentinel-qa-bypass.ts",
+    "../../crypto/hash.ts",
+    "../../supabase/admin.ts",
+    "../api-key-v2.service.ts"
+  ],
+  "../pulse-feed.service.ts": [
+    "../../supabase/admin.ts"
+  ],
+  "../rate-limit.service.ts": [
+    "../../types/tier.ts"
+  ],
+  "../saas-entitlement.service.ts": [
+    "../../config/sentinel-qa-bypass.ts",
+    "../saas-subscription.service.ts"
+  ],
+  "../saas-subscription.service.ts": [
+    "../../supabase/admin.ts",
+    "../../types/saas-subscription.ts",
+    "../../types/tier.ts"
+  ],
+  "../scanner-engine.ts": [
+    "../../data/known-rugpull-fingerprints.ts",
+    "../../solana/connection.ts",
+    "../swap-simulation.ts"
+  ],
+  "../security-log.service.ts": [
+    "../../supabase/admin.ts"
+  ],
+  "../subscription.service.ts": [
+    "../../config/sentinel-qa-bypass.ts",
+    "../../supabase/admin.ts",
+    "../../types/saas-subscription.ts",
+    "../../types/tier.ts",
+    "../saas-subscription.service.ts"
+  ],
+  "../swap-simulation.ts": [],
+  "../user-subscription.service.ts": [
+    "../../billing/consumer-tier.ts",
+    "../../config/sentinel-qa-bypass.ts",
+    "../../supabase/admin.ts",
+    "../../types/saas-subscription.ts",
+    "../../types/tier.ts",
+    "../saas-subscription.service.ts"
+  ],
+  "ErrorHandler.ts": [
+    "../../api/scan-api-errors.ts"
+  ],
+  "RpcProviderManager.ts": [
+    "../../helius-server.ts"
+  ],
+  "ScannerCache.ts": [
+    "types.ts"
+  ],
+  "TransactionSimulator.ts": [
+    "../scanner-engine.ts",
+    "types.ts"
+  ],
+  "execute-scan.ts": [
+    "../../auth/pro-feature-access.ts",
+    "../../cache/scan-cache.ts",
+    "../../config/public-pro-scan.ts",
+    "../../config/sentinel-qa-bypass.ts",
+    "../../dexscreener/fetch-token-metrics.ts",
+    "../../intelligence/fetch-token-intelligence.ts",
+    "../../telemetry/scan-timing.ts",
+    "../../webhooks/dispatch.ts",
+    "../pulse-feed.service.ts",
+    "../rate-limit.service.ts",
+    "../security-log.service.ts",
+    "ErrorHandler.ts",
+    "ScannerCache.ts",
+    "pipeline/run-institutional-scan.ts",
+    "solana-token-enrichment.ts",
+    "types.ts"
+  ],
+  "index.ts": [
+    "ErrorHandler.ts",
+    "RpcProviderManager.ts",
+    "ScannerCache.ts",
+    "TransactionSimulator.ts",
+    "execute-scan.ts",
+    "pipeline/run-institutional-scan.ts",
+    "types.ts",
+    "weighted-score.ts"
+  ],
+  "pipeline/run-institutional-scan.ts": [
+    "../scanner-engine.ts",
+    "../swap-simulation.ts",
+    "ErrorHandler.ts",
+    "RpcProviderManager.ts",
+    "TransactionSimulator.ts",
+    "types.ts",
+    "weighted-score.ts"
+  ],
+  "solana-token-enrichment.ts": [
+    "RpcProviderManager.ts"
+  ],
+  "types.ts": [
+    "../scanner-engine.ts"
+  ],
+  "weighted-score.ts": [
+    "../scanner-engine.ts",
+    "types.ts"
+  ]
+}

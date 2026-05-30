@@ -4,13 +4,15 @@ import { scanClientIp } from '@/lib/auth/scan-access'
 import { ANONYMOUS_PUBLIC_PRO_SCAN_USER_ID } from '@/lib/config/public-pro-scan'
 import { mergeWithRateLimitHeaders, scanApiErrorPayload } from '@/lib/api/scan-api-errors'
 import { enforcePublicProScanLimit } from '@/lib/rate-limit/public-pro-portal'
-import { runInstitutionalScan } from '@/lib/services/scanner/execute-scan'
-import { normalizeScanBody } from '@/lib/services/scanner/normalize-scan-body'
-import { ScanServiceError } from '@/lib/services/scanner/ErrorHandler'
+import {
+  scanViaGateway,
+  normalizeScanBody,
+  ScanServiceError,
+  gatewayResponseHeaders,
+} from '@/lib/connect/scan-gateway'
+import { scheduleCanonicalMerge } from '@/lib/connect/canonical-async'
 import type { ProFeatureContext } from '@/lib/auth/pro-feature-access'
 import { SentinelServerMisconfigurationError } from '@/lib/security/signing'
-import { canonicalScan } from '@/lib/sentinel/canonical-scan'
-import { mergeReasoningWithCanonical } from '@/lib/sentinel/merge-canonical-institutional'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -35,10 +37,10 @@ export async function POST(req: NextRequest) {
       }),
       {
         status: 429,
-        headers: {
+        headers: gatewayResponseHeaders({
           'Retry-After': String(retrySec),
           ...mergeWithRateLimitHeaders({ limit: limit.limit, remaining: limit.remaining, reset: limit.reset }),
-        },
+        }),
       }
     )
   }
@@ -55,7 +57,7 @@ export async function POST(req: NextRequest) {
     body = normalizeScanBody(rawBody)
   } catch (e) {
     const err = e instanceof ScanServiceError ? e : new ScanServiceError('Invalid request', 'INVALID_INPUT', 400)
-    return NextResponse.json(err.toJSON(), { status: err.httpStatus })
+    return NextResponse.json(err.toJSON(), { status: err.httpStatus, headers: gatewayResponseHeaders() })
   }
 
   const ctx: ProFeatureContext = {
@@ -65,25 +67,29 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await runInstitutionalScan(req, ctx, body, { skipSessionRateLimit: true })
+    const result = await scanViaGateway(req, ctx, body, { skipSessionRateLimit: true, skipChainEnrich: true })
     if (result.ok === false) {
       const err = result.error
       if (err instanceof SentinelServerMisconfigurationError) {
-        return NextResponse.json(err.toResponseBody(), { status: 500 })
+        return NextResponse.json(err.toResponseBody(), { status: 500, headers: gatewayResponseHeaders() })
       }
-      return NextResponse.json(err.toJSON(), { status: err.httpStatus })
+      return NextResponse.json(err.toJSON(), { status: err.httpStatus, headers: gatewayResponseHeaders() })
     }
 
     const { snapshot, meta } = result
     const mint = String(body.mint ?? body.tokenAddress ?? '').trim()
-    const canonical = await canonicalScan(mint)
-    const canonicalReasoning = mergeReasoningWithCanonical(snapshot.reasoning, canonical)
+    const fastDepth = body.depth === 'fast' || rawBody.depth === 'fast'
     const responseTimeMs = Date.now() - started
+
+    if (!fastDepth && mint.length >= 32) {
+      scheduleCanonicalMerge(mint, snapshot, body)
+    }
+
     const payload = {
-      score: canonical.riskScore,
+      score: snapshot.weighted.score,
       confidence: snapshot.weighted.confidence,
       risk_breakdown: snapshot.weighted.risk_breakdown,
-      reasoning: canonicalReasoning,
+      reasoning: snapshot.reasoning,
       wallet_reputation: snapshot.walletReputation,
       simulator: snapshot.simulator,
       rpc_provider: snapshot.rpcProviderLabel,
@@ -91,7 +97,6 @@ export async function POST(req: NextRequest) {
       pipeline_ms: snapshot.totalPipelineMs,
       last_updated: snapshot.updatedAt,
       cache: meta.cache,
-      canonical,
       meta: {
         response_time_ms: responseTimeMs,
         auth_via: 'session' as const,
@@ -102,20 +107,21 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(payload, {
       status: 200,
-      headers: {
+      headers: gatewayResponseHeaders({
         'X-Cache': meta.cache === 'hit' ? 'HIT' : 'MISS',
         'X-Cache-Hit': meta.cache === 'hit' ? 'true' : 'false',
         'X-Response-Time-Ms': String(responseTimeMs),
         'X-RPC-Provider': snapshot.rpcProviderLabel,
         'X-Request-Id': requestId,
         ...mergeWithRateLimitHeaders({ limit: limit.limit, remaining: limit.remaining, reset: limit.reset }),
-      },
+      }),
     })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Scan failed'
     console.error('[api/v1/scan/public] fail', { requestId, message: msg })
     return NextResponse.json(scanApiErrorPayload(msg, 500, 'INTERNAL', { reason: 'INTERNAL', severity: 'high' }), {
       status: 500,
+      headers: gatewayResponseHeaders(),
     })
   }
 }

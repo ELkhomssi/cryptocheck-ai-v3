@@ -1,4 +1,4 @@
-import { IntelReportCardsView } from '@/components/Dashboard/intelligence-terminal/IntelReportCards'
+import { IntelReportCardsView } from '../components/IntelReportCards'
 import { Eye, EyeOff, Loader2, Radar } from 'lucide-react'
 import { useId, useState, type FormEvent } from 'react'
 import { BrandLogo, BrandWordmark } from '../components/BrandLogo'

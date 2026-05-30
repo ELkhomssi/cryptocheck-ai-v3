@@ -6,6 +6,7 @@ import { getMintKeyedScanV2, setMintKeyedScanV2 } from '@/lib/cache/scan-cache'
 import { buildTokenIntelligenceReport } from '@/lib/intelligence/fetch-token-intelligence'
 import { enrichScanBodyFromChain } from '@/lib/services/scanner/solana-token-enrichment'
 import { runInstitutionalPipeline } from '@/lib/services/scanner/pipeline/run-institutional-scan'
+import { runFastInstitutionalPipeline } from '@/lib/services/scanner/fast-pipeline'
 import {
   getInstitutionalScan,
   setInstitutionalScan,
@@ -47,6 +48,10 @@ export type RunInstitutionalScanOptions = {
   skipSessionRateLimit?: boolean
 }
 
+function isFastDepth(body: Record<string, unknown>): boolean {
+  return body.depth === 'fast'
+}
+
 /**
  * Shared execution path for POST `/api/v1/scan` and `/api/v1/scan/reasoning` (same cache & audit semantics).
  */
@@ -58,6 +63,7 @@ export async function runInstitutionalScan(
 ): Promise<InstitutionalScanResult> {
   const started = Date.now()
   const suppressAudit = options?.suppressAudit === true
+  const fastMode = isFastDepth(body)
   const mintEarly = String(body.mint ?? body.tokenAddress ?? '').trim()
 
   let enrichMs = 0
@@ -68,9 +74,11 @@ export async function runInstitutionalScan(
     enrichMs = Date.now() - s
     return out
   })()
+  // Fast mode skips DexScreener (~100–300ms); enrichment still runs for authority/holder fields.
   const dexPromise =
-    mintEarly.length >= 32
-      ? (async () => {
+    fastMode || mintEarly.length < 32
+      ? Promise.resolve(null)
+      : (async () => {
           const s = Date.now()
           try {
             const m = await fetchTokenMetrics(mintEarly)
@@ -81,10 +89,10 @@ export async function runInstitutionalScan(
             return null
           }
         })()
-      : Promise.resolve(null)
 
   const [preparedRaw, dexMetrics] = await Promise.all([enrichPromise, dexPromise])
   let prepared = mergeDexLiquidityHint(preparedRaw, dexMetrics)
+  const enrichmentFailed = prepared._enrichment_failed === true
   const cacheKey = scanBodyCacheKey(prepared)
   const mintLabel = String(prepared.mint ?? body.mint ?? body.tokenAddress ?? '')
 
@@ -150,6 +158,7 @@ export async function runInstitutionalScan(
         responseTimeMs: Date.now() - started,
         userId: ctx.userId,
         authVia: ctx.via,
+        enrichmentFailed,
       },
     }
   }
@@ -190,13 +199,16 @@ export async function runInstitutionalScan(
         responseTimeMs: Date.now() - started,
         userId: ctx.userId,
         authVia: ctx.via,
+        enrichmentFailed,
       },
     }
   }
 
   try {
     const analyzeStart = Date.now()
-    const snapshot = await runInstitutionalPipeline(prepared)
+    const snapshot = fastMode
+      ? await runFastInstitutionalPipeline(prepared)
+      : await runInstitutionalPipeline(prepared)
     const analyzeMs = Date.now() - analyzeStart
     await setInstitutionalScan(cacheKey, snapshot)
     if (mintLabel.length >= 32) {
@@ -264,6 +276,7 @@ export async function runInstitutionalScan(
         responseTimeMs: Date.now() - started,
         userId: ctx.userId,
         authVia: ctx.via,
+        enrichmentFailed,
       },
     }
   } catch (e) {
