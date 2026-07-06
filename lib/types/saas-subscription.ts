@@ -24,4 +24,6 @@ export type SaasSubscriptionRow = {
   updated_at: string
   stripe_customer_id: string | null
   stripe_subscription_id: string | null
+  full_access?: boolean | null
+  stripe_price_id?: string | null
 }

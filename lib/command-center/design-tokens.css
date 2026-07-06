@@ -1,0 +1,123 @@
+/**
+ * Command Center — dark green-on-black design system (/dashboard home).
+ */
+
+:root {
+  --cc-bg: #0a0e09;
+  --cc-panel: #10150f;
+  --cc-panel-2: #151b13;
+  --cc-hairline: rgba(120, 220, 120, 0.14);
+  --cc-inner: rgba(255, 255, 255, 0.06);
+
+  --cc-green: #7be84b;
+  --cc-green-dim: rgba(123, 232, 75, 0.12);
+  --cc-green-deep: #1e3d14;
+  --cc-red: #ff5a5a;
+  --cc-amber: #f2b84c;
+  --cc-sky: #4da6ff;
+  --cc-orange: #f2a44c;
+  --cc-gold: #e8c547;
+
+  --cc-hi: #f2f5f0;
+  --cc-mid: #9fb09a;
+  --cc-lo: #5e6b5a;
+
+  --cc-radius: 12px;
+  --cc-radius-lg: 14px;
+  --cc-radius-chip: 8px;
+
+  --cc-motion: 180ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --cc-motion: 0ms;
+  }
+}
+
+.cc-shell {
+  background: var(--cc-bg);
+  color: var(--cc-hi);
+  min-height: 100vh;
+}
+
+.cc-panel {
+  background: var(--cc-panel);
+  border: 1px solid var(--cc-hairline);
+  border-radius: var(--cc-radius);
+}
+
+.cc-panel-2 {
+  background: var(--cc-panel-2);
+  border: 1px solid var(--cc-inner);
+  border-radius: var(--cc-radius);
+}
+
+.cc-label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cc-mid);
+}
+
+.cc-mono {
+  font-family: var(--font-cc-mono), 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.cc-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(123, 232, 75, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  background-size: 200% 100%;
+  animation: cc-shimmer 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cc-shimmer {
+    animation: none;
+  }
+}
+
+@keyframes cc-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes cc-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cc-row-enter {
+  animation: cc-slide-in 0.32s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cc-row-enter {
+    animation: none;
+  }
+}
+
+.cc-sample-tag {
+  border: 1px solid var(--cc-inner);
+  color: var(--cc-lo);
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}

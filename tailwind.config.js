@@ -8,9 +8,13 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
+        /** Revenue Dashboard — Syncopate labels; load via `app/dashboard/revenue/layout.tsx` */
+        'rd-display': ['var(--font-rd-display)', 'Syncopate', 'ui-sans-serif', 'sans-serif'],
+        'rd-mono': ['var(--font-rd-mono)', 'JetBrains Mono', 'ui-monospace', 'monospace'],
         /** Dashboard forensic titles — loaded via `app/dashboard/layout.tsx` */
         space: ['var(--font-space-grotesk)', 'Space Grotesk', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        'dash-mono': ['var(--font-dash-mono)', 'JetBrains Mono', 'ui-monospace', 'monospace'],
         // Global dashboard mono stays IBM Plex Mono.
         mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
         // Terminal-only. Opt in by using `font-mono-terminal` inside
@@ -26,6 +30,41 @@ module.exports = {
         ],
       },
       colors: {
+        dash: {
+          bg: '#0A0E09',
+          panel: '#10150F',
+          panel2: '#151B13',
+          inset: '#0C110B',
+          hairline: 'rgba(120,220,120,0.14)',
+          innerline: 'rgba(255,255,255,0.06)',
+          green: '#7BE84B',
+          greenHi: '#A3F55F',
+          greenDim: 'rgba(123,232,75,0.12)',
+          greenDeep: '#1E3D14',
+          gold: '#F2C14C',
+          red: '#FF5A5A',
+          amber: '#F2B84C',
+          sky: '#4DA6FF',
+          violet: '#8A6CF5',
+          orangeTx: '#F2A44C',
+          thi: '#F2F5F0',
+          tmid: '#9FB09A',
+          tlo: '#5E6B5A',
+        },
+        rd: {
+          navy: '#0A1230',
+          navy2: '#0D1738',
+          panel: '#101B42',
+          green: '#3FE05A',
+          lime: '#C6E833',
+          violet: '#7C5CFC',
+          hi: '#EAF1EC',
+          mid: '#9BB0C4',
+          lo: '#5E7088',
+          safe: '#3FE05A',
+          caution: '#F2B84C',
+          danger: '#FF5A6E',
+        },
         'bg-base':     '#0e1117',
         'bg-surface':  '#161b22',
         'bg-panel':    '#0d1117',
@@ -46,7 +85,14 @@ module.exports = {
         'text-muted':     '#8b949e',
         'text-dim':       '#6e7681',
       },
+      borderRadius: {
+        dash: '14px',
+        'dash-inner': '12px',
+        'dash-chip': '8px',
+        'dash-pill': '999px',
+      },
       boxShadow: {
+        'dash-ring': '0 0 6px rgba(123,232,75,0.45)',
         'neon-indigo':    '0 0 16px rgba(99,102,241,0.35)',
         'neon-indigo-lg': '0 0 32px rgba(99,102,241,0.45)',
         'neon-cyan':      '0 0 16px rgba(6,182,212,0.3)',
@@ -59,7 +105,8 @@ module.exports = {
         'float':      'float 4s ease-in-out infinite',
         'slide-in':   'slideIn 0.25s ease',
         'fade-up':    'fadeUp 0.3s ease forwards',
-        'ticker':     'ticker 30s linear infinite',
+        'ticker':     'ticker 40s linear infinite',
+        'ticker-slow': 'ticker 40s linear infinite',
         'shimmer':    'shimmer 1.5s infinite',
         'ring-1':     'spin 1.2s linear infinite',
         'ring-2':     'spinReverse 1.8s linear infinite',

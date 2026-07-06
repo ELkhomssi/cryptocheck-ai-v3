@@ -1,0 +1,114 @@
+# Signal Aggregator workers — run on a VPS / Railway / Fly (not Vercel).
+# Copy services/*/.env.example values into .env.signals at repo root, then:
+#   docker compose -f docker-compose.signals.yml up -d --build
+
+services:
+  signal-realtime:
+    build:
+      context: .
+      dockerfile: services/Dockerfile.signal-worker
+      args:
+        SERVICE: realtime
+    environment:
+      SIGNAL_SERVICE: realtime
+      SIGNAL_REALTIME_PORT: 4102
+      UPSTASH_REDIS_REST_URL: ${UPSTASH_REDIS_REST_URL}
+      UPSTASH_REDIS_REST_TOKEN: ${UPSTASH_REDIS_REST_TOKEN}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      SIGNAL_PREMIUM_TOKEN: ${SIGNAL_PREMIUM_TOKEN:-}
+      SIGNAL_WORKER_SECRET: ${SIGNAL_WORKER_SECRET}
+      SIGNAL_ASSESS_URL: ${SIGNAL_ASSESS_URL:-https://www.cryptocheckai.com}
+      SIGNAL_FREE_DELAY_MS: ${SIGNAL_FREE_DELAY_MS:-90000}
+      SIGNAL_WS_COALESCE_MS: ${SIGNAL_WS_COALESCE_MS:-250}
+    ports:
+      - "4102:4102"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4102/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  signal-ingestion:
+    build:
+      context: .
+      dockerfile: services/Dockerfile.signal-worker
+      args:
+        SERVICE: ingestion
+    environment:
+      SIGNAL_SERVICE: ingestion
+      SIGNAL_SOURCES: ${SIGNAL_SOURCES:-telegram}
+      TELEGRAM_API_ID: ${TELEGRAM_API_ID:-}
+      TELEGRAM_API_HASH: ${TELEGRAM_API_HASH:-}
+      TELEGRAM_SESSION_STRING: ${TELEGRAM_SESSION_STRING:-}
+      TXLINE_API_ORIGIN: ${TXLINE_API_ORIGIN:-https://txline.txodds.com}
+      TXLINE_JWT: ${TXLINE_JWT:-}
+      TXLINE_API_TOKEN: ${TXLINE_API_TOKEN:-}
+      TXLINE_STREAM_MODE: ${TXLINE_STREAM_MODE:-both}
+      UPSTASH_REDIS_REST_URL: ${UPSTASH_REDIS_REST_URL}
+      UPSTASH_REDIS_REST_TOKEN: ${UPSTASH_REDIS_REST_TOKEN}
+      SIGNAL_INGESTION_HEALTH_PORT: 4101
+    ports:
+      - "4101:4101"
+    restart: unless-stopped
+
+  signal-parser:
+    build:
+      context: .
+      dockerfile: services/Dockerfile.signal-worker
+      args:
+        SERVICE: parser
+    environment:
+      SIGNAL_SERVICE: parser
+      UPSTASH_REDIS_REST_URL: ${UPSTASH_REDIS_REST_URL}
+      UPSTASH_REDIS_REST_TOKEN: ${UPSTASH_REDIS_REST_TOKEN}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      SIGNAL_PARSER_HEALTH_PORT: 4103
+    ports:
+      - "4103:4103"
+    restart: unless-stopped
+
+  signal-enrich:
+    build:
+      context: .
+      dockerfile: services/Dockerfile.signal-worker
+      args:
+        SERVICE: enrich
+    environment:
+      SIGNAL_SERVICE: enrich
+      UPSTASH_REDIS_REST_URL: ${UPSTASH_REDIS_REST_URL}
+      UPSTASH_REDIS_REST_TOKEN: ${UPSTASH_REDIS_REST_TOKEN}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      SIGNAL_ASSESS_URL: ${SIGNAL_ASSESS_URL:-https://www.cryptocheckai.com}
+      SIGNAL_WORKER_SECRET: ${SIGNAL_WORKER_SECRET}
+      SIGNAL_ENRICH_HEALTH_PORT: 4104
+    ports:
+      - "4104:4104"
+    restart: unless-stopped
+
+  # Primary multi-source path (TelegramAdapter + TxODDSAdapter → unified stream)
+  signal-gate:
+    build:
+      context: .
+      dockerfile: services/Dockerfile.signal-worker
+      args:
+        SERVICE: gate
+    environment:
+      SIGNAL_SERVICE: gate
+      UPSTASH_REDIS_REST_URL: ${UPSTASH_REDIS_REST_URL}
+      UPSTASH_REDIS_REST_TOKEN: ${UPSTASH_REDIS_REST_TOKEN}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      SIGNAL_ASSESS_URL: ${SIGNAL_ASSESS_URL:-https://www.cryptocheckai.com}
+      SIGNAL_WORKER_SECRET: ${SIGNAL_WORKER_SECRET}
+      SIGNAL_GATE_HEALTH_PORT: 4105
+    ports:
+      - "4105:4105"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4105/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

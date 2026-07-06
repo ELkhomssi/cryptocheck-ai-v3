@@ -1,0 +1,8 @@
+export { AgentEngine, type AgentEngineResult } from './engine.js'
+export { loadAgentConfig } from './config.js'
+export { AgentStore } from './store.js'
+export { hashRawPacket, hashSettlementInputs, canonicalJson } from './data-hash.js'
+export { verifyCommitment, signCommitment } from './sign.js'
+export { ProofLayer } from './proof/layer.js'
+export { runBacktest, type BacktestMatch, type BacktestTrackRecord } from './backtest/harness.js'
+export { SAMPLE_MATCHES } from './backtest/sample-matches.js'

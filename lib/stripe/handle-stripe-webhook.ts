@@ -13,6 +13,14 @@ type StripeSubscriptionResource = {
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { upsertSaasSubscription } from '@/lib/services/saas-subscription.service'
 import type { SaasSubscriptionStatus, SaasTier } from '@/lib/types/saas-subscription'
+import {
+  extractPrimaryPriceId,
+  grantFullAccessFromStripe,
+  isTwoTierFullAccessPrice,
+  revokeFullAccessForUser,
+  subscriptionGrantsFullAccess,
+  subscriptionStatusToSaas,
+} from '@/lib/stripe/full-access-sync'
 
 /** Narrow Stripe `checkout.session.completed` payload (avoids `Session` name clashes in typings). */
 type CompletedCheckoutSessionPayload = {
@@ -85,6 +93,8 @@ function resolveFromMetadata(meta: Record<string, string> | undefined): Resolved
   if (!p) return null
   if (p === 'enterprise' || p === 'institutional')
     return { plan: 'institutional', planType: 'enterprise', isPro: true, saasTier: 'ENTERPRISE' }
+  if (p === 'basic')
+    return { plan: 'basic', planType: 'basic', isPro: true, saasTier: 'PRO' }
   if (p === 'pro' || p === 'pro-developer' || p === 'pro_developer')
     return { plan: 'pro', planType: 'pro', isPro: true, saasTier: 'PRO' }
   if (p === 'deep' || p === 'pro_max_deep')
@@ -329,6 +339,31 @@ export async function handleStripeWebhook(req: NextRequest): Promise<NextRespons
       }
 
       if (profileId) {
+        const metaPriceId = meta?.price_id?.trim()
+        let priceId =
+          metaPriceId && metaPriceId.startsWith('price_') ? metaPriceId : null
+        if (!priceId && stripeSubscriptionId) {
+          try {
+            priceId = await extractPrimaryPriceId(stripe, stripeSubscriptionId)
+          } catch (e) {
+            console.error('[stripe-webhook] price resolve:', e)
+          }
+        }
+
+        if (priceId && (await isTwoTierFullAccessPrice(priceId))) {
+          await grantFullAccessFromStripe({
+            userId: profileId,
+            priceId,
+            status: 'active',
+            periodStart,
+            periodEnd,
+            cancelAtPeriodEnd,
+            stripeCustomerId,
+            stripeSubscriptionId,
+          })
+          return NextResponse.json({ received: true })
+        }
+
         await applyProfileAfterCheckout(
           profileId,
           resolution,
@@ -341,6 +376,45 @@ export async function handleStripeWebhook(req: NextRequest): Promise<NextRespons
         )
       } else {
         console.warn('[stripe-webhook] checkout.session.completed: no matching profile', checkoutSession.id)
+      }
+    }
+
+    if (event.type === 'customer.subscription.updated') {
+      const stripeSub = event.data.object as unknown as StripeSubscriptionResource & {
+        status?: string
+        items?: { data?: Array<{ price?: { id?: string } }> }
+      }
+      const meta = stripeSub.metadata as Record<string, string> | undefined
+      const userId = meta?.user_id
+      const priceId = stripeSub.items?.data?.[0]?.price?.id
+      if (userId && priceId && (await isTwoTierFullAccessPrice(priceId))) {
+        const cps = stripeSub.current_period_start
+        const cpe = stripeSub.current_period_end
+        const periodStart = typeof cps === 'number' ? new Date(cps * 1000) : new Date()
+        const periodEnd = typeof cpe === 'number' ? new Date(cpe * 1000) : null
+        const stripeStatus = String(stripeSub.status ?? 'canceled')
+        const stripeCustomerId =
+          typeof stripeSub.customer === 'string' ? stripeSub.customer : null
+        const stripeSubscriptionId = typeof stripeSub.id === 'string' ? stripeSub.id : null
+
+        if (subscriptionGrantsFullAccess(stripeStatus)) {
+          await grantFullAccessFromStripe({
+            userId,
+            priceId,
+            status: subscriptionStatusToSaas(stripeStatus),
+            periodStart,
+            periodEnd,
+            cancelAtPeriodEnd: !!stripeSub.cancel_at_period_end,
+            stripeCustomerId,
+            stripeSubscriptionId,
+          })
+        } else {
+          await revokeFullAccessForUser({
+            userId,
+            stripeCustomerId,
+            status: subscriptionStatusToSaas(stripeStatus),
+          })
+        }
       }
     }
 
@@ -402,10 +476,20 @@ export async function handleStripeWebhook(req: NextRequest): Promise<NextRespons
     }
 
     if (event.type === 'customer.subscription.deleted') {
-      const stripeSub = event.data.object as unknown as StripeSubscriptionResource
+      const stripeSub = event.data.object as unknown as StripeSubscriptionResource & {
+        items?: { data?: Array<{ price?: { id?: string } }> }
+      }
       const meta = stripeSub.metadata as Record<string, string> | undefined
       const delEmail = meta?.email
       const userId = meta?.user_id
+      const priceId = stripeSub.items?.data?.[0]?.price?.id
+      const stripeCustomerId =
+        typeof stripeSub.customer === 'string' ? stripeSub.customer : null
+
+      if (typeof userId === 'string' && userId.length > 0 && (await isTwoTierFullAccessPrice(priceId))) {
+        await revokeFullAccessForUser({ userId, stripeCustomerId, status: 'canceled' })
+        return NextResponse.json({ received: true })
+      }
 
       if (typeof userId === 'string' && userId.length > 0) {
         await getSupabaseAdmin()

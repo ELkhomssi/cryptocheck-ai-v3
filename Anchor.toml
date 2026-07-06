@@ -4,15 +4,6 @@
 resolution = true
 skip-lint = false
 
-[programs.localnet]
-web4_launchpad = "DjGTVwckj7649JhWomSaC89vTrD4abrvSpejFQS2armL"
-
-[programs.devnet]
-web4_launchpad = "DjGTVwckj7649JhWomSaC89vTrD4abrvSpejFQS2armL"
-
-[programs.mainnet]
-web4_launchpad = "DjGTVwckj7649JhWomSaC89vTrD4abrvSpejFQS2armL"
-
 [registry]
 url = "https://api.apr.dev"
 

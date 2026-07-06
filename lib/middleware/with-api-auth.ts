@@ -4,6 +4,7 @@ import { userEntitledForProductAccess } from '@/lib/services/saas-entitlement.se
 import { verifyApiKey, touchVerifiedApiKeyLastUsed } from '@/lib/services/api-key.service'
 import { enforceRateLimit } from '@/lib/services/rate-limit.service'
 import { subscriptionService } from '@/lib/services/subscription.service'
+import { userHasFullPlatformAccess } from '@/lib/billing/full-access'
 import { logSecurityEvent } from '@/lib/services/security-log.service'
 import { mergeWithRateLimitHeaders, scanApiErrorPayload } from '@/lib/api/scan-api-errors'
 
@@ -157,6 +158,29 @@ export function withApiAuth(handler: ApiHandlerWithAuth) {
   return async (req: NextRequest) => {
     const result = await authenticateApiRequest(req)
     if (result.ok === false) return result.response
+    return handler(req, result.ctx)
+  }
+}
+
+/** API key auth + server-verified FULL_ACCESS (neural, alpha feed). */
+export function withFullAccessApiAuth(handler: ApiHandlerWithAuth) {
+  return async (req: NextRequest) => {
+    const result = await authenticateApiRequest(req)
+    if (result.ok === false) return result.response
+
+    const allowed = await userHasFullPlatformAccess(result.ctx.userId)
+    if (!allowed) {
+      return NextResponse.json(
+        scanApiErrorPayload(
+          'Full platform access required. Upgrade at /app/upgrade.',
+          403,
+          'FULL_ACCESS_REQUIRED',
+          { reason: 'FULL_ACCESS_REQUIRED', severity: 'medium' },
+        ),
+        { status: 403 },
+      )
+    }
+
     return handler(req, result.ctx)
   }
 }

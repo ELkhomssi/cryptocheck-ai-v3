@@ -1,6 +1,7 @@
 'use client'
 import React from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Home, LayoutDashboard, AlertCircle } from 'lucide-react'
@@ -1113,6 +1114,8 @@ function DexChartTab({
   currentSymbol,
   neuralScore,
   swapModalOpen = false,
+  hasFullAccess = false,
+  onUpgrade,
 }: {
   mint: string
   chartKey: number
@@ -1122,6 +1125,8 @@ function DexChartTab({
   currentSymbol: string
   neuralScore: number | null
   swapModalOpen?: boolean
+  hasFullAccess?: boolean
+  onUpgrade?: () => void
 }) {
   const [rightTab, setRightTab] = useState<'trade'|'sniper'>('trade')
   const dexUrl = `https://dexscreener.com/solana/${mint}?embed=1&theme=dark&trades=0&info=0`
@@ -1188,7 +1193,13 @@ function DexChartTab({
             ] as const).map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setRightTab(tab.id)}
+                onClick={() => {
+                  if (tab.id === 'sniper' && !hasFullAccess) {
+                    onUpgrade?.()
+                    return
+                  }
+                  setRightTab(tab.id)
+                }}
                 style={{
                   flex:1, padding:'7px 6px', border:'none', cursor:'pointer',
                   fontSize:'0.56rem', fontFamily:'"IBM Plex Mono",monospace',
@@ -1232,14 +1243,31 @@ function DexChartTab({
               <JupiterTerminalEmbed mint={mint} suspend={swapModalOpen} minHeight={460} />
             </div>
 
-            {/* AI Sniper — VIP component */}
+            {/* AI Sniper — explicit opt-in; access only with FULL_ACCESS */}
             <div style={{ position:'absolute', inset:0, display: rightTab==='sniper' ? 'flex' : 'none', flexDirection:'column' }}>
-              <AiAutoSniper
-                currentMint={mint}
-                currentSymbol={currentSymbol}
-                neuralScore={neuralScore}
-                isActive={rightTab === 'sniper'}
-              />
+              {hasFullAccess ? (
+                <AiAutoSniper
+                  currentMint={mint}
+                  currentSymbol={currentSymbol}
+                  neuralScore={neuralScore}
+                  isActive={rightTab === 'sniper'}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center flex-1 p-6 text-center gap-3">
+                  <div className="text-3xl">🎯</div>
+                  <p className="text-xs text-[#8b949e] max-w-xs leading-relaxed">
+                    AI Auto-Sniper requires full access. Non-custodial — you enable and sign trades yourself.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={onUpgrade}
+                    className="px-5 py-2.5 rounded-lg text-xs font-bold"
+                    style={{ background: '#00d4aa', color: '#04120e', border: 'none' }}
+                  >
+                    Upgrade
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1392,228 +1420,6 @@ function JupiterSwapModal({ mint, sym, onClose }: {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DexQuote = any
-
-type ProModalPlan = {
-  id: 'starter' | 'deep' | 'elite'
-  name: string
-  price: number
-  period: string
-  badge: string | null
-  badgeColor: string
-  color: string
-  features: string[]
-}
-
-function ProModal({ onClose }: { onClose: () => void }) {
-  const [txStatus, setTxStatus] = React.useState<string | null>(null)
-  const [txStatusIsError, setTxStatusIsError] = React.useState(false)
-  const [loading, setLoading] = React.useState<string | null>(null)
-
-  const plans: ProModalPlan[] = [
-    {
-      id: 'starter',
-      name: 'Micro Pack',
-      price: 5,
-      period: '/one-time',
-      badge: 'STARTER',
-      badgeColor: '#475569',
-      color: '#20b2aa',
-      features: ['10 Deep Neural Scans', 'Rug Detection Reports', 'Basic Risk Scoring', 'Valid 30 days'],
-    },
-    {
-      id: 'deep',
-      name: 'Pro Max Deep',
-      price: 30,
-      period: '/month',
-      badge: 'BEST VALUE',
-      badgeColor: '#00d4aa',
-      color: '#d4af37',
-      features: ['Deep Neural Scan Engine', 'Unlimited Neural Scans', 'GNN Cluster Mapping', 'LP Exit Prediction', '0% Performance Fees'],
-    },
-    {
-      id: 'elite',
-      name: 'Pro Max Elite',
-      price: 40,
-      period: '/month',
-      badge: 'COMMAND CENTER',
-      badgeColor: '#8b5cf6',
-      color: '#8b5cf6',
-      features: ['Everything in Deep', 'Elite Whale Alerts', 'AI Auto-Sniper Bot', 'Neural Risk Filtering', 'Priority RPC Access'],
-    },
-  ]
-
-  type ConsumerPaymentLinks = { micropack: string; proMaxDeep: string; proMaxElite: string }
-
-  async function fetchConsumerPaymentLinks(): Promise<ConsumerPaymentLinks> {
-    const res = await fetch('/api/billing/payment-links', { cache: 'no-store' })
-    const j = (await res.json().catch(() => ({}))) as Record<string, unknown>
-    if (!res.ok) {
-      const msg = typeof j.error === 'string' && j.error ? j.error : 'Could not load payment options'
-      throw new Error(msg)
-    }
-    const micropack = typeof j.micropack === 'string' ? j.micropack.trim() : ''
-    const proMaxDeep = typeof j.proMaxDeep === 'string' ? j.proMaxDeep.trim() : ''
-    const proMaxElite = typeof j.proMaxElite === 'string' ? j.proMaxElite.trim() : ''
-    if (!micropack || !proMaxDeep || !proMaxElite) {
-      throw new Error('Payment not configured')
-    }
-    return { micropack, proMaxDeep, proMaxElite }
-  }
-
-  function paymentUrlForPlan(links: ConsumerPaymentLinks, planId: ProModalPlan['id']): string {
-    if (planId === 'starter') return links.micropack
-    if (planId === 'deep') return links.proMaxDeep
-    return links.proMaxElite
-  }
-
-  /** Card checkout: fresh Payment Link URLs from `/api/billing/payment-links`, then Stripe-hosted redirect. */
-  async function handlePayWithCard(planId: ProModalPlan['id']) {
-    setLoading(planId)
-    setTxStatus(null)
-    setTxStatusIsError(false)
-    try {
-      const { supabase } = await import('@/lib/supabase')
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      if (!session?.user?.id) {
-        setTxStatus('Sign in to continue — we attach your purchase to your account.')
-        setTxStatusIsError(true)
-        return
-      }
-
-      const links = await fetchConsumerPaymentLinks()
-      const raw = paymentUrlForPlan(links, planId)
-      if (!raw) {
-        setTxStatus('This plan is not available. Contact support.')
-        setTxStatusIsError(true)
-        return
-      }
-
-      const q = new URLSearchParams()
-      q.set('client_reference_id', session.user.id)
-      if (session.user.email) q.set('prefilled_email', session.user.email)
-      const sep = raw.includes('?') ? '&' : '?'
-      window.location.href = `${raw}${sep}${q.toString()}`
-    } catch (e: unknown) {
-      console.error('[Payment] Card pay error:', e)
-      setTxStatus(e instanceof Error ? e.message : 'Could not start checkout. Please try again.')
-      setTxStatusIsError(true)
-    } finally {
-      setLoading(null)
-    }
-  }
-
-  return (
-    <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.8)',backdropFilter:'blur(20px)',display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
-      <div onClick={e=>e.stopPropagation()} style={{width:'100%',maxWidth:'min(920px, calc(100vw - 32px))',minWidth:0,boxSizing:'border-box',maxHeight:'90vh',overflowY:'auto',overflowX:'hidden',background:'#0a0e14',border:'1px solid rgba(0,212,170,0.12)',borderRadius:16,boxShadow:'0 32px 80px rgba(0,0,0,0.8)',fontFamily:"'IBM Plex Mono','Inter',monospace"}}>
-        <div style={{textAlign:'center',padding:'28px 20px 20px',position:'relative'}}>
-          <button onClick={onClose} style={{position:'absolute',top:12,right:16,background:'none',border:'none',color:'#484f58',cursor:'pointer',fontSize:20}}>&times;</button>
-          <div style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 12px',borderRadius:16,border:'1px solid rgba(0,212,170,0.2)',background:'rgba(0,212,170,0.05)',marginBottom:12}}>
-            <span style={{fontSize:8,fontWeight:700,color:'#00d4aa',letterSpacing:'0.1em'}}>INSTITUTIONAL ACCESS</span>
-          </div>
-          <h2 style={{fontSize:24,fontWeight:800,color:'#fff',margin:'0 0 6px'}}>Upgrade to <span style={{color:'#00d4aa'}}>PRO</span></h2>
-          <p style={{fontSize:12,color:'#6e7681',margin:0}}>Secure checkout via Stripe — instant access after payment.</p>
-        </div>
-        {txStatus && (
-          <div
-            style={{
-              margin: '0 20px 12px',
-              padding: '10px 14px',
-              borderRadius: 8,
-              fontSize: 11,
-              fontWeight: 600,
-              fontFamily: "'IBM Plex Mono',monospace",
-              textAlign: 'left',
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 10,
-              lineHeight: 1.45,
-              wordBreak: 'break-word',
-              background: txStatusIsError ? 'rgba(251,191,36,0.08)' : 'rgba(0,212,170,0.06)',
-              border: txStatusIsError ? '1px solid rgba(251,191,36,0.35)' : '1px solid rgba(0,212,170,0.15)',
-              color: txStatusIsError ? '#fcd34d' : '#00d4aa',
-              position: 'relative',
-              paddingRight: txStatusIsError ? 36 : 14,
-            }}
-          >
-            {txStatusIsError && (
-              <AlertCircle size={18} style={{ flexShrink: 0, marginTop: 1, opacity: 0.95 }} aria-hidden />
-            )}
-            <span style={{ flex: 1, textAlign: txStatusIsError ? 'left' : 'center' }}>{txStatus}</span>
-            {txStatusIsError && (
-              <button
-                type="button"
-                onClick={() => { setTxStatus(null); setTxStatusIsError(false) }}
-                aria-label="Dismiss message"
-                style={{
-                  position: 'absolute',
-                  top: 8,
-                  right: 10,
-                  background: 'none',
-                  border: 'none',
-                  color: '#94a3b8',
-                  cursor: 'pointer',
-                  fontSize: 18,
-                  lineHeight: 1,
-                  padding: 2,
-                }}
-              >
-                &times;
-              </button>
-            )}
-          </div>
-        )}
-        <div className="pm-modal-grid" style={{display:'grid',gap:12,padding:'14px 20px 16px',width:'100%',maxWidth:'100%',boxSizing:'border-box'}}>
-          {plans.map((pl) => {
-            const recommended = pl.id === 'deep'
-            const cardBorder = recommended
-              ? '1px solid rgba(0,212,170,0.42)'
-              : ('1px solid ' + (pl.badge && pl.id !== 'starter' ? pl.color + '30' : 'rgba(0,212,170,0.08)'))
-            const cardShadow = recommended
-              ? '0 0 28px rgba(0,212,170,0.12), inset 0 1px 0 rgba(0,212,170,0.05)'
-              : undefined
-            const badgeText =
-              pl.badgeColor === '#8b5cf6' || pl.badge === 'STARTER' ? '#f8fafc' : '#0a0a0a'
-            return (
-            <div key={pl.id} className="pm-plan-card" style={{background:'#0d1420',border:cardBorder,boxShadow:cardShadow,borderRadius:12,position:'relative',minWidth:0,overflow:'visible',width:'100%'}}>
-              {pl.badge && <div style={{position:'absolute',top:-10,left:'50%',transform:'translateX(-50%)',zIndex:2,background:pl.badgeColor,color:badgeText,fontSize:8,fontWeight:700,padding:'3px 10px',borderRadius:10,whiteSpace:'nowrap',letterSpacing:'0.06em',boxShadow:'0 2px 8px rgba(0,0,0,0.35)'}}>{pl.badge}</div>}
-              <div className="pm-plan-card-inner" style={{overflow:'hidden',borderRadius:12,padding:'20px 16px'}}>
-                <div style={{textAlign:'center',marginBottom:14}}>
-                  <div style={{fontSize:11,fontWeight:600,color:'#8b949e',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.08em'}}>{pl.name}</div>
-                  <div style={{fontSize:32,fontWeight:800,color:'#fff',lineHeight:1}}>${pl.price}</div>
-                  <div style={{fontSize:11,color:'#484f58'}}>{pl.period}</div>
-                </div>
-                <div style={{display:'flex',flexDirection:'column',gap:5,marginBottom:16}}>
-                  {pl.features.map((f: string) => <div key={f} style={{display:'flex',alignItems:'flex-start',gap:6,fontSize:'clamp(10px,2.8vw,11px)',lineHeight:1.45,color:'#8b949e'}}><span style={{color:pl.color,fontSize:10,marginTop:1}}>{'✓'}</span><span>{f}</span></div>)}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void handlePayWithCard(pl.id)}
-                  disabled={loading === pl.id}
-                  style={{width:'100%',padding:'10px 0',borderRadius:8,border:'1px solid rgba(0,212,170,0.2)',background:'rgba(0,212,170,0.05)',color:'#fff',fontSize:12,fontWeight:600,cursor:loading===pl.id ? 'not-allowed' : 'pointer',opacity:loading===pl.id ? 0.65 : 1,fontFamily:"'IBM Plex Mono',monospace"}}
-                >
-                  {loading === pl.id ? 'Redirecting…' : 'Pay with Card'}
-                </button>
-              </div>
-            </div>
-            )
-          })}
-        </div>
-        <div className='pm-feat-grid' style={{display:'grid',gap:12,padding:'8px 20px 20px'}}>
-          {[{icon:'W',name:'Whale Tracker',desc:'Follow top wallets with >$500K PnL'},{icon:'A',name:'Alpha Feed',desc:'Rug alerts, accumulation signals'},{icon:'S',name:'AI Auto-Sniper',desc:'Neural auto-trade on Jupiter'}].map(f => <div key={f.name} style={{background:'rgba(0,212,170,0.02)',border:'1px solid rgba(0,212,170,0.06)',borderRadius:10,padding:'14px 12px',textAlign:'center'}}><div style={{fontSize:16,marginBottom:6,color:'#00d4aa'}}>{f.icon}</div><div style={{fontSize:11,fontWeight:700,color:'#e2e8f0',marginBottom:3}}>{f.name}</div><div style={{fontSize:9,color:'#484f58',lineHeight:1.5}}>{f.desc}</div></div>)}
-        </div>
-        <div style={{padding:'10px 20px 14px',borderTop:'1px solid rgba(255,255,255,0.04)',textAlign:'center'}}>
-          <span style={{fontSize:9,color:'#303030'}}>
-            Card payments via Stripe Payment Links | No refunds
-          </span>
-        </div>
-      </div>
-      <style>{'.pm-modal-grid{display:grid;grid-template-columns:1fr;width:100%;max-width:100%;gap:12px;box-sizing:border-box}.pm-plan-card{width:100%;min-width:0;max-width:none}.pm-plan-card *{word-break:break-word;overflow-wrap:anywhere}.pm-plan-card-inner{box-sizing:border-box}@media(min-width:768px){.pm-modal-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:767px){.pm-modal-grid{display:flex!important;flex-direction:column!important;align-items:center!important;padding:14px 12px 16px!important}.pm-plan-card{width:100%!important;max-width:400px!important;min-width:0!important}.pm-plan-card-inner{padding:16px 12px!important}}'}</style>
-    </div>
-  )
-}
-
 
 function generateDexQuotes(riskScore: number, supply: number): DexQuote[] {
   // Simulate realistic price spread based on token risk + supply
@@ -1954,8 +1760,40 @@ interface RecentScan { mint: string; name: string; symbol: string; score: number
 
 
 
-function ProGate({ children }: { children: React.ReactNode; feature?: string; icon?: string }) {
-  return <>{children}</>
+function ProGate({
+  children,
+  feature,
+  icon,
+  onUpgrade,
+}: {
+  children: React.ReactNode
+  feature?: string
+  icon?: string
+  onUpgrade?: () => void
+}) {
+  const sub = useSubscription()
+  if (sub.hasFullAccess) return <>{children}</>
+
+  return (
+    <div className="flex flex-col items-center justify-center flex-1 p-8 text-center gap-4">
+      <div className="text-4xl">{icon ?? '🔒'}</div>
+      <h3 className="text-sm font-bold text-[#e2e8f0] tracking-wide uppercase" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>
+        Full access required
+      </h3>
+      <p className="text-xs text-[#6e7681] max-w-md leading-relaxed">
+        {feature ?? 'Upgrade to unlock this feature.'}
+      </p>
+      <button
+        type="button"
+        onClick={onUpgrade}
+        className="px-6 py-3 rounded-lg text-xs font-bold w-full max-w-xs"
+        style={{ background: '#00d4aa', color: '#04120e', border: 'none', fontFamily: 'IBM Plex Mono, monospace' }}
+      >
+        Pay with Card — from $10 / 2 months
+      </button>
+      <p className="text-[9px] text-[#484f58]">Not financial advice · DYOR</p>
+    </div>
+  )
 }
 
 
@@ -2166,7 +2004,8 @@ export default function Dashboard() {
   const [scanCount,   setScanCount]   = useState(0)
   const [slot,        setSlot]        = useState('')
   const [timeStr,     setTimeStr]     = useState('')
-  const [showModal,   setShowModal]   = useState(false)
+  const router = useRouter()
+  const goUpgrade = useCallback(() => router.push('/app/upgrade'), [router])
   const [showAuth,    setShowAuth]    = useState(false)
   const [authUser,    setAuthUser]    = useState<any>(null)
   const [authResolved, setAuthResolved] = useState(false)
@@ -2540,7 +2379,7 @@ export default function Dashboard() {
         if (!checkRes.ok) {
           setScanError(checkJson?.error || 'No credits remaining. Refill to continue scanning.')
           setScanState('error')
-          setShowModal(true)
+          goUpgrade()
           return
         }
         if (typeof checkJson?.credits === 'number') {
@@ -2828,6 +2667,8 @@ export default function Dashboard() {
                 '???'
               }
               neuralScore={scanData ? computeRisk(scanData).score : null}
+              hasFullAccess={sub.hasFullAccess}
+              onUpgrade={goUpgrade}
             />
           </motion.div>
         )
@@ -2852,7 +2693,7 @@ export default function Dashboard() {
               setMintInput(mint)
               doScan(mint)
             }}
-            showModal={() => setShowModal(true)}
+            showModal={() => goUpgrade()}
           />
         </motion.div>
       )
@@ -3018,13 +2859,13 @@ export default function Dashboard() {
           {entitlementPro ? (
             <div style={{display:'flex',alignItems:'center',gap:6,fontSize:'0.6rem',fontFamily:'IBM Plex Mono,monospace'}}>
               <span style={{color:'#6e7681'}}>∞ scans</span>
-              <button type="button" onClick={() => setShowModal(true)} className="btn-terminal px-3 py-1 rounded-[4px] text-[0.62rem]" style={{ color: headerVipStyle ? '#c4b5fd' : '#d4af37', border: headerVipStyle ? '1px solid rgba(139,92,246,0.35)' : '1px solid rgba(212,175,55,0.3)', background: headerVipStyle ? 'rgba(139,92,246,0.08)' : 'rgba(212,175,55,0.06)' }}>
+              <button type="button" onClick={() => goUpgrade()} className="btn-terminal px-3 py-1 rounded-[4px] text-[0.62rem]" style={{ color: headerVipStyle ? '#c4b5fd' : '#d4af37', border: headerVipStyle ? '1px solid rgba(139,92,246,0.35)' : '1px solid rgba(212,175,55,0.3)', background: headerVipStyle ? 'rgba(139,92,246,0.08)' : 'rgba(212,175,55,0.06)' }}>
                 {headerTierLabel}
               </button>
             </div>
           ) : (
             <div style={{display:'flex',alignItems:'center',gap:6}}>
-              <button onClick={() => setShowModal(true)} style={{
+              <button onClick={() => goUpgrade()} style={{
                 display:'flex',alignItems:'center',gap:4,
                 background:credits<3?'rgba(240,165,0,0.1)':'rgba(255,255,255,0.04)',
                 border:credits<3?'1px solid rgba(240,165,0,0.3)':'1px solid #21262d',
@@ -3036,11 +2877,11 @@ export default function Dashboard() {
                 <span style={{fontSize:'0.45rem',color:'#6e7681',fontWeight:600}}><span className='hidden sm:inline'>SCANS</span></span>
               </button>
               {!entitlementPro && credits < 5 && (
-                <button onClick={() => setShowModal(true)} style={{padding:'3px 8px',fontSize:'0.55rem',fontWeight:700,background:'rgba(32,178,170,0.1)',border:'1px solid rgba(32,178,170,0.3)',borderRadius:4,color:'#20b2aa',cursor:'pointer',fontFamily:'IBM Plex Mono,monospace',animation:'pulse 2s infinite'}}>
+                <button onClick={() => goUpgrade()} style={{padding:'3px 8px',fontSize:'0.55rem',fontWeight:700,background:'rgba(32,178,170,0.1)',border:'1px solid rgba(32,178,170,0.3)',borderRadius:4,color:'#20b2aa',cursor:'pointer',fontFamily:'IBM Plex Mono,monospace',animation:'pulse 2s infinite'}}>
                   + REFILL
                 </button>
               )}
-              <button onClick={() => setShowModal(true)} className="btn-terminal px-2 md:px-3 py-1 text-white border-none rounded-[4px] text-[0.55rem] md:text-[0.62rem]" style={{ background:'linear-gradient(135deg,#00d4aa,#059669)', boxShadow:'0 0 12px rgba(0,212,130,0.3)' }}><span className="hidden md:inline">⚡ UPGRADE</span><span className="md:hidden">⚡</span></button>
+              <button onClick={() => goUpgrade()} className="btn-terminal px-2 md:px-3 py-1 text-white border-none rounded-[4px] text-[0.55rem] md:text-[0.62rem]" style={{ background:'linear-gradient(135deg,#00d4aa,#059669)', boxShadow:'0 0 12px rgba(0,212,130,0.3)' }}><span className="hidden md:inline">⚡ UPGRADE</span><span className="md:hidden">⚡</span></button>
             </div>
           )}
           {authUser ? (
@@ -3094,7 +2935,7 @@ export default function Dashboard() {
           <button onClick={() => setView('elite')} className={`px-2.5 py-1.5 rounded-md border text-xs font-bold ${view === 'elite' ? 'text-[#a78bfa] border-[rgba(167,139,250,0.35)] bg-[rgba(139,92,246,0.08)]' : 'text-[#8b949e] border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)]'}`}>
             Elite Whale Alerts
           </button>
-          <button onClick={() => setShowModal(true)} className="px-2.5 py-1.5 rounded-md border text-xs font-bold text-[#20b2aa] border-[rgba(32,178,170,0.35)] bg-[rgba(32,178,170,0.08)]">
+          <button onClick={() => goUpgrade()} className="px-2.5 py-1.5 rounded-md border text-xs font-bold text-[#20b2aa] border-[rgba(32,178,170,0.35)] bg-[rgba(32,178,170,0.08)]">
             Subscription Details
           </button>
         </div>
@@ -3122,7 +2963,7 @@ export default function Dashboard() {
           <div ref={scanTopRef}>
             <MintInput onScan={(v) => {
               if (!entitlementPro && credits <= 0) {
-                setShowModal(true)
+                goUpgrade()
                 return
               }
               setMintInput(v)
@@ -3382,7 +3223,7 @@ export default function Dashboard() {
 
           {/* Alpha — PRO gated */}
           {view === 'alpha' && (
-            <ProGate feature="The Alpha Feed surfaces rug alerts, whale accumulation signals, and liquidity events before the crowd." icon="📡">
+            <ProGate feature="The Alpha Feed surfaces rug alerts, whale accumulation signals, and liquidity events before the crowd." icon="📡" onUpgrade={goUpgrade}>
               {renderAlphaPage()}
             </ProGate>
           )}
@@ -3396,7 +3237,7 @@ export default function Dashboard() {
           )}
           {view === 'neuralv4' && (
             <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
-              <ProGate feature="Neural Scan V4 — Nansen-grade token intelligence." icon="🧠">
+              <ProGate feature="Neural Scan V4 — Nansen-grade token intelligence." icon="🧠" onUpgrade={goUpgrade}>
                 <NeuralScanV4 />
               </ProGate>
             </div>
@@ -3411,7 +3252,7 @@ export default function Dashboard() {
                   { profileTier: sub.currentTier, saasTier: sub.currentTier },
                   'deep_chain_intel'
                 )}
-                onUpgrade={() => setShowModal(true)}
+                onUpgrade={() => goUpgrade()}
               />
             </div>
           )}
@@ -3421,7 +3262,7 @@ export default function Dashboard() {
                 isPro={entitlementPro}
                 hasPremiumAccess={entitlementElite}
                 tier="elite"
-                onUpgrade={() => setShowModal(true)}
+                onUpgrade={() => goUpgrade()}
                 mint={(scanData?.mint || currentMint || '').trim()}
               />
             </div>
@@ -3558,14 +3399,13 @@ export default function Dashboard() {
           <button onClick={() => setView('feed')} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'transparent',border:'none',cursor:'pointer',color:view==='feed'?'#38bdf8':'#5a6478',fontFamily:'IBM Plex Mono,monospace',fontSize:'0.42rem',letterSpacing:'0.08em',textTransform:'uppercase'}}>
             <span style={{fontSize:16,filter:view==='feed'?'drop-shadow(0 0 5px rgba(56,189,248,0.8))':'none'}}>📡</span>FEED
           </button>
-          <button onClick={() => setShowModal(true)} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'transparent',border:'none',cursor:'pointer',color:'#fbbf24',fontFamily:'IBM Plex Mono,monospace',fontSize:'0.42rem',letterSpacing:'0.08em',textTransform:'uppercase'}}>
+          <button onClick={() => goUpgrade()} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'transparent',border:'none',cursor:'pointer',color:'#fbbf24',fontFamily:'IBM Plex Mono,monospace',fontSize:'0.42rem',letterSpacing:'0.08em',textTransform:'uppercase'}}>
             <span style={{fontSize:16,filter:'drop-shadow(0 0 4px rgba(251,191,36,0.6))'}}>⭐</span>PRO
           </button>
         </div>
       </nav>
 
       {/* ── PRO MODAL ── */}
-      {showModal && <ProModal onClose={() => setShowModal(false)} />}
       {showSwap && swapMint && (
         <JupiterSwapModal
           mint={swapMint}

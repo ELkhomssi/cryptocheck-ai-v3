@@ -28,6 +28,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [row, setRow] = useState<ProfileSubscriptionRow | null>(null)
   const [saasTier, setSaasTier] = useState<string | null>(null)
   const [saasStatus, setSaasStatus] = useState<string | null>(null)
+  const [saasFullAccess, setSaasFullAccess] = useState<boolean>(false)
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -39,6 +40,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         setRow(null)
         setSaasTier(null)
         setSaasStatus(null)
+        setSaasFullAccess(false)
         return
       }
       const [profileRes, saasRes] = await Promise.all([
@@ -47,12 +49,13 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           .select('is_pro, plan, plan_type, tier, is_elite')
           .eq('id', user.id)
           .maybeSingle(),
-        supabase.from('saas_subscriptions').select('tier, status').eq('user_id', user.id).maybeSingle(),
+        supabase.from('saas_subscriptions').select('tier, status, full_access').eq('user_id', user.id).maybeSingle(),
       ])
       setRow((profileRes.data as ProfileSubscriptionRow) ?? null)
-      const s = saasRes.data as { tier?: string | null; status?: string | null } | null
+      const s = saasRes.data as { tier?: string | null; status?: string | null; full_access?: boolean | null } | null
       setSaasTier(s?.tier != null ? String(s.tier) : null)
       setSaasStatus(s?.status != null ? String(s.status) : null)
+      setSaasFullAccess(s?.full_access === true)
     } finally {
       setLoading(false)
     }
@@ -73,8 +76,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       deriveClientSubscription(row, {
         saasTier,
         saasStatus,
+        saasFullAccess,
       }),
-    [row, saasTier, saasStatus]
+    [row, saasTier, saasStatus, saasFullAccess]
   )
 
   const value = useMemo<SubscriptionContextValue>(

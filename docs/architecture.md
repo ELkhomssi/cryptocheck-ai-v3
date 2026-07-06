@@ -27,7 +27,6 @@ flowchart TB
     Scanner[Scanner pipeline — lib/services/scanner]
     Engine[scanner-engine — scoring]
     Sentinel[canonical-scan — overlay]
-    Web4[Web4 launchpad — on-chain]
   end
 
   subgraph flywheel [Data Flywheel — persistence + feedback]
@@ -44,13 +43,12 @@ flowchart TB
   Gateway --> Sentinel
   Scanner --> flywheel
   Sentinel --> flywheel
-  Web4 --> terminal
 ```
 
 | Layer | Responsibility | Current location | Migration status |
 |-------|----------------|------------------|------------------|
-| **Neural Settlement Layer** | Token risk assessment, swap simulation, verdict/score, optional on-chain settlement (Web4) | `lib/services/scanner/*`, `lib/services/scanner-engine.ts`, `lib/sentinel/*`, `lib/connect/*`, `programs/web4-launchpad/` | Gateway + fast pipeline landed; engine frozen |
-| **Terminal Ecosystem** | UX: intelligence terminal, pro dashboard, Web4 pump UI, extension | `app/dashboard/*`, `app/pro/*`, `packages/extension/` | Pro UI uses `@cryptocheck/types`; data via API/gateway |
+| **Neural Settlement Layer** | Token risk assessment, swap simulation, verdict/score | `lib/services/scanner/*`, `lib/services/scanner-engine.ts`, `lib/sentinel/*`, `lib/connect/*` | Gateway + fast pipeline landed; engine frozen |
+| **Terminal Ecosystem** | UX: intelligence terminal, pro dashboard, extension | `app/dashboard/*`, `app/pro/*`, `packages/extension/` | Pro UI uses `@cryptocheck/types`; data via API/gateway |
 | **Data Flywheel** | Caches, usage logs, webhooks, crons, reputation materialization | `lib/cache/*`, `lib/b2b/reputation-ledger.ts`, Supabase | Redis reputation ledger + `gatewayEventBus` active |
 
 ---
@@ -97,18 +95,6 @@ POST /api/v1/scan
 - Intelligence report + LP lock → `CanonicalScanResult`
 - Merged in v1 scan route; overrides weighted score when present
 
-### 2.4 Web4 (on-chain settlement)
-
-| Component | Path |
-|-----------|------|
-| Program (Rust/Anchor) | `programs/web4-launchpad/src/lib.rs` |
-| TS client | `lib/web4/protocol/*` |
-| Curve adapter | `lib/web4/bonding-curve/adapter.ts` |
-| APIs | `app/api/web4/protocol/index`, `stats` |
-| Terminal | `app/dashboard/web4-terminal/*` |
-
-Separate product surface from institutional scanner; shares Solana RPC stack.
-
 ### 2.5 Scan Gateway + ChainDataPort (implemented)
 
 | Component | Path | Status |
@@ -135,7 +121,6 @@ Separate product surface from institutional scanner; shares Solana RPC stack.
 |---------|--------------|-------------|
 | Intelligence terminal | `/dashboard/intelligence-terminal` | v1 intelligence APIs, polling |
 | Pro institutional | `/pro/dashboard` | `fetchFastScanForMint` → gateway; UI types from `@cryptocheck/types` |
-| Web4 terminal | `/dashboard/web4-terminal` | `lib/web4/protocol`, WS hooks |
 | Public report | `/report/[mint]` | Scan APIs |
 | Chrome extension | `packages/extension` | `apiFetch` → production `/api/v1/*` |
 
@@ -231,8 +216,6 @@ sequenceDiagram
 
 **Root app** (`cryptocheck-ai` in `package.json`): Next.js 14, all `lib/*`, `app/*`, `components/*`.
 
-**Rust workspace:** `programs/web4-launchpad` only (Anchor 0.30).
-
 ---
 
 ## 6. API routes and authentication
@@ -272,15 +255,7 @@ sequenceDiagram
 | `/api/agent/investigate` | Session / API |
 | `/api/predict`, `/api/analyze-contract` | Mixed |
 
-### 6.4 Web4 protocol
-
-| Route | Auth |
-|-------|------|
-| `/api/web4/protocol/index` | Public / light auth |
-| `/api/web4/protocol/stats` | Public |
-| `/api/web4-terminal/*` | Session / public read |
-
-### 6.5 Billing & dashboard
+### 6.4 Billing & dashboard
 
 | Route | Auth |
 |-------|------|
@@ -288,7 +263,7 @@ sequenceDiagram
 | `/api/dashboard/*` | Session |
 | `/api/v1/keys` | Session |
 
-### 6.6 Webhooks (outbound)
+### 6.5 Webhooks (outbound)
 
 Configured in Supabase `institutional_webhooks`; delivered from `lib/webhooks/dispatch.ts` on events:
 
@@ -322,14 +297,11 @@ lib/
   services/scanner-engine.ts
   sentinel/           # Canonical overlay
   intelligence/       # Token intelligence reports
-  web4/               # Web4 protocol client
   webhooks/           # Flywheel — outbound events
   sdk/                # HTTP client (pre-Connect)
   cache/              # Redis helpers
 packages/
   extension/          # Chrome extension
-programs/
-  web4-launchpad/     # Rust on-chain
 docs/                 # Architecture & audit artifacts
 ```
 
@@ -356,7 +328,6 @@ Use this before declaring “three-layer migration done”:
 npm run dev                    # Next.js on :3000
 npm run test:sentinel -- <mint> # Institutional scan smoke (needs SENTINEL_API_KEY)
 npm run test:intelligence      # Intelligence pipeline smoke
-npm run web4:build             # Anchor program build
 ```
 
 For questions about scan internals, start with `lib/services/scanner/execute-scan.ts` and `lib/services/scanner/pipeline/run-institutional-scan.ts`.

@@ -20,5 +20,11 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "packages/extension"]
+  "exclude": [
+    "node_modules",
+    "packages/extension",
+    "services/ingestion",
+    "services/pipeline",
+    "services/realtime"
+  ]
 }

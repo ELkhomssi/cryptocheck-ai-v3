@@ -1,0 +1,36 @@
+{
+  "name": "@cryptocheck/signal-pipeline",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Parse + enrich + unified gate workers for Signal Aggregator",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev:parser": "node --import tsx src/parser/index.ts",
+    "dev:enrich": "node --import tsx src/enrich/index.ts",
+    "dev:gate": "node --import tsx src/gate/index.ts",
+    "start:parser": "node dist/parser/index.js",
+    "start:enrich": "node dist/enrich/index.js",
+    "start:gate": "node dist/gate/index.js",
+    "backtest": "node --import tsx src/agent/backtest/run-backtest.ts",
+    "demo-seed": "node --import tsx src/agent/backtest/demo-seed.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@cryptocheck/signal-contracts": "file:../../packages/signal-contracts",
+    "@cryptocheck/signing": "file:../../packages/signing",
+    "@solana/web3.js": "^1.98.4",
+    "@supabase/supabase-js": "^2.103.0",
+    "@upstash/redis": "^1.37.0",
+    "dotenv": "^17.3.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.19.0",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

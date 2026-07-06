@@ -59,6 +59,8 @@ export type DeriveSubscriptionOpts = {
   /** Raw `saas_subscriptions.tier` when row is entitled. */
   saasTier?: string | null
   saasStatus?: string | null
+  /** Webhook-set FULL_ACCESS flag (2-tier Basic / Pro). */
+  saasFullAccess?: boolean | null
 }
 
 /**
@@ -87,9 +89,9 @@ export function deriveClientSubscription(
 
   const currentTier = clampCanonicalFromRank(r)
 
-  const isDeepActive = r >= 2
+  const isDeepActive = r >= 2 || opts?.saasFullAccess === true
   const isEliteActive = r >= 4
-  const hasFullAccess = r >= 2
+  const hasFullAccess = opts?.saasFullAccess === true || r >= 2
 
   return { currentTier, isDeepActive, isEliteActive, hasFullAccess }
 }

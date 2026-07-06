@@ -1,0 +1,30 @@
+{
+  "name": "@cryptocheck/signal-ingestion",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Multi-source signal ingestion (Telegram + TxODDS) → unified Redis Stream",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "node --import tsx src/index.ts",
+    "start": "node dist/index.js",
+    "auth": "node --import tsx scripts/auth-telegram.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@cryptocheck/signal-contracts": "file:../../packages/signal-contracts",
+    "@upstash/redis": "^1.37.0",
+    "dotenv": "^17.3.1",
+    "telegram": "^2.26.22",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.19.0",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

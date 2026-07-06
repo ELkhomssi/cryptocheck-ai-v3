@@ -34,6 +34,7 @@ type Props = {
   defaultAmountUsd?: number
   defaultToken?: TokenKey
   memo?: string
+  onSuccess?: (result: { signature: string; intentId: string }) => void
 }
 
 async function fetchSolPriceUsd(): Promise<number> {
@@ -47,7 +48,7 @@ async function fetchSolPriceUsd(): Promise<number> {
   }
 }
 
-export function PayWidget({ wallet, merchantName, embed = false, defaultAmountUsd, defaultToken = 'USDC', memo }: Props) {
+export function PayWidget({ wallet, merchantName, embed = false, defaultAmountUsd, defaultToken = 'USDC', memo, onSuccess }: Props) {
   const { connection } = useConnection()
   const { publicKey, signTransaction } = useWallet()
   const { setVisible } = useWalletModal()
@@ -148,6 +149,9 @@ export function PayWidget({ wallet, merchantName, embed = false, defaultAmountUs
       }
       setSignature(conf.signature ?? null)
       setPhase('done')
+      if (conf.signature && intent.id) {
+        onSuccess?.({ signature: conf.signature, intentId: intent.id })
+      }
       if (embed && typeof window !== 'undefined' && window.parent !== window) {
         window.parent.postMessage(
           { type: 'ccai-pay:success', signature: conf.signature ?? '', intentId: intent.id },
@@ -162,7 +166,7 @@ export function PayWidget({ wallet, merchantName, embed = false, defaultAmountUs
       setPhase('error')
       setError(failMsg)
     }
-  }, [amountUsd, token, publicKey, signTransaction, setVisible, wallet, memo, connection])
+  }, [amountUsd, token, publicKey, signTransaction, setVisible, wallet, memo, connection, onSuccess])
 
   const busy = phase === 'checking' || phase === 'signing' || phase === 'submitting'
 

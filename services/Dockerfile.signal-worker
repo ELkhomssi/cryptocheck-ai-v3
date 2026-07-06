@@ -1,0 +1,35 @@
+# Signal Aggregator workers — build from repo root:
+#   docker build -f services/Dockerfile.signal-worker --build-arg SERVICE=realtime -t ccai-signal-realtime .
+#   docker build -f services/Dockerfile.signal-worker --build-arg SERVICE=ingestion -t ccai-signal-ingestion .
+#   docker build -f services/Dockerfile.signal-worker --build-arg SERVICE=parser -t ccai-signal-parser .
+#   docker build -f services/Dockerfile.signal-worker --build-arg SERVICE=enrich -t ccai-signal-enrich .
+#   docker build -f services/Dockerfile.signal-worker --build-arg SERVICE=gate -t ccai-signal-gate .
+
+FROM node:20-alpine AS build
+WORKDIR /app
+
+COPY packages/signal-contracts ./packages/signal-contracts
+COPY services ./services
+
+RUN npm run build --prefix packages/signal-contracts
+RUN npm ci --prefix services/realtime --omit=dev 2>/dev/null || npm install --prefix services/realtime --omit=dev
+RUN npm ci --prefix services/ingestion --omit=dev 2>/dev/null || npm install --prefix services/ingestion --omit=dev
+RUN npm ci --prefix services/pipeline --omit=dev 2>/dev/null || npm install --prefix services/pipeline --omit=dev
+
+RUN npm run build --prefix services/realtime
+RUN npm run build --prefix services/ingestion
+RUN npm run build --prefix services/pipeline
+
+FROM node:20-alpine
+WORKDIR /app
+
+ARG SERVICE=realtime
+ENV SIGNAL_SERVICE=${SERVICE}
+
+COPY --from=build /app/packages/signal-contracts /app/packages/signal-contracts
+COPY --from=build /app/services/realtime /app/services/realtime
+COPY --from=build /app/services/ingestion /app/services/ingestion
+COPY --from=build /app/services/pipeline /app/services/pipeline
+
+# Default CMD overridden per service in compose / orchestrator
+CMD ["sh", "-c", "case \"$SIGNAL_SERVICE\" in realtime) exec node services/realtime/dist/index.js ;; ingestion) exec node services/ingestion/dist/index.js ;; parser) exec node services/pipeline/dist/parser/index.js ;; enrich) exec node services/pipeline/dist/enrich/index.js ;; gate) exec node services/pipeline/dist/gate/index.js ;; *) echo \"Unknown SIGNAL_SERVICE=$SIGNAL_SERVICE\" && exit 1 ;; esac"]

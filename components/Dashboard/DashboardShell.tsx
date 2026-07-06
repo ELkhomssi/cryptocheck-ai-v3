@@ -35,6 +35,7 @@ export function DashboardShell({
   isAnonymousPreview?: boolean
 }) {
   const pathname = usePathname()
+  const isCommandCenterHome = pathname === '/dashboard'
   const [health, setHealth] = useState<HealthPayload | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const sentinelMode = ['PRO', 'ENTERPRISE'].includes(effectiveTier.toUpperCase())
@@ -57,6 +58,11 @@ export function DashboardShell({
 
   const operational = health?.status === 'healthy'
   const latency = typeof health?.latency_ms === 'number' ? Math.round(health.latency_ms) : '—'
+
+  if (isCommandCenterHome) {
+    return <>{children}</>
+  }
+
   return (
     <div className="relative min-h-screen bg-[#020617] text-slate-200">
       <ForensicBackdrop className="pointer-events-none fixed inset-0 z-[1]" />

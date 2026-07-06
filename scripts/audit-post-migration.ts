@@ -27,7 +27,6 @@ type TaskResult = {
 const HIGH_RISK_FILES = [
   'app/pro/dashboard/page.tsx',
   'app/api/neural-v4/route.ts',
-  'lib/web4/protocol/parse-trade-logs.ts',
 ]
 
 const SCANNER_IMPORT_RE = /@\/lib\/services\/scanner(-engine)?/

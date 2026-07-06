@@ -1,9 +1,9 @@
 import { Inter, JetBrains_Mono, Space_Grotesk } from 'next/font/google'
-import { createClient } from '@/lib/supabase/server'
+import { createClientOptional } from '@/lib/supabase/server'
+import { isSupabaseConfigured } from '@/lib/supabase'
 import { ensureFreeTierSubscription } from '@/lib/services/saas-entitlement.service'
 import { getUserSubscription } from '@/lib/services/user-subscription.service'
 import { DashboardShell } from '@/components/Dashboard/DashboardShell'
-import { DisclaimerBanner } from '@/components/legal/DisclaimerBanner'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -26,10 +26,8 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const supabase = await createClientOptional()
+  const user = supabase ? (await supabase.auth.getUser()).data.user : null
 
   /** Preview mode: shell + routes visible without auth (Vercel QA / mobile UI review). */
   let userEmail = ''
@@ -50,12 +48,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <DashboardShell
         userEmail={userEmail}
         effectiveTier={effectiveTier}
-        isAnonymousPreview={!user}
+        isAnonymousPreview={!isSupabaseConfigured() || !user}
       >
-        <>
-          <DisclaimerBanner variant="default" />
-          {children}
-        </>
+        {children}
       </DashboardShell>
     </div>
   )

@@ -33,6 +33,15 @@ export class JupiterError extends Error {
 }
 
 /** Minimal wallet surface — avoids a hard dependency on @solana/wallet-adapter types. */
+export type JupiterQuoteOptions = {
+  platformFeeBps?: number
+}
+
+export type JupiterSwapBuildOptions = {
+  feeAccount?: string
+}
+
+/** Minimal wallet surface — avoids a hard dependency on @solana/wallet-adapter types. */
 export type WalletLike = {
   publicKey: { toBase58(): string } | null
   signTransaction: <T>(tx: T) => Promise<T>
@@ -65,7 +74,8 @@ export async function getJupiterQuote(
   inputMint: string,
   outputMint: string,
   amountLamports: number,
-  slippageBps: number
+  slippageBps: number,
+  options?: JupiterQuoteOptions
 ): Promise<JupiterQuote> {
   const q = new URLSearchParams({
     inputMint,
@@ -73,6 +83,10 @@ export async function getJupiterQuote(
     amount: String(Math.max(0, Math.floor(amountLamports))),
     slippageBps: String(slippageBps),
   })
+  const feeBps = options?.platformFeeBps
+  if (typeof feeBps === 'number' && feeBps > 0) {
+    q.set('platformFeeBps', String(feeBps))
+  }
   const data = (await fetchJson(`${JUPITER_QUOTE_API}?${q.toString()}`)) as Record<string, unknown>
   if (!data || typeof data.outAmount !== 'string') {
     throw new JupiterError('No route found for this pair/amount')
@@ -114,17 +128,22 @@ export async function simulateJupiterSwap(
  */
 export async function buildJupiterSwapTransaction(
   quote: JupiterQuote,
-  userPublicKey: string
+  userPublicKey: string,
+  options?: JupiterSwapBuildOptions
 ): Promise<string> {
+  const body: Record<string, unknown> = {
+    quoteResponse: quote.raw,
+    userPublicKey,
+    wrapAndUnwrapSol: true,
+    dynamicComputeUnitLimit: true,
+  }
+  if (options?.feeAccount) {
+    body.feeAccount = options.feeAccount
+  }
   const data = (await fetchJson(JUPITER_SWAP_API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      quoteResponse: quote.raw,
-      userPublicKey,
-      wrapAndUnwrapSol: true,
-      dynamicComputeUnitLimit: true,
-    }),
+    body: JSON.stringify(body),
   })) as { swapTransaction?: string }
   if (!data?.swapTransaction) {
     throw new JupiterError('Jupiter did not return a swapTransaction')

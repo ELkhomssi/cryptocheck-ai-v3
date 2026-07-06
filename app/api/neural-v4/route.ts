@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { HeliusTx, HoldersResult, TokenMeta, TokenSupplyResult } from '@/lib/helius'
 import { heliusRest, rpcCall } from '@/lib/helius-server'
-import { withApiAuth } from '@/lib/middleware/with-api-auth'
+import { withFullAccessApiAuth } from '@/lib/middleware/with-api-auth'
 import { scanApiErrorPayload } from '@/lib/api/scan-api-errors'
 
 export const dynamic = 'force-dynamic'
 
-export const POST = withApiAuth(async (req: NextRequest) => {
+export const POST = withFullAccessApiAuth(async (req: NextRequest) => {
   try {
     const body = await req.json().catch(() => ({}))
     const mint = typeof body?.mint === 'string' ? body.mint.trim() : ''

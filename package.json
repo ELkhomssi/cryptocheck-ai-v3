@@ -7,12 +7,16 @@
     "packages/types",
     "packages/ccai-connect",
     "packages/ccai-pay",
-    "packages/extension"
+    "packages/extension",
+    "packages/signal-contracts",
+    "services/ingestion",
+    "services/pipeline",
+    "services/realtime"
   ],
   "scripts": {
     "dev": "next dev",
     "build": "npm run build:packages && next build",
-    "build:packages": "npm run build --prefix packages/signing && npm run build --prefix packages/types && npm run build --prefix packages/ccai-connect",
+    "build:packages": "npm run build --prefix packages/signing && npm run build --prefix packages/types && npm run build --prefix packages/ccai-connect && npm run build --prefix packages/signal-contracts",
     "start": "next start",
     "lint": "next lint",
     "test:sentinel": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-sentinel.ts",
@@ -25,15 +29,14 @@
     "audit:post-migration": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/audit-post-migration.ts",
     "audit:ci": "npm run audit:post-migration && cat docs/audit-results.md",
     "verify:all-phases": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/verify-all-phases.ts",
-    "web4:build": "bash scripts/web4-docker-build.sh",
-    "web4:deploy:devnet": "bash scripts/web4-deploy-only.sh",
-    "web4:build-and-deploy": "bash scripts/web4-build-and-deploy.sh"
+    "deploy:signals": "bash scripts/deploy-signals-production.sh"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.53",
     "@ai-sdk/react": "^3.0.170",
     "@cryptocheck/ccai-connect": "workspace:*",
     "@cryptocheck/signing": "workspace:*",
+    "@cryptocheck/signal-contracts": "file:packages/signal-contracts",
     "@cryptocheck/types": "workspace:*",
     "@solana/spl-token": "^0.4.14",
     "@solana/wallet-adapter-base": "^0.9.27",
@@ -41,6 +44,8 @@
     "@solana/wallet-adapter-react-ui": "^0.9.39",
     "@solana/wallet-adapter-wallets": "^0.19.37",
     "@solana/web3.js": "^1.98.4",
+    "@splinetool/react-spline": "^4.1.0",
+    "@splinetool/runtime": "^1.12.98",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.0",
     "@upstash/ratelimit": "^2.0.8",
@@ -63,9 +68,12 @@
     "react-force-graph-2d": "^1.29.1",
     "react-markdown": "^10.1.0",
     "recharts": "^3.8.1",
+    "react-window": "^1.8.11",
     "server-only": "^0.0.1",
     "stripe": "^22.0.2",
     "swr": "^2.4.1",
+    "web-push": "^3.6.7",
+    "three": "^0.128.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -74,6 +82,9 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/react-window": "^1.8.8",
+    "@types/web-push": "^3.6.4",
+    "@types/three": "^0.128.0",
     "autoprefixer": "^10.4.27",
     "eslint": "^8",
     "eslint-config-next": "14.2.5",

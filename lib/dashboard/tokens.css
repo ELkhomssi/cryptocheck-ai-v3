@@ -1,0 +1,5 @@
+/** SVG gradient stops for ScoreRing — single source; no hex in JSX. */
+:root {
+  --dash-ring-from: #7be84b;
+  --dash-ring-to: #a3f55f;
+}

@@ -4,7 +4,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { GeistSans } from 'geist/font/sans'
 import { CryptoCheckLogo } from '@/components/brand/CryptoCheckLogo'
-import { Web4ProtocolSection } from '@/components/landing/Web4ProtocolSection'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 
 /** Injected as raw CSS to avoid hydration mismatches from React normalizing `<style>` text children. */
@@ -96,7 +95,6 @@ export default function LandingPage() {
         <div style={{ display:'flex',alignItems:'center',gap:20 }}>
           <a href="#how-it-works" className="lp-nav-link" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.05em' }}>How it Works</a>
           <a href="#features" className="lp-nav-link" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.05em' }}>Features</a>
-          <a href="#web4-protocol" className="lp-nav-link" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.05em' }}>Web4</a>
           <a href="#institutional" className="lp-nav-link" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.05em' }}>Institutional</a>
           <a href="#demo" className="lp-nav-link" style={{ fontSize:11,color:'#8b949e',textDecoration:'none',letterSpacing:'0.05em' }}>Demo</a>
           <a href="/dashboard" style={{ fontSize:11,color:'#e2e8f0',textDecoration:'none',letterSpacing:'0.06em',fontWeight:600 }}>Dashboard</a>
@@ -200,8 +198,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
-      <Web4ProtocolSection />
 
       {/* INSTITUTIONAL / DEVELOPER */}
       <section id="institutional" style={{ padding:'clamp(56px,9vw,96px) clamp(16px,4vw,32px)',background:'linear-gradient(180deg,#050a06 0%,#030306 100%)',borderTop:'1px solid rgba(99,102,241,0.12)',borderBottom:'1px solid rgba(99,102,241,0.08)' }}>

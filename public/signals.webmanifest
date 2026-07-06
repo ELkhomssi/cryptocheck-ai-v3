@@ -1,0 +1,10 @@
+{
+  "name": "CryptoCheck Signals",
+  "short_name": "Signals",
+  "start_url": "/dashboard/signals",
+  "display": "standalone",
+  "background_color": "#0A1230",
+  "theme_color": "#3FE05A",
+  "description": "Realtime Telegram signals with Sentinel gate",
+  "icons": []
+}

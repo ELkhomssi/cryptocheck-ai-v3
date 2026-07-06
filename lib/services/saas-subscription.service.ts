@@ -42,6 +42,8 @@ export async function upsertSaasSubscription(input: {
   cancelAtPeriodEnd?: boolean
   stripeCustomerId?: string | null
   stripeSubscriptionId?: string | null
+  fullAccess?: boolean
+  stripePriceId?: string | null
 }): Promise<void> {
   const sb = getSupabaseAdmin()
   const row = {
@@ -53,6 +55,8 @@ export async function upsertSaasSubscription(input: {
     cancel_at_period_end: input.cancelAtPeriodEnd ?? false,
     stripe_customer_id: input.stripeCustomerId ?? null,
     stripe_subscription_id: input.stripeSubscriptionId ?? null,
+    full_access: input.fullAccess ?? false,
+    stripe_price_id: input.stripePriceId ?? null,
     updated_at: new Date().toISOString(),
   }
 

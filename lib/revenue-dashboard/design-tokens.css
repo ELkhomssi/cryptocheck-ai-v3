@@ -1,0 +1,94 @@
+/**
+ * Revenue Dashboard design tokens — import in `app/dashboard/revenue/layout.tsx` (Prompt 1).
+ * Functional trading-terminal register: dense, fast, risk-colored.
+ */
+
+:root {
+  /* Surfaces */
+  --rd-navy: #0a1230;
+  --rd-navy-2: #0d1738;
+  --rd-panel: #101b42;
+  --rd-panel-glass: rgba(16, 27, 66, 0.7);
+
+  /* Brand accents */
+  --rd-green: #3fe05a;
+  --rd-lime: #c6e833;
+  --rd-violet: #7c5cfc;
+
+  /* Text */
+  --rd-text-hi: #eaf1ec;
+  --rd-text-mid: #9bb0c4;
+  --rd-text-lo: #5e7088;
+
+  /* Risk semantics */
+  --rd-risk-safe: #3fe05a;
+  --rd-risk-caution: #f2b84c;
+  --rd-risk-danger: #ff5a6e;
+
+  /* Shape */
+  --rd-radius-sm: 10px;
+  --rd-radius-md: 12px;
+  --rd-radius-lg: 14px;
+
+  /* Motion */
+  --rd-motion-fast: 120ms;
+  --rd-motion-normal: 180ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --rd-motion-fast: 0ms;
+    --rd-motion-normal: 0ms;
+  }
+}
+
+.rd-panel {
+  background: var(--rd-panel-glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--rd-green) 22%, transparent);
+  border-radius: var(--rd-radius-md);
+}
+
+.rd-mono-nums {
+  font-family: var(--font-rd-mono), 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.rd-label {
+  font-family: var(--font-rd-display), Syncopate, ui-sans-serif, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--rd-text-mid);
+}
+
+.rd-compliance {
+  font-size: 0.68rem;
+  color: var(--rd-text-lo);
+  line-height: 1.5;
+}
+
+.rd-sample-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rd-text-mid);
+  border: 1px solid var(--rd-text-lo);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

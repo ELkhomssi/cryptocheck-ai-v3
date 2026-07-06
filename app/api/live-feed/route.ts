@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { buildHeliusApiUrl } from '@/lib/helius-server'
-import { withApiAuth } from '@/lib/middleware/with-api-auth'
+import { withFullAccessApiAuth } from '@/lib/middleware/with-api-auth'
 import { scanApiErrorPayload } from '@/lib/api/scan-api-errors'
 
 export const dynamic = 'force-dynamic'
 
-export const GET = withApiAuth(async (_req: NextRequest) => {
+export const GET = withFullAccessApiAuth(async (_req: NextRequest) => {
   try {
     // Get recent transactions from top Solana tokens
     const mints = [
