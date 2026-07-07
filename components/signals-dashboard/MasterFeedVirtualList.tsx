@@ -14,6 +14,7 @@ type RowData = {
   signals: Map<string, UnifiedSignal>
   orderedIds: string[]
   recentIds: Set<string>
+  delayedBy: Map<string, number>
   onSwap: (s: UnifiedSignal) => void
 }
 
@@ -26,6 +27,7 @@ function FeedRow({ index, style, data }: ListChildComponentProps<RowData>) {
       signal={signal}
       style={style}
       isRecent={data.recentIds.has(signal.id)}
+      delayedBySec={data.delayedBy.get(signal.id)}
       onSwap={data.onSwap}
     />
   )
@@ -35,6 +37,7 @@ type Props = {
   signals: Map<string, UnifiedSignal>
   orderedIds: string[]
   recentIds: Set<string>
+  delayedBy: Map<string, number>
   onSwap: (s: UnifiedSignal) => void
   onPauseChange: (paused: boolean) => void
   loading: boolean
@@ -44,6 +47,7 @@ export function MasterFeedVirtualList({
   signals,
   orderedIds,
   recentIds,
+  delayedBy,
   onSwap,
   onPauseChange,
   loading,
@@ -62,7 +66,7 @@ export function MasterFeedVirtualList({
     return () => ro.disconnect()
   }, [])
 
-  const itemData: RowData = { signals, orderedIds, recentIds, onSwap }
+  const itemData: RowData = { signals, orderedIds, recentIds, delayedBy, onSwap }
 
   if (loading && orderedIds.length === 0) {
     return <SkeletonRows rows={8} className="h-[min(70vh,560px)]" />

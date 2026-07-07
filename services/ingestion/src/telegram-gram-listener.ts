@@ -108,6 +108,8 @@ export async function startTelegramGramListener(
     throw new Error('Telegram session not authorized — generate TELEGRAM_SESSION_STRING via GramJS auth')
   }
 
+  console.info('[signal-ingestion] Connected to Telegram')
+
   const joined: Entity[] = []
   for (const ref of config.channels) {
     try {
@@ -123,6 +125,8 @@ export async function startTelegramGramListener(
   if (config.channels.length > 0 && joined.length === 0) {
     console.warn('[signal-ingestion] no channels joined — listener idle until config updated')
   }
+
+  console.info(`[signal-ingestion] Monitoring ${joined.length} channels`)
 
   updateHealth({
     status: joined.length > 0 ? 'ok' : 'degraded',

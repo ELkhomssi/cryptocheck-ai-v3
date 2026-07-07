@@ -10,6 +10,8 @@ export * from './unified-ingestion.js'
 export * from './edge-signal.js'
 export * from './agent.js'
 export * from './proof.js'
+export * from './service-heartbeat.js'
+export * from './token-call.js'
 import type { SourceTag, SubjectType, UnifiedFeedEvent } from './unified-ingestion.js'
 export type SignalChain = 'solana' | 'ethereum' | 'base' | 'bsc' | 'arbitrum'
 

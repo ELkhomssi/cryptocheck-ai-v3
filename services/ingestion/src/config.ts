@@ -104,7 +104,10 @@ function parseSources(): SourceTag[] {
 function loadTelegramConfig(): TelegramShardConfig {
   const apiId = Number(process.env.TELEGRAM_API_ID)
   const apiHash = process.env.TELEGRAM_API_HASH?.trim() ?? ''
-  const sessionString = process.env.TELEGRAM_SESSION_STRING?.trim() ?? ''
+  const sessionString =
+    process.env.TELEGRAM_SESSION_STRING?.trim() ||
+    process.env.TELEGRAM_SESSION?.trim() ||
+    ''
   if (!Number.isFinite(apiId) || apiId <= 0) throw new Error('TELEGRAM_API_ID is required when telegram is enabled')
   if (!apiHash) throw new Error('TELEGRAM_API_HASH is required when telegram is enabled')
   if (!sessionString) throw new Error('TELEGRAM_SESSION_STRING is required when telegram is enabled')
@@ -113,16 +116,14 @@ function loadTelegramConfig(): TelegramShardConfig {
     process.cwd(),
     process.env.SIGNAL_CHANNELS_CONFIG?.trim() || 'config/channels.json',
   )
-  const allChannels = parseChannelsFile(channelsConfigPath)
   const sessionIndex = Number(process.env.SIGNAL_SESSION_INDEX ?? 0)
   const sessionCount = Number(process.env.SIGNAL_SESSION_COUNT ?? 1)
-  const channels = shardChannels(allChannels, sessionIndex, sessionCount)
 
   return {
     apiId,
     apiHash,
     sessionString,
-    channels,
+    channels: [],
     sessionIndex,
     sessionCount,
     channelsConfigPath,

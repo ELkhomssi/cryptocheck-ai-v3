@@ -7,6 +7,7 @@ export type AssessResult = {
   sentinelVerdict?: SentinelVerdict
   neuralScore?: number
   riskScore?: number
+  evidenceSummary?: string
 }
 
 export async function assessContract(

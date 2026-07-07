@@ -1,9 +1,10 @@
 'use client'
 
-export type ConnectionState = 'connecting' | 'live' | 'reconnecting' | 'down'
+export type ConnectionState = 'connecting' | 'listening' | 'live' | 'reconnecting' | 'down'
 
 const DOT: Record<ConnectionState, string> = {
   connecting: 'bg-rd-caution animate-pulse',
+  listening: 'bg-dash-green animate-pulse',
   live: 'bg-rd-safe shadow-[0_0_8px_rgba(63,224,90,0.55)]',
   reconnecting: 'bg-rd-caution animate-pulse',
   down: 'bg-rd-danger',
@@ -11,6 +12,7 @@ const DOT: Record<ConnectionState, string> = {
 
 const LABEL: Record<ConnectionState, string> = {
   connecting: 'Connecting to live feed…',
+  listening: 'Live · listening…',
   live: 'Live',
   reconnecting: 'Reconnecting…',
   down: 'Feed unavailable',

@@ -25,7 +25,7 @@ export function MasterFeed() {
       ? process.env.NEXT_PUBLIC_SIGNAL_PREMIUM_TOKEN
       : undefined
 
-  const { signals, orderedIds, tier, connection, loading, degraded, recentIds, setPaused, reload } =
+  const { signals, orderedIds, tier, connection, loading, degraded, recentIds, delayedBy, setPaused, reload } =
     useSignalFeed(filter, { userId: sub.userId, premiumToken })
 
   const [swapSignal, setSwapSignal] = useState<UnifiedSignal | null>(null)
@@ -94,6 +94,7 @@ export function MasterFeed() {
         signals={signals}
         orderedIds={orderedIds}
         recentIds={recentIds}
+        delayedBy={delayedBy}
         onSwap={openSwap}
         onPauseChange={setPaused}
         loading={loading}

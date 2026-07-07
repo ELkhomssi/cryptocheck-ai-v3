@@ -1,7 +1,9 @@
 import 'dotenv/config'
 import { createAdapters } from './adapters/index.js'
-import { loadConfig } from './config.js'
-import { startHealthServer } from './health.js'
+import { resolveTelegramChannelList, startChannelRegistryRefresh } from './channel-registry.js'
+import { loadConfig, shardChannels } from './config.js'
+import { getHealthSnapshot, startHealthServer } from './health.js'
+import { createServiceHeartbeat } from './service-heartbeat.js'
 import { createUnifiedStreamWriter } from './unified-stream.js'
 
 async function main(): Promise<void> {
@@ -11,8 +13,41 @@ async function main(): Promise<void> {
   )
   startHealthServer(config, writers)
 
-  if (config.telegram?.channels.length === 0) {
-    console.warn('[signal-ingestion] telegram channel shard is empty — add public channels to config/channels.json')
+  const heartbeat = createServiceHeartbeat('telegram-monitor')
+  let channelsJoined = 0
+
+  heartbeat.start(() => ({
+    status: channelsJoined > 0 ? 'ok' : config.telegram ? 'degraded' : 'down',
+    channels: channelsJoined,
+  }))
+
+  if (config.telegram) {
+    const allChannels = await resolveTelegramChannelList(config.telegram.channelsConfigPath)
+    config.telegram.channels = shardChannels(
+      allChannels,
+      config.telegram.sessionIndex,
+      config.telegram.sessionCount,
+    )
+
+    startChannelRegistryRefresh(config.telegram.channelsConfigPath, (nextAll) => {
+      const next = shardChannels(
+        nextAll,
+        config.telegram!.sessionIndex,
+        config.telegram!.sessionCount,
+      )
+      if (next.join(',') !== config.telegram!.channels.join(',')) {
+        console.info('[signal-ingestion] channel list changed — restart service to re-join', {
+          was: config.telegram!.channels.length,
+          now: next.length,
+        })
+      }
+    })
+
+    if (config.telegram.channels.length === 0) {
+      console.warn(
+        '[signal-ingestion] no Telegram channels configured — add rows to telegram_channels or config/channels.json',
+      )
+    }
   }
 
   const running = createAdapters(config, writers)
@@ -30,8 +65,14 @@ async function main(): Promise<void> {
     ),
   )
 
+  const channelPoll = setInterval(() => {
+    channelsJoined = getHealthSnapshot().telegram?.channelsJoined ?? 0
+  }, 5_000)
+
   const shutdown = async (signal: string) => {
     console.info('[signal-ingestion] shutting down', { signal })
+    clearInterval(channelPoll)
+    await heartbeat.beat({ status: 'down', channels: 0 })
     await Promise.all(running.map(({ adapter }) => adapter.stop()))
     process.exit(0)
   }

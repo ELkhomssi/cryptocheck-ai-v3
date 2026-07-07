@@ -25,6 +25,7 @@ export async function fetchHistory(
   const sb = getSupabase()
   const effective = effectiveFilter(tier, filter)
   const cap = tier === 'premium' ? Math.min(limit, 200) : Math.min(limit, 25)
+  const freeDelayMs = Number(process.env.SIGNAL_FREE_DELAY_MS ?? 90_000)
 
   let q = sb
     .from('signal_normalized')
@@ -39,6 +40,11 @@ export async function fetchHistory(
   }
   if (effective.subjectType) q = q.eq('subject_type', effective.subjectType)
   if (effective.chain) q = q.eq('chain', effective.chain)
+
+  if (tier === 'free') {
+    const cutoff = new Date(Date.now() - freeDelayMs).toISOString()
+    q = q.lte('msg_timestamp', cutoff)
+  }
 
   const { data, error } = await q
   if (error) throw new Error(error.message)

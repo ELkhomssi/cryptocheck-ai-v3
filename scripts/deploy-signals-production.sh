@@ -36,6 +36,8 @@ echo "  - supabase/migrations/20260629_signal_aggregator_foundation.sql"
 echo "  - supabase/migrations/20260630_signal_push_subscriptions.sql"
 echo "  - supabase/migrations/20260701_saas_full_access.sql"
 echo "  - supabase/migrations/20260702_multi_source_ingestion_foundation.sql"
+echo "  - supabase/migrations/20260706_telegram_channels.sql
+  - supabase/migrations/20260707_signal_proof_calls.sql"
 echo ""
 
 # ── 4. VAPID keys (generate if missing) ──────────────────────────────────────

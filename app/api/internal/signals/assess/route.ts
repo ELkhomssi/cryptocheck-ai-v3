@@ -76,12 +76,19 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    const evidence = assessment.snapshot.reasoning.evidence?.slice(0, 3) ?? []
+    const evidenceSummary =
+      evidence.length > 0
+        ? evidence.map((s) => s.label ?? (s as { title?: string }).title ?? 'signal').join(' · ')
+        : `Gateway ${assessment.verdict} · safety ${assessment.safetyScore}/100`
+
     return NextResponse.json({
       resolved: true,
       dropped: false,
       sentinelVerdict: gatewayVerdictToSentinel(assessment.verdict),
       neuralScore: assessment.safetyScore,
       riskScore: assessment.riskScore,
+      evidenceSummary,
       gatewayVerdict: assessment.verdict,
       cache: assessment.cache,
     })

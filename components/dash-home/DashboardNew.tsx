@@ -22,7 +22,8 @@ import { appToolUrl } from '@/lib/dashboard/app-routes'
 import { DASHBOARD_NAV, isDashNavActive } from '@/lib/dashboard/nav'
 import { CryptoCheckLogo } from '@/components/brand/CryptoCheckLogo'
 import { DataSourcesStrip } from './DataSourcesStrip'
-import { ReconnectPill } from './primitives/ReconnectPill'
+import { FeedConnectionPill } from './primitives/FeedConnectionPill'
+import { VerifiedTrackRecordPanel } from './VerifiedTrackRecordPanel'
 import {
   Bell,
   ChevronLeft,
@@ -201,7 +202,8 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
       : undefined
 
   const { signals, connection, loading, recentIds } = useSignalFeed({}, { premiumToken })
-  const reconnecting = connection === 'reconnecting' || connection === 'connecting'
+  const reconnecting = connection === 'reconnecting'
+  const feedHandshake = connection === 'connecting' || connection === 'listening'
 
   const allSignals = useMemo(() => [...signals.values()], [signals])
   const stats = useMemo(() => computeAlphaFeedStats(allSignals), [allSignals])
@@ -429,9 +431,9 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
               </div>
             </div>
 
-            {reconnecting ? (
+            {(reconnecting || feedHandshake) ? (
               <div className="mt-3 flex justify-end">
-                <ReconnectPill />
+                <FeedConnectionPill state={connection} />
               </div>
             ) : null}
 
@@ -495,7 +497,11 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
               ) : hotRows.length === 0 ? (
                 <div className="rounded-dash-inner border border-dashed border-dash-innerline px-4 py-6 text-center">
                   <p className="animate-shimmer text-xs text-dash-tlo">
-                    {reconnecting ? 'Reconnecting to live feed…' : 'Listening for opportunities…'}
+                    {reconnecting
+                      ? 'Reconnecting to live feed…'
+                      : feedHandshake
+                        ? 'Live · listening for opportunities…'
+                        : 'Listening for opportunities…'}
                   </p>
                 </div>
               ) : (
@@ -703,6 +709,8 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
               </button>
             </div>
           </section>
+
+          <VerifiedTrackRecordPanel />
 
           {/* Top smart money */}
           <section className="rounded-dash border border-dash-hairline bg-dash-panel p-4 md:p-5">

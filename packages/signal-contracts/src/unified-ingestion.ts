@@ -133,8 +133,8 @@ export function namespacedSignalId(sourceTag: SourceTag, sourceRef: string): str
 
 /** Realtime feed events — unified envelope (Prompt 4 polymorphic UI). */
 export type UnifiedFeedEvent =
-  | { type: 'signal.new'; signal: UnifiedSignal }
-  | { type: 'signal.update'; signal: UnifiedSignal }
+  | { type: 'signal.new'; signal: UnifiedSignal; delayedBy?: number }
+  | { type: 'signal.update'; signal: UnifiedSignal; delayedBy?: number }
   | { type: 'signal.remove'; id: string; reason?: string }
   | { type: 'batch'; events: UnifiedFeedEvent[]; coalescedAt: string }
 

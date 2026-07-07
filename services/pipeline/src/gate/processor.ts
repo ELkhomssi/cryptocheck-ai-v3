@@ -80,7 +80,11 @@ async function publishRemove(redis: Redis, signal: UnifiedSignal): Promise<void>
   markRemoved()
 }
 
-async function processToken(redis: Redis, signal: UnifiedSignal): Promise<void> {
+async function processToken(
+  redis: Redis,
+  signal: UnifiedSignal,
+  proofEngine?: import('../proof-engine/engine.js').TokenProofEngine | null,
+): Promise<void> {
   if (signal.dropped) {
     await publishRemove(redis, signal)
     return
@@ -113,6 +117,15 @@ async function processToken(redis: Redis, signal: UnifiedSignal): Promise<void> 
   }
 
   await publishEnriched(redis, enriched)
+
+  if (proofEngine) {
+    void proofEngine.maybeRecordCall(enriched, {
+      ...assessment,
+      evidenceSummary:
+        assessment.evidenceSummary ??
+        `Neural score ${enriched.scoreValue ?? 0}/100 · verdict ${enriched.verdict}`,
+    })
+  }
 
   if (enriched.verdict === 'safe') {
     void dispatchSafeTokenPush(enriched)
@@ -215,6 +228,7 @@ export async function processUnifiedSignal(
   redis: Redis,
   signal: UnifiedSignal,
   agent?: AgentEngine | null,
+  proofEngine?: import('../proof-engine/engine.js').TokenProofEngine | null,
 ): Promise<void> {
   markProcessed()
 
@@ -224,7 +238,7 @@ export async function processUnifiedSignal(
   }
 
   if (signal.subjectType === 'token') {
-    await processToken(redis, signal)
+    await processToken(redis, signal, proofEngine)
     return
   }
 

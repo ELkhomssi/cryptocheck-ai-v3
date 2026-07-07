@@ -9,6 +9,7 @@
     "dev:parser": "node --import tsx src/parser/index.ts",
     "dev:enrich": "node --import tsx src/enrich/index.ts",
     "dev:gate": "node --import tsx src/gate/index.ts",
+    "start": "node dist/gate/index.js",
     "start:parser": "node dist/parser/index.js",
     "start:enrich": "node dist/enrich/index.js",
     "start:gate": "node dist/gate/index.js",

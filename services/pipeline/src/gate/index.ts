@@ -2,11 +2,15 @@ import 'dotenv/config'
 import { createServer } from 'node:http'
 import { AgentEngine, loadAgentConfig } from '../agent/index.js'
 import { createRedis } from '../lib/redis-client.js'
+import { createServiceHeartbeat } from '../lib/service-heartbeat.js'
 import {
   ackUnifiedEntries,
   ensureGateConsumerGroup,
   readUnifiedBatch,
 } from '../lib/redis-stream-unified.js'
+import { TokenProofEngine } from '../proof-engine/engine.js'
+import { loadProofEngineConfig } from '../proof-engine/config.js'
+import { startProofGradingLoop } from '../proof-engine/grade.js'
 import { processUnifiedSignal } from './processor.js'
 import { getGateStats, markError } from './stats.js'
 
@@ -16,7 +20,13 @@ const BLOCK_MS = Number(process.env.SIGNAL_GATE_BLOCK_MS ?? 3000)
 const HEALTH_PORT = Number(process.env.SIGNAL_GATE_HEALTH_PORT ?? 4105)
 
 function startHealthServer(agent: AgentEngine): void {
-  createServer((_req, res) => {
+  createServer((req, res) => {
+    const path = req.url?.split('?')[0]
+    if (path !== '/health' && path !== '/healthz' && path !== '/') {
+      res.writeHead(404, { 'content-type': 'application/json' })
+      res.end(JSON.stringify({ error: 'not found' }))
+      return
+    }
     const cfg = agent.getConfig()
     const snap = agent.getStore().snapshot()
     res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' })
@@ -40,14 +50,15 @@ function startHealthServer(agent: AgentEngine): void {
         },
       }),
     )
-  }).listen(HEALTH_PORT, () => {
-    console.info('[signal-pipeline:gate] health listening', { port: HEALTH_PORT })
+  }).listen(Number(process.env.PORT ?? HEALTH_PORT), () => {
+    console.info('[signal-pipeline:gate] health listening', { port: Number(process.env.PORT ?? HEALTH_PORT) })
   })
 }
 
 async function handleBatch(
   redis: ReturnType<typeof createRedis>,
   agent: AgentEngine,
+  proofEngine: TokenProofEngine | null,
 ): Promise<number> {
   const entries = await readUnifiedBatch(CONSUMER, BATCH, BLOCK_MS)
   if (!entries.length) return 0
@@ -56,7 +67,7 @@ async function handleBatch(
 
   for (const row of entries) {
     try {
-      await processUnifiedSignal(redis, row.signal, agent)
+      await processUnifiedSignal(redis, row.signal, agent, proofEngine)
       ackIds.push(row.id)
     } catch (e) {
       markError()
@@ -81,6 +92,21 @@ async function main(): Promise<void> {
   await ensureGateConsumerGroup()
   startHealthServer(agent)
 
+  const heartbeat = createServiceHeartbeat('gate-worker')
+  heartbeat.start(() => ({
+    status: getGateStats().errors > 0 ? 'degraded' : 'ok',
+  }))
+
+  const proofCfg = loadProofEngineConfig()
+  const proofEngine = proofCfg.enabled ? new TokenProofEngine(redis) : null
+  if (proofCfg.enabled) {
+    startProofGradingLoop(proofCfg.gradeIntervalMs)
+    console.info('[proof-engine] enabled', {
+      dryRun: proofCfg.dryRun,
+      autoPost: proofCfg.autoPost,
+    })
+  }
+
   console.info('[signal-pipeline:gate] running', {
     consumer: CONSUMER,
     stream: 'ccai:sig:stream:unified',
@@ -95,7 +121,7 @@ async function main(): Promise<void> {
 
   for (;;) {
     try {
-      await handleBatch(redis, agent)
+      await handleBatch(redis, agent, proofEngine)
     } catch (e) {
       markError()
       console.error('[signal-pipeline:gate] loop error', e instanceof Error ? e.message : e)

@@ -64,6 +64,10 @@ export function updateHealth(patch: Partial<HealthSnapshot>): void {
   snapshot = next
 }
 
+export function getHealthSnapshot(): HealthSnapshot {
+  return { ...snapshot, stats: getStats() }
+}
+
 export function startHealthServer(
   config: IngestionConfig,
   writers: Map<string, UnifiedStreamWriter>,
@@ -107,7 +111,7 @@ export function startHealthServer(
   })
 
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
-    if (req.url !== '/health' && req.url !== '/') {
+    if (req.url !== '/health' && req.url !== '/healthz' && req.url !== '/') {
       res.writeHead(404, { 'content-type': 'application/json' })
       res.end(JSON.stringify({ error: 'not found' }))
       return
@@ -124,7 +128,8 @@ export function startHealthServer(
     res.end(JSON.stringify(body))
   })
 
-  server.listen(config.healthPort, () => {
-    console.info('[signal-ingestion] health listening', { port: config.healthPort })
+  const port = Number(process.env.PORT ?? config.healthPort)
+  server.listen(port, () => {
+    console.info('[signal-ingestion] health listening', { port })
   })
 }

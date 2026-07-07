@@ -43,10 +43,13 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
   const [loading, setLoading] = useState(true)
   const [degraded, setDegraded] = useState(false)
   const [recentIds, setRecentIds] = useState<Set<string>>(new Set())
+  const [delayedBy, setDelayedBy] = useState<Map<string, number>>(new Map())
   const pausedRef = useRef(false)
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const attemptRef = useRef(0)
+  const hadSessionRef = useRef(false)
+  const receivedLiveRef = useRef(false)
   const filterRef = useRef(filter)
   filterRef.current = filter
 
@@ -117,13 +120,16 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
       const base = signalWsUrl()
       const url = q.toString() ? `${base}?${q.toString()}` : base
 
-      setConnection((c) => (c === 'live' ? 'reconnecting' : 'connecting'))
+      setConnection((c) => {
+        if (c === 'live' || c === 'listening') return 'reconnecting'
+        return 'connecting'
+      })
       const ws = new WebSocket(url)
       wsRef.current = ws
 
       ws.onopen = () => {
         attemptRef.current = 0
-        setConnection('live')
+        if (!hadSessionRef.current) setConnection('connecting')
         setDegraded(false)
         ws.send(JSON.stringify({ type: 'subscribe', filter: filterRef.current, userId }))
       }
@@ -131,7 +137,11 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
       ws.onclose = () => {
         if (cancelled) return
         attemptRef.current += 1
-        setConnection(attemptRef.current > 3 ? 'down' : 'reconnecting')
+        if (hadSessionRef.current) {
+          setConnection(attemptRef.current > 3 ? 'down' : 'reconnecting')
+        } else {
+          setConnection(attemptRef.current > 3 ? 'down' : 'connecting')
+        }
         setDegraded(true)
         const delay = Math.min(1000 * 2 ** Math.min(attemptRef.current, 4), 12_000)
         reconnectTimer.current = setTimeout(connect, delay)
@@ -150,12 +160,24 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
             | { type: 'hello'; tier: FeedTier }
           if ('tier' in event && event.type === 'hello') {
             setTier(event.tier)
+            hadSessionRef.current = true
+            if (!receivedLiveRef.current) setConnection('listening')
             return
           }
           if (!('type' in event)) return
 
+          receivedLiveRef.current = true
+          setConnection('live')
+
           setSignals((prev) => {
-            const next = applyFeedEvent(prev, event as SignalFeedEvent)
+            const feedEvent = event as SignalFeedEvent
+            if (
+              (feedEvent.type === 'signal.new' || feedEvent.type === 'signal.update') &&
+              feedEvent.delayedBy
+            ) {
+              setDelayedBy((d) => new Map(d).set(feedEvent.signal.id, feedEvent.delayedBy!))
+            }
+            const next = applyFeedEvent(prev, feedEvent)
             if (event.type === 'signal.new' && !pausedRef.current) {
               const id = event.signal.id
               setRecentIds((r) => new Set([...r, id]))
@@ -196,11 +218,12 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
     signals,
     orderedIds,
     tier,
-    connected: connection === 'live',
+    connected: connection === 'live' || connection === 'listening',
     connection,
     loading,
     degraded,
     recentIds,
+    delayedBy,
     setPaused,
     reload: loadHistory,
   }

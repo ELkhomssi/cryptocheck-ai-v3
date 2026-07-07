@@ -3,6 +3,12 @@ node_modules/
 .vercel
 
 .env*.local
+.env.local.bak
 .intelligence-key
 .intelligence-key.*
 *.key.local
+
+# Build artifacts
+packages/*/dist/
+target/
+*.tsbuildinfo

@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import type { UnifiedSignal } from '@cryptocheck/signal-contracts'
 import {
   canSwapSignal,
@@ -16,10 +17,11 @@ type Props = {
   signal: UnifiedSignal
   style?: React.CSSProperties
   isRecent?: boolean
+  delayedBySec?: number
   onSwap: (signal: UnifiedSignal) => void
 }
 
-export function SignalFeedRow({ signal, style, isRecent, onSwap }: Props) {
+export function SignalFeedRow({ signal, style, isRecent, delayedBySec, onSwap }: Props) {
   const isToken = signal.subjectType === 'token'
   const swapOk = canSwapSignal(signal)
   const danger = signal.verdict === 'danger'
@@ -104,6 +106,15 @@ export function SignalFeedRow({ signal, style, isRecent, onSwap }: Props) {
             </>
           ) : null}
         </div>
+
+        {delayedBySec ? (
+          <p className="mt-1.5 text-[0.62rem] text-amber-200">
+            Pro traders saw this {Math.round(delayedBySec / 1000)}s ago —{' '}
+            <Link href="/app/upgrade" className="font-semibold text-rd-safe hover:underline">
+              Upgrade
+            </Link>
+          </p>
+        ) : null}
       </div>
 
       <span

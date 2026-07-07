@@ -48,6 +48,13 @@ export class WsClientSession {
     this.coalesce(event)
   }
 
+  private withDelayMeta(event: SignalFeedEvent, delayedBy: number): SignalFeedEvent {
+    if (event.type === 'signal.new' || event.type === 'signal.update') {
+      return { ...event, delayedBy }
+    }
+    return event
+  }
+
   private coalesce(event: SignalFeedEvent): void {
     const key =
       event.type === 'signal.remove'
@@ -70,11 +77,14 @@ export class WsClientSession {
       const ready: SignalFeedEvent[] = []
       const rest: Delayed[] = []
       for (const item of this.delayQueue) {
-        if (item.deliverAt <= now) ready.push(item.event)
+        if (item.deliverAt <= now) ready.push(item)
         else rest.push(item)
       }
       this.delayQueue = rest
-      for (const event of ready) this.coalesce(event)
+      for (const item of ready) {
+        const event = this.withDelayMeta(item.event, FREE_DELAY_MS)
+        this.coalesce(event)
+      }
       if (this.delayQueue.length) this.scheduleDelayFlush()
     }, Math.min(FREE_DELAY_MS, 5000))
   }

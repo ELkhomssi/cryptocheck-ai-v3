@@ -6,9 +6,10 @@ import { SIGNAL_COMPLIANCE } from '@cryptocheck/signal-contracts'
 import { FeedStreamReader } from './lib/feed-stream.js'
 import { fetchHistory, resolveTier } from './lib/history.js'
 import { parseFilter } from './lib/filters.js'
+import { createServiceHeartbeat, readServiceHeartbeat } from './lib/service-heartbeat.js'
 import { WsClientSession } from './ws/session.js'
 
-const PORT = Number(process.env.SIGNAL_REALTIME_PORT ?? 4102)
+const PORT = Number(process.env.PORT ?? process.env.SIGNAL_REALTIME_PORT ?? 4102)
 
 function parseBearer(req: IncomingMessage): string | undefined {
   const h = req.headers.authorization
@@ -28,10 +29,16 @@ export function startRealtimeGateway(): void {
 
   void feed.start()
 
+  const heartbeat = createServiceHeartbeat('realtime-gateway')
+  heartbeat.start(() => ({
+    status: 'ok',
+    channels: sessions.size,
+  }))
+
   const server = createServer(async (req, res) => {
     const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`)
 
-    if (url.pathname === '/health') {
+    if (url.pathname === '/health' || url.pathname === '/healthz') {
       res.writeHead(200, { 'content-type': 'application/json' })
       res.end(JSON.stringify({ status: 'ok', service: 'signal-realtime', clients: sessions.size }))
       return
@@ -87,10 +94,15 @@ export function startRealtimeGateway(): void {
     const tier = await resolveTier({ bearer: authToken, userId })
     session.setSubscription(tier, {})
 
+    const telegramHb = await readServiceHeartbeat('telegram-monitor')
+    const monitoredChannels = telegramHb?.channels ?? 0
+
     ws.send(
       JSON.stringify({
         type: 'hello',
         tier,
+        serverTime: new Date().toISOString(),
+        monitoredChannels,
         compliance: SIGNAL_COMPLIANCE,
         delayMs: tier === 'free' ? Number(process.env.SIGNAL_FREE_DELAY_MS ?? 90_000) : 0,
       }),
