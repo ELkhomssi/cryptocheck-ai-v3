@@ -11,7 +11,8 @@
     "packages/signal-contracts",
     "services/ingestion",
     "services/pipeline",
-    "services/realtime"
+    "services/realtime",
+    "services/scanner"
   ],
   "scripts": {
     "dev": "next dev",

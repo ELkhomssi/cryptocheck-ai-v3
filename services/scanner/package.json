@@ -1,0 +1,27 @@
+{
+  "name": "@cryptocheck/signal-scanner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Stateless token deep-audit microservice — gateway score + direct-Helius kill-switch",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "node --import tsx src/index.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@cryptocheck/signal-contracts": "file:../../packages/signal-contracts",
+    "@upstash/redis": "^1.37.0",
+    "dotenv": "^17.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.19.0",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -3,7 +3,12 @@ export const SIGNAL_HEARTBEAT_PREFIX = 'ccai:sig:heartbeat:'
 export const SIGNAL_HEARTBEAT_TTL_SEC = 45
 export const SIGNAL_HEARTBEAT_STALE_MS = 45_000
 
-export type PipelineServiceName = 'telegram-monitor' | 'gate-worker' | 'realtime-gateway'
+export type PipelineServiceName =
+  | 'telegram-monitor'
+  | 'gate-worker'
+  | 'realtime-gateway'
+  | 'scanner'
+  | 'sniper'
 
 export type ServiceHeartbeatPayload = {
   service: PipelineServiceName

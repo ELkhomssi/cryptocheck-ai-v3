@@ -12,6 +12,7 @@ export * from './agent.js'
 export * from './proof.js'
 export * from './service-heartbeat.js'
 export * from './token-call.js'
+export * from './scanner.js'
 import type { SourceTag, SubjectType, UnifiedFeedEvent } from './unified-ingestion.js'
 export type SignalChain = 'solana' | 'ethereum' | 'base' | 'bsc' | 'arbitrum'
 
