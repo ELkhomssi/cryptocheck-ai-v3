@@ -10,5 +10,6 @@ node_modules/
 
 # Build artifacts
 packages/*/dist/
+services/*/dist/
 target/
 *.tsbuildinfo

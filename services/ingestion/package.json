@@ -9,6 +9,8 @@
     "build": "tsc -p tsconfig.json",
     "dev": "node --import tsx src/index.ts",
     "start": "node dist/index.js",
+    "scout": "node dist/scout.js",
+    "scout:dev": "node --import tsx src/scout.ts",
     "auth": "node --import tsx scripts/auth-telegram.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },

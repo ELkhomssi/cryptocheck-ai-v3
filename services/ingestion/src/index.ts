@@ -3,6 +3,7 @@ import { createAdapters } from './adapters/index.js'
 import { resolveTelegramChannelList, startChannelRegistryRefresh } from './channel-registry.js'
 import { loadConfig, shardChannels } from './config.js'
 import { getHealthSnapshot, startHealthServer } from './health.js'
+import { loadScoutConfig, runChannelScout } from './scout.js'
 import { createServiceHeartbeat } from './service-heartbeat.js'
 import { createUnifiedStreamWriter } from './unified-stream.js'
 
@@ -22,6 +23,24 @@ async function main(): Promise<void> {
   }))
 
   if (config.telegram) {
+    // Scout first so the allowlist has the latest top-performing channels before we read it.
+    const scoutCfg = loadScoutConfig()
+    if (scoutCfg.enabled) {
+      try {
+        const scouted = await runChannelScout(scoutCfg)
+        console.info('[signal-ingestion] channel scout', {
+          inserted: scouted.inserted,
+          considered: scouted.candidatesConsidered,
+          passed: scouted.passedFilter,
+          alreadyPresent: scouted.alreadyPresent,
+          skipped: scouted.skipped,
+          reason: scouted.reason,
+        })
+      } catch (e) {
+        console.warn('[signal-ingestion] channel scout failed (non-fatal)', e instanceof Error ? e.message : e)
+      }
+    }
+
     const allChannels = await resolveTelegramChannelList(config.telegram.channelsConfigPath)
     config.telegram.channels = shardChannels(
       allChannels,
