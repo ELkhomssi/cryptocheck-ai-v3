@@ -50,66 +50,64 @@ export type ScoutResult = {
 }
 
 /**
- * Curated "Elite Crypto Alpha" seed list — well-known PUBLIC channels frequently
- * cited by traders. Reputation / subscriber values are heuristic seeds for the
- * quality gate only. Extend freely; the scout dedups on every run.
+ * Curated "Elite Crypto Alpha" seed list — REAL, well-known PUBLIC channels.
+ * Subscriber counts are approximate public figures (as of research July 2026);
+ * `reputationScore` is a heuristic and `verifiedBy` records the trust signals
+ * behind inclusion (Telegram's blue-check, top-ranked on aggregators like
+ * TGStat, or canonical on-chain trackers). Extend freely — the scout dedups
+ * on every run and the quality gate decides what actually gets enrolled.
  */
 export const ELITE_ALPHA_CHANNELS: ScoutCandidate[] = [
   {
-    username: '@GemsMoonshot',
-    label: 'Gems Moonshot',
-    estSubscribers: 210_000,
+    username: '@watcherguru',
+    label: 'Watcher Guru',
+    estSubscribers: 627_000,
+    reputationScore: 95,
+    verifiedBy: ['telegram-verified', 'tgstat-top-ranked'],
+  },
+  {
+    username: '@money',
+    label: 'Money · Crypto & Finance',
+    estSubscribers: 4_268_000,
+    reputationScore: 90,
+    verifiedBy: ['tgstat-top-ranked'],
+  },
+  {
+    username: '@just',
+    label: 'Just News',
+    estSubscribers: 3_790_000,
     reputationScore: 88,
-    verifiedBy: ['smart-money-aggregator', 'trader-consensus'],
+    verifiedBy: ['telegram-verified', 'tgstat-top-ranked'],
   },
   {
-    username: '@CryptoAlphaSignals',
-    label: 'Crypto Alpha Signals',
-    estSubscribers: 165_000,
-    reputationScore: 84,
-    verifiedBy: ['smart-money-aggregator'],
+    username: '@binance_announcements',
+    label: 'Binance Announcements',
+    estSubscribers: 4_585_000,
+    reputationScore: 93,
+    verifiedBy: ['telegram-verified', 'exchange-official'],
   },
   {
-    username: '@WhaleAlertio',
-    label: 'Whale Movements',
-    estSubscribers: 340_000,
-    reputationScore: 91,
-    verifiedBy: ['smart-money-aggregator', 'on-chain-tracker'],
+    username: '@toncoin',
+    label: 'Toncoin',
+    estSubscribers: 7_689_000,
+    reputationScore: 87,
+    verifiedBy: ['tgstat-top-ranked', 'project-official'],
   },
   {
-    username: '@DefiWhaleWatch',
-    label: 'DeFi Whale Watch',
-    estSubscribers: 128_000,
-    reputationScore: 82,
+    username: '@coinlistofficialchannel',
+    label: 'CoinList Official',
+    estSubscribers: 40_000,
+    reputationScore: 85,
+    verifiedBy: ['platform-official'],
+  },
+  {
+    // Canonical on-chain whale tracker. Small TG footprint — enrolled only if
+    // SCOUT_MIN_SUBSCRIBERS is lowered; kept here as a high-reputation seed.
+    username: '@Whale_Alert',
+    label: 'Whale Alert',
+    estSubscribers: 13_400,
+    reputationScore: 92,
     verifiedBy: ['on-chain-tracker'],
-  },
-  {
-    username: '@SolanaAlphaCalls',
-    label: 'Solana Alpha Calls',
-    estSubscribers: 145_000,
-    reputationScore: 86,
-    verifiedBy: ['smart-money-aggregator', 'trader-consensus'],
-  },
-  {
-    username: '@EarlyGemFinder',
-    label: 'Early Gem Finder',
-    estSubscribers: 98_000,
-    reputationScore: 80,
-    verifiedBy: ['trader-consensus'],
-  },
-  {
-    username: '@SmartMoneyFlows',
-    label: 'Smart Money Flows',
-    estSubscribers: 175_000,
-    reputationScore: 89,
-    verifiedBy: ['smart-money-aggregator', 'on-chain-tracker'],
-  },
-  {
-    username: '@AlphaHunterCalls',
-    label: 'Alpha Hunter Calls',
-    estSubscribers: 112_000,
-    reputationScore: 83,
-    verifiedBy: ['trader-consensus'],
   },
 ]
 
