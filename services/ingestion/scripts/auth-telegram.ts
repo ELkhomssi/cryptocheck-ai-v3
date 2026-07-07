@@ -2,11 +2,19 @@
  * One-time GramJS session bootstrap.
  * Run: TELEGRAM_API_ID=… TELEGRAM_API_HASH=… npm run auth --prefix services/ingestion
  */
-import 'dotenv/config'
+import { config } from 'dotenv'
 import { createInterface } from 'node:readline/promises'
 import { stdin as input, stdout as output } from 'node:process'
+import { fileURLToPath } from 'node:url'
+import { dirname, resolve } from 'node:path'
 import { TelegramClient } from 'telegram'
 import { StringSession } from 'telegram/sessions/index.js'
+
+// Resolve creds from repo-root env even when run via `npm run --prefix services/ingestion`.
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..')
+config({ path: resolve(REPO_ROOT, '.env.local') })
+config({ path: resolve(REPO_ROOT, '.env') })
+config()
 
 async function main(): Promise<void> {
   const apiId = Number(process.env.TELEGRAM_API_ID)
