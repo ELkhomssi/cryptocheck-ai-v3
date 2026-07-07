@@ -26,14 +26,16 @@ async function fetchEnabledFromSupabase(): Promise<string[] | null> {
   if (!url || !key) return null
 
   try {
-    const endpoint = `${url.replace(/\/$/, '')}/rest/v1/telegram_channels?enabled=eq.true&select=username`
-    const res = await fetch(endpoint, {
-      headers: {
-        apikey: key,
-        Authorization: `Bearer ${key}`,
-      },
-      cache: 'no-store',
-    })
+    const headers = { apikey: key, Authorization: `Bearer ${key}` }
+    const root = url.replace(/\/$/, '')
+    // Prefer platform-scoped query (telegram only); fall back if the column
+    // predates the multi-platform migration.
+    const scoped = `${root}/rest/v1/telegram_channels?enabled=eq.true&platform=eq.telegram&select=username`
+    const legacy = `${root}/rest/v1/telegram_channels?enabled=eq.true&select=username`
+    let res = await fetch(scoped, { headers, cache: 'no-store' })
+    if (!res.ok) {
+      res = await fetch(legacy, { headers, cache: 'no-store' })
+    }
     if (!res.ok) {
       console.warn('[channel-registry] Supabase fetch failed', { status: res.status })
       return null

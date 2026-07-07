@@ -28,13 +28,17 @@ async function main(): Promise<void> {
     if (scoutCfg.enabled) {
       try {
         const scouted = await runChannelScout(scoutCfg)
-        console.info('[signal-ingestion] channel scout', {
-          inserted: scouted.inserted,
-          considered: scouted.candidatesConsidered,
-          passed: scouted.passedFilter,
-          alreadyPresent: scouted.alreadyPresent,
+        console.info('[signal-ingestion] source scout', {
+          totalInserted: scouted.totalInserted,
           skipped: scouted.skipped,
           reason: scouted.reason,
+          platforms: scouted.platforms.map((p) => ({
+            platform: p.platform,
+            inserted: p.inserted,
+            passed: p.passedFilter,
+            alreadyPresent: p.alreadyPresent,
+            reason: p.reason,
+          })),
         })
       } catch (e) {
         console.warn('[signal-ingestion] channel scout failed (non-fatal)', e instanceof Error ? e.message : e)

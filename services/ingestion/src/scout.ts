@@ -1,189 +1,224 @@
 /**
- * AI Channel Scout Agent
- * ----------------------
- * Automates discovery of high-quality PUBLIC Telegram alpha channels so operators
- * never hand-curate the `telegram_channels` allowlist.
+ * AI Signal Source Agent (multi-platform)
+ * ---------------------------------------
+ * Automates discovery + enrollment of high-quality PUBLIC signal sources across
+ * platforms (Telegram, X/Twitter, …) so operators never hand-curate the
+ * allowlist.
  *
- * Pipeline: gather candidates (curated elite list + optional search API) →
- * quality filter (reputation / subscribers / aggregator verification) →
- * dedup against Supabase → insert new rows with `enabled = true`.
+ * Per platform the pipeline is identical and source-agnostic:
+ *   gather candidates (curated seed list + optional external search API) →
+ *   quality gate (audience size / reputation / verification) →
+ *   dedup against Supabase (per platform) → enroll new sources (enabled=true).
  *
- * Backend only. No UI. Respects TELEGRAM HYGIENE: public channels only, no
+ * Backend only. No UI. Respects hygiene rules: PUBLIC accounts only, no
  * private/invite links, no paid scraping.
  *
- * The reputation / subscriber numbers on curated candidates are HEURISTIC SEED
- * metadata used solely to drive the quality gate — they are never persisted as
- * user-facing metrics or emitted as signals.
+ * Audience figures on curated seeds are APPROXIMATE public numbers used to drive
+ * the quality gate; they are never persisted as user-facing metrics or emitted
+ * as signals. Rows live in the (legacy-named) `telegram_channels` table, now
+ * carrying a `platform` column.
  */
 import { isPublicChannelRef, normalizeChannelRef } from './config.js'
 
-export type ScoutCandidate = {
-  username: string
+export type SourcePlatform = 'telegram' | 'twitter'
+
+export type SourceCandidate = {
+  handle: string
   label?: string
-  /** Heuristic subscriber estimate — quality-gate input only, not a displayed metric. */
-  estSubscribers?: number
-  /** Simulated reputation score 0..100 from "smart money" aggregators. */
+  /** Subscribers (telegram) or followers (twitter) — approximate, gate input only. */
+  audienceSize?: number
+  /** Simulated reputation score 0..100. */
   reputationScore?: number
-  /** Simulated aggregator attestations (e.g. which trackers flag this as top alpha). */
+  /** Trust signals behind inclusion (verified badge, top-ranked, official, …). */
   verifiedBy?: string[]
+}
+
+export type PlatformScoutConfig = {
+  platform: SourcePlatform
+  enabled: boolean
+  /** Min subscribers (telegram) / followers (twitter). */
+  minAudience: number
+  minReputation: number
+  requireVerification: boolean
+  audienceLabel: string
+  curated: SourceCandidate[]
+  searchApiUrl: string
+  searchApiKey: string
 }
 
 export type ScoutConfig = {
   enabled: boolean
   dryRun: boolean
-  minReputation: number
-  minSubscribers: number
-  requireAggregatorVerification: boolean
-  searchApiUrl: string
-  searchApiKey: string
   maxInsertsPerRun: number
+  platforms: PlatformScoutConfig[]
 }
 
-export type ScoutResult = {
+export type PlatformScoutResult = {
+  platform: SourcePlatform
   candidatesConsidered: number
   passedFilter: number
   alreadyPresent: number
   inserted: number
-  insertedUsernames: string[]
+  insertedHandles: string[]
+  skipped: boolean
+  reason?: string
+}
+
+export type ScoutResult = {
+  totalInserted: number
+  platforms: PlatformScoutResult[]
   skipped: boolean
   reason?: string
 }
 
 /**
- * Curated "Elite Crypto Alpha" seed list — REAL, well-known PUBLIC channels.
- * Subscriber counts are approximate public figures (as of research July 2026);
- * `reputationScore` is a heuristic and `verifiedBy` records the trust signals
- * behind inclusion (Telegram's blue-check, top-ranked on aggregators like
- * TGStat, or canonical on-chain trackers). Extend freely — the scout dedups
- * on every run and the quality gate decides what actually gets enrolled.
+ * Real, well-known PUBLIC Telegram channels. Subscriber counts are approximate
+ * public figures (research July 2026); reputation is heuristic.
  */
-export const ELITE_ALPHA_CHANNELS: ScoutCandidate[] = [
-  {
-    username: '@watcherguru',
-    label: 'Watcher Guru',
-    estSubscribers: 627_000,
-    reputationScore: 95,
-    verifiedBy: ['telegram-verified', 'tgstat-top-ranked'],
-  },
-  {
-    username: '@money',
-    label: 'Money · Crypto & Finance',
-    estSubscribers: 4_268_000,
-    reputationScore: 90,
-    verifiedBy: ['tgstat-top-ranked'],
-  },
-  {
-    username: '@just',
-    label: 'Just News',
-    estSubscribers: 3_790_000,
-    reputationScore: 88,
-    verifiedBy: ['telegram-verified', 'tgstat-top-ranked'],
-  },
-  {
-    username: '@binance_announcements',
-    label: 'Binance Announcements',
-    estSubscribers: 4_585_000,
-    reputationScore: 93,
-    verifiedBy: ['telegram-verified', 'exchange-official'],
-  },
-  {
-    username: '@toncoin',
-    label: 'Toncoin',
-    estSubscribers: 7_689_000,
-    reputationScore: 87,
-    verifiedBy: ['tgstat-top-ranked', 'project-official'],
-  },
-  {
-    username: '@coinlistofficialchannel',
-    label: 'CoinList Official',
-    estSubscribers: 40_000,
-    reputationScore: 85,
-    verifiedBy: ['platform-official'],
-  },
-  {
-    // Canonical on-chain whale tracker. Small TG footprint — enrolled only if
-    // SCOUT_MIN_SUBSCRIBERS is lowered; kept here as a high-reputation seed.
-    username: '@Whale_Alert',
-    label: 'Whale Alert',
-    estSubscribers: 13_400,
-    reputationScore: 92,
-    verifiedBy: ['on-chain-tracker'],
-  },
+export const TELEGRAM_SOURCES: SourceCandidate[] = [
+  { handle: '@watcherguru', label: 'Watcher Guru', audienceSize: 627_000, reputationScore: 95, verifiedBy: ['telegram-verified', 'tgstat-top-ranked'] },
+  { handle: '@money', label: 'Money · Crypto & Finance', audienceSize: 4_268_000, reputationScore: 90, verifiedBy: ['tgstat-top-ranked'] },
+  { handle: '@just', label: 'Just News', audienceSize: 3_790_000, reputationScore: 88, verifiedBy: ['telegram-verified', 'tgstat-top-ranked'] },
+  { handle: '@binance_announcements', label: 'Binance Announcements', audienceSize: 4_585_000, reputationScore: 93, verifiedBy: ['telegram-verified', 'exchange-official'] },
+  { handle: '@toncoin', label: 'Toncoin', audienceSize: 7_689_000, reputationScore: 87, verifiedBy: ['tgstat-top-ranked', 'project-official'] },
+  { handle: '@coinlistofficialchannel', label: 'CoinList Official', audienceSize: 40_000, reputationScore: 85, verifiedBy: ['platform-official'] },
+  { handle: '@Whale_Alert', label: 'Whale Alert', audienceSize: 13_400, reputationScore: 92, verifiedBy: ['on-chain-tracker'] },
 ]
 
+/**
+ * Real, well-known PUBLIC X (Twitter) alpha sources — major DEXs, launchpads,
+ * top analysts and project/exchange accounts. Follower counts are approximate
+ * public figures (research July 2026); reputation is heuristic.
+ */
+export const TWITTER_SOURCES: SourceCandidate[] = [
+  // Exchanges / founders
+  { handle: '@cz_binance', label: 'CZ (Binance)', audienceSize: 9_000_000, reputationScore: 94, verifiedBy: ['twitter-verified', 'exchange-official'] },
+  { handle: '@VitalikButerin', label: 'Vitalik Buterin', audienceSize: 5_600_000, reputationScore: 96, verifiedBy: ['twitter-verified', 'project-official'] },
+  { handle: '@solana', label: 'Solana', audienceSize: 3_200_000, reputationScore: 90, verifiedBy: ['twitter-verified', 'project-official'] },
+  { handle: '@aeyakovenko', label: 'Anatoly Yakovenko (Solana)', audienceSize: 800_000, reputationScore: 89, verifiedBy: ['twitter-verified', 'project-official'] },
+  // DEXs
+  { handle: '@Uniswap', label: 'Uniswap', audienceSize: 1_300_000, reputationScore: 90, verifiedBy: ['twitter-verified', 'dex-official'] },
+  { handle: '@JupiterExchange', label: 'Jupiter (Solana DEX)', audienceSize: 700_000, reputationScore: 88, verifiedBy: ['twitter-verified', 'dex-official'] },
+  { handle: '@RaydiumProtocol', label: 'Raydium', audienceSize: 600_000, reputationScore: 85, verifiedBy: ['twitter-verified', 'dex-official'] },
+  // Launchpads
+  { handle: '@pumpdotfun', label: 'Pump.fun', audienceSize: 800_000, reputationScore: 84, verifiedBy: ['twitter-verified', 'launchpad-official'] },
+  // Analysts / on-chain
+  { handle: '@lookonchain', label: 'Lookonchain', audienceSize: 1_000_000, reputationScore: 91, verifiedBy: ['twitter-verified', 'on-chain-tracker'] },
+  { handle: '@WatcherGuru', label: 'Watcher Guru', audienceSize: 2_500_000, reputationScore: 92, verifiedBy: ['twitter-verified', 'top-analyst'] },
+  { handle: '@0xMert_', label: 'Mert (Helius)', audienceSize: 400_000, reputationScore: 86, verifiedBy: ['twitter-verified', 'top-analyst'] },
+  { handle: '@APompliano', label: 'Anthony Pompliano', audienceSize: 1_700_000, reputationScore: 85, verifiedBy: ['twitter-verified', 'top-analyst'] },
+]
+
+function bool(v: string | undefined, dflt: boolean): boolean {
+  const t = v?.trim().toLowerCase()
+  if (t === undefined || t === '') return dflt
+  return t === '1' || t === 'true' || t === 'yes'
+}
+function num(v: string | undefined, dflt: number): number {
+  const n = Number(v)
+  return Number.isFinite(n) ? n : dflt
+}
+
 export function loadScoutConfig(): ScoutConfig {
-  const bool = (v: string | undefined, dflt: boolean) => {
-    const t = v?.trim().toLowerCase()
-    if (t === undefined || t === '') return dflt
-    return t === '1' || t === 'true' || t === 'yes'
+  const globalMinReputation = num(process.env.SCOUT_MIN_REPUTATION, 80)
+
+  const telegram: PlatformScoutConfig = {
+    platform: 'telegram',
+    enabled: bool(process.env.SCOUT_TELEGRAM_ENABLED, true),
+    minAudience: num(process.env.SCOUT_MIN_SUBSCRIBERS, 10_000),
+    minReputation: num(process.env.SCOUT_TELEGRAM_MIN_REPUTATION, globalMinReputation),
+    requireVerification: bool(
+      process.env.SCOUT_TELEGRAM_REQUIRE_VERIFICATION ?? process.env.SCOUT_REQUIRE_VERIFICATION,
+      true,
+    ),
+    audienceLabel: 'subscribers',
+    curated: TELEGRAM_SOURCES,
+    searchApiUrl:
+      process.env.SCOUT_TELEGRAM_SEARCH_API_URL?.trim() || process.env.SCOUT_SEARCH_API_URL?.trim() || '',
+    searchApiKey:
+      process.env.SCOUT_TELEGRAM_SEARCH_API_KEY?.trim() || process.env.SCOUT_SEARCH_API_KEY?.trim() || '',
   }
-  const num = (v: string | undefined, dflt: number) => {
-    const n = Number(v)
-    return Number.isFinite(n) ? n : dflt
+
+  const twitter: PlatformScoutConfig = {
+    platform: 'twitter',
+    enabled: bool(process.env.SCOUT_TWITTER_ENABLED, true),
+    minAudience: num(process.env.SCOUT_MIN_FOLLOWERS, 100_000),
+    minReputation: num(process.env.SCOUT_TWITTER_MIN_REPUTATION, globalMinReputation),
+    requireVerification: bool(process.env.SCOUT_TWITTER_REQUIRE_VERIFICATION, true),
+    audienceLabel: 'followers',
+    curated: TWITTER_SOURCES,
+    searchApiUrl: process.env.SCOUT_TWITTER_SEARCH_API_URL?.trim() || '',
+    searchApiKey: process.env.SCOUT_TWITTER_SEARCH_API_KEY?.trim() || '',
   }
+
   return {
     enabled: bool(process.env.SCOUT_ENABLED, true),
     dryRun: bool(process.env.SCOUT_DRY_RUN, false),
-    minReputation: num(process.env.SCOUT_MIN_REPUTATION, 80),
-    minSubscribers: num(process.env.SCOUT_MIN_SUBSCRIBERS, 50_000),
-    requireAggregatorVerification: bool(process.env.SCOUT_REQUIRE_VERIFICATION, true),
-    searchApiUrl: process.env.SCOUT_SEARCH_API_URL?.trim() || '',
-    searchApiKey: process.env.SCOUT_SEARCH_API_KEY?.trim() || '',
     maxInsertsPerRun: num(process.env.SCOUT_MAX_INSERTS, 25),
+    platforms: [telegram, twitter],
   }
 }
 
 /**
- * Optional external discovery hook. If SCOUT_SEARCH_API_URL is configured, we
- * fetch additional candidates. The endpoint is expected to return JSON shaped as
- * { channels: ScoutCandidate[] } or a bare ScoutCandidate[]. Failures are
- * non-fatal — the curated list still runs.
+ * Optional external discovery hook. If a platform's search API is configured we
+ * fetch extra candidates. The endpoint returns { channels|sources: SourceCandidate[] }
+ * or a bare array. Failures are non-fatal — curated seeds still run.
  */
-async function fetchFromSearchApi(cfg: ScoutConfig): Promise<ScoutCandidate[]> {
-  if (!cfg.searchApiUrl) return []
+async function fetchFromSearchApi(pc: PlatformScoutConfig): Promise<SourceCandidate[]> {
+  if (!pc.searchApiUrl) return []
   try {
     const headers: Record<string, string> = { accept: 'application/json' }
-    if (cfg.searchApiKey) headers.authorization = `Bearer ${cfg.searchApiKey}`
-    const res = await fetch(cfg.searchApiUrl, { headers, cache: 'no-store' })
+    if (pc.searchApiKey) headers.authorization = `Bearer ${pc.searchApiKey}`
+    const res = await fetch(pc.searchApiUrl, { headers, cache: 'no-store' })
     if (!res.ok) {
-      console.warn('[scout] search API returned non-OK', { status: res.status })
+      console.warn('[scout] search API non-OK', { platform: pc.platform, status: res.status })
       return []
     }
-    const body = (await res.json()) as { channels?: unknown } | unknown
+    const body = (await res.json()) as Record<string, unknown> | unknown
     const rawList = Array.isArray(body)
       ? body
-      : Array.isArray((body as { channels?: unknown }).channels)
-        ? (body as { channels: unknown[] }).channels
-        : []
-    const out: ScoutCandidate[] = []
+      : Array.isArray((body as { sources?: unknown }).sources)
+        ? (body as { sources: unknown[] }).sources
+        : Array.isArray((body as { channels?: unknown }).channels)
+          ? (body as { channels: unknown[] }).channels
+          : []
+    const out: SourceCandidate[] = []
     for (const item of rawList) {
       if (!item || typeof item !== 'object') continue
       const rec = item as Record<string, unknown>
-      const username = typeof rec.username === 'string' ? rec.username : ''
-      if (!username) continue
+      const handle = typeof rec.handle === 'string' ? rec.handle : typeof rec.username === 'string' ? rec.username : ''
+      if (!handle) continue
+      const audienceSize =
+        typeof rec.audienceSize === 'number'
+          ? rec.audienceSize
+          : typeof rec.followers === 'number'
+            ? rec.followers
+            : typeof rec.subscribers === 'number'
+              ? rec.subscribers
+              : undefined
       out.push({
-        username,
+        handle,
         label: typeof rec.label === 'string' ? rec.label : undefined,
-        estSubscribers: typeof rec.estSubscribers === 'number' ? rec.estSubscribers : undefined,
+        audienceSize,
         reputationScore: typeof rec.reputationScore === 'number' ? rec.reputationScore : undefined,
         verifiedBy: Array.isArray(rec.verifiedBy) ? (rec.verifiedBy as string[]) : undefined,
       })
     }
-    console.info('[scout] fetched candidates from search API', { count: out.length })
+    console.info('[scout] search API candidates', { platform: pc.platform, count: out.length })
     return out
   } catch (e) {
-    console.warn('[scout] search API error', e instanceof Error ? e.message : e)
+    console.warn('[scout] search API error', { platform: pc.platform, error: e instanceof Error ? e.message : e })
     return []
   }
 }
 
-/** Reputation / "Smart Money" quality gate. Simulated but tunable via env. */
-export function passesQualityFilter(c: ScoutCandidate, cfg: ScoutConfig): boolean {
-  const ref = normalizeChannelRef(c.username)
+/** Audience / reputation / verification quality gate. Simulated but tunable. */
+export function passesQualityFilter(c: SourceCandidate, pc: PlatformScoutConfig): boolean {
+  const ref = normalizeChannelRef(c.handle)
   if (!isPublicChannelRef(ref)) return false
-  if (cfg.requireAggregatorVerification && (!c.verifiedBy || c.verifiedBy.length === 0)) return false
-  if ((c.reputationScore ?? 0) < cfg.minReputation) return false
-  if ((c.estSubscribers ?? 0) < cfg.minSubscribers) return false
+  if (pc.requireVerification && (!c.verifiedBy || c.verifiedBy.length === 0)) return false
+  if ((c.reputationScore ?? 0) < pc.minReputation) return false
+  if ((c.audienceSize ?? 0) < pc.minAudience) return false
   return true
 }
 
@@ -194,36 +229,49 @@ function supabaseCreds(): { url: string; key: string } | null {
   return { url: url.replace(/\/$/, ''), key }
 }
 
-/** All usernames already in the table (any enabled state) — normalized + lowercased. */
-async function fetchExistingUsernames(url: string, key: string): Promise<Set<string>> {
-  const endpoint = `${url}/rest/v1/telegram_channels?select=username`
-  const res = await fetch(endpoint, {
-    headers: { apikey: key, Authorization: `Bearer ${key}` },
+/** Existing handles grouped by platform (normalized + lowercased). */
+async function fetchExistingByPlatform(url: string, key: string): Promise<Map<SourcePlatform, Set<string>>> {
+  const out = new Map<SourcePlatform, Set<string>>([
+    ['telegram', new Set()],
+    ['twitter', new Set()],
+  ])
+  const headers = { apikey: key, Authorization: `Bearer ${key}` }
+
+  // Prefer platform-aware query; fall back if the column doesn't exist yet.
+  let rows: { username?: string; platform?: string }[] | null = null
+  const withPlatform = await fetch(`${url}/rest/v1/telegram_channels?select=username,platform`, {
+    headers,
     cache: 'no-store',
   })
-  if (!res.ok) throw new Error(`Supabase list failed HTTP ${res.status}`)
-  const rows = (await res.json()) as { username?: string }[]
-  const set = new Set<string>()
-  for (const r of rows) {
-    if (typeof r.username === 'string') set.add(normalizeChannelRef(r.username).toLowerCase())
+  if (withPlatform.ok) {
+    rows = (await withPlatform.json()) as { username?: string; platform?: string }[]
+  } else {
+    const legacy = await fetch(`${url}/rest/v1/telegram_channels?select=username`, { headers, cache: 'no-store' })
+    if (!legacy.ok) throw new Error(`Supabase list failed HTTP ${legacy.status}`)
+    rows = (await legacy.json()) as { username?: string }[]
   }
-  return set
+
+  for (const r of rows) {
+    if (typeof r.username !== 'string') continue
+    const platform = (r.platform === 'twitter' ? 'twitter' : 'telegram') as SourcePlatform
+    out.get(platform)!.add(normalizeChannelRef(r.username).toLowerCase())
+  }
+  return out
 }
 
-async function insertChannels(
+async function insertSources(
   url: string,
   key: string,
-  rows: { username: string; enabled: boolean; label?: string }[],
+  rows: { platform: SourcePlatform; username: string; enabled: boolean; label?: string }[],
 ): Promise<number> {
   if (rows.length === 0) return 0
-  const endpoint = `${url}/rest/v1/telegram_channels?on_conflict=username`
+  const endpoint = `${url}/rest/v1/telegram_channels?on_conflict=platform,username`
   const res = await fetch(endpoint, {
     method: 'POST',
     headers: {
       apikey: key,
       Authorization: `Bearer ${key}`,
       'Content-Type': 'application/json',
-      // Ignore rows that race in as duplicates; return inserted rows so we can count.
       Prefer: 'resolution=ignore-duplicates,return=representation',
     },
     body: JSON.stringify(rows),
@@ -236,95 +284,102 @@ async function insertChannels(
   return Array.isArray(inserted) ? inserted.length : rows.length
 }
 
-/**
- * Discover + enroll new alpha channels. Safe to run repeatedly (idempotent via
- * dedup + ignore-duplicates). Non-throwing on Supabase config gaps — returns a
- * skipped result so boot is never blocked.
- */
-export async function runChannelScout(cfg: ScoutConfig = loadScoutConfig()): Promise<ScoutResult> {
-  const empty: ScoutResult = {
-    candidatesConsidered: 0,
-    passedFilter: 0,
-    alreadyPresent: 0,
-    inserted: 0,
-    insertedUsernames: [],
-    skipped: true,
-  }
-
-  if (!cfg.enabled) return { ...empty, reason: 'SCOUT_ENABLED=false' }
-
-  const creds = supabaseCreds()
-  if (!creds) return { ...empty, reason: 'missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY' }
-
-  // 1. Gather candidates (curated + optional external search).
-  const fromApi = await fetchFromSearchApi(cfg)
-  const merged = new Map<string, ScoutCandidate>()
-  for (const c of [...ELITE_ALPHA_CHANNELS, ...fromApi]) {
-    const norm = normalizeChannelRef(c.username)
+async function scoutPlatform(
+  pc: PlatformScoutConfig,
+  existing: Set<string>,
+  creds: { url: string; key: string },
+  cfg: ScoutConfig,
+): Promise<PlatformScoutResult> {
+  // 1. Gather (curated + optional external search).
+  const fromApi = await fetchFromSearchApi(pc)
+  const merged = new Map<string, SourceCandidate>()
+  for (const c of [...pc.curated, ...fromApi]) {
+    const norm = normalizeChannelRef(c.handle)
     const klc = norm.toLowerCase()
-    const existing = merged.get(klc)
-    // Prefer the richer record (search API may enrich curated seeds).
-    merged.set(klc, { ...existing, ...c, username: norm })
+    merged.set(klc, { ...merged.get(klc), ...c, handle: norm })
   }
   const candidates = [...merged.values()]
 
-  // 2. Quality filter.
-  const qualified = candidates.filter((c) => passesQualityFilter(c, cfg))
+  // 2. Quality gate.
+  const qualified = candidates.filter((c) => passesQualityFilter(c, pc))
 
-  // 3. Dedup against Supabase.
-  let existing: Set<string>
-  try {
-    existing = await fetchExistingUsernames(creds.url, creds.key)
-  } catch (e) {
-    return { ...empty, candidatesConsidered: candidates.length, reason: e instanceof Error ? e.message : 'list failed' }
-  }
-
-  const fresh = qualified.filter((c) => !existing.has(normalizeChannelRef(c.username).toLowerCase()))
+  // 3. Dedup + cap.
+  const fresh = qualified.filter((c) => !existing.has(normalizeChannelRef(c.handle).toLowerCase()))
   const toInsert = fresh.slice(0, cfg.maxInsertsPerRun)
 
-  // 4. Insert (skipped on dry run — reports what it would enroll).
-  let inserted = 0
-  if (cfg.dryRun) {
-    return {
-      candidatesConsidered: candidates.length,
-      passedFilter: qualified.length,
-      alreadyPresent: qualified.length - fresh.length,
-      inserted: 0,
-      insertedUsernames: toInsert.map((c) => normalizeChannelRef(c.username)),
-      skipped: true,
-      reason: 'dry-run',
-    }
+  const base: PlatformScoutResult = {
+    platform: pc.platform,
+    candidatesConsidered: candidates.length,
+    passedFilter: qualified.length,
+    alreadyPresent: qualified.length - fresh.length,
+    inserted: 0,
+    insertedHandles: toInsert.map((c) => normalizeChannelRef(c.handle)),
+    skipped: false,
   }
+
+  if (cfg.dryRun) return { ...base, inserted: 0, skipped: true, reason: 'dry-run' }
+
+  // 4. Enroll.
   if (toInsert.length > 0) {
     try {
-      inserted = await insertChannels(
+      base.inserted = await insertSources(
         creds.url,
         creds.key,
         toInsert.map((c) => ({
-          username: normalizeChannelRef(c.username),
+          platform: pc.platform,
+          username: normalizeChannelRef(c.handle),
           enabled: true,
           label: c.label,
         })),
       )
     } catch (e) {
-      return {
-        candidatesConsidered: candidates.length,
-        passedFilter: qualified.length,
-        alreadyPresent: qualified.length - fresh.length,
-        inserted: 0,
-        insertedUsernames: [],
-        skipped: false,
-        reason: e instanceof Error ? e.message : 'insert failed',
-      }
+      return { ...base, inserted: 0, insertedHandles: [], skipped: false, reason: e instanceof Error ? e.message : 'insert failed' }
     }
+  }
+  return base
+}
+
+/**
+ * Discover + enroll new sources across all enabled platforms. Idempotent
+ * (dedup + ignore-duplicates). Non-throwing on config gaps so boot is never
+ * blocked.
+ */
+export async function runChannelScout(cfg: ScoutConfig = loadScoutConfig()): Promise<ScoutResult> {
+  if (!cfg.enabled) return { totalInserted: 0, platforms: [], skipped: true, reason: 'SCOUT_ENABLED=false' }
+
+  const creds = supabaseCreds()
+  if (!creds) {
+    return { totalInserted: 0, platforms: [], skipped: true, reason: 'missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY' }
+  }
+
+  let existing: Map<SourcePlatform, Set<string>>
+  try {
+    existing = await fetchExistingByPlatform(creds.url, creds.key)
+  } catch (e) {
+    return { totalInserted: 0, platforms: [], skipped: true, reason: e instanceof Error ? e.message : 'list failed' }
+  }
+
+  const results: PlatformScoutResult[] = []
+  for (const pc of cfg.platforms) {
+    if (!pc.enabled) {
+      results.push({
+        platform: pc.platform,
+        candidatesConsidered: 0,
+        passedFilter: 0,
+        alreadyPresent: 0,
+        inserted: 0,
+        insertedHandles: [],
+        skipped: true,
+        reason: 'platform disabled',
+      })
+      continue
+    }
+    results.push(await scoutPlatform(pc, existing.get(pc.platform) ?? new Set(), creds, cfg))
   }
 
   return {
-    candidatesConsidered: candidates.length,
-    passedFilter: qualified.length,
-    alreadyPresent: qualified.length - fresh.length,
-    inserted,
-    insertedUsernames: toInsert.map((c) => normalizeChannelRef(c.username)),
+    totalInserted: results.reduce((sum, r) => sum + r.inserted, 0),
+    platforms: results,
     skipped: false,
   }
 }
@@ -333,7 +388,7 @@ export async function runChannelScout(cfg: ScoutConfig = loadScoutConfig()): Pro
 async function main(): Promise<void> {
   await import('dotenv/config')
   const result = await runChannelScout()
-  console.info('[scout] run complete', result)
+  console.info('[scout] run complete', JSON.stringify(result, null, 2))
   process.exit(0)
 }
 
