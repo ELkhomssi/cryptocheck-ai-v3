@@ -26,6 +26,7 @@
     "test:terminal-reducer": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-terminal-reducer.ts",
     "test:api-probe": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-api.ts",
     "test:verdict-thresholds": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-verdict-thresholds.ts",
+    "test:proof-calls": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/smoke-proof-calls.ts",
     "audit:post-migration": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/audit-post-migration.ts",
     "audit:ci": "npm run audit:post-migration && cat docs/audit-results.md",
     "verify:all-phases": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/verify-all-phases.ts",
