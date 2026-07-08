@@ -1,5 +1,6 @@
 import { getActiveSaasSubscription } from '@/lib/services/saas-subscription.service'
 import { isSentinelQaBypassUserId, sentinelQaBypassEnabled } from '@/lib/config/sentinel-qa-bypass'
+import { isFullAccessPriceId } from '@/lib/billing/upgrade-plans'
 import type { SaasSubscriptionStatus } from '@/lib/types/saas-subscription'
 
 const GRANTING_STATUSES = new Set<SaasSubscriptionStatus>(['active', 'trialing'])
@@ -26,6 +27,11 @@ export async function userHasFullPlatformAccess(userId: string): Promise<boolean
   if (!periodStillValid(row.current_period_end as string | null)) return false
 
   if (row.full_access === true) return true
+
+  // Belt-and-suspenders: recognize an active monthly OR annual full-access price id
+  // even if the boolean flag lagged (both cycles map to the same plan).
+  const priceId = row.stripe_price_id as string | null | undefined
+  if (priceId && isFullAccessPriceId(String(priceId))) return true
 
   const tier = String(row.tier ?? '').toUpperCase()
   return LEGACY_PAID_TIERS.has(tier)

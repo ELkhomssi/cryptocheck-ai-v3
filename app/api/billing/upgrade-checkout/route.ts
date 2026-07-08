@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { ensureFreeTierSubscription } from '@/lib/services/saas-entitlement.service'
-import { PLANS, type UpgradePlanId } from '@/lib/billing/upgrade-plans'
+import { PLANS, type BillingCycle, type UpgradePlanId } from '@/lib/billing/upgrade-plans'
 import { resolveStripePriceIdForPlan } from '@/lib/billing/stripe-plan-prices'
 
 /**
@@ -34,22 +34,25 @@ export async function POST(req: NextRequest) {
   await ensureFreeTierSubscription(user.id)
 
   let planId: UpgradePlanId = 'basic'
+  let cycle: BillingCycle = 'monthly'
   try {
     const body = await req.json()
     const raw = typeof body?.plan === 'string' ? body.plan.trim().toLowerCase() : 'basic'
     if (raw === 'pro' || raw === 'basic') planId = raw
+    const rawCycle = typeof body?.cycle === 'string' ? body.cycle.trim().toLowerCase() : 'monthly'
+    if (rawCycle === 'annual' || rawCycle === 'yearly') cycle = 'annual'
   } catch {
-    /* default basic */
+    /* default basic monthly */
   }
 
   if (!PLANS.some((p) => p.id === planId)) {
     return NextResponse.json({ error: 'Unknown plan' }, { status: 400 })
   }
 
-  const priceId = await resolveStripePriceIdForPlan(planId)
+  const priceId = await resolveStripePriceIdForPlan(planId, cycle)
   if (!priceId) {
     console.error(
-      '[billing/upgrade-checkout] Set STRIPE_PRODUCT_BASIC/PRO or STRIPE_PRICE_BASIC/PRO',
+      '[billing/upgrade-checkout] Set STRIPE_PRODUCT_BASIC/PRO or STRIPE_PRICE_{BASIC,PRO}[_ANNUAL]',
     )
     return NextResponse.json({ error: 'Billing unavailable' }, { status: 500 })
   }
@@ -69,9 +72,11 @@ export async function POST(req: NextRequest) {
     [`metadata[user_id]`]: user.id,
     [`metadata[email]`]: user.email,
     [`metadata[plan]`]: planId,
+    [`metadata[cycle]`]: cycle,
     [`metadata[price_id]`]: priceId,
     [`subscription_data[metadata][user_id]`]: user.id,
     [`subscription_data[metadata][plan]`]: planId,
+    [`subscription_data[metadata][cycle]`]: cycle,
     [`subscription_data[metadata][email]`]: user.email,
     [`subscription_data[metadata][price_id]`]: priceId,
   })

@@ -1,4 +1,4 @@
-import type { UpgradePlanId } from '@/lib/billing/upgrade-plans'
+import type { BillingCycle, UpgradePlanId } from '@/lib/billing/upgrade-plans'
 import { stripePriceIdForPlan } from '@/lib/billing/upgrade-plans'
 
 const PRICE_ID_RE = /^price_[a-zA-Z0-9]+$/
@@ -18,11 +18,15 @@ export function stripeProductIdForPlan(planId: UpgradePlanId): string | null {
   return raw
 }
 
-/** In-memory cache: productId → default recurring priceId (per deploy). */
+/** In-memory cache: `${productId}:${cycle}` → recurring priceId (per deploy). */
 const productPriceCache = new Map<string, string>()
 
-async function fetchDefaultRecurringPriceId(productId: string): Promise<string | null> {
-  const cached = productPriceCache.get(productId)
+async function fetchRecurringPriceId(
+  productId: string,
+  cycle: BillingCycle,
+): Promise<string | null> {
+  const cacheKey = `${productId}:${cycle}`
+  const cached = productPriceCache.get(cacheKey)
   if (cached) return cached
 
   const secret = stripeSecret()
@@ -32,7 +36,7 @@ async function fetchDefaultRecurringPriceId(productId: string): Promise<string |
     product: productId,
     active: 'true',
     type: 'recurring',
-    limit: '10',
+    limit: '20',
   })
 
   const res = await fetch(`https://api.stripe.com/v1/prices?${q}`, {
@@ -52,29 +56,37 @@ async function fetchDefaultRecurringPriceId(productId: string): Promise<string |
   }
 
   const prices = body.data ?? []
-  const twoMonth =
-    prices.find((p) => p.recurring?.interval === 'month' && p.recurring?.interval_count === 2) ??
-    prices.find((p) => p.recurring?.interval === 'month') ??
+  const wantInterval = cycle === 'annual' ? 'year' : 'month'
+  const match =
+    prices.find((p) => p.recurring?.interval === wantInterval) ??
+    // Fallback for legacy monthly setups priced as 2-month intervals.
+    (cycle === 'monthly'
+      ? prices.find((p) => p.recurring?.interval === 'month' && p.recurring?.interval_count === 2)
+      : undefined) ??
     prices[0]
 
-  const id = twoMonth?.id?.trim()
+  const id = match?.id?.trim()
   if (!id || !PRICE_ID_RE.test(id)) return null
 
-  productPriceCache.set(productId, id)
+  productPriceCache.set(cacheKey, id)
   return id
 }
 
 /**
- * Resolve Checkout `price_` id: explicit STRIPE_PRICE_* env, else default price on STRIPE_PRODUCT_*.
+ * Resolve Checkout `price_` id for a plan + cycle: explicit STRIPE_PRICE_* env,
+ * else the matching recurring price on STRIPE_PRODUCT_*.
  */
-export async function resolveStripePriceIdForPlan(planId: UpgradePlanId): Promise<string | null> {
-  const fromEnv = stripePriceIdForPlan(planId)
+export async function resolveStripePriceIdForPlan(
+  planId: UpgradePlanId,
+  cycle: BillingCycle = 'monthly',
+): Promise<string | null> {
+  const fromEnv = stripePriceIdForPlan(planId, cycle)
   if (fromEnv) return fromEnv
 
   const productId = stripeProductIdForPlan(planId)
   if (!productId) return null
 
-  return fetchDefaultRecurringPriceId(productId)
+  return fetchRecurringPriceId(productId, cycle)
 }
 
 export function planIdFromStripeProductId(productId: string): UpgradePlanId | null {

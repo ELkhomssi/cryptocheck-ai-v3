@@ -6,11 +6,14 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { VersionedTransaction } from '@solana/web3.js'
 import { Crown, Loader2, ShieldCheck, TriangleAlert, Zap } from 'lucide-react'
 import type { SnipeCandidate } from '@cryptocheck/signal-contracts'
+import { ANNUAL_SAVINGS_BADGE_PCT, type BillingCycle } from '@/lib/billing/upgrade-plans'
 
 type CandidatesResponse = {
   authenticated: boolean
   fullAccess: boolean
   armed: boolean
+  plan?: 'basic' | 'pro' | null
+  billingCycle?: BillingCycle | null
   candidates: SnipeCandidate[]
 }
 
@@ -37,6 +40,8 @@ export function SniperPanel() {
   const [arming, setArming] = useState(false)
   const [rows, setRows] = useState<Record<string, RowState>>({})
   const [autoCount, setAutoCount] = useState(0)
+  const [upgradeCycle, setUpgradeCycle] = useState<BillingCycle>('annual')
+  const [checkoutBusy, setCheckoutBusy] = useState(false)
 
   // Candidate ids already handled by auto-mode (seeded on arm so the existing
   // backlog is never retroactively sniped) + a serialization lock.
@@ -84,6 +89,32 @@ export function SniperPanel() {
       setArming(false)
     }
   }, [fullAccess, arming, armed])
+
+  const startCheckout = useCallback(
+    async (plan: 'basic' | 'pro', cycle: BillingCycle) => {
+      if (checkoutBusy) return
+      setCheckoutBusy(true)
+      try {
+        const res = await fetch('/api/billing/upgrade-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan, cycle }),
+        })
+        const body = (await res.json().catch(() => ({}))) as { url?: string }
+        if (body.url) {
+          window.location.href = body.url
+          return
+        }
+        // Not signed in / not configured → fall back to the full upgrade page.
+        window.location.href = '/app/upgrade'
+      } catch {
+        window.location.href = '/app/upgrade'
+      } finally {
+        setCheckoutBusy(false)
+      }
+    },
+    [checkoutBusy],
+  )
 
   const flashSnipe = useCallback(
     async (c: SnipeCandidate, confirm = false) => {
@@ -239,7 +270,62 @@ export function SniperPanel() {
         </div>
       ) : null}
 
-      {/* Amount presets (SOL) */}
+      {/* Upgrade CTA (free users) — monthly + annual with save badge */}
+      {!fullAccess ? (
+        <div className="mb-3 rounded-dash-inner border border-dash-gold/30 bg-dash-panel2 p-3">
+          <p className="text-[11px] font-semibold text-dash-thi">Unlock the AI Sniper</p>
+          <p className="mb-2.5 text-[10px] text-dash-tmid">
+            Full Auto-Snipe, kill-switch swaps, and priority signals.
+          </p>
+
+          <div className="mb-2.5 inline-flex rounded-dash-chip border border-dash-innerline p-0.5">
+            {(['monthly', 'annual'] as BillingCycle[]).map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setUpgradeCycle(c)}
+                className={`inline-flex items-center gap-1 rounded-dash-chip px-2.5 py-1 text-[10px] font-semibold transition-colors duration-150 ${
+                  upgradeCycle === c ? 'bg-dash-green text-dash-bg' : 'text-dash-tmid hover:text-dash-thi'
+                }`}
+              >
+                {c === 'monthly' ? 'Monthly' : 'Annual'}
+                {c === 'annual' ? (
+                  <span
+                    className={`rounded px-1 py-0.5 text-[8px] font-bold ${
+                      upgradeCycle === 'annual' ? 'bg-dash-bg/20 text-dash-bg' : 'bg-dash-greenDim text-dash-green'
+                    }`}
+                  >
+                    SAVE {ANNUAL_SAVINGS_BADGE_PCT}%
+                  </span>
+                ) : null}
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => void startCheckout('pro', upgradeCycle)}
+            disabled={checkoutBusy}
+            className="flex w-full items-center justify-center gap-1.5 rounded-dash-chip bg-dash-gold py-2 text-[11px] font-bold text-dash-bg transition-opacity duration-150 hover:opacity-90 disabled:opacity-60"
+          >
+            {checkoutBusy ? (
+              <Loader2 className="h-3.5 w-3.5 motion-safe:animate-spin" />
+            ) : (
+              <Crown className="h-3.5 w-3.5" />
+            )}
+            Unlock Pro · {upgradeCycle === 'annual' ? '$200/yr' : '$20/mo'}
+          </button>
+          <Link
+            href="/app/upgrade"
+            className="mt-1.5 block text-center text-[10px] text-dash-tlo hover:text-dash-thi"
+          >
+            Compare Basic & Pro plans
+          </Link>
+        </div>
+      ) : null}
+
+      {/* Amount presets (SOL) — full-access only */}
+      {fullAccess ? (
       <div className="mb-3 flex items-center gap-2">
         <span className="text-[10px] uppercase tracking-wider text-dash-tlo">Size</span>
         <div className="flex flex-wrap gap-1.5">
@@ -259,6 +345,7 @@ export function SniperPanel() {
           ))}
         </div>
       </div>
+      ) : null}
 
       {!data ? (
         <div className="space-y-2">
