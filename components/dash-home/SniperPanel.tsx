@@ -109,10 +109,12 @@ export function SniperPanel() {
         const body = await res.json()
 
         if (res.status === 403) {
-          setRow(c.id, {
-            status: 'error',
-            message: body?.decision?.blockedReason ?? 'Blocked by risk kill-switch',
-          })
+          // Two shapes: risk-block ({ decision }) vs entitlement gate (scan error payload).
+          const msg =
+            body?.decision?.blockedReason ??
+            (typeof body?.error === 'string' ? body.error : body?.error?.message) ??
+            'Pro required — upgrade to snipe'
+          setRow(c.id, { status: 'error', message: msg })
           return
         }
         if (res.status === 409) {
@@ -298,6 +300,15 @@ export function SniperPanel() {
                       {c.mint.slice(0, 10)}… · {c.sourceTag}
                     </p>
                   </div>
+                  {!fullAccess ? (
+                    <Link
+                      href="/app/upgrade"
+                      className="inline-flex shrink-0 items-center gap-1 rounded-dash-chip border border-dash-gold/50 px-3 py-1.5 text-[11px] font-bold text-dash-gold transition-colors duration-150 hover:border-dash-gold"
+                    >
+                      <Crown className="h-3 w-3" />
+                      Pro
+                    </Link>
+                  ) : (
                   <button
                     type="button"
                     onClick={() => void flashSnipe(c, row.status === 'needsConfirm')}
@@ -327,9 +338,10 @@ export function SniperPanel() {
                               ? 'Confirm'
                               : 'Flash Snipe'}
                   </button>
+                  )}
                 </div>
 
-                {!wallet.connected ? (
+                {fullAccess && !wallet.connected ? (
                   <p className="mt-1.5 text-[10px] text-dash-tlo">Connect a wallet to snipe.</p>
                 ) : row.status === 'done' && row.signature ? (
                   <p className="font-dash-mono mt-1.5 text-[10px] text-dash-green">

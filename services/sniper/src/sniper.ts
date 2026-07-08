@@ -110,15 +110,7 @@ export async function processSignal(
   }
 
   // Conviction threshold — safe but low-quality tokens are not auto-surfaced.
-  if (report.neuralScore < cfg.minScore) {
-    console.info('[signal-sniper] below threshold', {
-      mint,
-      symbol,
-      score: report.neuralScore,
-      min: cfg.minScore,
-    })
-    return
-  }
+  if (report.neuralScore < cfg.minScore) return
 
   const candidate: SnipeCandidate = {
     id: sig.id,
