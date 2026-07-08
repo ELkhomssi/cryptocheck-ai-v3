@@ -9,11 +9,20 @@ function stripeSecret(): string | null {
   return k || null
 }
 
-export function stripeProductIdForPlan(planId: UpgradePlanId): string | null {
-  const raw =
+/** Stripe product for a plan + cycle. Annual can live on its own product. */
+export function stripeProductIdForPlan(
+  planId: UpgradePlanId,
+  cycle: BillingCycle = 'monthly',
+): string | null {
+  const raw = (
     planId === 'basic'
-      ? process.env.STRIPE_PRODUCT_BASIC?.trim()
-      : process.env.STRIPE_PRODUCT_PRO?.trim()
+      ? cycle === 'annual'
+        ? process.env.STRIPE_PRODUCT_BASIC_ANNUAL
+        : process.env.STRIPE_PRODUCT_BASIC
+      : cycle === 'annual'
+        ? process.env.STRIPE_PRODUCT_PRO_ANNUAL
+        : process.env.STRIPE_PRODUCT_PRO
+  )?.trim()
   if (!raw || !PRODUCT_ID_RE.test(raw)) return null
   return raw
 }
@@ -83,7 +92,7 @@ export async function resolveStripePriceIdForPlan(
   const fromEnv = stripePriceIdForPlan(planId, cycle)
   if (fromEnv) return fromEnv
 
-  const productId = stripeProductIdForPlan(planId)
+  const productId = stripeProductIdForPlan(planId, cycle)
   if (!productId) return null
 
   return fetchRecurringPriceId(productId, cycle)
@@ -91,9 +100,11 @@ export async function resolveStripePriceIdForPlan(
 
 export function planIdFromStripeProductId(productId: string): UpgradePlanId | null {
   const basic = process.env.STRIPE_PRODUCT_BASIC?.trim()
+  const basicAnnual = process.env.STRIPE_PRODUCT_BASIC_ANNUAL?.trim()
   const pro = process.env.STRIPE_PRODUCT_PRO?.trim()
-  if (basic && productId === basic) return 'basic'
-  if (pro && productId === pro) return 'pro'
+  const proAnnual = process.env.STRIPE_PRODUCT_PRO_ANNUAL?.trim()
+  if (productId === basic || productId === basicAnnual) return 'basic'
+  if (productId === pro || productId === proAnnual) return 'pro'
   return null
 }
 

@@ -17,8 +17,6 @@ export type PlanCyclePricing = {
 export type UpgradePlanConfig = {
   id: UpgradePlanId
   name: string
-  /** Stripe Product — default recurring price resolved at checkout if price env unset. */
-  productIdEnv: 'STRIPE_PRODUCT_BASIC' | 'STRIPE_PRODUCT_PRO'
   cycles: Record<BillingCycle, PlanCyclePricing>
   bestValue?: boolean
 }
@@ -27,7 +25,6 @@ export const PLANS: UpgradePlanConfig[] = [
   {
     id: 'basic',
     name: 'Basic Access',
-    productIdEnv: 'STRIPE_PRODUCT_BASIC',
     cycles: {
       monthly: { priceIdEnv: 'STRIPE_PRICE_BASIC', amountUsd: 10 },
       annual: { priceIdEnv: 'STRIPE_PRICE_BASIC_ANNUAL', amountUsd: 100 },
@@ -36,7 +33,6 @@ export const PLANS: UpgradePlanConfig[] = [
   {
     id: 'pro',
     name: 'Pro Access',
-    productIdEnv: 'STRIPE_PRODUCT_PRO',
     cycles: {
       monthly: { priceIdEnv: 'STRIPE_PRICE_PRO', amountUsd: 20 },
       annual: { priceIdEnv: 'STRIPE_PRICE_PRO_ANNUAL', amountUsd: 200 },
