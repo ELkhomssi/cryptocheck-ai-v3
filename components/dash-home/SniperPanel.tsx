@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { VersionedTransaction } from '@solana/web3.js'
@@ -19,6 +19,9 @@ type RowState = { status: RowStatus; message?: string; signature?: string }
 
 const AMOUNT_PRESETS_SOL = [0.1, 0.25, 0.5, 1] as const
 
+/** Safety ceiling: max auto-executed snipes per browser session. */
+const AUTO_SESSION_CAP = 10
+
 function verdictTone(verdict: string): string {
   if (verdict === 'SAFE') return 'bg-dash-greenDim text-dash-green'
   if (verdict === 'CAUTION') return 'bg-dash-amber/20 text-dash-amber'
@@ -33,6 +36,12 @@ export function SniperPanel() {
   const [amountSol, setAmountSol] = useState<number>(0.25)
   const [arming, setArming] = useState(false)
   const [rows, setRows] = useState<Record<string, RowState>>({})
+  const [autoCount, setAutoCount] = useState(0)
+
+  // Candidate ids already handled by auto-mode (seeded on arm so the existing
+  // backlog is never retroactively sniped) + a serialization lock.
+  const autoSeenRef = useRef<Set<string>>(new Set())
+  const autoBusyRef = useRef(false)
 
   const setRow = useCallback((id: string, state: RowState) => {
     setRows((prev) => ({ ...prev, [id]: state }))
@@ -144,6 +153,38 @@ export function SniperPanel() {
     [wallet, connection, amountSol, setRow],
   )
 
+  // On arm: seed the "seen" set with the current backlog so Full Auto only
+  // fires on NEW candidates. On disarm: reset the session.
+  useEffect(() => {
+    if (armed) {
+      for (const c of candidates) autoSeenRef.current.add(c.id)
+    } else {
+      autoSeenRef.current.clear()
+      autoBusyRef.current = false
+      setAutoCount(0)
+    }
+    // Intentionally keyed on `armed` only — seeding uses the backlog at arm time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [armed])
+
+  // Full Auto: one new candidate at a time. Non-custodial — each still needs a
+  // Phantom approval, and high-risk (409) is left for manual confirm.
+  useEffect(() => {
+    if (!armed || !wallet.connected) return
+    if (autoBusyRef.current) return
+    if (autoCount >= AUTO_SESSION_CAP) return
+    const next = candidates.find((c) => !autoSeenRef.current.has(c.id))
+    if (!next) return
+    autoSeenRef.current.add(next.id)
+    autoBusyRef.current = true
+    setAutoCount((n) => n + 1)
+    void flashSnipe(next, false).finally(() => {
+      autoBusyRef.current = false
+    })
+  }, [candidates, armed, wallet.connected, autoCount, flashSnipe])
+
+  const autoCapReached = armed && autoCount >= AUTO_SESSION_CAP
+
   return (
     <section className="rounded-dash border border-dash-hairline bg-dash-panel p-4 md:p-5">
       <header className="mb-3 flex items-start justify-between gap-2">
@@ -184,6 +225,17 @@ export function SniperPanel() {
           </Link>
         )}
       </header>
+
+      {armed ? (
+        <div className="mb-3 flex items-center justify-between rounded-dash-inner border border-dash-green/30 bg-dash-greenDim px-3 py-1.5">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-dash-green">
+            {autoCapReached ? 'Session cap reached' : 'Auto-sniping new launches'}
+          </span>
+          <span className="font-dash-mono text-[10px] tabular-nums text-dash-green">
+            {autoCount}/{AUTO_SESSION_CAP}
+          </span>
+        </div>
+      ) : null}
 
       {/* Amount presets (SOL) */}
       <div className="mb-3 flex items-center gap-2">
