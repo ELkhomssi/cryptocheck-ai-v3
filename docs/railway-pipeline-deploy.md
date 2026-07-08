@@ -8,10 +8,13 @@ Long-running signal workers run on **Railway**; Vercel hosts the Next.js UI only
 Railway: cryptocheck-pipeline
 ├── telegram-monitor   → services/ingestion   (GramJS → Redis unified stream)
 ├── gate-worker        → services/pipeline    (npm run start:gate)
-└── realtime-gateway   → services/realtime    (public domain + WSS)
+├── realtime-gateway   → services/realtime    (public domain + WSS)
+├── scanner            → services/scanner     (deep audit + kill-switch, /scan)
+└── sniper             → services/sniper      (detect → scan → emit candidate)
 
 Shared: Upstash Redis · Supabase Postgres
 Vercel: NEXT_PUBLIC_SIGNAL_WS_URL → realtime-gateway public URL
+Non-custodial: sniper emits candidates only; the browser signs swaps via Phantom.
 ```
 
 ## 1. Create Railway project
@@ -24,13 +27,15 @@ Vercel: NEXT_PUBLIC_SIGNAL_WS_URL → realtime-gateway public URL
 | `telegram-monitor` | `services/ingestion`  | `npm run start`            | `/healthz`   |
 | `gate-worker`      | `services/pipeline`   | `npm run start:gate`       | `/healthz`   |
 | `realtime-gateway` | `services/realtime`   | `npm run start`            | `/healthz`   |
+| `scanner`          | `services/scanner`    | `npm run start`            | `/healthz`   |
+| `sniper`           | `services/sniper`     | `npm run start`            | `/healthz`   |
 
-**Build command (all three):**
+**Build command (all):**
 ```bash
 npm run build --prefix ../../packages/signal-contracts && npm install && npm run build
 ```
 
-Or use `services/Dockerfile.signal-worker` with `SIGNAL_SERVICE=ingestion|gate|realtime`.
+Or use `services/Dockerfile.signal-worker` with `SIGNAL_SERVICE=ingestion|gate|realtime|scanner|sniper`.
 
 ## 2. Environment variables (shared)
 
@@ -75,6 +80,29 @@ SIGNAL_REALTIME_PORT=$PORT    # Railway injects PORT
 
 Generate a **public domain** on `realtime-gateway` (e.g. `cryptocheck-realtime.up.railway.app`).
 
+### scanner only
+
+```
+SIGNAL_ASSESS_URL=https://www.cryptocheckai.com/api/internal/signals/assess
+HELIUS_API_KEY=              # direct Helius RPC for mint/freeze kill-switch
+```
+
+Keep `scanner` **private** (internal networking only) — it is called by `sniper` and
+by `/api/internal/*`, never directly by the browser.
+
+### sniper only
+
+```
+SCANNER_URL=http://scanner.railway.internal:4103   # private URL of the scanner service
+SNIPER_MIN_SCORE=70
+SNIPER_TRIGGER_TYPES=buy
+# SNIPER_LOG_ALL_SCANS=false   # candidate + blocked are always logged
+```
+
+The sniper is a **market-wide detector** — it never holds keys or signs. It writes
+`signal_snipe_actions` (scan/candidate/blocked audit) and emits candidates to
+`ccai:sig:snipe:candidates`; the execution layer arms per-user + signs via Phantom.
+
 ## 3. Supabase: channel allowlist
 
 Apply migration `supabase/migrations/20260706_telegram_channels.sql`, then insert channels:
@@ -85,6 +113,8 @@ INSERT INTO telegram_channels (username, enabled, label) VALUES
 ```
 
 `telegram-monitor` reads enabled rows on boot and every 5 minutes.
+
+Also apply `supabase/migrations/20260709_signal_snipe_actions.sql` (AI Sniper audit trail).
 
 ## 4. Point Vercel at Railway
 
@@ -115,3 +145,4 @@ The dashboard **Data Sources** chip reads the `telegram-monitor` heartbeat — s
 
 - **Proof Engine** — set `PROOF_ENGINE_ENABLED=true` on gate-worker (start with `PROOF_ENGINE_DRY_RUN=true`)
 - **Subscription gate** — `SIGNAL_FREE_DELAY_MS=90000` on realtime-gateway; free tier sees `delayedBy` upsell on `/dashboard/signals`
+- **AI Sniper execution layer** (next) — client consumes `ccai:sig:snipe:candidates`; Pro ($10/mo) users get Full Auto (build tx → Phantom signs); confirmed swaps logged to `signal_snipe_actions` + `signal_proof_calls`

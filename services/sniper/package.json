@@ -1,0 +1,28 @@
+{
+  "name": "@cryptocheck/signal-sniper",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AI Sniper engine — detects new launches, scans (kill-switch), emits snipe candidates",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "node --import tsx src/index.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@cryptocheck/signal-contracts": "file:../../packages/signal-contracts",
+    "@supabase/supabase-js": "^2.103.0",
+    "@upstash/redis": "^1.37.0",
+    "dotenv": "^17.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.19.0",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

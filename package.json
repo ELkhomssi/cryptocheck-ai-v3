@@ -12,7 +12,8 @@
     "services/ingestion",
     "services/pipeline",
     "services/realtime",
-    "services/scanner"
+    "services/scanner",
+    "services/sniper"
   ],
   "scripts": {
     "dev": "next dev",

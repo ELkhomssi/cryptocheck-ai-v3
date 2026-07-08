@@ -4,6 +4,8 @@
 #   docker build -f services/Dockerfile.signal-worker --build-arg SERVICE=parser -t ccai-signal-parser .
 #   docker build -f services/Dockerfile.signal-worker --build-arg SERVICE=enrich -t ccai-signal-enrich .
 #   docker build -f services/Dockerfile.signal-worker --build-arg SERVICE=gate -t ccai-signal-gate .
+#   docker build -f services/Dockerfile.signal-worker --build-arg SERVICE=scanner -t ccai-signal-scanner .
+#   docker build -f services/Dockerfile.signal-worker --build-arg SERVICE=sniper -t ccai-signal-sniper .
 
 FROM node:20-alpine AS build
 WORKDIR /app
@@ -16,11 +18,13 @@ RUN npm ci --prefix services/realtime --omit=dev 2>/dev/null || npm install --pr
 RUN npm ci --prefix services/ingestion --omit=dev 2>/dev/null || npm install --prefix services/ingestion --omit=dev
 RUN npm ci --prefix services/pipeline --omit=dev 2>/dev/null || npm install --prefix services/pipeline --omit=dev
 RUN npm ci --prefix services/scanner --omit=dev 2>/dev/null || npm install --prefix services/scanner --omit=dev
+RUN npm ci --prefix services/sniper --omit=dev 2>/dev/null || npm install --prefix services/sniper --omit=dev
 
 RUN npm run build --prefix services/realtime
 RUN npm run build --prefix services/ingestion
 RUN npm run build --prefix services/pipeline
 RUN npm run build --prefix services/scanner
+RUN npm run build --prefix services/sniper
 
 FROM node:20-alpine
 WORKDIR /app
@@ -33,6 +37,7 @@ COPY --from=build /app/services/realtime /app/services/realtime
 COPY --from=build /app/services/ingestion /app/services/ingestion
 COPY --from=build /app/services/pipeline /app/services/pipeline
 COPY --from=build /app/services/scanner /app/services/scanner
+COPY --from=build /app/services/sniper /app/services/sniper
 
 # Default CMD overridden per service in compose / orchestrator
-CMD ["sh", "-c", "case \"$SIGNAL_SERVICE\" in realtime) exec node services/realtime/dist/index.js ;; ingestion) exec node services/ingestion/dist/index.js ;; parser) exec node services/pipeline/dist/parser/index.js ;; enrich) exec node services/pipeline/dist/enrich/index.js ;; gate) exec node services/pipeline/dist/gate/index.js ;; scanner) exec node services/scanner/dist/index.js ;; *) echo \"Unknown SIGNAL_SERVICE=$SIGNAL_SERVICE\" && exit 1 ;; esac"]
+CMD ["sh", "-c", "case \"$SIGNAL_SERVICE\" in realtime) exec node services/realtime/dist/index.js ;; ingestion) exec node services/ingestion/dist/index.js ;; parser) exec node services/pipeline/dist/parser/index.js ;; enrich) exec node services/pipeline/dist/enrich/index.js ;; gate) exec node services/pipeline/dist/gate/index.js ;; scanner) exec node services/scanner/dist/index.js ;; sniper) exec node services/sniper/dist/index.js ;; *) echo \"Unknown SIGNAL_SERVICE=$SIGNAL_SERVICE\" && exit 1 ;; esac"]
