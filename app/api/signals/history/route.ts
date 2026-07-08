@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SIGNAL_COMPLIANCE } from '@cryptocheck/signal-contracts'
+import { resolveSignalRealtimeHttpBase } from '@/lib/signal-aggregator/runtime-config'
 
 export const dynamic = 'force-dynamic'
 
 /** GET /api/signals/history — same-origin proxy to realtime gateway history API. */
 export async function GET(req: NextRequest) {
-  const base = (
-    process.env.SIGNAL_REALTIME_URL?.trim() ||
-    `http://127.0.0.1:${process.env.SIGNAL_REALTIME_PORT ?? 4102}`
-  ).replace(/\/$/, '')
+  const base = resolveSignalRealtimeHttpBase()
 
   const url = new URL(`${base}/v1/history`)
   req.nextUrl.searchParams.forEach((v, k) => url.searchParams.set(k, v))
@@ -20,12 +18,24 @@ export async function GET(req: NextRequest) {
   try {
     const res = await fetch(url.toString(), { headers, cache: 'no-store' })
     const body = await res.json()
+    if (!res.ok) {
+      console.error('[signals/history] upstream', res.status, body)
+    }
     return NextResponse.json(body, {
       status: res.status,
       headers: { 'cache-control': 'no-store', 'x-signal-compliance': SIGNAL_COMPLIANCE.disclaimer },
     })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'History proxy failed'
-    return NextResponse.json({ error: message }, { status: 502 })
+    const looksLocal = base.includes('127.0.0.1') || base.includes('localhost')
+    console.error('[signals/history] proxy failed', { base: looksLocal ? 'localhost' : base, message })
+    return NextResponse.json(
+      {
+        error: looksLocal
+          ? 'Signal realtime not configured — set SIGNAL_REALTIME_URL to your Railway realtime-gateway.'
+          : message,
+      },
+      { status: 502 },
+    )
   }
 }

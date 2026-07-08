@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { ensureFreeTierSubscription } from '@/lib/services/saas-entitlement.service'
 import { PLANS, type BillingCycle, type UpgradePlanId } from '@/lib/billing/upgrade-plans'
 import { resolveStripePriceIdForPlan } from '@/lib/billing/stripe-plan-prices'
+import { collectBillingReadiness } from '@/lib/billing/billing-readiness'
 
 /**
  * Authenticated Stripe Checkout for 2-tier FULL_ACCESS plans.
@@ -51,9 +52,12 @@ export async function POST(req: NextRequest) {
 
   const priceId = await resolveStripePriceIdForPlan(planId, cycle)
   if (!priceId) {
-    console.error(
-      '[billing/upgrade-checkout] Set STRIPE_PRODUCT_BASIC/PRO or STRIPE_PRICE_{BASIC,PRO}[_ANNUAL]',
-    )
+    const readiness = await collectBillingReadiness()
+    console.error('[billing/upgrade-checkout] price resolve failed', {
+      planId,
+      cycle,
+      hints: readiness.hints,
+    })
     return NextResponse.json({ error: 'Billing unavailable' }, { status: 500 })
   }
 

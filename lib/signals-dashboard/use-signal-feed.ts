@@ -44,6 +44,7 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
   const [degraded, setDegraded] = useState(false)
   const [recentIds, setRecentIds] = useState<Set<string>>(new Set())
   const [delayedBy, setDelayedBy] = useState<Map<string, number>>(new Map())
+  const [wsUrl, setWsUrl] = useState<string | null>(null)
   const pausedRef = useRef(false)
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -106,10 +107,26 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
   }, [filter, premiumToken, userId])
 
   useEffect(() => {
+    let cancelled = false
+    fetch('/api/signals/runtime-config', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((j: { wsUrl?: string }) => {
+        if (!cancelled && typeof j.wsUrl === 'string' && j.wsUrl) setWsUrl(j.wsUrl)
+      })
+      .catch(() => {
+        if (!cancelled) setWsUrl(signalWsUrl())
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
     void loadHistory()
   }, [loadHistory])
 
   useEffect(() => {
+    if (!wsUrl) return
     let cancelled = false
 
     const connect = () => {
@@ -117,8 +134,7 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
       const q = new URLSearchParams()
       if (userId) q.set('userId', userId)
       if (premiumToken) q.set('token', premiumToken)
-      const base = signalWsUrl()
-      const url = q.toString() ? `${base}?${q.toString()}` : base
+      const url = q.toString() ? `${wsUrl}?${q.toString()}` : wsUrl
 
       setConnection((c) => {
         if (c === 'live' || c === 'listening') return 'reconnecting'
@@ -205,7 +221,7 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
       wsRef.current?.close()
       wsRef.current = null
     }
-  }, [premiumToken, userId])
+  }, [premiumToken, userId, wsUrl])
 
   useEffect(() => {
     const ws = wsRef.current
