@@ -24,6 +24,7 @@ import { CryptoCheckLogo } from '@/components/brand/CryptoCheckLogo'
 import { DataSourcesStrip } from './DataSourcesStrip'
 import { FeedConnectionPill } from './primitives/FeedConnectionPill'
 import { VerifiedTrackRecordPanel } from './VerifiedTrackRecordPanel'
+import { SniperPanel } from './SniperPanel'
 import {
   Bell,
   ChevronLeft,
@@ -709,6 +710,8 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
               </button>
             </div>
           </section>
+
+          <SniperPanel />
 
           <VerifiedTrackRecordPanel />
 
