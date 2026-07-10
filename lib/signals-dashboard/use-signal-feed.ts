@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SignalFeedEvent, SignalFeedFilter, UnifiedSignal } from '@cryptocheck/signal-contracts'
 import type { ConnectionState } from '@/components/command-center/ConnectionPill'
-import { signalWsUrl } from '@/lib/signal-aggregator/constants'
 import { matchesFeedFilter } from '@/lib/signals-dashboard/format'
 
 export type FeedTier = 'free' | 'premium'
@@ -45,6 +44,8 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
   const [recentIds, setRecentIds] = useState<Set<string>>(new Set())
   const [delayedBy, setDelayedBy] = useState<Map<string, number>>(new Map())
   const [wsUrl, setWsUrl] = useState<string | null>(null)
+  const [feedMode, setFeedMode] = useState<'poll' | 'websocket' | null>(null)
+  const [pollIntervalMs, setPollIntervalMs] = useState(20_000)
   const pausedRef = useRef(false)
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -98,23 +99,39 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
       setSignals(map)
       setTier(body.tier ?? 'free')
       setDegraded(false)
+      if (feedMode === 'poll') setConnection('live')
     } catch (e) {
       console.error('[MasterFeed] history', e)
       setDegraded(true)
     } finally {
       setLoading(false)
     }
-  }, [filter, premiumToken, userId])
+  }, [filter, premiumToken, userId, feedMode])
 
   useEffect(() => {
     let cancelled = false
     fetch('/api/signals/runtime-config', { cache: 'no-store' })
       .then((r) => r.json())
-      .then((j: { wsUrl?: string }) => {
-        if (!cancelled && typeof j.wsUrl === 'string' && j.wsUrl) setWsUrl(j.wsUrl)
+      .then((j: { mode?: 'poll' | 'websocket'; wsUrl?: string | null; pollIntervalMs?: number }) => {
+        if (cancelled) return
+        const mode = j.mode === 'websocket' && j.wsUrl ? 'websocket' : 'poll'
+        setFeedMode(mode)
+        if (typeof j.pollIntervalMs === 'number' && j.pollIntervalMs > 0) {
+          setPollIntervalMs(j.pollIntervalMs)
+        }
+        if (mode === 'websocket' && j.wsUrl) {
+          setWsUrl(j.wsUrl)
+        } else {
+          setWsUrl(null)
+          setConnection('listening')
+        }
       })
       .catch(() => {
-        if (!cancelled) setWsUrl(signalWsUrl())
+        if (!cancelled) {
+          setFeedMode('poll')
+          setWsUrl(null)
+          setConnection('listening')
+        }
       })
     return () => {
       cancelled = true
@@ -125,8 +142,17 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
     void loadHistory()
   }, [loadHistory])
 
+  // Vercel-native: poll Supabase-backed history (no WebSocket server required).
   useEffect(() => {
-    if (!wsUrl) return
+    if (feedMode !== 'poll') return
+    const id = window.setInterval(() => {
+      void loadHistory()
+    }, pollIntervalMs)
+    return () => window.clearInterval(id)
+  }, [feedMode, pollIntervalMs, loadHistory])
+
+  useEffect(() => {
+    if (feedMode !== 'websocket' || !wsUrl) return
     let cancelled = false
 
     const connect = () => {
@@ -221,7 +247,7 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
       wsRef.current?.close()
       wsRef.current = null
     }
-  }, [premiumToken, userId, wsUrl])
+  }, [premiumToken, userId, wsUrl, feedMode])
 
   useEffect(() => {
     const ws = wsRef.current

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { collectBillingReadiness, billingEnvChecklist } from '@/lib/billing/billing-readiness'
 import { collectHealthSnapshot } from '@/lib/status/health-snapshot'
-import { resolveSignalRealtimeHttpBase, resolveSignalWsUrl } from '@/lib/signal-aggregator/runtime-config'
+import { resolveSignalRealtimeHttpBase, resolveSignalWsUrl, signalFeedMode } from '@/lib/signal-aggregator/runtime-config'
 
 export const dynamic = 'force-dynamic'
 
@@ -82,8 +82,11 @@ export async function GET(req: NextRequest) {
       envChecklist: billingEnvChecklist(),
     },
     hints: [
+      ...(signalFeedMode() === 'poll'
+        ? ['Vercel-native poll mode — history reads Supabase directly; live Telegram ingestion still needs a worker or cron.']
+        : []),
       ...(realtimeLooksLocal
-        ? ['Set SIGNAL_REALTIME_URL to your Railway realtime-gateway (https://….railway.app).']
+        ? ['Unset SIGNAL_REALTIME_URL to use Vercel-native Supabase history, or set it to an external realtime gateway.']
         : []),
       ...(!historyProbe.ok ? [historyProbe.error ?? 'History upstream unreachable.'] : []),
       ...billing.hints,
