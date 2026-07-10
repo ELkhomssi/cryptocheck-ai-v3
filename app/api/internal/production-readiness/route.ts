@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { collectBillingReadiness, billingEnvChecklist } from '@/lib/billing/billing-readiness'
 import { collectHealthSnapshot } from '@/lib/status/health-snapshot'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { resolveSignalRealtimeHttpBase, resolveSignalWsUrl, signalFeedMode } from '@/lib/signal-aggregator/runtime-config'
 
 export const dynamic = 'force-dynamic'
@@ -52,6 +53,18 @@ export async function GET(req: NextRequest) {
 
   const [health, billing] = await Promise.all([collectHealthSnapshot(), collectBillingReadiness()])
 
+  let signalRowCount: number | null = null
+  try {
+    const { count } = await getSupabaseAdmin()
+      .from('signal_normalized')
+      .select('id', { count: 'exact', head: true })
+      .eq('dropped', false)
+      .eq('sample', false)
+    signalRowCount = count ?? 0
+  } catch {
+    signalRowCount = null
+  }
+
   const realtimeLooksLocal =
     httpBase.includes('127.0.0.1') || httpBase.includes('localhost')
 
@@ -59,6 +72,7 @@ export async function GET(req: NextRequest) {
     ts: new Date().toISOString(),
     health,
     signals: {
+      signalNormalizedRows: signalRowCount,
       signalRealtimeUrlHost: (() => {
         try {
           return new URL(httpBase).host
