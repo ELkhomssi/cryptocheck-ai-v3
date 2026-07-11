@@ -76,6 +76,23 @@ function deleteTombstone(raw: RawMessage): UnifiedSignal {
   }
 }
 
+/** Debug: log every regex CA hit so we can see catch rate vs news-only channels. */
+function logPotentialCa(raw: RawMessage, candidate: ParseCandidate | null, stage: string): void {
+  if (!candidate?.contractAddress) return
+  const ca = candidate.contractAddress
+  console.info('[telegram:ca-hit]', {
+    stage,
+    channel: raw.channel,
+    messageId: raw.messageId,
+    chain: candidate.chain,
+    ca: `${ca.slice(0, 8)}…${ca.slice(-4)}`,
+    symbol: candidate.tokenSymbol,
+    confidence: candidate.confidence,
+    parseMethod: candidate.parseMethod,
+    textPreview: (raw.text ?? '').replace(/\s+/g, ' ').slice(0, 120),
+  })
+}
+
 export async function normalizeTelegramMessage(raw: RawMessage): Promise<UnifiedSignal | null> {
   if (raw.eventType === 'delete') {
     return deleteTombstone(raw)
@@ -83,17 +100,26 @@ export async function normalizeTelegramMessage(raw: RawMessage): Promise<Unified
 
   const adapterHit = parseWithAdapter(raw)
   let candidate = adapterHit ?? parseWithRegex(raw)
+  if (candidate) logPotentialCa(raw, candidate, adapterHit ? 'adapter' : 'regex')
 
   if (!candidate || candidate.confidence < LLM_CONFIDENCE_THRESHOLD) {
     const llm = await parseWithLlm(raw)
     if (llm) {
       candidate = llm
       markLlm()
+      logPotentialCa(raw, candidate, 'llm')
     }
   }
 
   if (!candidate) return null
-  if (!isResolvableAddress(candidate.chain, candidate.contractAddress)) return null
+  if (!isResolvableAddress(candidate.chain, candidate.contractAddress)) {
+    console.warn('[telegram:ca-hit] rejected — not resolvable address shape', {
+      channel: raw.channel,
+      chain: candidate.chain,
+      ca: candidate.contractAddress,
+    })
+    return null
+  }
 
   return candidateToUnified(raw, candidate)
 }

@@ -67,11 +67,13 @@ export function effectiveSignalFeedFilter(
   if (tier === 'premium') return requested
   // Bootstrap default: 1 source is enough until multi-channel overlap is common.
   // Raise back to 2 via SIGNAL_FREE_MIN_SOURCE_COUNT=2 when feed is healthy.
+  // Note: this env is read by the Next.js history API (Vercel), not the droplet gate.
   const freeMinSources = Math.max(1, Number(process.env.SIGNAL_FREE_MIN_SOURCE_COUNT ?? 1) || 1)
   return {
     ...requested,
-    // caution+ so solitary SAFE/CAUTION token calls still appear while bootstrapping
-    minVerdict: requested.minVerdict ?? 'caution',
+    // VERDICT_RANK: safe=1 < caution=2 < danger=3 — minVerdict means "rank ≥ X"
+    // (exclude scanning). 'safe' keeps safe+caution+danger. 'caution' would DROP safe.
+    minVerdict: requested.minVerdict ?? 'safe',
     minSourceCount: Math.max(requested.minSourceCount ?? 0, freeMinSources),
   }
 }

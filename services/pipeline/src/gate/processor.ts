@@ -95,6 +95,12 @@ async function processToken(
   const chain = signal.chain
   const ca = signal.contractAddress?.trim() ?? ''
   if (!isTokenChain(chain) || !ca) {
+    console.warn('[gate:token] drop — missing chain/CA', {
+      id: signal.id,
+      sourceTag: signal.sourceTag,
+      chain,
+      label: signal.label,
+    })
     await publishDropped(redis, signal, 'Missing chain or contract address')
     return
   }
@@ -116,6 +122,15 @@ async function processToken(
   )
 
   if (!assessment.resolved || assessment.dropped) {
+    console.warn('[gate:token] drop — assess failed', {
+      id: merged.id,
+      chain,
+      ca: `${ca.slice(0, 8)}…${ca.slice(-4)}`,
+      sources: merged.sources,
+      sourceCount: merged.sourceCount,
+      reason: assessment.dropReason ?? 'Unresolvable contract address',
+      latencyMs,
+    })
     await publishDropped(redis, merged, assessment.dropReason ?? 'Unresolvable contract address')
     void recordChannelOutcome(
       { ...merged, dropped: true, verdict: 'danger' },
@@ -131,6 +146,16 @@ async function processToken(
     verdict: assessment.sentinelVerdict ?? 'caution',
     scoreValue: assessment.neuralScore,
   }
+
+  console.info('[gate:token] enriched', {
+    id: enriched.id,
+    chain,
+    ca: `${ca.slice(0, 8)}…${ca.slice(-4)}`,
+    verdict: enriched.verdict,
+    score: enriched.scoreValue,
+    sourceCount: enriched.sourceCount,
+    sources: enriched.sources,
+  })
 
   await publishEnriched(redis, enriched)
   void recordChannelOutcome(enriched, { latencyMs })
