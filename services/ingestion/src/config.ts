@@ -97,6 +97,14 @@ function parseSources(): SourceTag[] {
     }
     throw new Error(`Unknown SIGNAL_SOURCES entry: ${tag} (use telegram, txodds)`)
   }
+  // Convenience kill-switch (deploy/.env.signal) — preferred over editing SIGNAL_SOURCES mid-debug.
+  if (process.env.TXODDS_ENABLED?.trim().toLowerCase() === 'false') {
+    const filtered = out.filter((t) => t !== 'txodds')
+    if (filtered.length === 0) {
+      throw new Error('TXODDS_ENABLED=false left SIGNAL_SOURCES empty — keep telegram enabled')
+    }
+    return filtered
+  }
   if (out.length === 0) throw new Error('SIGNAL_SOURCES must include at least one source')
   return out
 }
