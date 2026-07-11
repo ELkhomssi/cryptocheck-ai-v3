@@ -210,20 +210,36 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
       ? process.env.NEXT_PUBLIC_SIGNAL_PREMIUM_TOKEN
       : undefined
 
-  const { signals, connection, feedState, errorMessage, recentIds, reload } = useSignalFeed({}, { premiumToken })
+  // Token lane — stats / Hot Opps / Early Gems (server-filtered subject_type=token).
+  const {
+    signals: tokenSignalsMap,
+    connection,
+    feedState,
+    errorMessage,
+    recentIds,
+    reload,
+  } = useSignalFeed({ subjectType: 'token' }, { premiumToken })
+
+  // Sports lane — ticker edges / TxODDS-related alerts (server-filtered match_event).
+  const { signals: sportsSignalsMap } = useSignalFeed(
+    { subjectType: 'match_event' },
+    { premiumToken },
+  )
+
   const reconnecting = connection === 'reconnecting'
   const feedHandshake = connection === 'connecting' || connection === 'listening'
 
-  const allSignals = useMemo(() => [...signals.values()], [signals])
-  const stats = useMemo(() => computeAlphaFeedStats(allSignals), [allSignals])
+  const tokenSignals = useMemo(() => [...tokenSignalsMap.values()], [tokenSignalsMap])
+  const sportsSignals = useMemo(() => [...sportsSignalsMap.values()], [sportsSignalsMap])
+  const stats = useMemo(() => computeAlphaFeedStats(tokenSignals), [tokenSignals])
 
   const [sort, setSort] = useState<HotSortKey>('score')
   const [filter24h, setFilter24h] = useState(true)
   const hotRows = useMemo(
-    () => rankHotOpportunities(allSignals, sort, filter24h),
-    [allSignals, sort, filter24h],
+    () => rankHotOpportunities(tokenSignals, sort, filter24h),
+    [tokenSignals, sort, filter24h],
   )
-  const gems = useMemo(() => pickEarlyGems(allSignals), [allSignals])
+  const gems = useMemo(() => pickEarlyGems(tokenSignals), [tokenSignals])
 
   const [agentEvents, setAgentEvents] = useState<AgentFeedEvent[]>([])
   useEffect(() => {
@@ -237,8 +253,8 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
   }, [])
 
   const tickerAlerts = useMemo(
-    () => buildTickerAlerts(allSignals, agentEvents),
-    [allSignals, agentEvents],
+    () => buildTickerAlerts([...tokenSignals, ...sportsSignals], agentEvents),
+    [tokenSignals, sportsSignals, agentEvents],
   )
 
   const [topTraders, setTopTraders] = useState<TopTradersResult | null>(null)

@@ -102,7 +102,8 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
       if (filter.minSourceCount) params.set('minSourceCount', String(filter.minSourceCount))
       if (filter.search) params.set('search', filter.search)
       if (filter.sourceTag && filter.sourceTag !== 'all') params.set('sourceTag', filter.sourceTag)
-      if (filter.subjectType) params.set('subjectType', filter.subjectType)
+      // Always send subjectType so the server can lane-filter BEFORE limit.
+      params.set('subjectType', filter.subjectType ?? 'all')
       params.set('limit', '100')
 
       const headers: Record<string, string> = {}

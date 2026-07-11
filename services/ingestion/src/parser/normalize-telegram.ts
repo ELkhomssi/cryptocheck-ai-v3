@@ -12,6 +12,18 @@ import type { ParseCandidate } from './types.js'
 
 const LLM_CONFIDENCE_THRESHOLD = Number(process.env.SIGNAL_LLM_MIN_REGEX_CONFIDENCE ?? 0.7)
 
+/** Drop GramJS catch-up / historical replays so they never appear as live opportunities. */
+const MAX_MSG_AGE_MS = Math.max(
+  60_000,
+  Number(process.env.SIGNAL_TELEGRAM_MAX_MSG_AGE_MS ?? 48 * 60 * 60 * 1000) || 48 * 60 * 60 * 1000,
+)
+
+function isStaleMessage(ts: string): boolean {
+  const t = Date.parse(ts)
+  if (!Number.isFinite(t)) return false
+  return Date.now() - t > MAX_MSG_AGE_MS
+}
+
 function isResolvableAddress(chain: string, ca: string): boolean {
   if (chain === 'solana') {
     if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(ca)) return false
@@ -96,6 +108,17 @@ function logPotentialCa(raw: RawMessage, candidate: ParseCandidate | null, stage
 export async function normalizeTelegramMessage(raw: RawMessage): Promise<UnifiedSignal | null> {
   if (raw.eventType === 'delete') {
     return deleteTombstone(raw)
+  }
+
+  // Catch-up getMessages() replays years-old posts — never XADD those as live signals.
+  if (isStaleMessage(raw.ts)) {
+    console.info('[telegram] drop stale message (outside freshness window)', {
+      channel: raw.channel,
+      messageId: raw.messageId,
+      msgTimestamp: raw.ts,
+      maxAgeMs: MAX_MSG_AGE_MS,
+    })
+    return null
   }
 
   const adapterHit = parseWithAdapter(raw)

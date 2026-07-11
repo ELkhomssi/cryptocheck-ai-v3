@@ -21,24 +21,29 @@ export async function fetchSignalHistory(params: {
   const cap = tier === 'premium' ? Math.min(limit, 200) : Math.min(limit, 25)
   const freeDelayMs = Number(process.env.SIGNAL_FREE_DELAY_MS ?? 90_000)
 
+  // Build filters BEFORE limit — subject_type must be in SQL or sports drown tokens.
   let q = getSupabaseAdmin()
     .from('signal_normalized')
     .select('*')
     .eq('dropped', false)
     .eq('sample', false)
-    .order('msg_timestamp', { ascending: false })
-    .limit(cap * 3)
+
+  if (effective.subjectType === 'token' || effective.subjectType === 'match_event') {
+    q = q.eq('subject_type', effective.subjectType)
+  }
+  // subjectType === 'all' | undefined → mixed lane (no subject_type WHERE)
 
   if (effective.sourceTag && effective.sourceTag !== 'all') {
     q = q.eq('source_tag', effective.sourceTag)
   }
-  if (effective.subjectType) q = q.eq('subject_type', effective.subjectType)
   if (effective.chain) q = q.eq('chain', effective.chain)
 
   if (tier === 'free') {
     const cutoff = new Date(Date.now() - freeDelayMs).toISOString()
     q = q.lte('msg_timestamp', cutoff)
   }
+
+  q = q.order('msg_timestamp', { ascending: false }).limit(cap * 3)
 
   const { data, error } = await q
   if (error) throw new Error(error.message)

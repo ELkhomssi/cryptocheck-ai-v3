@@ -60,14 +60,20 @@ export function canSwapSignal(signal: UnifiedSignal): boolean {
 /** Client-side filter for instant chip UX (server still enforces). */
 export function matchesFeedFilter(signal: UnifiedSignal, filter: {
   sourceTag?: SourceTag | 'all'
-  subjectType?: 'token' | 'match_event'
+  subjectType?: 'token' | 'match_event' | 'all'
   search?: string
 }): boolean {
   if (signal.dropped || signal.sample) return false
   if (filter.sourceTag && filter.sourceTag !== 'all' && signal.sourceTag !== filter.sourceTag) {
     return false
   }
-  if (filter.subjectType && signal.subjectType !== filter.subjectType) return false
+  if (
+    filter.subjectType &&
+    filter.subjectType !== 'all' &&
+    signal.subjectType !== filter.subjectType
+  ) {
+    return false
+  }
   if (filter.search) {
     const hay = [
       signal.label,

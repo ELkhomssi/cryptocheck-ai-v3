@@ -133,7 +133,8 @@ export type SignalFeedFilter = {
   minLiquidityUsd?: number
   search?: string
   sourceTag?: SourceTag | 'all'
-  subjectType?: SubjectType
+  /** 'all' = mixed feed (no subject_type WHERE). Omit or 'all' for Master Feed. */
+  subjectType?: SubjectType | 'all'
 }
 
 /** Freemium tier — enforced at realtime gateway (Prompt 4/6). */

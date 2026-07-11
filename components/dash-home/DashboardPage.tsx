@@ -35,22 +35,30 @@ export function DashboardPage({ userEmail, effectiveTier, isAnonymousPreview }: 
       ? process.env.NEXT_PUBLIC_SIGNAL_PREMIUM_TOKEN
       : undefined
 
-  const { signals, connection, loading, recentIds } = useSignalFeed({}, { premiumToken })
+  const { signals: tokenSignalsMap, connection, loading, recentIds } = useSignalFeed(
+    { subjectType: 'token' },
+    { premiumToken },
+  )
+  const { signals: sportsSignalsMap } = useSignalFeed(
+    { subjectType: 'match_event' },
+    { premiumToken },
+  )
   const reconnecting = connection === 'reconnecting' || connection === 'connecting'
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
-  const allSignals = useMemo(() => [...signals.values()], [signals])
-  const stats = useMemo(() => computeAlphaFeedStats(allSignals), [allSignals])
+  const tokenSignals = useMemo(() => [...tokenSignalsMap.values()], [tokenSignalsMap])
+  const sportsSignals = useMemo(() => [...sportsSignalsMap.values()], [sportsSignalsMap])
+  const stats = useMemo(() => computeAlphaFeedStats(tokenSignals), [tokenSignals])
 
   const [sort, setSort] = useState<HotSortKey>('score')
   const [filter24h, setFilter24h] = useState(true)
   const hotRows = useMemo(
-    () => rankHotOpportunities(allSignals, sort, filter24h),
-    [allSignals, sort, filter24h],
+    () => rankHotOpportunities(tokenSignals, sort, filter24h),
+    [tokenSignals, sort, filter24h],
   )
-  const gems = useMemo(() => pickEarlyGems(allSignals), [allSignals])
+  const gems = useMemo(() => pickEarlyGems(tokenSignals), [tokenSignals])
 
   const [agentEvents, setAgentEvents] = useState<AgentFeedEvent[]>([])
   useEffect(() => {
@@ -64,8 +72,8 @@ export function DashboardPage({ userEmail, effectiveTier, isAnonymousPreview }: 
   }, [])
 
   const tickerAlerts = useMemo(
-    () => buildTickerAlerts(allSignals, agentEvents),
-    [allSignals, agentEvents],
+    () => buildTickerAlerts([...tokenSignals, ...sportsSignals], agentEvents),
+    [tokenSignals, sportsSignals, agentEvents],
   )
 
   const [scan, setScan] = useState<ScanResult | null>(null)
@@ -103,7 +111,7 @@ export function DashboardPage({ userEmail, effectiveTier, isAnonymousPreview }: 
     setSheetOpen(true)
   }, [])
 
-  const isLoading = loading && allSignals.length === 0
+  const isLoading = loading && tokenSignals.length === 0
   const sideCol = sidebarCollapsed ? '64px' : '232px'
 
   return (

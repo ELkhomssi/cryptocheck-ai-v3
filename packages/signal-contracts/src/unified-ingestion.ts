@@ -141,7 +141,8 @@ export type UnifiedFeedEvent =
 /** Server-side subscription filter — extends legacy token filters with source + subject. */
 export type UnifiedFeedFilter = {
   sourceTag?: SourceTag | 'all'
-  subjectType?: SubjectType
+  /** 'all' = no subject_type SQL filter (mixed Master Feed). */
+  subjectType?: SubjectType | 'all'
   minVerdict?: Exclude<UnifiedVerdict, 'scanning' | 'n/a'>
   minSourceCount?: number
   chain?: string

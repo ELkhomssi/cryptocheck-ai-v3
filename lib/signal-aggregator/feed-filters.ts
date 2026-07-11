@@ -43,7 +43,7 @@ export function parseSignalFeedFilter(raw: unknown): SignalFeedFilter {
   if (f.sourceTag === 'telegram' || f.sourceTag === 'txodds' || f.sourceTag === 'all') {
     filter.sourceTag = f.sourceTag
   }
-  if (f.subjectType === 'token' || f.subjectType === 'match_event') {
+  if (f.subjectType === 'token' || f.subjectType === 'match_event' || f.subjectType === 'all') {
     filter.subjectType = f.subjectType
   }
   return filter
@@ -150,7 +150,13 @@ export function filterUnifiedSignals(
     if (filter.sourceTag && filter.sourceTag !== 'all' && signal.sourceTag !== filter.sourceTag) {
       return false
     }
-    if (filter.subjectType && signal.subjectType !== filter.subjectType) return false
+    if (
+      filter.subjectType &&
+      filter.subjectType !== 'all' &&
+      signal.subjectType !== filter.subjectType
+    ) {
+      return false
+    }
     if (filter.chain && signal.subjectType === 'token' && signal.chain !== filter.chain) {
       return false
     }
