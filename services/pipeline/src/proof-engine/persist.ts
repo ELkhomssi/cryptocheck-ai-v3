@@ -1,15 +1,13 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { SignalProofCall } from '@cryptocheck/signal-contracts'
-
-let client: SupabaseClient | null = null
+import { getSupabase as getSupabaseClient } from '../lib/supabase-client.js'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 function getSupabase(): SupabaseClient | null {
-  if (client) return client
-  const url = process.env.SUPABASE_URL?.trim()
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
-  if (!url || !key) return null
-  client = createClient(url, key, { auth: { persistSession: false } })
-  return client
+  try {
+    return getSupabaseClient()
+  } catch {
+    return null
+  }
 }
 
 export type InsertProofCall = {

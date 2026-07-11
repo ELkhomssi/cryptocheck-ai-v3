@@ -65,10 +65,14 @@ export function effectiveSignalFeedFilter(
   requested: SignalFeedFilter,
 ): SignalFeedFilter {
   if (tier === 'premium') return requested
+  // Bootstrap default: 1 source is enough until multi-channel overlap is common.
+  // Raise back to 2 via SIGNAL_FREE_MIN_SOURCE_COUNT=2 when feed is healthy.
+  const freeMinSources = Math.max(1, Number(process.env.SIGNAL_FREE_MIN_SOURCE_COUNT ?? 1) || 1)
   return {
     ...requested,
-    minVerdict: 'safe',
-    minSourceCount: Math.max(requested.minSourceCount ?? 0, 2),
+    // caution+ so solitary SAFE/CAUTION token calls still appear while bootstrapping
+    minVerdict: requested.minVerdict ?? 'caution',
+    minSourceCount: Math.max(requested.minSourceCount ?? 0, freeMinSources),
   }
 }
 

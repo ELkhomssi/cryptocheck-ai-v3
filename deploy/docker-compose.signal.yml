@@ -1,0 +1,41 @@
+# Smart Alpha Feed publishers — ingestion + gate only (no realtime WS).
+# Shared-droplet safe: no published ports, isolated compose project name.
+#
+#   docker compose -p cryptocheck-signal -f deploy/docker-compose.signal.yml up -d --build
+#
+# Requires deploy/.env.signal (copy from .env.signal.example, chmod 600).
+
+services:
+  ingestion:
+    build:
+      context: ..
+      dockerfile: services/Dockerfile.signal-worker
+      args:
+        SERVICE: ingestion
+    env_file: .env.signal
+    environment:
+      - SIGNAL_SERVICE=ingestion
+    restart: always
+    mem_limit: 180m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  gate:
+    build:
+      context: ..
+      dockerfile: services/Dockerfile.signal-worker
+      args:
+        SERVICE: gate
+    env_file: .env.signal
+    environment:
+      - SIGNAL_SERVICE=gate
+    restart: always
+    mem_limit: 180m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

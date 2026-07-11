@@ -165,7 +165,7 @@ export function SignalSwapSheet({ signal, open, onClose }: Props) {
       >
         <div className="mb-4 flex items-start justify-between gap-2">
           <div>
-            <p className="rd-label">Safe swap</p>
+            <p className="rd-label">Safe swap · Jupiter</p>
             <h2 id="swap-sheet-title" className="font-rd-display text-lg font-bold uppercase text-rd-hi">
               {tokenSignal?.tokenSymbol ?? tokenSignal?.label}
             </h2>
@@ -180,6 +180,30 @@ export function SignalSwapSheet({ signal, open, onClose }: Props) {
             <X className="h-5 w-5" />
           </button>
         </div>
+
+        {/* Mini chart — DexScreener embed (read-only). Swap still uses Jupiter risk-gated path below. */}
+        {mint.length >= 32 ? (
+          <div className="mb-4 overflow-hidden rounded-rd-sm border border-white/10 bg-black/40">
+            <div className="flex items-center justify-between border-b border-white/10 px-2 py-1">
+              <span className="font-rd-mono text-[0.55rem] uppercase tracking-wider text-rd-lo">Chart</span>
+              <a
+                href={`https://dexscreener.com/solana/${mint}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-rd-mono text-[0.55rem] text-rd-mid hover:text-rd-hi"
+              >
+                DexScreener ↗
+              </a>
+            </div>
+            <iframe
+              title={`${tokenSignal?.tokenSymbol ?? 'Token'} chart`}
+              src={`https://dexscreener.com/solana/${mint}?embed=1&theme=dark&trades=0&info=0`}
+              className="h-[180px] w-full border-0"
+              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+              loading="lazy"
+            />
+          </div>
+        ) : null}
 
         <div className="flex flex-wrap gap-2">
           {SIGNAL_AMOUNT_PRESETS_USD.map((n) => (
@@ -254,7 +278,7 @@ export function SignalSwapSheet({ signal, open, onClose }: Props) {
             onClick={() => void executeSwap()}
             className="flex-1 rounded-rd-sm bg-rd-green px-4 py-2.5 font-rd-display text-[0.62rem] font-bold uppercase tracking-wider text-rd-navy disabled:opacity-50"
           >
-            {swapping ? 'Signing…' : 'Simulate & swap'}
+            {swapping ? 'Signing…' : 'Jupiter · Simulate & swap'}
           </button>
         </div>
 

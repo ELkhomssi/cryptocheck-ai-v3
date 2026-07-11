@@ -18,7 +18,11 @@
  * as signals. Rows live in the (legacy-named) `telegram_channels` table, now
  * carrying a `platform` column.
  */
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { isPublicChannelRef, normalizeChannelRef } from './config.js'
+import { passesDiscoveryHygiene } from './discovery/scam-heuristics.js'
+import { resolveSupabaseAdminCreds } from './lib/supabase-creds.js'
 
 export type SourcePlatform = 'telegram' | 'twitter'
 
@@ -83,6 +87,10 @@ export const TELEGRAM_SOURCES: SourceCandidate[] = [
   { handle: '@toncoin', label: 'Toncoin', audienceSize: 7_689_000, reputationScore: 87, verifiedBy: ['tgstat-top-ranked', 'project-official'] },
   { handle: '@coinlistofficialchannel', label: 'CoinList Official', audienceSize: 40_000, reputationScore: 85, verifiedBy: ['platform-official'] },
   { handle: '@Whale_Alert', label: 'Whale Alert', audienceSize: 13_400, reputationScore: 92, verifiedBy: ['on-chain-tracker'] },
+  // Solana / DEX surfaces that more often include resolvable mint links
+  { handle: '@solana', label: 'Solana', audienceSize: 500_000, reputationScore: 90, verifiedBy: ['project-official'] },
+  { handle: '@RaydiumProtocol', label: 'Raydium', audienceSize: 100_000, reputationScore: 86, verifiedBy: ['dex-official'] },
+  { handle: '@JupiterExchange', label: 'Jupiter Exchange', audienceSize: 100_000, reputationScore: 88, verifiedBy: ['dex-official'] },
 ]
 
 /**
@@ -119,20 +127,67 @@ function num(v: string | undefined, dflt: number): number {
   return Number.isFinite(n) ? n : dflt
 }
 
+function loadTelegramSeedFile(): SourceCandidate[] {
+  const rel =
+    process.env.SCOUT_TELEGRAM_SEEDS_PATH?.trim() ||
+    'config/telegram-discovery-seeds.json'
+  const path = resolve(process.cwd(), rel)
+  // Docker WORKDIR is /app; seeds ship under services/ingestion/config
+  const fallback = resolve(process.cwd(), 'services/ingestion/config/telegram-discovery-seeds.json')
+  for (const p of [path, fallback, resolve(process.cwd(), 'config/telegram-discovery-seeds.json')]) {
+    try {
+      const raw = readFileSync(p, 'utf8')
+      const parsed = JSON.parse(raw) as { channels?: unknown }
+      if (!Array.isArray(parsed.channels)) continue
+      const out: SourceCandidate[] = []
+      for (const item of parsed.channels) {
+        if (!item || typeof item !== 'object') continue
+        const rec = item as Record<string, unknown>
+        if (typeof rec.handle !== 'string') continue
+        out.push({
+          handle: normalizeChannelRef(rec.handle),
+          label: typeof rec.label === 'string' ? rec.label : undefined,
+          audienceSize: typeof rec.audienceSize === 'number' ? rec.audienceSize : undefined,
+          reputationScore: typeof rec.reputationScore === 'number' ? rec.reputationScore : 75,
+          verifiedBy: ['discovery-seed'],
+        })
+      }
+      if (out.length > 0) {
+        console.info('[scout] loaded telegram discovery seeds', { path: p, count: out.length })
+        return out
+      }
+    } catch {
+      /* try next path */
+    }
+  }
+  return []
+}
+
 export function loadScoutConfig(): ScoutConfig {
-  const globalMinReputation = num(process.env.SCOUT_MIN_REPUTATION, 80)
+  // Scale defaults: large seed file + room to enroll toward 1k when search API is set.
+  // GramJS join FloodWait still caps concurrent listens — use SIGNAL_CHANNEL_MAX_LISTEN + session sharding.
+  const globalMinReputation = num(process.env.SCOUT_MIN_REPUTATION, 70)
+  const seedFile = loadTelegramSeedFile()
+  const telegramCurated = (() => {
+    const map = new Map<string, SourceCandidate>()
+    for (const c of [...TELEGRAM_SOURCES, ...seedFile]) {
+      const k = normalizeChannelRef(c.handle).toLowerCase()
+      map.set(k, { ...map.get(k), ...c, handle: normalizeChannelRef(c.handle) })
+    }
+    return [...map.values()]
+  })()
 
   const telegram: PlatformScoutConfig = {
     platform: 'telegram',
     enabled: bool(process.env.SCOUT_TELEGRAM_ENABLED, true),
-    minAudience: num(process.env.SCOUT_MIN_SUBSCRIBERS, 10_000),
+    minAudience: num(process.env.SCOUT_MIN_SUBSCRIBERS, 5_000),
     minReputation: num(process.env.SCOUT_TELEGRAM_MIN_REPUTATION, globalMinReputation),
     requireVerification: bool(
       process.env.SCOUT_TELEGRAM_REQUIRE_VERIFICATION ?? process.env.SCOUT_REQUIRE_VERIFICATION,
-      true,
+      false,
     ),
     audienceLabel: 'subscribers',
-    curated: TELEGRAM_SOURCES,
+    curated: telegramCurated,
     searchApiUrl:
       process.env.SCOUT_TELEGRAM_SEARCH_API_URL?.trim() || process.env.SCOUT_SEARCH_API_URL?.trim() || '',
     searchApiKey:
@@ -141,7 +196,7 @@ export function loadScoutConfig(): ScoutConfig {
 
   const twitter: PlatformScoutConfig = {
     platform: 'twitter',
-    enabled: bool(process.env.SCOUT_TWITTER_ENABLED, true),
+    enabled: bool(process.env.SCOUT_TWITTER_ENABLED, false),
     minAudience: num(process.env.SCOUT_MIN_FOLLOWERS, 100_000),
     minReputation: num(process.env.SCOUT_TWITTER_MIN_REPUTATION, globalMinReputation),
     requireVerification: bool(process.env.SCOUT_TWITTER_REQUIRE_VERIFICATION, true),
@@ -154,7 +209,7 @@ export function loadScoutConfig(): ScoutConfig {
   return {
     enabled: bool(process.env.SCOUT_ENABLED, true),
     dryRun: bool(process.env.SCOUT_DRY_RUN, false),
-    maxInsertsPerRun: num(process.env.SCOUT_MAX_INSERTS, 25),
+    maxInsertsPerRun: num(process.env.SCOUT_MAX_INSERTS, 250),
     platforms: [telegram, twitter],
   }
 }
@@ -223,10 +278,7 @@ export function passesQualityFilter(c: SourceCandidate, pc: PlatformScoutConfig)
 }
 
 function supabaseCreds(): { url: string; key: string } | null {
-  const url = process.env.SUPABASE_URL?.trim()
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
-  if (!url || !key) return null
-  return { url: url.replace(/\/$/, ''), key }
+  return resolveSupabaseAdminCreds()
 }
 
 /** Existing handles grouped by platform (normalized + lowercased). */
@@ -265,23 +317,42 @@ async function insertSources(
   rows: { platform: SourcePlatform; username: string; enabled: boolean; label?: string }[],
 ): Promise<number> {
   if (rows.length === 0) return 0
-  const endpoint = `${url}/rest/v1/telegram_channels?on_conflict=platform,username`
-  const res = await fetch(endpoint, {
+  const headers = {
+    apikey: key,
+    Authorization: `Bearer ${key}`,
+    'Content-Type': 'application/json',
+    Prefer: 'resolution=ignore-duplicates,return=representation',
+  }
+
+  // Prefer platform-aware upsert; fall back when 20260708_source_platform.sql is not applied.
+  const withPlatform = await fetch(`${url}/rest/v1/telegram_channels?on_conflict=platform,username`, {
     method: 'POST',
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      'Content-Type': 'application/json',
-      Prefer: 'resolution=ignore-duplicates,return=representation',
-    },
+    headers,
     body: JSON.stringify(rows),
   })
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`Supabase insert failed HTTP ${res.status}: ${text.slice(0, 200)}`)
+  if (withPlatform.ok) {
+    const inserted = (await withPlatform.json()) as unknown[]
+    return Array.isArray(inserted) ? inserted.length : rows.length
   }
-  const inserted = (await res.json()) as unknown[]
-  return Array.isArray(inserted) ? inserted.length : rows.length
+
+  const legacyRows = rows
+    .filter((r) => r.platform === 'telegram')
+    .map(({ username, enabled, label }) => ({ username, enabled, label }))
+  if (legacyRows.length === 0) {
+    throw new Error(`Supabase insert failed HTTP ${withPlatform.status}: platform column missing and no telegram rows`)
+  }
+
+  const legacy = await fetch(`${url}/rest/v1/telegram_channels?on_conflict=username`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(legacyRows),
+  })
+  if (!legacy.ok) {
+    const text = await legacy.text()
+    throw new Error(`Supabase insert failed HTTP ${legacy.status}: ${text.slice(0, 200)}`)
+  }
+  const inserted = (await legacy.json()) as unknown[]
+  return Array.isArray(inserted) ? inserted.length : legacyRows.length
 }
 
 async function scoutPlatform(
@@ -300,8 +371,22 @@ async function scoutPlatform(
   }
   const candidates = [...merged.values()]
 
-  // 2. Quality gate.
-  const qualified = candidates.filter((c) => passesQualityFilter(c, pc))
+  // 2. Quality gate + scam/hygiene filter.
+  const qualified = candidates.filter((c) => {
+    if (!passesQualityFilter(c, pc)) return false
+    if (pc.platform !== 'telegram') return true
+    const hygiene = passesDiscoveryHygiene({
+      handle: c.handle,
+      label: c.label,
+      audienceSize: c.audienceSize,
+      minAudience: pc.minAudience,
+    })
+    if (!hygiene.ok) {
+      console.info('[scout] hygiene reject', { handle: c.handle, reason: hygiene.reason })
+      return false
+    }
+    return true
+  })
 
   // 3. Dedup + cap.
   const fresh = qualified.filter((c) => !existing.has(normalizeChannelRef(c.handle).toLowerCase()))
@@ -349,7 +434,7 @@ export async function runChannelScout(cfg: ScoutConfig = loadScoutConfig()): Pro
 
   const creds = supabaseCreds()
   if (!creds) {
-    return { totalInserted: 0, platforms: [], skipped: true, reason: 'missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY' }
+    return { totalInserted: 0, platforms: [], skipped: true, reason: 'missing SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) / SUPABASE_SERVICE_ROLE_KEY' }
   }
 
   let existing: Map<SourcePlatform, Set<string>>
@@ -386,7 +471,16 @@ export async function runChannelScout(cfg: ScoutConfig = loadScoutConfig()): Pro
 
 /** Standalone entrypoint for `node dist/scout.js` (cron) — logs a summary. */
 async function main(): Promise<void> {
-  await import('dotenv/config')
+  const { config } = await import('dotenv')
+  const { dirname, resolve } = await import('node:path')
+  const { fileURLToPath } = await import('node:url')
+  const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..')
+  config({ path: resolve(repoRoot, '.env.local') })
+  config({ path: resolve(repoRoot, '.env') })
+  config()
+  if (!process.env.SUPABASE_URL?.trim() && process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()) {
+    process.env.SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL.trim()
+  }
   const result = await runChannelScout()
   console.info('[scout] run complete', JSON.stringify(result, null, 2))
   process.exit(0)

@@ -118,6 +118,7 @@ async function main(): Promise<void> {
       mode: agentConfig.mode,
     },
   })
+  console.info('[signal-pipeline:gate] Gate consumer started')
 
   for (;;) {
     try {

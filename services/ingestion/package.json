@@ -11,6 +11,7 @@
     "start": "node dist/index.js",
     "scout": "node dist/scout.js",
     "scout:dev": "node --import tsx src/scout.ts",
+    "discovery": "node --import tsx src/discovery/discovery-loop.ts",
     "auth": "node --import tsx scripts/auth-telegram.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },

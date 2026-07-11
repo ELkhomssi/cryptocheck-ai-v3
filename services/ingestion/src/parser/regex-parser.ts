@@ -38,7 +38,9 @@ function collectUrls(raw: RawMessage): string[] {
 }
 
 function isLikelySolanaMint(s: string): boolean {
-  return s.length >= 32 && s.length <= 44 && /^[1-9A-HJ-NP-Za-km-z]+$/.test(s)
+  if (s.length < 32 || s.length > 44 || !/^[1-9A-HJ-NP-Za-km-z]+$/.test(s)) return false
+  if (s.length === 32 && /^[0-9a-f]+$/i.test(s)) return false
+  return true
 }
 
 function inferSignalType(text: string): ParseCandidate['signalType'] {

@@ -77,7 +77,8 @@ export function DataSourcesStrip() {
       </div>
       {customizeOpen ? (
         <p className="mt-3 rounded-dash-inner border border-dash-innerline bg-dash-panel2 px-3 py-2 text-xs text-dash-tmid">
-          Only Telegram and TxODDS are live today. Other sources appear as Soon until integrated.
+          Live today: Telegram + TxODDS. X (Twitter) is listed as Soon — no tweet listener yet (scout can only
+          enroll handles). Other chips are planned integrations.
         </p>
       ) : null}
     </section>

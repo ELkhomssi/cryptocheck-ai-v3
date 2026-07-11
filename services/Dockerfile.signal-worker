@@ -1,43 +1,54 @@
 # Signal Aggregator workers — build from repo root:
-#   docker build -f services/Dockerfile.signal-worker --build-arg SERVICE=realtime -t ccai-signal-realtime .
 #   docker build -f services/Dockerfile.signal-worker --build-arg SERVICE=ingestion -t ccai-signal-ingestion .
-#   docker build -f services/Dockerfile.signal-worker --build-arg SERVICE=parser -t ccai-signal-parser .
-#   docker build -f services/Dockerfile.signal-worker --build-arg SERVICE=enrich -t ccai-signal-enrich .
 #   docker build -f services/Dockerfile.signal-worker --build-arg SERVICE=gate -t ccai-signal-gate .
-#   docker build -f services/Dockerfile.signal-worker --build-arg SERVICE=scanner -t ccai-signal-scanner .
-#   docker build -f services/Dockerfile.signal-worker --build-arg SERVICE=sniper -t ccai-signal-sniper .
+#
+# SERVICE selects which worker to build/run (smaller images for droplet deploy).
 
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app
+ARG SERVICE=ingestion
 
 COPY packages/signal-contracts ./packages/signal-contracts
+RUN npm ci --prefix packages/signal-contracts 2>/dev/null || npm install --prefix packages/signal-contracts
+RUN npm run build --prefix packages/signal-contracts
+
+COPY packages/signing ./packages/signing
+RUN npm ci --prefix packages/signing 2>/dev/null || npm install --prefix packages/signing
+RUN npm run build --prefix packages/signing
+
 COPY services ./services
 
-RUN npm run build --prefix packages/signal-contracts
-RUN npm ci --prefix services/realtime --omit=dev 2>/dev/null || npm install --prefix services/realtime --omit=dev
-RUN npm ci --prefix services/ingestion --omit=dev 2>/dev/null || npm install --prefix services/ingestion --omit=dev
-RUN npm ci --prefix services/pipeline --omit=dev 2>/dev/null || npm install --prefix services/pipeline --omit=dev
-RUN npm ci --prefix services/scanner --omit=dev 2>/dev/null || npm install --prefix services/scanner --omit=dev
-RUN npm ci --prefix services/sniper --omit=dev 2>/dev/null || npm install --prefix services/sniper --omit=dev
+RUN set -e; case "$SERVICE" in \
+  ingestion) \
+    npm ci --prefix services/ingestion 2>/dev/null || npm install --prefix services/ingestion; \
+    npm run build --prefix services/ingestion ;; \
+  gate) \
+    npm ci --prefix services/pipeline 2>/dev/null || npm install --prefix services/pipeline; \
+    npm run build --prefix services/pipeline ;; \
+  parser|enrich) \
+    npm ci --prefix services/pipeline 2>/dev/null || npm install --prefix services/pipeline; \
+    npm run build --prefix services/pipeline ;; \
+  realtime) \
+    npm ci --prefix services/realtime 2>/dev/null || npm install --prefix services/realtime; \
+    npm run build --prefix services/realtime ;; \
+  scanner) \
+    npm ci --prefix services/scanner 2>/dev/null || npm install --prefix services/scanner; \
+    npm run build --prefix services/scanner ;; \
+  sniper) \
+    npm ci --prefix services/sniper 2>/dev/null || npm install --prefix services/sniper; \
+    npm run build --prefix services/sniper ;; \
+  *) echo "Unknown SERVICE=$SERVICE" && exit 1 ;; \
+ esac
 
-RUN npm run build --prefix services/realtime
-RUN npm run build --prefix services/ingestion
-RUN npm run build --prefix services/pipeline
-RUN npm run build --prefix services/scanner
-RUN npm run build --prefix services/sniper
-
-FROM node:20-alpine
+FROM node:22-alpine
 WORKDIR /app
-
-ARG SERVICE=realtime
+ARG SERVICE=ingestion
 ENV SIGNAL_SERVICE=${SERVICE}
+ENV SIGNAL_CHANNELS_CONFIG=services/ingestion/config/channels.json
 
 COPY --from=build /app/packages/signal-contracts /app/packages/signal-contracts
-COPY --from=build /app/services/realtime /app/services/realtime
+COPY --from=build /app/packages/signing /app/packages/signing
 COPY --from=build /app/services/ingestion /app/services/ingestion
 COPY --from=build /app/services/pipeline /app/services/pipeline
-COPY --from=build /app/services/scanner /app/services/scanner
-COPY --from=build /app/services/sniper /app/services/sniper
 
-# Default CMD overridden per service in compose / orchestrator
-CMD ["sh", "-c", "case \"$SIGNAL_SERVICE\" in realtime) exec node services/realtime/dist/index.js ;; ingestion) exec node services/ingestion/dist/index.js ;; parser) exec node services/pipeline/dist/parser/index.js ;; enrich) exec node services/pipeline/dist/enrich/index.js ;; gate) exec node services/pipeline/dist/gate/index.js ;; scanner) exec node services/scanner/dist/index.js ;; sniper) exec node services/sniper/dist/index.js ;; *) echo \"Unknown SIGNAL_SERVICE=$SIGNAL_SERVICE\" && exit 1 ;; esac"]
+CMD ["sh", "-c", "case \"$SIGNAL_SERVICE\" in ingestion) exec node services/ingestion/dist/index.js ;; gate) exec node services/pipeline/dist/gate/index.js ;; parser) exec node services/pipeline/dist/parser/index.js ;; enrich) exec node services/pipeline/dist/enrich/index.js ;; realtime) exec node services/realtime/dist/index.js ;; scanner) exec node services/scanner/dist/index.js ;; sniper) exec node services/sniper/dist/index.js ;; *) echo \"Unknown SIGNAL_SERVICE=$SIGNAL_SERVICE\" && exit 1 ;; esac"]

@@ -69,18 +69,36 @@ export function buildDataSourceStatus(txoddsLive: boolean, channelCount: number)
   }
 }
 
-/** Prefer live Redis heartbeat from telegram-monitor worker; else Supabase allowlist count. */
+/**
+ * Prefer live Redis heartbeat from telegram-monitor.
+ * If heartbeat is fresh but channels=0 (known sync bug), fall back to Supabase allowlist
+ * so the chip does not show "0 Channels" while the worker is up.
+ */
 export async function buildDataSourceStatusLive(txoddsLive: boolean): Promise<DataSourceStatus> {
   const hb = await readTelegramMonitorHeartbeat()
-  if (isHeartbeatFresh(hb)) {
+  const fromDb = await readTelegramChannelCountFromSupabase()
+
+  if (isHeartbeatFresh(hb) && hb) {
+    const fromHb = heartbeatToSourceStatus(hb)
+    if (fromHb.channelCount > 0) {
+      return {
+        telegram: fromHb,
+        txodds: { live: txoddsLive },
+        ingestionWorkerLive: true,
+      }
+    }
+    // Worker alive but heartbeat under-reports joins — use allowlist count.
+    const channelCount = fromDb > 0 ? fromDb : readTelegramChannelCountFromConfig()
     return {
-      telegram: heartbeatToSourceStatus(hb),
+      telegram: {
+        live: channelCount > 0 && hb.status !== 'down',
+        channelCount,
+      },
       txodds: { live: txoddsLive },
       ingestionWorkerLive: true,
     }
   }
 
-  const fromDb = await readTelegramChannelCountFromSupabase()
   if (fromDb > 0) {
     return {
       telegram: { live: false, channelCount: fromDb },

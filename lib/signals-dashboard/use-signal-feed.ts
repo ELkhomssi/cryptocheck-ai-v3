@@ -4,6 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SignalFeedEvent, SignalFeedFilter, UnifiedSignal } from '@cryptocheck/signal-contracts'
 import type { ConnectionState } from '@/components/command-center/ConnectionPill'
 import { matchesFeedFilter } from '@/lib/signals-dashboard/format'
+import {
+  FEED_LOAD_TIMEOUT_MS,
+  type FeedLoadState,
+} from '@/lib/signals-dashboard/feed-load-state'
 
 export type FeedTier = 'free' | 'premium'
 
@@ -39,7 +43,8 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
   const [signals, setSignals] = useState<Map<string, UnifiedSignal>>(new Map())
   const [tier, setTier] = useState<FeedTier>('free')
   const [connection, setConnection] = useState<ConnectionState>('connecting')
-  const [loading, setLoading] = useState(true)
+  const [feedState, setFeedState] = useState<FeedLoadState>('loading')
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [degraded, setDegraded] = useState(false)
   const [recentIds, setRecentIds] = useState<Set<string>>(new Set())
   const [delayedBy, setDelayedBy] = useState<Map<string, number>>(new Map())
@@ -65,9 +70,31 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
   }, [])
 
   const hasDataRef = useRef(false)
+  const initialLoadDoneRef = useRef(false)
+
+  const applyFeedLoadResult = useCallback((map: Map<string, UnifiedSignal>, ok: boolean) => {
+    if (ok) {
+      const hasRows = map.size > 0
+      hasDataRef.current = hasRows
+      setFeedState(hasRows ? 'data' : 'empty')
+      setErrorMessage(null)
+      setDegraded(false)
+      return
+    }
+    if (!hasDataRef.current) {
+      setFeedState('error')
+    } else {
+      setDegraded(true)
+    }
+  }, [])
 
   const loadHistory = useCallback(async () => {
-    if (!hasDataRef.current) setLoading(true)
+    const isInitial = !initialLoadDoneRef.current
+    if (isInitial) {
+      setFeedState('loading')
+      setErrorMessage(null)
+    }
+
     try {
       const params = new URLSearchParams()
       if (filter.chain) params.set('chain', filter.chain)
@@ -87,26 +114,34 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
       const res = await fetch(`/api/signals/history?${paramsWithUser.toString()}`, {
         headers,
         cache: 'no-store',
+        signal: AbortSignal.timeout(FEED_LOAD_TIMEOUT_MS),
       })
       const body = (await res.json()) as { signals?: UnifiedSignal[]; tier?: FeedTier; error?: string }
-      if (!res.ok) throw new Error(body.error ?? 'History load failed')
+      if (!res.ok) throw new Error(body.error ?? `History load failed (${res.status})`)
 
       const map = new Map<string, UnifiedSignal>()
       for (const s of body.signals ?? []) {
         if (!s.dropped && !s.sample) map.set(s.id, s)
       }
-      hasDataRef.current = map.size > 0 || hasDataRef.current
       setSignals(map)
       setTier(body.tier ?? 'free')
-      setDegraded(false)
+      applyFeedLoadResult(map, true)
       if (feedMode === 'poll') setConnection('live')
     } catch (e) {
+      const msg =
+        e instanceof Error
+          ? e.name === 'TimeoutError' || e.message.includes('aborted')
+            ? `Feed request timed out after ${FEED_LOAD_TIMEOUT_MS / 1000}s`
+            : e.message
+          : 'History load failed'
       console.error('[MasterFeed] history', e)
-      setDegraded(true)
+      setErrorMessage(msg)
+      applyFeedLoadResult(new Map(), false)
+      if (feedMode === 'poll' && !hasDataRef.current) setConnection('down')
     } finally {
-      setLoading(false)
+      initialLoadDoneRef.current = true
     }
-  }, [filter, premiumToken, userId, feedMode])
+  }, [filter, premiumToken, userId, feedMode, applyFeedLoadResult])
 
   useEffect(() => {
     let cancelled = false
@@ -141,6 +176,16 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
   useEffect(() => {
     void loadHistory()
   }, [loadHistory])
+
+  useEffect(() => {
+    if (feedState !== 'loading') return
+    const id = window.setTimeout(() => {
+      setFeedState((s) => (s === 'loading' ? 'error' : s))
+      setErrorMessage((m) => m ?? `Feed request timed out after ${FEED_LOAD_TIMEOUT_MS / 1000}s`)
+      setConnection('down')
+    }, FEED_LOAD_TIMEOUT_MS)
+    return () => window.clearTimeout(id)
+  }, [feedState])
 
   // Vercel-native: poll Supabase-backed history (no WebSocket server required).
   useEffect(() => {
@@ -185,6 +230,10 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
           setConnection(attemptRef.current > 3 ? 'down' : 'connecting')
         }
         setDegraded(true)
+        if (!hasDataRef.current) {
+          setFeedState('error')
+          setErrorMessage('WebSocket connection lost')
+        }
         const delay = Math.min(1000 * 2 ** Math.min(attemptRef.current, 4), 12_000)
         reconnectTimer.current = setTimeout(connect, delay)
       }
@@ -192,6 +241,10 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
       ws.onerror = () => {
         console.error('[MasterFeed] websocket error')
         setDegraded(true)
+        if (!hasDataRef.current) {
+          setFeedState('error')
+          setErrorMessage('WebSocket connection failed')
+        }
         ws.close()
       }
 
@@ -231,6 +284,9 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
                 })
               }, 1200)
             }
+            hasDataRef.current = next.size > 0
+            setFeedState(next.size > 0 ? 'data' : 'empty')
+            setErrorMessage(null)
             return next
           })
         } catch {
@@ -256,6 +312,8 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
     }
   }, [filter])
 
+  const loading = feedState === 'loading'
+
   return {
     signals,
     orderedIds,
@@ -263,6 +321,8 @@ export function useSignalFeed(filter: SignalFeedFilter, opts?: { userId?: string
     connected: connection === 'live' || connection === 'listening',
     connection,
     loading,
+    feedState,
+    errorMessage,
     degraded,
     recentIds,
     delayedBy,

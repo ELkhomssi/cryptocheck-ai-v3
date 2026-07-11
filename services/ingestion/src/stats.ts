@@ -1,4 +1,5 @@
 export type IngestionStats = {
+  messagesReceived: number
   ingested: number
   dropped: number
   redisFailures: number
@@ -10,6 +11,7 @@ export type IngestionStats = {
 }
 
 const stats: IngestionStats = {
+  messagesReceived: 0,
   ingested: 0,
   dropped: 0,
   redisFailures: 0,
@@ -22,6 +24,11 @@ const stats: IngestionStats = {
 
 export function getStats(): Readonly<IngestionStats> {
   return { ...stats }
+}
+
+export function markMessageReceived(): void {
+  stats.messagesReceived += 1
+  stats.lastEventAt = new Date().toISOString()
 }
 
 export function markIngested(): void {

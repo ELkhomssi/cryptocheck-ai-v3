@@ -2,7 +2,8 @@ import 'dotenv/config'
 import { createAdapters } from './adapters/index.js'
 import { resolveTelegramChannelList, startChannelRegistryRefresh } from './channel-registry.js'
 import { loadConfig, shardChannels } from './config.js'
-import { getHealthSnapshot, startHealthServer } from './health.js'
+import { startDiscoveryLoop } from './discovery/discovery-loop.js'
+import { getHealthSnapshot, startHealthServer, updateHealth } from './health.js'
 import { loadScoutConfig, runChannelScout } from './scout.js'
 import { createServiceHeartbeat } from './service-heartbeat.js'
 import { createUnifiedStreamWriter } from './unified-stream.js'
@@ -15,12 +16,16 @@ async function main(): Promise<void> {
   startHealthServer(config, writers)
 
   const heartbeat = createServiceHeartbeat('telegram-monitor')
-  let channelsJoined = 0
 
-  heartbeat.start(() => ({
-    status: channelsJoined > 0 ? 'ok' : config.telegram ? 'degraded' : 'down',
-    channels: channelsJoined,
-  }))
+  // Always read live health — do NOT cache channelsJoined in a local var (that stuck at 0
+  // while /health reported 22 and the dashboard chip showed "0 Channels").
+  heartbeat.start(() => {
+    const joined = getHealthSnapshot().telegram?.channelsJoined ?? 0
+    return {
+      status: joined > 0 ? 'ok' : config.telegram ? 'degraded' : 'down',
+      channels: joined,
+    }
+  })
 
   if (config.telegram) {
     // Scout first so the allowlist has the latest top-performing channels before we read it.
@@ -51,6 +56,12 @@ async function main(): Promise<void> {
       config.telegram.sessionIndex,
       config.telegram.sessionCount,
     )
+    updateHealth({
+      config: {
+        channelsConfigPath: config.telegram.channelsConfigPath,
+        channelShard: config.telegram.channels,
+      },
+    })
 
     startChannelRegistryRefresh(config.telegram.channelsConfigPath, (nextAll) => {
       const next = shardChannels(
@@ -88,13 +99,20 @@ async function main(): Promise<void> {
     ),
   )
 
-  const channelPoll = setInterval(() => {
-    channelsJoined = getHealthSnapshot().telegram?.channelsJoined ?? 0
-  }, 5_000)
+  // Immediate heartbeat refresh after joins so Redis isn't stuck at channels:0
+  await heartbeat.beat({
+    status: (getHealthSnapshot().telegram?.channelsJoined ?? 0) > 0 ? 'ok' : 'degraded',
+    channels: getHealthSnapshot().telegram?.channelsJoined ?? 0,
+  })
+
+  const discovery =
+    config.telegram && process.env.SIGNAL_DISCOVERY_ENABLED !== 'false'
+      ? startDiscoveryLoop()
+      : null
 
   const shutdown = async (signal: string) => {
     console.info('[signal-ingestion] shutting down', { signal })
-    clearInterval(channelPoll)
+    discovery?.stop()
     await heartbeat.beat({ status: 'down', channels: 0 })
     await Promise.all(running.map(({ adapter }) => adapter.stop()))
     process.exit(0)

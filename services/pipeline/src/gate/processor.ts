@@ -9,6 +9,7 @@ import {
   updateUnifiedFeedCache,
 } from './publish-unified.js'
 import { evaluateSportsSignal } from './sports-evaluator.js'
+import { mergeTokenSources } from './source-merge.js'
 import {
   markDropped,
   markProcessed,
@@ -18,6 +19,7 @@ import {
   markSportsEvaluated,
   markTokenAssessed,
 } from './stats.js'
+import { recordChannelOutcome } from './channel-metrics-feedback.js'
 
 function isTokenChain(
   chain: string | undefined,
@@ -97,19 +99,33 @@ async function processToken(
     return
   }
 
+  // Accumulate sources[] when multiple channels mention the same CA (free-tier gate).
+  const merged = await mergeTokenSources(redis, signal)
+
   // Async-upgrade step 1: instant feed row (scanning).
-  await publishScanning(redis, signal)
+  await publishScanning(redis, merged)
 
   // Async-upgrade step 2: scan gateway via internal assess (frozen core untouched).
   markTokenAssessed()
+  const assessStarted = Date.now()
   const assessment = await assessContract(chain, ca)
+  const latencyMs = Math.max(
+    0,
+    Date.now() -
+      (Date.parse(merged.ingestTimestamp) || Date.parse(merged.msgTimestamp) || assessStarted),
+  )
+
   if (!assessment.resolved || assessment.dropped) {
-    await publishDropped(redis, signal, assessment.dropReason ?? 'Unresolvable contract address')
+    await publishDropped(redis, merged, assessment.dropReason ?? 'Unresolvable contract address')
+    void recordChannelOutcome(
+      { ...merged, dropped: true, verdict: 'danger' },
+      { latencyMs },
+    )
     return
   }
 
   const enriched: UnifiedSignal = {
-    ...signal,
+    ...merged,
     dropped: false,
     dropReason: undefined,
     verdict: assessment.sentinelVerdict ?? 'caution',
@@ -117,6 +133,7 @@ async function processToken(
   }
 
   await publishEnriched(redis, enriched)
+  void recordChannelOutcome(enriched, { latencyMs })
 
   if (proofEngine) {
     void proofEngine.maybeRecordCall(enriched, {

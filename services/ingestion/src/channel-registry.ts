@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { isPublicChannelRef, normalizeChannelRef } from './config.js'
+import { fetchChannelsRankedByTrust } from './discovery/channel-metrics.js'
+import { resolveSupabaseAdminCreds } from './lib/supabase-creds.js'
 
 export function parseChannelsFile(path: string): string[] {
   const raw = readFileSync(path, 'utf8')
@@ -21,15 +23,22 @@ export function parseChannelsFile(path: string): string[] {
 }
 
 async function fetchEnabledFromSupabase(): Promise<string[] | null> {
-  const url = process.env.SUPABASE_URL?.trim()
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
-  if (!url || !key) return null
+  // Prefer trust-ranked list (signal_channel_metrics). Falls back if table missing.
+  const ranked = await fetchChannelsRankedByTrust()
+  if (ranked && ranked.length > 0) {
+    console.info('[channel-registry] loaded channels ranked by trust_score', {
+      count: ranked.length,
+      top: ranked.slice(0, 5).map((c) => ({ u: c.username, trust: c.trustScore })),
+    })
+    return ranked.map((c) => c.username)
+  }
+
+  const creds = resolveSupabaseAdminCreds()
+  if (!creds) return null
 
   try {
-    const headers = { apikey: key, Authorization: `Bearer ${key}` }
-    const root = url.replace(/\/$/, '')
-    // Prefer platform-scoped query (telegram only); fall back if the column
-    // predates the multi-platform migration.
+    const headers = { apikey: creds.key, Authorization: `Bearer ${creds.key}` }
+    const root = creds.url
     const scoped = `${root}/rest/v1/telegram_channels?enabled=eq.true&platform=eq.telegram&select=username`
     const legacy = `${root}/rest/v1/telegram_channels?enabled=eq.true&select=username`
     let res = await fetch(scoped, { headers, cache: 'no-store' })
@@ -51,7 +60,7 @@ async function fetchEnabledFromSupabase(): Promise<string[] | null> {
   }
 }
 
-/** Supabase allowlist first; fall back to channels.json when DB empty/unavailable. */
+/** Supabase allowlist (trust-ranked) first; fall back to channels.json when DB empty/unavailable. */
 export async function resolveTelegramChannelList(channelsConfigPath: string): Promise<string[]> {
   const fromDb = await fetchEnabledFromSupabase()
   if (fromDb && fromDb.length > 0) {

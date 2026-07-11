@@ -23,6 +23,8 @@ import { DASHBOARD_NAV, isDashNavActive } from '@/lib/dashboard/nav'
 import { CryptoCheckLogo } from '@/components/brand/CryptoCheckLogo'
 import { DataSourcesStrip } from './DataSourcesStrip'
 import { FeedConnectionPill } from './primitives/FeedConnectionPill'
+import { FeedSectionState } from './primitives/FeedSectionState'
+import type { FeedLoadState } from '@/lib/signals-dashboard/feed-load-state'
 import { VerifiedTrackRecordPanel } from './VerifiedTrackRecordPanel'
 import { SniperPanel } from './SniperPanel'
 import {
@@ -159,6 +161,12 @@ function Sparkline({ values }: { values?: number[] }) {
   )
 }
 
+function fmtStatTileValue(state: FeedLoadState, display: string): string {
+  if (state === 'loading') return '…'
+  if (state === 'error') return '—'
+  return display
+}
+
 function TokenAvatar({ label, gradient }: { label: string; gradient: string }) {
   return (
     <span
@@ -202,7 +210,7 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
       ? process.env.NEXT_PUBLIC_SIGNAL_PREMIUM_TOKEN
       : undefined
 
-  const { signals, connection, loading, recentIds } = useSignalFeed({}, { premiumToken })
+  const { signals, connection, feedState, errorMessage, recentIds, reload } = useSignalFeed({}, { premiumToken })
   const reconnecting = connection === 'reconnecting'
   const feedHandshake = connection === 'connecting' || connection === 'listening'
 
@@ -279,7 +287,6 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
     setSheetOpen(true)
   }, [])
 
-  const isLoading = loading && allSignals.length === 0
   const displayName = userEmail ? userEmail.split('@')[0] : 'Guest'
   const tierLabel =
     effectiveTier === 'FREE' ? 'Free Member' : effectiveTier === 'PRO' ? 'Pro Member' : effectiveTier
@@ -288,24 +295,34 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
   const statTiles = [
     {
       label: 'Total Opportunities',
-      value: isLoading ? '…' : fmtStat(stats.totalOpportunities),
+      value: fmtStatTileValue(feedState, fmtStat(stats.totalOpportunities)),
       delta:
-        stats.totalOpportunities24h > 0 ? `+${fmtStat(stats.totalOpportunities24h)} 24h` : undefined,
+        feedState === 'data' && stats.totalOpportunities24h > 0
+          ? `+${fmtStat(stats.totalOpportunities24h)} 24h`
+          : undefined,
     },
     {
       label: 'Avg AI Score',
-      value: isLoading ? '…' : stats.avgAiScore != null ? String(stats.avgAiScore) : '—',
+      value: fmtStatTileValue(
+        feedState,
+        stats.avgAiScore != null ? String(stats.avgAiScore) : '—',
+      ),
     },
     {
       label: 'Total Mentions',
-      value: isLoading ? '…' : fmtStat(stats.totalMentions),
-      delta: stats.totalMentions24h > 0 ? `+${fmtStat(stats.totalMentions24h)} 24h` : undefined,
+      value: fmtStatTileValue(feedState, fmtStat(stats.totalMentions)),
+      delta:
+        feedState === 'data' && stats.totalMentions24h > 0
+          ? `+${fmtStat(stats.totalMentions24h)} 24h`
+          : undefined,
     },
     {
       label: 'Smart Money Moves',
-      value: isLoading ? '…' : fmtStat(stats.smartMoneyMoves),
+      value: fmtStatTileValue(feedState, fmtStat(stats.smartMoneyMoves)),
       delta:
-        stats.smartMoneyMoves24h > 0 ? `+${fmtStat(stats.smartMoneyMoves24h)} 24h` : undefined,
+        feedState === 'data' && stats.smartMoneyMoves24h > 0
+          ? `+${fmtStat(stats.smartMoneyMoves24h)} 24h`
+          : undefined,
     },
   ]
 
@@ -432,10 +449,22 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
               </div>
             </div>
 
-            {(reconnecting || feedHandshake) ? (
-              <div className="mt-3 flex justify-end">
-                <FeedConnectionPill state={connection} />
+            {(reconnecting || feedHandshake || feedState === 'error') ? (
+              <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+                {feedState === 'error' ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-dash-pill border border-dash-red/40 bg-dash-red/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-dash-red">
+                    Feed offline
+                  </span>
+                ) : (
+                  <FeedConnectionPill state={connection} />
+                )}
               </div>
+            ) : null}
+
+            {feedState === 'error' ? (
+              <p className="mt-3 rounded-dash-inner border border-dash-red/30 bg-dash-red/5 px-3 py-2 text-xs text-dash-tmid">
+                {errorMessage ?? 'Signal history API unreachable'} — stats show dashes until the feed recovers.
+              </p>
             ) : null}
 
             <div className="mt-4 flex divide-x divide-dash-innerline overflow-x-auto">
@@ -491,22 +520,20 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
             </div>
 
             <div className="space-y-2 p-3 md:p-4">
-              {isLoading ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="h-[72px] animate-shimmer rounded-dash-inner bg-dash-panel2" />
-                ))
-              ) : hotRows.length === 0 ? (
-                <div className="rounded-dash-inner border border-dashed border-dash-innerline px-4 py-6 text-center">
-                  <p className="animate-shimmer text-xs text-dash-tlo">
-                    {reconnecting
-                      ? 'Reconnecting to live feed…'
-                      : feedHandshake
-                        ? 'Live · listening for opportunities…'
-                        : 'Listening for opportunities…'}
-                  </p>
-                </div>
-              ) : (
-                hotRows.slice(0, 8).map((signal, idx) => {
+              <FeedSectionState
+                state={feedState === 'data' && hotRows.length === 0 ? 'empty' : feedState}
+                errorMessage={errorMessage ?? undefined}
+                onRetry={() => void reload()}
+                emptyMessage="Listening for opportunities…"
+                loadingSkeleton={
+                  <>
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="h-[72px] animate-shimmer rounded-dash-inner bg-dash-panel2" />
+                    ))}
+                  </>
+                }
+              >
+                {hotRows.slice(0, 8).map((signal, idx) => {
                   const label = signal.label || signal.contractAddress?.slice(0, 6) || 'Token'
                   const score = Math.round(signal.scoreValue ?? 0)
                   const smartCount = signal.sourceCount ?? 0
@@ -566,8 +593,8 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
                       </div>
                     </article>
                   )
-                })
-              )}
+                })}
+              </FeedSectionState>
             </div>
 
             <footer className="border-t border-dash-innerline py-3 text-center">
@@ -594,17 +621,25 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
                 View All
               </Link>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {isLoading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-28 animate-shimmer rounded-dash-inner bg-dash-panel2" />
-                ))
-              ) : gems.length === 0 ? (
-                <div className="col-span-full rounded-dash-inner border border-dashed border-dash-innerline px-4 py-6 text-center">
-                  <p className="text-xs text-dash-tlo">No early gems detected yet.</p>
+            <FeedSectionState
+              state={
+                feedState === 'data' && gems.length === 0
+                  ? 'empty'
+                  : feedState
+              }
+              errorMessage={errorMessage ?? undefined}
+              onRetry={() => void reload()}
+              emptyMessage="No early gems detected yet."
+              loadingSkeleton={
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="h-28 animate-shimmer rounded-dash-inner bg-dash-panel2" />
+                  ))}
                 </div>
-              ) : (
-                gems.slice(0, 4).map((g) => {
+              }
+            >
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {gems.slice(0, 4).map((g) => {
                   const label = g.label || 'Token'
                   const score = Math.round(g.scoreValue ?? 0)
                   return (
@@ -637,9 +672,9 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
                       </dl>
                     </article>
                   )
-                })
-              )}
-            </div>
+                })}
+              </div>
+            </FeedSectionState>
           </section>
         </div>
 

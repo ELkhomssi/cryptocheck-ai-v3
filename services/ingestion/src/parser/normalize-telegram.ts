@@ -13,7 +13,12 @@ import type { ParseCandidate } from './types.js'
 const LLM_CONFIDENCE_THRESHOLD = Number(process.env.SIGNAL_LLM_MIN_REGEX_CONFIDENCE ?? 0.7)
 
 function isResolvableAddress(chain: string, ca: string): boolean {
-  if (chain === 'solana') return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(ca)
+  if (chain === 'solana') {
+    if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(ca)) return false
+    // News URLs often embed 32-char hex tracking IDs — not Solana mints.
+    if (ca.length === 32 && /^[0-9a-f]+$/i.test(ca)) return false
+    return true
+  }
   return /^0x[a-fA-F0-9]{40}$/.test(ca)
 }
 
