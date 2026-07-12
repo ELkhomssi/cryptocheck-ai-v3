@@ -100,6 +100,8 @@ export async function buildDataSourceStatusLive(txoddsLive: boolean): Promise<Da
   }
 
   if (fromDb > 0) {
+    // Allowlist exists but heartbeat missing/stale — chip still shows count; mark live=false
+    // only when we cannot prove the worker. Prefer "configured" semantics for channelCount.
     return {
       telegram: { live: false, channelCount: fromDb },
       txodds: { live: txoddsLive },

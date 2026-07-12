@@ -13,7 +13,7 @@ type SourceChip = {
 }
 
 const INTEGRATION_SOON: SourceChip[] = [
-  { id: 'x', name: 'X (Twitter)', live: false },
+  { id: 'x', name: 'X (Twitter)', live: false, accent: 'text-dash-tlo' },
   { id: 'dexscreener', name: 'DEX Screener', live: false },
   { id: 'pumpfun', name: 'Pump.fun', live: false },
   { id: 'coinmarketcap', name: 'CoinMarketCap', live: false },
@@ -79,8 +79,8 @@ export function DataSourcesStrip() {
       </div>
       {customizeOpen ? (
         <p className="mt-3 rounded-dash-inner border border-dash-innerline bg-dash-panel2 px-3 py-2 text-xs text-dash-tmid">
-          Live today: Telegram + TxODDS. X (Twitter) is listed as Soon — no tweet listener yet (scout can only
-          enroll handles). Other chips are planned integrations.
+          Live: Telegram (GramJS worker). TxODDS optional. X (Twitter) is Soon only — there is no tweet
+          ingest yet; scout can enroll handles into the DB but nothing streams posts from X.
         </p>
       ) : null}
     </section>

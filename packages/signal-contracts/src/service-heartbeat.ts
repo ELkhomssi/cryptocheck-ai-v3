@@ -1,7 +1,9 @@
 /** Redis heartbeat keys — workers write; Next.js dashboard reads. */
 export const SIGNAL_HEARTBEAT_PREFIX = 'ccai:sig:heartbeat:'
-export const SIGNAL_HEARTBEAT_TTL_SEC = 45
-export const SIGNAL_HEARTBEAT_STALE_MS = 45_000
+/** Redis key TTL — must exceed beat interval (15s) with headroom. */
+export const SIGNAL_HEARTBEAT_TTL_SEC = 90
+/** Dashboard considers worker live within this window (was 45s — too tight → false "dead"). */
+export const SIGNAL_HEARTBEAT_STALE_MS = 90_000
 
 export type PipelineServiceName =
   | 'telegram-monitor'
