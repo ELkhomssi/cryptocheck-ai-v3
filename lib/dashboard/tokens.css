@@ -1,5 +1,30 @@
-/** SVG gradient stops for ScoreRing — single source; no hex in JSX. */
+/**
+ * NORO Marketplace–style tokens for Smart Alpha Feed
+ * Palette: near-black · green #22C55E · blue #3B82F6 · orange #F97316
+ */
 :root {
-  --dash-ring-from: #7be84b;
-  --dash-ring-to: #a3f55f;
+  --dash-ring-from: #f97316;
+  --dash-ring-to: #fb923c;
+  --noro-green: #22c55e;
+  --noro-blue: #3b82f6;
+  --noro-orange: #f97316;
+  --noro-bg: #0a0a0a;
+  --noro-panel: #121212;
+  --noro-panel2: #1a1a1a;
+}
+
+.dash-atmosphere {
+  background: #0a0a0a;
+}
+
+.dash-glass {
+  background: #121212;
+}
+
+.noro-glow-green {
+  box-shadow: 0 0 24px rgba(34, 197, 94, 0.35);
+}
+
+.noro-glow-orange {
+  box-shadow: 0 0 18px rgba(249, 115, 22, 0.3);
 }

@@ -52,13 +52,15 @@ export function DataSourcesStrip() {
       name: 'TxODDS',
       sub: sources?.txodds.live ? 'LIVE' : 'offline',
       live: sources?.txodds.live ?? false,
-      accent: 'text-dash-orangeTx',
+      accent: 'text-dash-gold',
     },
   ]
 
   return (
-    <section className="rounded-dash border border-dash-hairline bg-dash-panel px-4 py-3 md:px-5">
-      <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-dash-tlo">Data Sources</p>
+    <section className="dash-glass rounded-dash border border-dash-hairline px-4 py-3 md:px-5">
+      <p className="mb-2 font-space text-[11px] font-medium uppercase tracking-[0.14em] text-dash-green">
+        Data Sources
+      </p>
       <div className="flex flex-wrap items-center gap-2">
         {live.map((c) => (
           <Chip key={c.id} chip={c} />
@@ -69,7 +71,7 @@ export function DataSourcesStrip() {
         <button
           type="button"
           onClick={() => setCustomizeOpen((v) => !v)}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-dash-chip border border-dash-innerline px-3 py-1.5 text-xs text-dash-tmid transition-colors duration-150 hover:border-white/20 hover:text-dash-thi focus:outline-none focus-visible:ring-2 focus-visible:ring-dash-green"
+          className="ml-auto inline-flex items-center gap-1.5 rounded-dash-chip border border-dash-innerline px-3 py-1.5 text-xs text-dash-tmid transition-colors duration-150 hover:border-dash-green/40 hover:text-dash-green focus:outline-none focus-visible:ring-2 focus-visible:ring-dash-green"
         >
           <SlidersHorizontal className="h-3.5 w-3.5" />
           Customize
@@ -91,12 +93,12 @@ function Chip({ chip, soon }: { chip: SourceChip; soon?: boolean }) {
     <span
       className={`inline-flex items-center gap-2 rounded-dash-chip border px-3 py-1.5 text-xs ${
         muted
-          ? 'border-dash-innerline text-dash-tlo opacity-40'
-          : 'border-dash-innerline bg-dash-panel2 text-dash-thi'
+          ? 'border-dash-innerline text-dash-tlo opacity-45'
+          : 'border-dash-green/30 bg-dash-green/5 text-dash-thi'
       }`}
     >
       {chip.id === 'txodds' && chip.live ? (
-        <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-dash-orangeTx" aria-hidden />
+        <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-dash-gold" aria-hidden />
       ) : chip.id !== 'txodds' ? (
         <span className={chip.accent ?? 'text-dash-tmid'}>
           <SourceBrandIcon id={chip.id as SourceBrandId} />
