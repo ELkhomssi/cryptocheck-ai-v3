@@ -302,7 +302,7 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
       ? process.env.NEXT_PUBLIC_SIGNAL_PREMIUM_TOKEN
       : undefined
 
-  // Token lane — stats / Hot Opps / Early Gems (server-filtered subject_type=token).
+  // Token lane — Telegram CAs → stats / Hot Opps / Early Gems.
   const {
     signals: tokenSignalsMap,
     connection,
@@ -310,19 +310,12 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
     errorMessage,
     recentIds,
     reload,
-  } = useSignalFeed({ subjectType: 'token' }, { premiumToken })
-
-  // Sports lane — ticker edges / TxODDS-related alerts (server-filtered match_event).
-  const { signals: sportsSignalsMap } = useSignalFeed(
-    { subjectType: 'match_event' },
-    { premiumToken },
-  )
+  } = useSignalFeed({ subjectType: 'token', sourceTag: 'telegram' }, { premiumToken })
 
   const reconnecting = connection === 'reconnecting'
   const feedHandshake = connection === 'connecting' || connection === 'listening'
 
   const tokenSignals = useMemo(() => [...tokenSignalsMap.values()], [tokenSignalsMap])
-  const sportsSignals = useMemo(() => [...sportsSignalsMap.values()], [sportsSignalsMap])
   const stats = useMemo(() => computeAlphaFeedStats(tokenSignals), [tokenSignals])
 
   const [sort, setSort] = useState<HotSortKey>('score')
@@ -347,8 +340,8 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
   }, [])
 
   const tickerAlerts = useMemo(
-    () => buildTickerAlerts([...tokenSignals, ...sportsSignals], agentEvents),
-    [tokenSignals, sportsSignals, agentEvents],
+    () => buildTickerAlerts(tokenSignals, agentEvents),
+    [tokenSignals, agentEvents],
   )
 
   const [topTraders, setTopTraders] = useState<TopTradersResult | null>(null)

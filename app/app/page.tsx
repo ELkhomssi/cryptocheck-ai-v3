@@ -1,9 +1,55 @@
-import { redirect } from 'next/navigation'
+import { createClientOptional } from '@/lib/supabase/server'
+import { isSupabaseConfigured } from '@/lib/supabase'
+import { ensureFreeTierSubscription } from '@/lib/services/saas-entitlement.service'
+import { getUserSubscription } from '@/lib/services/user-subscription.service'
+import { JetBrains_Mono, Space_Grotesk } from 'next/font/google'
+import '@/lib/dashboard/tokens.css'
+import { DashboardNew } from '@/components/dash-home/DashboardNew'
+
+const dashMono = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-dash-mono',
+  display: 'swap',
+})
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-space-grotesk',
+  display: 'swap',
+})
+
+export const dynamic = 'force-dynamic'
 
 /**
- * Legacy /app entry used the old 3k-line dashboard.tsx.
- * Smart Alpha Feed (NORO-style) lives at /dashboard — send everyone there.
+ * Primary consumer entry (`Launch App`, auth callback, signup).
+ * Renders the NORO Smart Alpha Feed — same surface as `/dashboard`.
  */
-export default function AppPage() {
-  redirect('/dashboard')
+export default async function AppPage() {
+  const supabase = await createClientOptional()
+  const user = supabase ? (await supabase.auth.getUser()).data.user : null
+
+  let userEmail = ''
+  let effectiveTier = 'FREE'
+  if (user) {
+    userEmail = user.email ?? ''
+    try {
+      await ensureFreeTierSubscription(user.id)
+    } catch {
+      /* best effort */
+    }
+    const sub = await getUserSubscription(user.id)
+    effectiveTier = sub.effectiveTier
+  }
+
+  return (
+    <div className={`${dashMono.variable} ${spaceGrotesk.variable} font-sans antialiased`}>
+      <DashboardNew
+        userEmail={userEmail}
+        effectiveTier={effectiveTier}
+        isAnonymousPreview={!isSupabaseConfigured() || !user}
+      />
+    </div>
+  )
 }

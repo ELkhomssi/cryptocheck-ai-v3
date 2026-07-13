@@ -2,7 +2,7 @@ import { createClientOptional } from '@/lib/supabase/server'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { ensureFreeTierSubscription } from '@/lib/services/saas-entitlement.service'
 import { getUserSubscription } from '@/lib/services/user-subscription.service'
-import { JetBrains_Mono } from 'next/font/google'
+import { JetBrains_Mono, Space_Grotesk } from 'next/font/google'
 import '@/lib/dashboard/tokens.css'
 import { DashboardNew } from '@/components/dash-home/DashboardNew'
 
@@ -10,6 +10,13 @@ const dashMono = JetBrains_Mono({
   subsets: ['latin'],
   weight: ['400', '500'],
   variable: '--font-dash-mono',
+  display: 'swap',
+})
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-space-grotesk',
   display: 'swap',
 })
 
@@ -33,7 +40,7 @@ export default async function DashboardHomePage() {
   }
 
   return (
-    <div className={`${dashMono.variable} font-sans`}>
+    <div className={`${dashMono.variable} ${spaceGrotesk.variable} font-sans antialiased`}>
       <DashboardNew
         userEmail={userEmail}
         effectiveTier={effectiveTier}
