@@ -58,7 +58,10 @@ export default function AuthCallbackPage() {
         }
 
         setStatus('success')
-        setTimeout(() => window.location.replace('/app'), 500)
+        const nextRaw = params.get('next') || '/app'
+        const next =
+          nextRaw.startsWith('/') && !nextRaw.startsWith('//') ? nextRaw : '/app'
+        setTimeout(() => window.location.replace(next), 500)
 
       } catch (e: any) {
         console.error('[AUTH CB] Unexpected:', e)

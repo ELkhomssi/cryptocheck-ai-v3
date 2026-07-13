@@ -27,6 +27,7 @@ import { FeedSectionState } from './primitives/FeedSectionState'
 import type { FeedLoadState } from '@/lib/signals-dashboard/feed-load-state'
 import { VerifiedTrackRecordPanel } from './VerifiedTrackRecordPanel'
 import { SniperPanel } from './SniperPanel'
+import { SpinTheWheel } from './SpinTheWheel'
 import {
   Bell,
   ChevronLeft,
@@ -1002,6 +1003,8 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
               </button>
             </div>
           </section>
+
+          <SpinTheWheel />
 
           <SniperPanel />
 
