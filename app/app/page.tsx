@@ -1,55 +1,68 @@
-import { createClientOptional } from '@/lib/supabase/server'
-import { isSupabaseConfigured } from '@/lib/supabase'
-import { ensureFreeTierSubscription } from '@/lib/services/saas-entitlement.service'
-import { getUserSubscription } from '@/lib/services/user-subscription.service'
-import { JetBrains_Mono, Space_Grotesk } from 'next/font/google'
-import '@/lib/dashboard/tokens.css'
-import { DashboardNew } from '@/components/dash-home/DashboardNew'
+'use client'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
+import ErrorBoundary from '@/components/ErrorBoundary'
+import Dashboard from '../dashboard'
+import { SubscriptionProvider } from '@/lib/subscription/SubscriptionContext'
+import { DisclaimerBanner } from '@/components/legal/DisclaimerBanner'
+import { TerminalProvider } from '@/components/Dashboard/intelligence-terminal/TerminalProvider'
 
-const dashMono = JetBrains_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500'],
-  variable: '--font-dash-mono',
-  display: 'swap',
-})
+export default function AppPage() {
+  const [status, setStatus] = useState<'loading'|'ready'>('loading')
 
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-space-grotesk',
-  display: 'swap',
-})
+  useEffect(() => {
+    // Check existing session
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user) {
+        syncProfile(data.session.user)
+      }
+      setStatus('ready')
+    })
 
-export const dynamic = 'force-dynamic'
+    // Listen for auth changes (picks up PKCE code exchange from URL)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        console.log('[APP] User signed in:', session.user.email)
+        syncProfile(session.user)
+        // Clean up URL params after successful auth
+        if (window.location.search.includes('code=')) {
+          window.history.replaceState({}, '', '/app')
+        }
+      }
+      setStatus('ready')
+    })
 
-/**
- * Primary consumer entry (`Launch App`, auth callback, signup).
- * Renders the NORO Smart Alpha Feed — same surface as `/dashboard`.
- */
-export default async function AppPage() {
-  const supabase = await createClientOptional()
-  const user = supabase ? (await supabase.auth.getUser()).data.user : null
+    return () => subscription.unsubscribe()
+  }, [])
 
-  let userEmail = ''
-  let effectiveTier = 'FREE'
-  if (user) {
-    userEmail = user.email ?? ''
+  async function syncProfile(user: any) {
     try {
-      await ensureFreeTierSubscription(user.id)
-    } catch {
-      /* best effort */
+      await fetch('/api/auth/profile-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: user.id, email: user.email }),
+      })
+    } catch (e) {
+      console.error('[APP] Profile sync error:', e)
     }
-    const sub = await getUserSubscription(user.id)
-    effectiveTier = sub.effectiveTier
   }
 
-  return (
-    <div className={`${dashMono.variable} ${spaceGrotesk.variable} font-sans antialiased`}>
-      <DashboardNew
-        userEmail={userEmail}
-        effectiveTier={effectiveTier}
-        isAnonymousPreview={!isSupabaseConfigured() || !user}
-      />
+  if (status === 'loading') return (
+    <div style={{background:'#000',height:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:14,fontFamily:"'JetBrains Mono',monospace"}}>
+      <div style={{width:26,height:26,border:'2px solid rgba(52,211,153,0.15)',borderTop:'2px solid #34d399',borderRadius:'50%',animation:'spin 0.7s linear infinite'}}/>
+      <div style={{fontSize:10,color:'rgba(52,211,153,0.5)',letterSpacing:'0.1em'}}>LOADING</div>
+      <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
     </div>
+  )
+
+  return (
+    <ErrorBoundary name="Dashboard">
+      <SubscriptionProvider>
+        <TerminalProvider>
+          <DisclaimerBanner variant="default" />
+          <Dashboard />
+        </TerminalProvider>
+      </SubscriptionProvider>
+    </ErrorBoundary>
   )
 }
