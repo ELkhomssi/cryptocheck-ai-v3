@@ -1,17 +1,13 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { getSupabase } from '@/lib/supabase'
 import LandingPage from './landing/page'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 export default function RootWrapper({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<'loading'|'guest'|'user'>('loading')
 
   useEffect(() => {
+    const supabase = getSupabase()
     supabase.auth.getSession().then(({ data }) => {
       setStatus(data.session?.user ? 'user' : 'guest')
     })

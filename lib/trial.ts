@@ -1,9 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { getSupabase } from '@/lib/supabase'
 
 const TRIAL_DAYS = 4
 
@@ -20,7 +15,8 @@ export interface TrialStatus {
 
 export async function checkTrialStatus(walletAddress?: string | null): Promise<TrialStatus> {
   try {
-    // Try Supabase first
+    // Try Supabase first (cookie-backed browser client — same PKCE session as AuthModal)
+    const supabase = getSupabase()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (user) {

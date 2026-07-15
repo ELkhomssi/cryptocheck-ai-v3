@@ -1,9 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { getSupabase } from '@/lib/supabase'
 
 export type FeatureType = 
   | 'neural_scan'
@@ -26,6 +21,7 @@ export interface UserAccess {
 
 export async function getUserAccess(): Promise<UserAccess> {
   try {
+    const supabase = getSupabase()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       const isPro = typeof window !== 'undefined' && localStorage.getItem('cc_is_pro') === 'true'
@@ -86,6 +82,7 @@ export function isFeatureLocked(access: UserAccess, feature: FeatureType): boole
 
 export async function deductScan(userId: string): Promise<{ success: boolean; remaining: number; error?: string }> {
   try {
+    const supabase = getSupabase()
     const { data, error } = await supabase
       .from('profiles')
       .select('scans_today, is_pro, plan, plan_type, tier')
