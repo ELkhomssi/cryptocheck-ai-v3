@@ -23,6 +23,7 @@
   "exclude": [
     "node_modules",
     "packages/extension",
+    "scripts",
     "services/ingestion",
     "services/pipeline",
     "services/realtime"
