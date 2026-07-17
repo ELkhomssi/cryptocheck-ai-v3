@@ -1,17 +1,9 @@
-import type { Metadata } from 'next'
-import { requireOperatorPage } from '@/lib/operator/require-operator'
 import { getProDashboardSession } from '@/lib/auth/pro-dashboard'
 import { fetchFastScanForMint } from '@/lib/pro-dashboard/fetch-fast-scan'
 import type { ScanV1ApiResponse } from '@/lib/types/institutional-scan-api'
-import { ProDashboardClient } from './pro-dashboard-client'
+import { ProDashboardClient } from '@/app/pro/dashboard/pro-dashboard-client'
 import { DisclaimerBanner } from '@/components/legal/DisclaimerBanner'
 import { SignalAlertFeed } from '@/components/trading/SignalAlertFeed'
-
-export const metadata: Metadata = {
-  title: 'Dashboard Pro — CryptoCheck AI',
-  description:
-    'Dashboard Pro (for developers). Explainable token intelligence, evidence, and institutional API surface.',
-}
 
 export const dynamic = 'force-dynamic'
 
@@ -78,9 +70,6 @@ function toClientProps(scan: ScanV1ApiResponse) {
 }
 
 export default async function ProDashboardPage() {
-  // Same server-side session gate as /operator/* — getUser() + operator allowlist (not cookie presence).
-  await requireOperatorPage('/pro/dashboard')
-
   const reqLabel = `pro-dashboard:${Date.now().toString(36)}`
   console.time(`${reqLabel}:total`)
 

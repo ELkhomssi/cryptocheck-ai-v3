@@ -1,5 +1,9 @@
-import AdminUsers from '@/components/AdminUsers'
+import { redirect } from 'next/navigation'
+import { requireOperatorPage } from '@/lib/operator/require-operator'
 
 export const dynamic = 'force-dynamic'
 
-export default function AdminPage() { return <AdminUsers /> }
+export default async function AdminPage() {
+  await requireOperatorPage('/operator/subscriptions')
+  redirect('/operator/subscriptions')
+}
