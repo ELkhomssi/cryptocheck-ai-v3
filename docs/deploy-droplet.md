@@ -148,10 +148,51 @@ curl -s "${SUPABASE_URL%/}/rest/v1/signal_normalized?source_tag=eq.txodds&select
   -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" | python3 -m json.tool
 ```
 
-### Twitter / X (not live yet)
+### Telegram channel allowlist (SOLTRENDING)
 
-There is **no** `TwitterAdapter` and no `twitter-ingestion` compose service.  
-`SourceTag` is only `telegram` | `txodds`. Scout can enroll X handles (`SCOUT_TWITTER_ENABLED`) after `20260708_source_platform.sql` is applied — that does **not** stream tweets.
+If `column "platform" does not exist`, add it first, then enroll.
+
+```sql
+-- 1) platform column (from 20260708_source_platform.sql)
+ALTER TABLE telegram_channels
+  ADD COLUMN IF NOT EXISTS platform text NOT NULL DEFAULT 'telegram';
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'telegram_channels_platform_check'
+  ) THEN
+    ALTER TABLE telegram_channels
+      ADD CONSTRAINT telegram_channels_platform_check
+      CHECK (platform IN ('telegram', 'twitter'));
+  END IF;
+END $$;
+
+ALTER TABLE telegram_channels DROP CONSTRAINT IF EXISTS telegram_channels_username_unique;
+CREATE UNIQUE INDEX IF NOT EXISTS telegram_channels_platform_username_key
+  ON telegram_channels (platform, username);
+
+-- 2) Enroll SOLTRENDING
+INSERT INTO telegram_channels (username, platform, enabled, label)
+VALUES ('SOLTRENDING', 'telegram', true, 'SOLTRENDING')
+ON CONFLICT (platform, username) DO UPDATE
+  SET enabled = true, updated_at = now();
+```
+
+**Legacy fallback** (only if you cannot add `platform` yet):
+
+```sql
+INSERT INTO telegram_channels (username, enabled, label)
+VALUES ('SOLTRENDING', true, 'SOLTRENDING')
+ON CONFLICT (username) DO UPDATE
+  SET enabled = true, updated_at = now();
+```
+
+DexT / Screener textUrl links in channel posts are parsed for Solana CAs → `telegram:ca-hit` → gate scan.
+
+### TxODDS / TxLINE (sports — not tokens)
+
+`SIGNAL_SOURCES=telegram,txodds` + `TXLINE_API_TOKEN`. Emits `match_event` rows only — **never** enters the Jupiter swap / Early Gem token path. Token Alpha Feed is Telegram CAs only.
 
 ---
 

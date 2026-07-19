@@ -122,20 +122,33 @@ async function processToken(
   )
 
   if (!assessment.resolved || assessment.dropped) {
-    console.warn('[gate:token] drop — assess failed', {
+    if (assessment.dropped) {
+      console.warn('[gate:token] drop — assess failed', {
+        id: merged.id,
+        chain,
+        ca: `${ca.slice(0, 8)}…${ca.slice(-4)}`,
+        sources: merged.sources,
+        sourceCount: merged.sourceCount,
+        reason: assessment.dropReason ?? 'Unresolvable contract address',
+        latencyMs,
+      })
+      await publishDropped(redis, merged, assessment.dropReason ?? 'Unresolvable contract address')
+      void recordChannelOutcome(
+        { ...merged, dropped: true, verdict: 'danger' },
+        { latencyMs },
+      )
+      return
+    }
+
+    // Transient assess failure — keep `verdict: scanning` row visible in feed.
+    console.warn('[gate:token] assess deferred — keeping scanning', {
       id: merged.id,
       chain,
       ca: `${ca.slice(0, 8)}…${ca.slice(-4)}`,
       sources: merged.sources,
-      sourceCount: merged.sourceCount,
-      reason: assessment.dropReason ?? 'Unresolvable contract address',
+      reason: assessment.dropReason ?? 'transient',
       latencyMs,
     })
-    await publishDropped(redis, merged, assessment.dropReason ?? 'Unresolvable contract address')
-    void recordChannelOutcome(
-      { ...merged, dropped: true, verdict: 'danger' },
-      { latencyMs },
-    )
     return
   }
 
@@ -145,6 +158,11 @@ async function processToken(
     dropReason: undefined,
     verdict: assessment.sentinelVerdict ?? 'caution',
     scoreValue: assessment.neuralScore,
+    rawPayload: {
+      ...(merged.rawPayload ?? {}),
+      ...(assessment.enrichmentDegraded ? { enrichmentDegraded: true } : {}),
+      ...(assessment.evidenceSummary ? { evidenceSummary: assessment.evidenceSummary } : {}),
+    },
   }
 
   console.info('[gate:token] enriched', {

@@ -69,10 +69,26 @@ export async function POST(req: NextRequest) {
   const feeAccount = getPlatformFeeAccount()
   const amountBase = parseInputAmountBase(inputMint, amount, body.tokenDecimals)
 
+  let applyFee = Boolean(feeAccount && feeBps > 0)
+  if (applyFee && feeAccount) {
+    const { assertPlatformFeeAccountForOutput } = await import('@/lib/launchpad/fee-account')
+    const check = await assertPlatformFeeAccountForOutput(outputMint)
+    if (check.ok === false) {
+      return NextResponse.json(
+        {
+          error: check.message,
+          code: check.code,
+          feeConfigured: false,
+        },
+        { status: 422, headers: gatewayResponseHeaders() },
+      )
+    }
+  }
+
   try {
     const [quote, solUsd] = await Promise.all([
       getJupiterQuote(inputMint, outputMint, amountBase, slippageBps, {
-        platformFeeBps: feeAccount ? feeBps : undefined,
+        platformFeeBps: applyFee ? feeBps : undefined,
       }),
       fetchSolUsdPrice(),
     ])

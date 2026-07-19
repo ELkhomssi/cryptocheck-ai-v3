@@ -21,7 +21,7 @@ export function AccessKeyHeaderChip() {
   if (hasValidKey) {
     return (
       <Link
-        href="/dashboard/intelligence-terminal"
+        href="/operator/analysis"
         className="hidden items-center gap-1.5 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 font-mono-terminal text-[0.58rem] font-semibold uppercase tracking-wider text-emerald-200/95 transition-colors hover:border-emerald-400/40 hover:bg-emerald-500/15 lg:inline-flex"
         title="Access key active — open Analysis Console"
       >
@@ -33,7 +33,7 @@ export function AccessKeyHeaderChip() {
 
   return (
     <Link
-      href="/dashboard/intelligence-terminal"
+      href="/operator/analysis"
       className="hidden items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-950/40 px-2 py-0.5 font-mono-terminal text-[0.58rem] font-semibold uppercase tracking-wider text-amber-200/90 transition-colors hover:border-amber-400/45 lg:inline-flex"
     >
       Add access key

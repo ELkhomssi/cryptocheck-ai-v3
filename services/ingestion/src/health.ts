@@ -21,6 +21,12 @@ export type HealthSnapshot = {
     streams: { scores: boolean; odds: boolean }
     apiOrigin: string
   } | null
+  twitter: {
+    connected: boolean
+    handleCount: number
+    lastPollAt: string | null
+    lastError: string | null
+  } | null
   stream: string
   streams: { unified: string; sources: Record<string, string> }
   stats: ReturnType<typeof getStats>
@@ -36,6 +42,7 @@ let snapshot: HealthSnapshot = {
   sources: [],
   telegram: null,
   txodds: null,
+  twitter: null,
   stream: '',
   streams: { unified: '', sources: {} },
   stats: getStats(),
@@ -53,12 +60,15 @@ export function updateHealth(patch: Partial<HealthSnapshot>): void {
       : next.txodds.streamMode === 'scores'
         ? next.txodds.streams.scores
         : next.txodds.streams.odds)
+  const twitterOk = !next.twitter || (next.twitter.connected && next.twitter.handleCount > 0)
 
   const anySource = next.sources.length > 0
   const allOk =
     anySource &&
     (!next.sources.includes('telegram') || telegramOk) &&
-    (!next.sources.includes('txodds') || txoddsOk)
+    (!next.sources.includes('txodds') || txoddsOk) &&
+    (!next.sources.includes('twitter') || twitterOk) &&
+    (!next.sources.includes('launchpad') || true)
 
   next.status = allOk ? 'ok' : anySource ? 'degraded' : 'down'
   snapshot = next
@@ -106,6 +116,14 @@ export function startHealthServer(
           fixturesCached: 0,
           streams: { scores: false, odds: false },
           apiOrigin: config.txodds.apiOrigin,
+        }
+      : null,
+    twitter: config.twitter
+      ? {
+          connected: false,
+          handleCount: config.twitter.handles.length,
+          lastPollAt: null,
+          lastError: null,
         }
       : null,
   })

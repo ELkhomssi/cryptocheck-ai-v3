@@ -56,7 +56,7 @@ export function EarlyGemGrid({ gems, loading }: EarlyGemGridProps) {
         title="EARLY GEM DETECTOR"
         subtitle="High potential tokens before they explode"
         action={
-          <Link href="/dashboard/signals" className="text-xs text-dash-green hover:underline">
+          <Link href="/dashboard#hot-opportunities" className="text-xs text-dash-green hover:underline">
             View All
           </Link>
         }

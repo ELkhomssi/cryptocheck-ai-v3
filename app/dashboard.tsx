@@ -2493,7 +2493,7 @@ export default function Dashboard() {
     try {
       const apiKey = await loadAccessKeyMaterial()
       if (!apiKey) {
-        setStressError('API key required — paste your key in the Intelligence Terminal first.')
+        setStressError('API key required — paste your key in Dashboard Pro first.')
         return
       }
       const res = await fetch('/api/analyze-contract', {

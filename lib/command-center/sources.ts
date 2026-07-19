@@ -6,12 +6,14 @@ import { isHeartbeatFresh } from '@cryptocheck/signal-contracts'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import {
   heartbeatToSourceStatus,
+  readServiceHeartbeat,
   readTelegramMonitorHeartbeat,
 } from '@/lib/signal-aggregator/service-heartbeat'
 
 export type DataSourceStatus = {
   telegram: { live: boolean; channelCount: number }
   txodds: { live: boolean }
+  twitter: { live: boolean; handleCount: number }
   /** When true, a worker heartbeat proves ingestion is actively running. */
   ingestionWorkerLive?: boolean
 }
@@ -41,6 +43,21 @@ export async function readTelegramChannelCountFromSupabase(): Promise<number> {
   }
 }
 
+export async function readTwitterHandleCountFromSupabase(): Promise<number> {
+  try {
+    const sb = getSupabaseAdmin()
+    const { count, error } = await sb
+      .from('telegram_channels')
+      .select('id', { count: 'exact', head: true })
+      .eq('enabled', true)
+      .eq('platform', 'twitter')
+    if (error) return 0
+    return count ?? 0
+  } catch {
+    return 0
+  }
+}
+
 /** File/env fallback when pipeline heartbeat is stale or missing. */
 export function readTelegramChannelCountFromConfig(): number {
   const env = process.env.SIGNAL_TELEGRAM_CHANNEL_COUNT?.trim()
@@ -61,22 +78,42 @@ export function readTelegramChannelCountFromConfig(): number {
   }
 }
 
+function emptyTwitter(): { live: boolean; handleCount: number } {
+  return { live: false, handleCount: 0 }
+}
+
 export function buildDataSourceStatus(txoddsLive: boolean, channelCount: number): DataSourceStatus {
   return {
     telegram: { live: channelCount > 0, channelCount },
     txodds: { live: txoddsLive },
+    twitter: emptyTwitter(),
     ingestionWorkerLive: false,
   }
 }
 
 /**
- * Prefer live Redis heartbeat from telegram-monitor.
- * If heartbeat is fresh but channels=0 (known sync bug), fall back to Supabase allowlist
- * so the chip does not show "0 Channels" while the worker is up.
+ * Prefer live Redis heartbeat from telegram-monitor / twitter-monitor.
  */
 export async function buildDataSourceStatusLive(txoddsLive: boolean): Promise<DataSourceStatus> {
   const hb = await readTelegramMonitorHeartbeat()
+  const twHb = await readServiceHeartbeat('twitter-monitor')
   const fromDb = await readTelegramChannelCountFromSupabase()
+  const twitterFromDb = await readTwitterHandleCountFromSupabase()
+
+  const twitter = (() => {
+    if (isHeartbeatFresh(twHb) && twHb) {
+      const fromHb = heartbeatToSourceStatus(twHb)
+      if (fromHb.channelCount > 0) {
+        return { live: fromHb.live, handleCount: fromHb.channelCount }
+      }
+      const handleCount = twitterFromDb > 0 ? twitterFromDb : fromHb.channelCount
+      return {
+        live: handleCount > 0 && twHb.status !== 'down',
+        handleCount,
+      }
+    }
+    return { live: false, handleCount: twitterFromDb }
+  })()
 
   if (isHeartbeatFresh(hb) && hb) {
     const fromHb = heartbeatToSourceStatus(hb)
@@ -84,10 +121,10 @@ export async function buildDataSourceStatusLive(txoddsLive: boolean): Promise<Da
       return {
         telegram: fromHb,
         txodds: { live: txoddsLive },
+        twitter,
         ingestionWorkerLive: true,
       }
     }
-    // Worker alive but heartbeat under-reports joins — use allowlist count.
     const channelCount = fromDb > 0 ? fromDb : readTelegramChannelCountFromConfig()
     return {
       telegram: {
@@ -95,20 +132,24 @@ export async function buildDataSourceStatusLive(txoddsLive: boolean): Promise<Da
         channelCount,
       },
       txodds: { live: txoddsLive },
+      twitter,
       ingestionWorkerLive: true,
     }
   }
 
   if (fromDb > 0) {
-    // Allowlist exists but heartbeat missing/stale — chip still shows count; mark live=false
-    // only when we cannot prove the worker. Prefer "configured" semantics for channelCount.
     return {
       telegram: { live: false, channelCount: fromDb },
       txodds: { live: txoddsLive },
-      ingestionWorkerLive: false,
+      twitter,
+      ingestionWorkerLive: isHeartbeatFresh(twHb),
     }
   }
 
   const fromFile = readTelegramChannelCountFromConfig()
-  return buildDataSourceStatus(txoddsLive, fromFile)
+  return {
+    ...buildDataSourceStatus(txoddsLive, fromFile),
+    twitter,
+    ingestionWorkerLive: isHeartbeatFresh(twHb),
+  }
 }

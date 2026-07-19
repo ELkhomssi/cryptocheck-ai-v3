@@ -43,7 +43,7 @@ export async function fetchSignalHistory(params: {
     q = q.lte('msg_timestamp', cutoff)
   }
 
-  q = q.order('msg_timestamp', { ascending: false }).limit(cap * 3)
+  q = q.order('ingest_timestamp', { ascending: false }).limit(cap * 3)
 
   const { data, error } = await q
   if (error) throw new Error(error.message)

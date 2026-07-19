@@ -60,27 +60,45 @@ async function fetchEnabledFromSupabase(): Promise<string[] | null> {
   }
 }
 
-/** Supabase allowlist (trust-ranked) first; fall back to channels.json when DB empty/unavailable. */
+/**
+ * Merge pin file + Supabase allowlist.
+ * `channels.json` pins (e.g. @SOLTRENDING) always lead — DB trust ranking alone
+ * was omitting call channels that matter for Alpha.
+ */
 export async function resolveTelegramChannelList(channelsConfigPath: string): Promise<string[]> {
-  const fromDb = await fetchEnabledFromSupabase()
-  if (fromDb && fromDb.length > 0) {
-    console.info('[channel-registry] loaded channels from Supabase', { count: fromDb.length })
-    return fromDb
+  let fromFile: string[] = []
+  try {
+    fromFile = parseChannelsFile(channelsConfigPath)
+  } catch (e) {
+    console.warn('[channel-registry] file read failed', e instanceof Error ? e.message : e)
   }
 
-  try {
-    const fromFile = parseChannelsFile(channelsConfigPath)
-    if (fromFile.length > 0) {
-      console.info('[channel-registry] loaded channels from file', {
-        count: fromFile.length,
-        path: channelsConfigPath,
-      })
+  const fromDb = await fetchEnabledFromSupabase()
+  if (fromDb && fromDb.length > 0) {
+    const seen = new Set<string>()
+    const merged: string[] = []
+    for (const ref of [...fromFile, ...fromDb]) {
+      const key = ref.toLowerCase()
+      if (seen.has(key)) continue
+      seen.add(key)
+      merged.push(ref)
     }
-    return fromFile
-  } catch (e) {
-    console.warn('[channel-registry] file fallback failed', e instanceof Error ? e.message : e)
-    return []
+    console.info('[channel-registry] loaded channels (pins + Supabase)', {
+      pins: fromFile.length,
+      db: fromDb.length,
+      merged: merged.length,
+      pinSample: fromFile.slice(0, 5),
+    })
+    return merged
   }
+
+  if (fromFile.length > 0) {
+    console.info('[channel-registry] loaded channels from file', {
+      count: fromFile.length,
+      path: channelsConfigPath,
+    })
+  }
+  return fromFile
 }
 
 export function startChannelRegistryRefresh(

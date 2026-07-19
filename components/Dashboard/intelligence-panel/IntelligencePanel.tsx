@@ -24,7 +24,7 @@ export function IntelligencePanel({ mint: initialMint }: { mint: string }) {
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="font-mono-terminal text-xs font-bold uppercase tracking-[0.25em] text-cyan-400/80">
-              Intelligence Terminal
+              Dashboard Pro
             </p>
             <h1 className="mt-1 font-space text-2xl font-bold tracking-tight text-white sm:text-3xl md:text-4xl">
               <span className="bg-gradient-to-r from-cyan-200 via-fuchsia-200 to-emerald-200 bg-clip-text text-transparent">

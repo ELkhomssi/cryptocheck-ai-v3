@@ -1,4 +1,11 @@
-import 'dotenv/config'
+import { config as loadEnv } from 'dotenv'
+import { resolve } from 'node:path'
+
+// Repo-root .env.local (Next.js) + cwd .env — workers often run from services/ingestion.
+loadEnv({ path: resolve(process.cwd(), '../../.env.local') })
+loadEnv({ path: resolve(process.cwd(), '.env.local') })
+loadEnv()
+
 import { createAdapters } from './adapters/index.js'
 import { resolveTelegramChannelList, startChannelRegistryRefresh } from './channel-registry.js'
 import { loadConfig, shardChannels } from './config.js'
@@ -15,15 +22,23 @@ async function main(): Promise<void> {
   )
   startHealthServer(config, writers)
 
-  const heartbeat = createServiceHeartbeat('telegram-monitor')
+  const telegramHeartbeat = createServiceHeartbeat('telegram-monitor')
+  const twitterHeartbeat = config.twitter ? createServiceHeartbeat('twitter-monitor') : null
 
-  // Always read live health — do NOT cache channelsJoined in a local var (that stuck at 0
-  // while /health reported 22 and the dashboard chip showed "0 Channels").
-  heartbeat.start(() => {
+  telegramHeartbeat.start(() => {
     const joined = getHealthSnapshot().telegram?.channelsJoined ?? 0
     return {
       status: joined > 0 ? 'ok' : config.telegram ? 'degraded' : 'down',
       channels: joined,
+    }
+  })
+
+  twitterHeartbeat?.start(() => {
+    const tw = getHealthSnapshot().twitter
+    const handles = tw?.handleCount ?? 0
+    return {
+      status: handles > 0 && !tw?.lastError ? 'ok' : handles > 0 ? 'degraded' : 'down',
+      channels: handles,
     }
   })
 
@@ -89,20 +104,23 @@ async function main(): Promise<void> {
   await Promise.all(
     running.map(({ adapter }) =>
       adapter.start(async (signal) => {
-        console.debug(`[${adapter.sourceTag}] emitted`, {
-          id: signal.id,
-          label: signal.label,
-          type: signal.type,
-          subjectType: signal.subjectType,
-        })
+          console.debug(`[${adapter.sourceTag}] emitted`, {
+            id: signal.id,
+            label: signal.label,
+            type: signal.type,
+            subjectType: signal.subjectType,
+          })
       }),
     ),
   )
 
-  // Immediate heartbeat refresh after joins so Redis isn't stuck at channels:0
-  await heartbeat.beat({
+  await telegramHeartbeat.beat({
     status: (getHealthSnapshot().telegram?.channelsJoined ?? 0) > 0 ? 'ok' : 'degraded',
     channels: getHealthSnapshot().telegram?.channelsJoined ?? 0,
+  })
+  await twitterHeartbeat?.beat({
+    status: (getHealthSnapshot().twitter?.handleCount ?? 0) > 0 ? 'ok' : 'degraded',
+    channels: getHealthSnapshot().twitter?.handleCount ?? 0,
   })
 
   const discovery =
@@ -113,7 +131,8 @@ async function main(): Promise<void> {
   const shutdown = async (signal: string) => {
     console.info('[signal-ingestion] shutting down', { signal })
     discovery?.stop()
-    await heartbeat.beat({ status: 'down', channels: 0 })
+    await telegramHeartbeat.beat({ status: 'down', channels: 0 })
+    await twitterHeartbeat?.beat({ status: 'down', channels: 0 })
     await Promise.all(running.map(({ adapter }) => adapter.stop()))
     process.exit(0)
   }

@@ -115,7 +115,7 @@ export default function NeuralScanV4() {
     try {
       const apiKey = await loadAccessKeyMaterial()
       if (!apiKey) {
-        setError('API key required — paste your key in the Intelligence Terminal first.')
+        setError('API key required — paste your key in Dashboard Pro first.')
         return
       }
       const authHeaders = {

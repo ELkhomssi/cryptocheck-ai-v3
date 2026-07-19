@@ -17,4 +17,23 @@ export async function register() {
     }
     throw e
   }
+
+  // LaunchLab boot guard — skip when platform env unset (Scan/Swap/Sniper still boot).
+  const hasPlatform =
+    Boolean(process.env.LAUNCHLAB_PLATFORM_ID_DEVNET?.trim()) ||
+    Boolean(process.env.LAUNCHLAB_PLATFORM_ID_MAINNET?.trim()) ||
+    Boolean(process.env.LAUNCHLAB_PLATFORM_ID?.trim())
+  if (!hasPlatform) return
+
+  try {
+    const { Connection } = await import('@solana/web3.js')
+    const { getRpcUrl } = await import('@/lib/launch/config')
+    const { assertLaunchConfigValid, bootGuardOrThrow } = await import('@/lib/launch/guards')
+    assertLaunchConfigValid()
+    const connection = new Connection(getRpcUrl(), 'confirmed')
+    await bootGuardOrThrow(connection)
+  } catch (e) {
+    console.error('[launch-boot-guard]', e instanceof Error ? e.message : e)
+    throw e
+  }
 }

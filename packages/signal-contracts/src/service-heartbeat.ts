@@ -7,6 +7,7 @@ export const SIGNAL_HEARTBEAT_STALE_MS = 90_000
 
 export type PipelineServiceName =
   | 'telegram-monitor'
+  | 'twitter-monitor'
   | 'gate-worker'
   | 'realtime-gateway'
   | 'scanner'
@@ -17,7 +18,7 @@ export type ServiceHeartbeatPayload = {
   /** Wall-clock ms when written. */
   ts: number
   status: 'ok' | 'degraded' | 'down'
-  /** Telegram monitor: joined public channels. */
+  /** Telegram / X monitor: joined channels or watched handles. */
   channels?: number
   /** Optional processing lag hint (ms). */
   lagMs?: number

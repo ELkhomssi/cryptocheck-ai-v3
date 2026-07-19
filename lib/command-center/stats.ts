@@ -61,40 +61,50 @@ export function rankHotOpportunities(
       s.subjectType === 'token' &&
       !s.dropped &&
       !s.sample &&
-      s.verdict !== 'scanning' &&
-      typeof s.scoreValue === 'number',
+      (s.verdict === 'scanning' || typeof s.scoreValue === 'number'),
   )
 
   if (hours24Only) {
-    rows = rows.filter((s) => isWithin24h(s.msgTimestamp, now))
+    // Prefer ingest time — Telegram msg_timestamp is often stale on catch-up/repost.
+    rows = rows.filter((s) => isWithin24h(s.ingestTimestamp || s.msgTimestamp, now))
   }
 
   rows = [...rows]
   if (sort === 'score') {
-    rows.sort((a, b) => (b.scoreValue ?? 0) - (a.scoreValue ?? 0))
+    rows.sort((a, b) => {
+      if (a.verdict === 'scanning' && b.verdict !== 'scanning') return 1
+      if (b.verdict === 'scanning' && a.verdict !== 'scanning') return -1
+      return (b.scoreValue ?? 0) - (a.scoreValue ?? 0)
+    })
   } else if (sort === 'age') {
-    rows.sort((a, b) => new Date(b.msgTimestamp).getTime() - new Date(a.msgTimestamp).getTime())
+    rows.sort(
+      (a, b) =>
+        new Date(b.ingestTimestamp || b.msgTimestamp).getTime() -
+        new Date(a.ingestTimestamp || a.msgTimestamp).getTime(),
+    )
   } else {
     rows.sort((a, b) => (b.sourceCount ?? 0) - (a.sourceCount ?? 0))
   }
 
-  return rows.slice(0, 8)
+  return rows
 }
 
 const MS_YOUNG = 48 * 60 * 60 * 1000
 
-/** Newest token signals under age threshold — honest empty when none. */
+/** Newest token signals under age threshold — honest empty when none. Uses ingest time. */
 export function pickEarlyGems(signals: UnifiedSignal[], limit = 4): UnifiedSignal[] {
   const now = Date.now()
   return signals
-    .filter(
-      (s) =>
-        s.subjectType === 'token' &&
-        !s.dropped &&
-        !s.sample &&
-        now - new Date(s.msgTimestamp).getTime() <= MS_YOUNG,
+    .filter((s) => {
+      if (s.subjectType !== 'token' || s.dropped || s.sample) return false
+      const t = new Date(s.ingestTimestamp || s.msgTimestamp).getTime()
+      return Number.isFinite(t) && now - t <= MS_YOUNG
+    })
+    .sort(
+      (a, b) =>
+        new Date(b.ingestTimestamp || b.msgTimestamp).getTime() -
+        new Date(a.ingestTimestamp || a.msgTimestamp).getTime(),
     )
-    .sort((a, b) => new Date(b.msgTimestamp).getTime() - new Date(a.msgTimestamp).getTime())
     .slice(0, limit)
 }
 

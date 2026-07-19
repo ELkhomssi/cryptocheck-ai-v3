@@ -16,6 +16,10 @@
     {
       "path": "/api/cron/generate-signals",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/launch-ops",
+      "schedule": "*/5 * * * *"
     }
   ],
   "redirects": [

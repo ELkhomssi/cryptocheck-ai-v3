@@ -5,8 +5,13 @@ export function serializeEntities(entities: unknown[] | undefined): unknown[] {
     if (!entity || typeof entity !== 'object') return { raw: entity }
     const any = entity as Record<string, unknown>
     const row: Record<string, unknown> = {}
-    for (const key of ['className', 'offset', 'length', 'url', 'userId', 'language']) {
+    // className helps distinguish MessageEntityTextUrl (has .url) vs MessageEntityUrl (span only)
+    for (const key of ['className', '_', 'offset', 'length', 'url', 'userId', 'language']) {
       if (any[key] != null) row[key] = any[key]
+    }
+    // Some GramJS builds nest url under .url or expose via constructor name
+    if (row.url == null && typeof (any as { url?: unknown }).url === 'string') {
+      row.url = (any as { url: string }).url
     }
     return row
   })

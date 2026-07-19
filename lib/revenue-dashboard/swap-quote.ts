@@ -21,13 +21,21 @@ function estimatePlatformFeeBase(outAmountBase: string, bps: number): string {
   }
 }
 
+/** Prefer Jupiter-reported platformFee when present (exact on-chain skim). */
+function feeBaseFromQuote(quote: JupiterQuote, bps: number): string {
+  const raw = quote.raw as { platformFee?: { amount?: string | number } }
+  const reported = raw?.platformFee?.amount
+  if (reported != null && String(reported) !== '') return String(reported)
+  return estimatePlatformFeeBase(quote.outAmount, bps)
+}
+
 export function buildSwapQuoteFromJupiter(
   quote: JupiterQuote,
   meta?: { solUsd?: number; inputDecimals?: number }
 ): SwapQuote {
   const bps = getPlatformFeeBps()
   const feeAccount = getPlatformFeeAccount() ?? ''
-  const feeBase = estimatePlatformFeeBase(quote.outAmount, bps)
+  const feeBase = feeBaseFromQuote(quote, bps)
   const now = Date.now()
 
   let feeUsd: number | undefined

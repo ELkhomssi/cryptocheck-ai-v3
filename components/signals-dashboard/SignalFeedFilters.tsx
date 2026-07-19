@@ -20,6 +20,11 @@ const SOURCE_CHIPS: { id: SourceTag | 'all'; label: string; activeClass: string 
     label: 'TxODDS',
     activeClass: 'border-amber-400/50 bg-amber-400/15 text-amber-200',
   },
+  {
+    id: 'twitter',
+    label: 'X',
+    activeClass: 'border-white/40 bg-white/10 text-white',
+  },
 ]
 
 const SUBJECT_CHIPS: { id: SubjectType | 'all'; label: string; activeClass: string }[] = [

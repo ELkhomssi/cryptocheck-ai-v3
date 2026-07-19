@@ -1,5 +1,5 @@
-import BatchClient from '@/app/dashboard/batch/batch-client'
+import { redirect } from 'next/navigation'
 
-export default function DashboardBatchPage() {
-  return <BatchClient />
+export default function Page() {
+  redirect('/operator/batch')
 }

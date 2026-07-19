@@ -28,6 +28,17 @@ export async function POST(req: NextRequest) {
 
   try {
     const decision = await assessSwapIntent(intent)
+    if (!decision.allowed) {
+      const { logUserBlock } = await import('@/lib/launchpad/saved-you')
+      await logUserBlock({
+        mint: toToken,
+        verdict: decision.verdict,
+        score: 100 - decision.riskScore,
+        evidence: decision.blockedReason ?? decision.reasons.join('; '),
+        source: 'swap',
+        intendedAmountUsd: intent.amountUsd,
+      })
+    }
     return NextResponse.json(decision, { status: 200, headers: gatewayResponseHeaders() })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Assessment failed'

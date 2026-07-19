@@ -88,6 +88,8 @@ export const TELEGRAM_SOURCES: SourceCandidate[] = [
   { handle: '@coinlistofficialchannel', label: 'CoinList Official', audienceSize: 40_000, reputationScore: 85, verifiedBy: ['platform-official'] },
   { handle: '@Whale_Alert', label: 'Whale Alert', audienceSize: 13_400, reputationScore: 92, verifiedBy: ['on-chain-tracker'] },
   // Solana / DEX surfaces that more often include resolvable mint links
+  { handle: '@SOLTRENDING', label: 'SOLTRENDING', audienceSize: 180_000, reputationScore: 94, verifiedBy: ['call-channel', 'dex-link-calls'] },
+  { handle: '@soltrending', label: 'Sol Trending', audienceSize: 180_000, reputationScore: 94, verifiedBy: ['call-channel', 'dex-link-calls'] },
   { handle: '@solana', label: 'Solana', audienceSize: 500_000, reputationScore: 90, verifiedBy: ['project-official'] },
   { handle: '@RaydiumProtocol', label: 'Raydium', audienceSize: 100_000, reputationScore: 86, verifiedBy: ['dex-official'] },
   { handle: '@JupiterExchange', label: 'Jupiter Exchange', audienceSize: 100_000, reputationScore: 88, verifiedBy: ['dex-official'] },

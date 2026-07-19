@@ -284,7 +284,7 @@ export default function ProMaxEliteDashboard({
         const apiKey = await loadAccessKeyMaterial()
         if (!apiKey) {
           if (!cancelled) {
-            setExitError('Paste your Intelligence Terminal API key to load live exit intel.')
+            setExitError('Paste your Dashboard Pro API key to load live exit intel.')
             setExitLoading(false)
           }
           return

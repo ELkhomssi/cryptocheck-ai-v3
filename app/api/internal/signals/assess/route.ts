@@ -65,16 +65,6 @@ export async function POST(req: NextRequest) {
 
   try {
     const assessment = await assessRiskByMint(contractAddress, 'solana', 'fast')
-    if (assessment.enrichmentFailed) {
-      return NextResponse.json(
-        {
-          resolved: false,
-          dropped: true,
-          dropReason: 'Token could not be resolved on-chain',
-        },
-        { status: 200 },
-      )
-    }
 
     const evidence = assessment.snapshot.reasoning.evidence?.slice(0, 3) ?? []
     const evidenceSummary =
@@ -82,20 +72,47 @@ export async function POST(req: NextRequest) {
         ? evidence.map((s) => s.label ?? (s as { title?: string }).title ?? 'signal').join(' · ')
         : `Gateway ${assessment.verdict} · safety ${assessment.safetyScore}/100`
 
+    // Warm Launchpad sniper cache (ccai:sig:verdict:) — firehose tokens land pre-scanned.
+    try {
+      const { setCachedVerdict } = await import('@/lib/launchpad/verdict-cache')
+      const { toRevenueVerdict } = await import('@/lib/revenue-dashboard/types')
+      const ui = toRevenueVerdict(assessment.verdict)
+      await setCachedVerdict({
+        mint: contractAddress,
+        verdict:
+          assessment.verdict === 'BLOCKED'
+            ? 'BLOCKED'
+            : ui === 'DANGER'
+              ? 'DANGER'
+              : assessment.verdict,
+        score: assessment.safetyScore,
+        riskScore: assessment.riskScore,
+        factors: evidence.map((s) => s.label ?? 'signal'),
+        scannedAt: new Date().toISOString(),
+      })
+    } catch {
+      /* cache optional */
+    }
+
+    // enrichmentFailed = soft degrade (RPC/pair-id), NOT "drop from feed".
+    // Dropping here was starving Alpha of SOLTRENDING / live Telegram CAs.
     return NextResponse.json({
       resolved: true,
       dropped: false,
+      enrichmentDegraded: assessment.enrichmentFailed === true,
       sentinelVerdict: gatewayVerdictToSentinel(assessment.verdict),
       neuralScore: assessment.safetyScore,
       riskScore: assessment.riskScore,
-      evidenceSummary,
+      evidenceSummary: assessment.enrichmentFailed
+        ? `Degraded enrichment · ${evidenceSummary}`
+        : evidenceSummary,
       gatewayVerdict: assessment.verdict,
       cache: assessment.cache,
     })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Assessment failed'
     return NextResponse.json(
-      { resolved: false, dropped: true, dropReason: message },
+      { resolved: false, dropped: false, dropReason: message },
       { status: 200 },
     )
   }

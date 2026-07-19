@@ -1,0 +1,269 @@
+'use client'
+
+import Link from 'next/link'
+import { useCallback, useEffect, useState } from 'react'
+import { NeonForensicPanel } from '@/components/Dashboard/forensic-terminal/NeonForensicPanel'
+import { copyToClipboard } from '@/lib/utils'
+
+type KeyRow = {
+  schema: 'v1' | 'v2'
+  id: string
+  name: string
+  key_prefix: string
+  created_at: string
+  last_used_at: string | null
+  status: 'active' | 'revoked'
+  key_id?: string
+  tier?: string
+}
+
+export default function ApiKeysPage() {
+  const [keys, setKeys] = useState<KeyRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [name, setName] = useState('Production')
+  const [schema, setSchema] = useState<'v1' | 'v2'>('v1')
+  const [secretOnce, setSecretOnce] = useState<string | null>(null)
+  const [copiedKey, setCopiedKey] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+  const [loadErr, setLoadErr] = useState<string | null>(null)
+  const [successToast, setSuccessToast] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setLoadErr(null)
+    const res = await fetch('/api/v1/keys', { credentials: 'include' })
+    const j = await res.json().catch(() => ({}))
+    if (res.ok && Array.isArray(j.keys)) {
+      setKeys(j.keys)
+    } else {
+      setKeys([])
+      setLoadErr(
+        typeof j.error === 'string' && j.error ? j.error : `Could not load keys (${res.status})`
+      )
+    }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  useEffect(() => {
+    if (!successToast) return
+    const t = window.setTimeout(() => setSuccessToast(null), 5000)
+    return () => window.clearTimeout(t)
+  }, [successToast])
+
+  async function createKey(e: React.FormEvent) {
+    e.preventDefault()
+    setErr(null)
+    setSecretOnce(null)
+    const res = await fetch('/api/v1/keys', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ name, schema }),
+    })
+    const j = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      setErr(typeof j.error === 'string' && j.error ? j.error : 'Failed to create key')
+      return
+    }
+    setErr(null)
+    setSuccessToast('API key created — copy it now; it will not be shown again.')
+    setSecretOnce(j.rawKey || j.secret || null)
+    setCopiedKey(false)
+    void load()
+  }
+
+  async function copySecretOnce() {
+    if (!secretOnce) return
+    const ok = await copyToClipboard(secretOnce)
+    setCopiedKey(ok)
+  }
+
+  async function revokeKey(k: KeyRow) {
+    if (!confirm('Revoke this key? Apps using it will fail immediately.')) return
+    const qs = new URLSearchParams({ id: k.id, schema: k.schema })
+    const res = await fetch(`/api/v1/keys?${qs}`, { method: 'DELETE', credentials: 'include' })
+    if (res.ok) void load()
+  }
+
+  return (
+    <div className="space-y-10">
+      {successToast && (
+        <div
+          role="status"
+          className="fixed bottom-6 left-1/2 z-50 max-w-md -translate-x-1/2 rounded-xl border border-emerald-500/35 bg-emerald-950/90 px-4 py-3 text-center font-space text-sm font-bold text-emerald-100 shadow-lg shadow-black/40"
+        >
+          {successToast}
+        </div>
+      )}
+      <header className="max-w-2xl">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="font-space text-xs font-bold uppercase tracking-[0.22em] text-cyan-400/80">Credentials</p>
+            <h1 className="mt-2 font-space text-3xl font-bold tracking-tight text-slate-100 md:text-4xl">API keys</h1>
+          </div>
+          <Link
+            href="/docs"
+            className="shrink-0 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-2 font-space text-xs font-bold uppercase tracking-[0.14em] text-slate-300 transition-all hover:border-cyan-500/25 hover:bg-cyan-500/[0.06] hover:text-cyan-200/95"
+          >
+            View documentation
+          </Link>
+        </div>
+        <p className="mt-3 text-base leading-relaxed text-slate-400">
+          <span className="font-space font-semibold text-slate-300">v1</span> (
+          <code className="font-mono-terminal text-sm text-emerald-400/90">cc_live_*</code>) — standard access.
+          <span className="mx-2 font-mono-terminal text-slate-600">|</span>
+          <span className="font-space font-semibold text-slate-300">v2 SENTINEL</span> (
+          <code className="font-mono-terminal text-sm text-cyan-400/90">cc_sentinel_*</code>) — Pro / Enterprise
+          intelligence routes.
+        </p>
+      </header>
+
+      <NeonForensicPanel title="Provision credential" subtitle="Label · schema · one-time secret" tone="capacity">
+        <form onSubmit={createKey}>
+          <div className="flex flex-wrap items-end gap-4">
+            <div>
+              <label className="block font-space text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                Label
+              </label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="mt-2 min-w-[200px] rounded-xl border border-white/[0.08] bg-black/35 px-3 py-2.5 font-mono-terminal text-sm text-slate-200 outline-none transition-colors duration-150 focus:border-emerald-500/35 focus:ring-1 focus:ring-emerald-500/20"
+              />
+            </div>
+            <div>
+              <label className="block font-space text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                Schema
+              </label>
+              <select
+                value={schema}
+                onChange={(e) => setSchema(e.target.value as 'v1' | 'v2')}
+                className="mt-2 rounded-xl border border-white/[0.08] bg-black/35 px-3 py-2.5 font-mono-terminal text-sm text-slate-200 outline-none transition-colors duration-150 focus:border-emerald-500/35"
+              >
+                <option value="v1">v1 — Free</option>
+                <option value="v2">v2 — Pro / Enterprise</option>
+              </select>
+            </div>
+            <button
+              type="submit"
+              className="rounded-xl border border-emerald-500/35 bg-gradient-to-r from-emerald-500/20 to-cyan-500/15 px-5 py-2.5 font-space text-xs font-bold uppercase tracking-[0.12em] text-emerald-200 transition-all duration-150 ease-out hover:-translate-y-0.5 hover:from-emerald-500/30"
+            >
+              Generate
+            </button>
+          </div>
+          {err && <p className="mt-4 font-mono-terminal text-sm font-medium text-rose-300/95">{err}</p>}
+          {secretOnce && (
+            <div className="mt-5 rounded-xl border border-amber-500/25 bg-amber-500/[0.08] p-4 font-mono-terminal text-xs text-amber-100/95">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-space font-bold uppercase tracking-wide text-amber-200/90">Copy now — shown once</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void copySecretOnce()}
+                    className="rounded-lg border border-amber-400/30 bg-amber-950/30 px-2.5 py-1 font-space text-[0.65rem] font-bold uppercase tracking-[0.12em] text-amber-100 hover:bg-amber-950/50"
+                  >
+                    {copiedKey ? 'Copied' : 'Copy key'}
+                  </button>
+                  <Link
+                    href="/docs"
+                    className="font-space text-[0.65rem] font-bold uppercase tracking-[0.14em] text-cyan-300/95 underline decoration-cyan-500/40 underline-offset-2 hover:text-cyan-200"
+                  >
+                    View documentation
+                  </Link>
+                </div>
+              </div>
+              <div className="mt-2 break-all text-amber-50/95">{secretOnce}</div>
+            </div>
+          )}
+        </form>
+      </NeonForensicPanel>
+
+      <NeonForensicPanel
+        title="Issued credentials"
+        badge={`${keys.length} keys`}
+        tone="neutral"
+        contentClassName="!p-0 sm:!p-0"
+      >
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-left text-sm">
+            <thead className="border-b border-white/[0.06] bg-[#020617]/80 text-xs font-space font-bold uppercase tracking-[0.14em] text-slate-500 backdrop-blur-sm">
+              <tr>
+                <th className="px-5 py-3">Schema</th>
+                <th className="px-5 py-3">Name</th>
+                <th className="px-5 py-3">Prefix</th>
+                <th className="px-5 py-3">Created</th>
+                <th className="px-5 py-3">Last used</th>
+                <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-5 py-10 text-center font-mono-terminal text-sm text-slate-500">
+                    Loading…
+                  </td>
+                </tr>
+              ) : loadErr ? (
+                <tr>
+                  <td colSpan={7} className="px-5 py-10 text-center font-mono-terminal text-sm text-rose-300/95">
+                    {loadErr}
+                  </td>
+                </tr>
+              ) : keys.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-5 py-10 text-center font-mono-terminal text-sm text-slate-500">
+                    No credentials yet.
+                  </td>
+                </tr>
+              ) : (
+                keys.map((k) => (
+                  <tr
+                    key={`${k.schema}-${k.id}`}
+                    className="border-b border-white/[0.04] transition-colors duration-100 hover:bg-white/[0.02]"
+                  >
+                    <td className="px-5 py-3 font-mono-terminal text-xs font-medium text-slate-400">{k.schema}</td>
+                    <td className="px-5 py-3 font-medium text-slate-300">{k.name}</td>
+                    <td className="px-5 py-3 font-mono-terminal text-xs text-slate-500">{k.key_prefix}</td>
+                    <td className="px-5 py-3 font-mono-terminal tabular-nums text-slate-500">
+                      {new Date(k.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-5 py-3 font-mono-terminal tabular-nums text-slate-500">
+                      {k.last_used_at ? new Date(k.last_used_at).toLocaleString() : '—'}
+                    </td>
+                    <td className="px-5 py-3">
+                      <span
+                        className={
+                          k.status === 'active'
+                            ? 'font-mono-terminal font-medium text-emerald-300/95'
+                            : 'font-mono-terminal text-slate-600 line-through'
+                        }
+                      >
+                        {k.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      {k.status === 'active' && (
+                        <button
+                          type="button"
+                          onClick={() => void revokeKey(k)}
+                          className="font-space text-xs font-bold text-rose-300/90 transition-colors hover:text-rose-200"
+                        >
+                          Revoke
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </NeonForensicPanel>
+    </div>
+  )
+}

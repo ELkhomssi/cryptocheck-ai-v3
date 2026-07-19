@@ -5,26 +5,49 @@ import { assessSwapIntent, type SwapIntent } from '@/lib/trading/risk-gated-swap
 import { buildJupiterSwapTransaction, getJupiterQuote } from '@/lib/trading/jupiter-client'
 import {
   SOL_MINT,
-  getPlatformFeeAccount,
   getPlatformFeeBps,
   isPlatformFeeConfigured,
 } from '@/lib/trading/platform-fee-config'
 import { isValidSolanaMint, logSnipeAction } from '@/lib/signal-aggregator/snipe-execution'
+import { computePlatformFeeDisclosure } from '@/lib/launchpad/platform-fee'
+import { assertPlatformFeeAccountForOutput } from '@/lib/launchpad/fee-account'
+import {
+  SNIPER_JITO_TIP_LAMPORTS,
+  SNIPER_PRIORITY_FEE_LAMPORTS,
+} from '@/lib/launchpad/constants'
+import {
+  resolveVerdictForSnipe,
+  setCachedVerdict,
+  type CachedVerdict,
+} from '@/lib/launchpad/verdict-cache'
+import { logUserBlock } from '@/lib/launchpad/saved-you'
+import { assessRiskByMint } from '@/lib/connect/scan-gateway'
+import { toRevenueVerdict } from '@/lib/revenue-dashboard/types'
 
 export const dynamic = 'force-dynamic'
 
 /** Hard ceiling on a single snipe input (SOL) — money-safety guardrail. */
 const MAX_SNIPE_SOL = Number(process.env.SNIPER_MAX_AMOUNT_SOL ?? 5)
 
+function prioritizationOption():
+  | number
+  | 'auto'
+  | { jitoTipLamports: number }
+  | undefined {
+  if (SNIPER_JITO_TIP_LAMPORTS > 0) {
+    return { jitoTipLamports: SNIPER_JITO_TIP_LAMPORTS }
+  }
+  if (SNIPER_PRIORITY_FEE_LAMPORTS > 0) return SNIPER_PRIORITY_FEE_LAMPORTS
+  return undefined
+}
+
 /**
  * POST /api/signals/snipe/build-swap
- * Non-custodial: builds an UNSIGNED base64 swap transaction for the client
- * wallet to sign & send. The server never signs. Every attempt runs through
- * the frozen risk gate (assessSwapIntent) and is logged to signal_snipe_actions.
- *
- * Body: { mint, amountSol, userPublicKey, slippageBps?, amountUsd?, confirm?, signalId?, symbol? }
+ * Non-custodial: UNSIGNED base64 tx. Cache-first verdict → hard-block DANGER.
+ * Transparent Jupiter platform fee in response for confirm sheet.
  */
 export async function POST(req: Request) {
+  const tReq = Date.now()
   const gate = await requireSessionFullAccess()
   if (!gate.ok) return (gate as { response: NextResponse }).response
 
@@ -54,6 +77,79 @@ export async function POST(req: Request) {
     )
   }
 
+  // Cache-first verdict — zero scan-wait on hit; DANGER still hard-blocks.
+  const tResolve0 = Date.now()
+  const { path: verdictPath, entry: cached } = await resolveVerdictForSnipe(mint, async () => {
+    const assessment = await assessRiskByMint(mint, 'solana', 'fast')
+    const ui = toRevenueVerdict(assessment.verdict)
+    const entry: CachedVerdict = {
+      mint,
+      verdict: assessment.verdict === 'BLOCKED' ? 'BLOCKED' : ui === 'DANGER' ? 'DANGER' : assessment.verdict,
+      score: assessment.safetyScore,
+      riskScore: assessment.riskScore,
+      factors: assessment.snapshot.reasoning.evidence.slice(0, 5).map((e) => e.label),
+      scannedAt: new Date().toISOString(),
+    }
+    return entry
+  })
+  const resolve_delta_ms = Date.now() - tResolve0
+  console.info(
+    `[snipe] request_received_ms=${tReq} verdict path=${verdictPath} mint=${mint.slice(0, 8)}… verdict=${cached.verdict} resolve_delta_ms=${resolve_delta_ms}`,
+  )
+
+  if (cached.verdict === 'BLOCKED' || cached.verdict === 'DANGER' || cached.riskScore >= 80) {
+    await logSnipeAction({
+      id: crypto.randomUUID(),
+      userId: gate.userId,
+      signalId,
+      mint,
+      symbol,
+      action: 'blocked',
+      allowed: false,
+      neuralScore: cached.score,
+      verdict: cached.verdict,
+      redFlags: [],
+      evidenceSummary: `Cached/inline DANGER hard-block (${verdictPath})`,
+      blockedReason: `Token risk score ${cached.riskScore}/100 — hard block`,
+      createdAt: new Date().toISOString(),
+    })
+    await logUserBlock({
+      userId: gate.userId,
+      mint,
+      symbol,
+      verdict: cached.verdict,
+      score: cached.score,
+      evidence: cached.factors.join('; '),
+      source: 'snipe',
+      intendedAmountUsd: amountUsd || amountSol * 150,
+    })
+    const tRes = Date.now()
+    const timing = {
+      request_received_ms: tReq,
+      response_returned_ms: tRes,
+      total_delta_ms: tRes - tReq,
+      resolve_delta_ms,
+      assess_delta_ms: 0,
+    }
+    console.info(`[snipe] response_returned_ms=${tRes} total_delta_ms=${timing.total_delta_ms} verdictPath=${verdictPath}`)
+    return NextResponse.json(
+      {
+        blocked: true,
+        verdictPath,
+        decision: {
+          allowed: false,
+          riskScore: cached.riskScore,
+          verdict: 'BLOCKED',
+          blockedReason: `Token risk score ${cached.riskScore}/100 exceeds the hard block threshold.`,
+          reasons: cached.factors,
+        },
+        timing,
+        compliance: SIGNAL_COMPLIANCE,
+      },
+      { status: 403 },
+    )
+  }
+
   const intent: SwapIntent = {
     walletAddress: userPublicKey,
     fromToken: SOL_MINT,
@@ -63,8 +159,23 @@ export async function POST(req: Request) {
     chain: 'solana',
   }
 
-  // Frozen risk gate — authoritative kill-switch before we ever build a tx.
+  // Always fresh-gate after cache: stale SAFE cannot bypass risk≥80 (assessSwapIntent → assessRiskByMint).
+  const tAssess0 = Date.now()
   const decision = await assessSwapIntent(intent)
+  const assess_delta_ms = Date.now() - tAssess0
+  if (verdictPath === 'cache-hit' && (!decision.allowed || decision.riskScore >= 80)) {
+    console.warn(
+      `[snipe] stale-cache overridden mint=${mint.slice(0, 8)}… cache=${cached.verdict} fresh=${decision.verdict} assess_delta_ms=${assess_delta_ms}`,
+    )
+    await setCachedVerdict({
+      mint,
+      verdict: decision.verdict === 'BLOCKED' ? 'BLOCKED' : 'DANGER',
+      score: 100 - decision.riskScore,
+      riskScore: decision.riskScore,
+      factors: decision.reasons.slice(0, 5),
+      scannedAt: new Date().toISOString(),
+    })
+  }
 
   if (!decision.allowed) {
     await logSnipeAction({
@@ -82,37 +193,97 @@ export async function POST(req: Request) {
       blockedReason: decision.blockedReason ?? 'risk policy',
       createdAt: new Date().toISOString(),
     })
+    await logUserBlock({
+      userId: gate.userId,
+      mint,
+      symbol,
+      verdict: decision.verdict,
+      score: 100 - decision.riskScore,
+      evidence: decision.blockedReason ?? decision.reasons.join('; '),
+      source: 'snipe',
+      intendedAmountUsd: amountUsd || amountSol * 150,
+    })
+    const tRes = Date.now()
+    const timing = {
+      request_received_ms: tReq,
+      response_returned_ms: tRes,
+      total_delta_ms: tRes - tReq,
+      resolve_delta_ms,
+      assess_delta_ms,
+    }
+    console.info(`[snipe] response_returned_ms=${tRes} total_delta_ms=${timing.total_delta_ms} verdictPath=${verdictPath} assess_delta_ms=${assess_delta_ms}`)
     return NextResponse.json(
-      { blocked: true, decision, compliance: SIGNAL_COMPLIANCE },
+      { blocked: true, verdictPath, decision, timing, compliance: SIGNAL_COMPLIANCE },
       { status: 403 },
     )
   }
 
-  // DANGER friction — HIGH_RISK requires an explicit typed confirmation.
   if (decision.verdict === 'HIGH_RISK' && !userConfirmed) {
     return NextResponse.json(
-      { requiresConfirm: true, decision, compliance: SIGNAL_COMPLIANCE },
+      { requiresConfirm: true, verdictPath, decision, compliance: SIGNAL_COMPLIANCE },
       { status: 409 },
     )
   }
 
+  await setCachedVerdict({
+    mint,
+    verdict: decision.verdict,
+    score: 100 - decision.riskScore,
+    riskScore: decision.riskScore,
+    factors: decision.reasons.slice(0, 5),
+    scannedAt: new Date().toISOString(),
+  })
+
   const lamports = Math.floor(amountSol * 1_000_000_000)
   const feeConfigured = isPlatformFeeConfigured()
+  let feeBps = 0
+  let feeAccount: string | null = null
+  const prio = prioritizationOption()
+
+  if (feeConfigured) {
+    const feeCheck = await assertPlatformFeeAccountForOutput(mint)
+    if (feeCheck.ok === false) {
+      // Never disclose a fee we cannot collect — hard error before wallet sign.
+      return NextResponse.json(
+        {
+          error: feeCheck.message,
+          code: feeCheck.code,
+          compliance: SIGNAL_COMPLIANCE,
+        },
+        { status: 422 },
+      )
+    }
+    feeBps = getPlatformFeeBps()
+    feeAccount = feeCheck.feeAccount
+  }
 
   let swapTransaction: string
+  let platformFee
+  let priceImpactPct = 0
   try {
     const quote = await getJupiterQuote(
       SOL_MINT,
       mint,
       lamports,
       slippageBps,
-      feeConfigured ? { platformFeeBps: getPlatformFeeBps() } : undefined,
+      feeAccount ? { platformFeeBps: feeBps } : undefined,
     )
-    swapTransaction = await buildJupiterSwapTransaction(
-      quote,
-      userPublicKey,
-      feeConfigured ? { feeAccount: getPlatformFeeAccount()! } : undefined,
-    )
+    priceImpactPct = Number(quote.priceImpactPct) * 100
+    platformFee = computePlatformFeeDisclosure({
+      feeBps,
+      feeAccount,
+      outAmountBase: quote.outAmount,
+      inAmountBase: quote.inAmount,
+      inputMint: SOL_MINT,
+      outputMint: mint,
+      feeAmountBase: (quote.raw as { platformFee?: { amount?: string } })?.platformFee?.amount
+        ? String((quote.raw as { platformFee: { amount: string } }).platformFee.amount)
+        : undefined,
+    })
+    swapTransaction = await buildJupiterSwapTransaction(quote, userPublicKey, {
+      ...(feeAccount ? { feeAccount } : {}),
+      ...(prio != null ? { prioritizationFeeLamports: prio } : {}),
+    })
   } catch (e) {
     return NextResponse.json(
       { error: 'failed to build swap', detail: e instanceof Error ? e.message : String(e) },
@@ -131,18 +302,20 @@ export async function POST(req: Request) {
     neuralScore: 100 - decision.riskScore,
     verdict: decision.verdict,
     redFlags: [],
-    evidenceSummary: decision.reasons.join('; ') || `Built swap for ${amountSol} SOL`,
+    evidenceSummary: `Built swap for ${amountSol} SOL · verdictPath=${verdictPath} · fee=${platformFee.feeAmountHuman}`,
     createdAt: new Date().toISOString(),
   })
 
   return NextResponse.json(
     {
-      // Base64 VersionedTransaction — sign & send in the browser wallet. Never signed server-side.
       swapTransaction,
       decision,
-      platformFeeBps: feeConfigured ? getPlatformFeeBps() : 0,
-      amountSol,
+      verdictPath,
+      platformFeeBps: feeBps,
+      platformFee,
+      priceImpactPct,
       slippageBps,
+      amountSol,
       compliance: SIGNAL_COMPLIANCE,
     },
     { headers: { 'cache-control': 'no-store' } },

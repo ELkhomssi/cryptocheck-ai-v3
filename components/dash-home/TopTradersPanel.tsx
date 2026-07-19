@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { appToolUrl } from '@/lib/dashboard/app-routes'
 import { truncateWallet, type TopTradersResult } from '@/lib/command-center/top-traders-types'
 
 function Sparkline({ values }: { values: number[] }) {
@@ -92,7 +91,7 @@ export function TopTradersPanel() {
       )}
 
       <Link
-        href={appToolUrl('whales')}
+        href="/dashboard#hot-opportunities"
         className="mt-4 block w-full rounded-dash-chip border border-dash-hairline py-2 text-center text-xs font-semibold text-dash-tmid transition-colors duration-150 hover:border-white/20 hover:bg-dash-panel2 hover:text-dash-thi focus:outline-none focus-visible:ring-2 focus-visible:ring-dash-green"
       >
         Track Smart Money

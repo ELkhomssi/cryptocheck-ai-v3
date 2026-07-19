@@ -32,6 +32,9 @@
     "audit:post-migration": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/audit-post-migration.ts",
     "audit:ci": "npm run audit:post-migration && cat docs/audit-results.md",
     "verify:all-phases": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/verify-all-phases.ts",
+    "create:launch-platform": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/create-platform.ts",
+    "create:referral-ata": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/create-referral-ata.ts",
+    "verify:landing-honesty": "node --import tsx scripts/verify-landing-honesty.ts",
     "deploy:signals": "bash scripts/deploy-signals-production.sh"
   },
   "dependencies": {
@@ -42,6 +45,7 @@
     "@cryptocheck/signal-contracts": "file:packages/signal-contracts",
     "@cryptocheck/signing": "workspace:*",
     "@cryptocheck/types": "workspace:*",
+    "@raydium-io/raydium-sdk-v2": "^0.2.59-alpha",
     "@solana/spl-token": "^0.4.15",
     "@solana/wallet-adapter-base": "^0.9.27",
     "@solana/wallet-adapter-react": "^0.15.39",
@@ -57,6 +61,7 @@
     "@vercel/analytics": "^2.0.1",
     "ai": "^6.0.168",
     "axios": "^1.18.1",
+    "bn.js": "^5.2.5",
     "chart.js": "^4.4.0",
     "clsx": "^2.1.1",
     "dotenv": "^17.3.1",
@@ -83,6 +88,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/bn.js": "^5.2.0",
     "@types/node": "^20",
     "@types/pdfkit": "^0.17.5",
     "@types/qrcode": "^1.5.6",

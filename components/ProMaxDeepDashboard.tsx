@@ -306,7 +306,7 @@ export default function ProMaxDeepDashboard({
     { feat: 'Cluster Mapping', basic: '—', pro: 'Holder graph heuristics' },
     { feat: 'Liquidity Forensics', basic: 'Basic LP check', pro: 'Pair tx LP signals' },
     { feat: 'Whale Feed', basic: 'Standard', pro: 'Priority (< 200ms)' },
-    { feat: 'Performance Fee', basic: '0.5% on profits', pro: '0% — included' },
+    { feat: 'Platform Fee', basic: '0.50% per trade', pro: '0.50% · shown before confirm' },
     { feat: 'Forensic Audit Log', basic: '—', pro: 'Full deep scan logs' },
     { feat: 'Contract Decompiler', basic: '—', pro: 'Bytecode analysis' },
   ]

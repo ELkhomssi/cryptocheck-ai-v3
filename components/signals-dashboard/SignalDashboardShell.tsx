@@ -53,7 +53,7 @@ export function SignalSidebar({ compact }: { compact?: boolean }) {
       ))}
       {!compact ? (
         <Link
-          href="/dashboard/revenue/terminal"
+          href="/dashboard#action-panel"
           className="mt-4 flex items-center gap-2 rounded-rd-sm px-3 py-2 font-rd-display text-[0.62rem] font-bold uppercase tracking-wider text-rd-violet hover:bg-white/5"
         >
           <ArrowLeftRight className="h-4 w-4" aria-hidden />

@@ -18,7 +18,7 @@
 import type { EdgeSignal } from './edge-signal.js'
 
 /** Registered ingestion sources. Extend via new SourceAdapter implementations only. */
-export type SourceTag = 'telegram' | 'txodds'
+export type SourceTag = 'telegram' | 'txodds' | 'twitter' | 'launchpad'
 
 /** Discriminator for gate dispatch + polymorphic Master Feed rows. */
 export type SubjectType = 'token' | 'match_event'

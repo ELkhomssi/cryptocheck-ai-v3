@@ -9,37 +9,62 @@ const PRICE_PATTERNS = [
   /\$\s*(\d+(?:\.\d+)?(?:e-?\d+)?)\s*(?:usd|usdc)?/i,
 ]
 
+/**
+ * Solana CA extractors — including SOLTRENDING-style “DexT” / “Screener” TextUrl links
+ * (dextools / dexscreener / gmgn / query-param CAs).
+ * Keep in sync with services/pipeline/src/parser/regex-parser.ts
+ */
 const URL_EXTRACTORS: Array<{
   re: RegExp
   chain: ParseCandidate['chain']
 }> = [
   { re: /pump\.fun\/(?:coin\/)?([1-9A-HJ-NP-Za-km-z]{32,44})/i, chain: 'solana' },
+  // DexScreener (“Screener” button) — path may be mint or pair id
   { re: /dexscreener\.com\/solana\/([1-9A-HJ-NP-Za-km-z]{32,44})/i, chain: 'solana' },
   { re: /dexscreener\.com\/ethereum\/(0x[a-fA-F0-9]{40})/i, chain: 'ethereum' },
   { re: /dexscreener\.com\/base\/(0x[a-fA-F0-9]{40})/i, chain: 'base' },
   { re: /dexscreener\.com\/bsc\/(0x[a-fA-F0-9]{40})/i, chain: 'bsc' },
   { re: /dexscreener\.com\/arbitrum\/(0x[a-fA-F0-9]{40})/i, chain: 'arbitrum' },
+  // DexTools (“DexT” button) — pair-explorer / token-explorer
+  {
+    re: /dextools\.io\/[^?\s]*\/(?:pair-explorer|token-explorer|solana)\/([1-9A-HJ-NP-Za-km-z]{32,44})/i,
+    chain: 'solana',
+  },
+  { re: /dextools\.io\/[^?\s]*[?&](?:address|token)=([1-9A-HJ-NP-Za-km-z]{32,44})/i, chain: 'solana' },
   { re: /birdeye\.so\/token\/([1-9A-HJ-NP-Za-km-z]{32,44})/i, chain: 'solana' },
   { re: /solscan\.io\/token\/([1-9A-HJ-NP-Za-km-z]{32,44})/i, chain: 'solana' },
+  { re: /gmgn\.ai\/sol\/token\/([1-9A-HJ-NP-Za-km-z]{32,44})/i, chain: 'solana' },
+  { re: /(?:\?|&)(?:token|address|ca|mint)=([1-9A-HJ-NP-Za-km-z]{32,44})/i, chain: 'solana' },
 ]
 
 const BUY_RE = /\b(buy|long|ape|aped|entry|called|call|accumulate)\b/i
 const SELL_RE = /\b(sell|sold|exit|dump|short|take\s+profit|tp hit)\b/i
 
-function collectUrls(raw: RawMessage): string[] {
+/** Pull URLs from GramJS entities (TextUrl.url + Url text spans) and plain text. */
+export function collectUrls(raw: RawMessage): string[] {
   const urls: string[] = []
+  const text = raw.text ?? ''
   for (const entity of raw.entities) {
     if (!entity || typeof entity !== 'object') continue
-    const u = (entity as Record<string, unknown>).url
-    if (typeof u === 'string') urls.push(u)
+    const rec = entity as Record<string, unknown>
+    if (typeof rec.url === 'string' && rec.url.trim()) {
+      urls.push(rec.url.trim())
+    }
+    // MessageEntityUrl — URL is the message text span (offset/length)
+    if (typeof rec.offset === 'number' && typeof rec.length === 'number' && rec.length > 0) {
+      const span = text.slice(rec.offset, rec.offset + rec.length).trim()
+      if (/^https?:\/\//i.test(span)) urls.push(span)
+    }
   }
-  const textUrls = raw.text.match(/https?:\/\/[^\s)]+/gi) ?? []
-  return [...urls, ...textUrls]
+  const textUrls = text.match(/https?:\/\/[^\s)>\]]+/gi) ?? []
+  for (const u of textUrls) urls.push(u.replace(/[.,;:]+$/, ''))
+  return [...new Set(urls)]
 }
 
 function isLikelySolanaMint(s: string): boolean {
   if (s.length < 32 || s.length > 44 || !/^[1-9A-HJ-NP-Za-km-z]+$/.test(s)) return false
-  if (s.length === 32 && /^[0-9a-f]+$/i.test(s)) return false
+  // Reject hex-only blobs (tx hashes / EVM addrs without 0x) — common whale_alert false positives.
+  if (/^[0-9a-f]+$/i.test(s)) return false
   return true
 }
 
@@ -65,15 +90,47 @@ function extractTicker(text: string): string {
   return m?.[1]?.toUpperCase() ?? 'TOKEN'
 }
 
+/** Extract Solana CA from a single URL (DexT / Screener / etc.). */
+export function extractCaFromUrl(url: string): { chain: ParseCandidate['chain']; ca: string } | null {
+  for (const { re, chain } of URL_EXTRACTORS) {
+    // Reset lastIndex for global-ish safety — patterns are non-global
+    const m = url.match(re)
+    if (m?.[1]) {
+      if (chain === 'solana' && !isLikelySolanaMint(m[1])) continue
+      return { chain, ca: m[1] }
+    }
+  }
+  return null
+}
+
 export function parseWithRegex(raw: RawMessage): ParseCandidate | null {
   const text = raw.text ?? ''
-  if (!text.trim() && raw.eventType !== 'delete') return null
+  // Entity-only messages (link buttons with empty caption) still count
+  const urls = collectUrls(raw)
+  if (!text.trim() && urls.length === 0 && raw.eventType !== 'delete') return null
 
-  const haystack = [text, ...collectUrls(raw)].join('\n')
+  // Prefer entity / link CAs first (SOLTRENDING DexT & Screener buttons)
+  for (const url of urls) {
+    const hit = extractCaFromUrl(url)
+    if (hit) {
+      return {
+        chain: hit.chain,
+        contractAddress: hit.ca,
+        tokenSymbol: extractTicker(text),
+        price: extractPrice(text),
+        signalType: inferSignalType(text),
+        confidence: 0.96,
+        parseMethod: 'regex',
+      }
+    }
+  }
+
+  const haystack = [text, ...urls].join('\n')
 
   for (const { re, chain } of URL_EXTRACTORS) {
     const m = haystack.match(re)
     if (m?.[1]) {
+      if (chain === 'solana' && !isLikelySolanaMint(m[1])) continue
       return {
         chain,
         contractAddress: m[1],

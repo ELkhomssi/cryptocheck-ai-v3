@@ -6,7 +6,6 @@ import { Settings2 } from 'lucide-react'
 type SourceChip = { id: string; label: string; detail?: string; live: boolean; color?: string }
 
 const SOON_CHIPS: SourceChip[] = [
-  { id: 'x', label: 'X', live: false },
   { id: 'dex', label: 'DEX Screener', live: false },
   { id: 'pump', label: 'Pump.fun', live: false },
   { id: 'cmc', label: 'CoinMarketCap', live: false },
@@ -18,6 +17,7 @@ const SOON_CHIPS: SourceChip[] = [
 type SourcesPayload = {
   telegram: { live: boolean; channelCount: number }
   txodds: { live: boolean }
+  twitter?: { live: boolean; handleCount: number }
 }
 
 export function DataSourcesStrip() {
@@ -28,7 +28,13 @@ export function DataSourcesStrip() {
     fetch('/api/dashboard/command-center/sources', { cache: 'no-store' })
       .then((r) => r.json())
       .then((j) => setSources(j as SourcesPayload))
-      .catch(() => setSources({ telegram: { live: false, channelCount: 0 }, txodds: { live: false } }))
+      .catch(() =>
+        setSources({
+          telegram: { live: false, channelCount: 0 },
+          txodds: { live: false },
+          twitter: { live: false, handleCount: 0 },
+        }),
+      )
   }, [])
 
   const liveChips: SourceChip[] = [
@@ -45,6 +51,17 @@ export function DataSourcesStrip() {
       detail: sources?.txodds.live ? 'LIVE' : 'offline',
       live: sources?.txodds.live ?? false,
       color: 'var(--cc-orange)',
+    },
+    {
+      id: 'x',
+      label: 'X',
+      detail: sources?.twitter
+        ? sources.twitter.live
+          ? `${sources.twitter.handleCount} Handles`
+          : 'offline'
+        : '…',
+      live: sources?.twitter?.live ?? false,
+      color: 'var(--cc-hi)',
     },
   ]
 

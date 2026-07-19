@@ -18,7 +18,13 @@ type CandidatesResponse = {
 }
 
 type RowStatus = 'idle' | 'building' | 'needsConfirm' | 'signing' | 'confirming' | 'done' | 'error'
-type RowState = { status: RowStatus; message?: string; signature?: string }
+type RowState = {
+  status: RowStatus
+  message?: string
+  signature?: string
+  feeHuman?: string
+  verdictPath?: string
+}
 
 const AMOUNT_PRESETS_SOL = [0.1, 0.25, 0.5, 1] as const
 
@@ -156,12 +162,26 @@ export function SniperPanel() {
           throw new Error(body?.error ?? 'Failed to build swap')
         }
 
+        const feeHuman =
+          typeof body?.platformFee?.feeAmountHuman === 'string'
+            ? body.platformFee.feeAmountHuman
+            : body?.platformFeeBps
+              ? `${(Number(body.platformFeeBps) / 100).toFixed(2)}%`
+              : undefined
+
         // Non-custodial: server returns an UNSIGNED tx; the wallet signs & sends.
-        setRow(c.id, { status: 'signing' })
+        setRow(c.id, {
+          status: 'signing',
+          feeHuman,
+          verdictPath: typeof body?.verdictPath === 'string' ? body.verdictPath : undefined,
+          message: feeHuman
+            ? `Platform fee ${feeHuman} · Fee routes on-chain via Jupiter`
+            : undefined,
+        })
         const tx = VersionedTransaction.deserialize(Buffer.from(body.swapTransaction, 'base64'))
         const signed = await wallet.signTransaction(tx)
 
-        setRow(c.id, { status: 'confirming' })
+        setRow(c.id, { status: 'confirming', feeHuman })
         const sig = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false })
         await connection.confirmTransaction(sig, 'confirmed')
 
@@ -175,10 +195,17 @@ export function SniperPanel() {
             symbol: c.symbol,
             neuralScore: c.neuralScore,
             verdict: c.verdict,
+            platformFee: body.platformFee,
+            verdictPath: body.verdictPath,
           }),
         }).catch(() => undefined)
 
-        setRow(c.id, { status: 'done', signature: sig })
+        setRow(c.id, {
+          status: 'done',
+          signature: sig,
+          feeHuman,
+          message: feeHuman ? `Fee ${feeHuman} (on-chain via Jupiter)` : undefined,
+        })
       } catch (e) {
         setRow(c.id, { status: 'error', message: e instanceof Error ? e.message : 'Snipe failed' })
       }

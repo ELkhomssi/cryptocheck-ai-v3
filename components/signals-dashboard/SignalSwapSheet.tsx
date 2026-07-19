@@ -15,6 +15,8 @@ import { buildJupiterSwapTransaction } from '@/lib/trading/jupiter-client'
 import { getPlatformFeeAccount, isPlatformFeeConfigured } from '@/lib/trading/platform-fee-config'
 import type { SwapDecision } from '@/lib/trading/risk-gated-swap'
 import { simulateSerializedSwapTransaction } from '@/lib/services/swap-simulation'
+import { PlatformFeeConfirmRows } from '@/components/launchpad/PlatformFeeConfirmRows'
+import { computePlatformFeeDisclosure } from '@/lib/launchpad/platform-fee'
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112'
 
@@ -22,9 +24,11 @@ type Props = {
   signal: UnifiedSignal | null
   open: boolean
   onClose: () => void
+  /** Inline = Action Panel body (no modal). Sheet = legacy overlay. */
+  variant?: 'sheet' | 'inline'
 }
 
-export function SignalSwapSheet({ signal, open, onClose }: Props) {
+export function SignalSwapSheet({ signal, open, onClose, variant = 'sheet' }: Props) {
   const { connection } = useConnection()
   const wallet = useWallet()
 
@@ -149,20 +153,8 @@ export function SignalSwapSheet({ signal, open, onClose }: Props) {
 
   if (!open || !tokenSignal) return null
 
-  return (
-    <>
-      <div
-        className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm"
-        role="presentation"
-        onClick={onClose}
-        onKeyDown={(e) => e.key === 'Escape' && onClose()}
-      />
-      <div
-        className="fixed inset-x-0 bottom-0 z-[95] max-h-[92vh] overflow-y-auto rounded-t-rd-lg border border-white/10 bg-rd-navy2 p-4 shadow-2xl md:inset-x-auto md:left-1/2 md:top-1/2 md:max-w-lg md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-rd-lg"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="swap-sheet-title"
-      >
+  const body = (
+        <div className={variant === 'inline' ? 'max-h-[70vh] overflow-y-auto' : undefined}>
         <div className="mb-4 flex items-start justify-between gap-2">
           <div>
             <p className="rd-label">Safe swap · Jupiter</p>
@@ -171,6 +163,7 @@ export function SignalSwapSheet({ signal, open, onClose }: Props) {
             </h2>
             <p className="mt-1 font-rd-mono text-xs text-rd-lo">{mint}</p>
           </div>
+          {variant === 'sheet' ? (
           <button
             type="button"
             onClick={onClose}
@@ -179,6 +172,7 @@ export function SignalSwapSheet({ signal, open, onClose }: Props) {
           >
             <X className="h-5 w-5" />
           </button>
+          ) : null}
         </div>
 
         {/* Mini chart — DexScreener embed (read-only). Swap still uses Jupiter risk-gated path below. */}
@@ -228,22 +222,25 @@ export function SignalSwapSheet({ signal, open, onClose }: Props) {
         ) : null}
 
         {quote ? (
-          <div className="mt-4 space-y-2 rounded-rd-sm border border-white/10 bg-rd-navy/80 p-3 text-sm">
-            <div className="flex justify-between text-rd-mid">
-              <span>Platform fee</span>
-              <span className="font-rd-mono tabular-nums text-rd-hi">
-                {quote.platformFee.bps / 100}% · {quote.platformFee.amountUsd != null ? `$${quote.platformFee.amountUsd.toFixed(4)}` : quote.platformFee.amountBase}
-              </span>
-            </div>
-            <div className="flex justify-between text-rd-mid">
-              <span>Price impact</span>
-              <span className="font-rd-mono tabular-nums text-rd-hi">{quote.priceImpactPct.toFixed(2)}%</span>
-            </div>
-            <div className="flex justify-between text-rd-mid">
-              <span>Slippage</span>
-              <span className="font-rd-mono tabular-nums text-rd-hi">{quote.slippageBps} bps</span>
-            </div>
-          </div>
+          <PlatformFeeConfirmRows
+            fee={computePlatformFeeDisclosure({
+              feeBps: quote.platformFee.bps,
+              feeAccount: quote.platformFee.feeTokenAccount || null,
+              feeAmountBase: quote.platformFee.amountBase,
+              outAmountBase: quote.outputAmountBase,
+              inAmountBase: quote.inputAmountBase,
+              inputMint: quote.inputMint,
+              outputMint: quote.outputMint,
+              solUsd:
+                quote.platformFee.amountUsd != null && quote.platformFee.bps > 0
+                  ? (quote.platformFee.amountUsd * 10000) / quote.platformFee.bps /
+                    (Number(quote.inputAmountBase) / 1e9 || 1)
+                  : undefined,
+            })}
+            slippageBps={quote.slippageBps}
+            priceImpactPct={quote.priceImpactPct}
+            routeLabel={quote.routeLabel}
+          />
         ) : null}
 
         {decision?.warnings?.length ? (
@@ -285,6 +282,44 @@ export function SignalSwapSheet({ signal, open, onClose }: Props) {
         <div className="mt-4">
           <RevenueComplianceNote />
         </div>
+        </div>
+  )
+
+  if (variant === 'inline') {
+    return (
+      <>
+        <div className="rounded-dash-inner border border-dash-innerline bg-dash-panel2 p-3 text-dash-thi [&_.rd-label]:text-dash-tlo [&_.text-rd-hi]:text-dash-thi [&_.text-rd-mid]:text-dash-tmid [&_.text-rd-lo]:text-dash-tlo [&_.bg-rd-green]:bg-dash-green [&_.text-rd-navy]:text-dash-bg">
+          {body}
+        </div>
+        <DangerAcknowledgeModal
+          open={dangerOpen}
+          typed={dangerTyped}
+          onTypedChange={setDangerTyped}
+          onConfirm={() => {
+            setDangerOk(true)
+            setDangerOpen(false)
+          }}
+          onClose={() => setDangerOpen(false)}
+        />
+      </>
+    )
+  }
+
+  return (
+    <>
+      <div
+        className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm"
+        role="presentation"
+        onClick={onClose}
+        onKeyDown={(e) => e.key === 'Escape' && onClose()}
+      />
+      <div
+        className="fixed inset-x-0 bottom-0 z-[95] max-h-[92vh] overflow-y-auto rounded-t-rd-lg border border-white/10 bg-rd-navy2 p-4 shadow-2xl md:inset-x-auto md:left-1/2 md:top-1/2 md:max-w-lg md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-rd-lg"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="swap-sheet-title"
+      >
+        {body}
       </div>
 
       <DangerAcknowledgeModal

@@ -11,6 +11,7 @@ import type { ProDashboardSession } from '@/lib/types/pro-dashboard'
 import type { EvidenceLine, ReasoningObject, WeightedSecurityScore } from '@cryptocheck/types'
 import type { ScanV1ApiResponse } from '@/lib/types/institutional-scan-api'
 import { CryptoCheckLogo } from '@/components/brand/CryptoCheckLogo'
+import { ForDevelopersBadge } from '@/components/landing/ForDevelopersBadge'
 import { PulseFeed } from '@/components/pro/PulseFeed'
 import { HeroScanner } from '@/components/pro/HeroScanner'
 import type { LivePerfMeta } from '@/components/pro/LiveScoreDisplay'
@@ -376,19 +377,42 @@ function ProDashboardClientInner({
         </nav>
 
         <header style={{ marginBottom: 'clamp(16px,3vw,24px)' }}>
-          <div style={{ fontSize: 11, letterSpacing: '0.16em', color: '#64748b', marginBottom: 8 }}>{t('institutional.page.kicker')}</div>
-          <h1
+          <nav
+            aria-label="Breadcrumb"
             style={{
-              fontSize: 'clamp(26px,4.5vw,36px)',
-              fontWeight: 700,
-              margin: 0,
-              letterSpacing: '-0.04em',
-              color: '#f8fafc',
-              lineHeight: 1.15,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              flexWrap: 'wrap',
+              fontSize: 11,
+              color: '#64748b',
+              marginBottom: 10,
             }}
           >
-            {t('institutional.page.title')}
-          </h1>
+            <Link href="/" style={{ color: '#94a3b8', textDecoration: 'none' }}>
+              {t('institutional.page.breadcrumb_home')}
+            </Link>
+            <span aria-hidden style={{ opacity: 0.5 }}>
+              /
+            </span>
+            <span style={{ color: '#c4b5fd', fontWeight: 600 }}>{t('institutional.page.breadcrumb_current')}</span>
+          </nav>
+          <div style={{ fontSize: 11, letterSpacing: '0.16em', color: '#64748b', marginBottom: 8 }}>{t('institutional.page.kicker')}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <h1
+              style={{
+                fontSize: 'clamp(26px,4.5vw,36px)',
+                fontWeight: 700,
+                margin: 0,
+                letterSpacing: '-0.04em',
+                color: '#f8fafc',
+                lineHeight: 1.15,
+              }}
+            >
+              {t('institutional.page.title')}
+            </h1>
+            <ForDevelopersBadge size="md" />
+          </div>
           <p
             style={{
               color: '#e2e8f0',
@@ -409,7 +433,7 @@ function ProDashboardClientInner({
             .
           </p>
           <p style={{ color: '#6ee7b7', fontSize: 12, marginTop: 8 }}>
-            AI agents investigate Solana tokens for you.
+            Dashboard Pro — explainable Solana token intelligence for builders and API consumers.
           </p>
           {tierHint ? <p style={{ marginTop: 8, fontSize: 12, color: '#64748b' }}>{tierHint}</p> : null}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 18, alignItems: 'center' }}>

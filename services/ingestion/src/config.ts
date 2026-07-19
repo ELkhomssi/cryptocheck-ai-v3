@@ -25,10 +25,28 @@ export type TxOddsIngestionConfig = {
   reconnectMaxMs: number
 }
 
+export type TwitterIngestionConfig = {
+  bearerToken: string
+  /** Empty → resolve from TWITTER_HANDLES / Supabase / curated list at start. */
+  handles: string[]
+  pollIntervalMs: number
+  maxResults: number
+}
+
+export type LaunchpadIngestionConfig = {
+  heliusApiKey: string
+  pollMs: number
+  minLiquidityUsd: number
+  minAgeSec: number
+  enabled: boolean
+}
+
 export type IngestionConfig = {
   sources: SourceTag[]
   telegram: TelegramShardConfig | null
   txodds: TxOddsIngestionConfig | null
+  twitter: TwitterIngestionConfig | null
+  launchpad: LaunchpadIngestionConfig | null
   healthPort: number
   streamMaxLen: number
   unifiedStreamMaxLen: number
@@ -91,12 +109,27 @@ function parseSources(): SourceTag[] {
 
   const out: SourceTag[] = []
   for (const tag of tags) {
-    if (tag === 'telegram' || tag === 'txodds') {
+    if (tag === 'telegram' || tag === 'txodds' || tag === 'twitter' || tag === 'launchpad') {
       if (!out.includes(tag)) out.push(tag)
       continue
     }
-    throw new Error(`Unknown SIGNAL_SOURCES entry: ${tag} (use telegram, txodds)`)
+    throw new Error(`Unknown SIGNAL_SOURCES entry: ${tag} (use telegram, txodds, twitter, launchpad)`)
   }
+
+  // TWITTER_ENABLED=true auto-adds twitter (bearer still required at load).
+  if (process.env.TWITTER_ENABLED?.trim().toLowerCase() === 'true' && !out.includes('twitter')) {
+    out.push('twitter')
+  }
+  if (process.env.TWITTER_ENABLED?.trim().toLowerCase() === 'false') {
+    const filtered = out.filter((t) => t !== 'twitter')
+    out.length = 0
+    out.push(...filtered)
+  }
+
+  if (process.env.LAUNCHPAD_SCOUT_ENABLED?.trim().toLowerCase() === 'true' && !out.includes('launchpad')) {
+    out.push('launchpad')
+  }
+
   // Convenience kill-switch (deploy/.env.signal) — preferred over editing SIGNAL_SOURCES mid-debug.
   if (process.env.TXODDS_ENABLED?.trim().toLowerCase() === 'false') {
     const filtered = out.filter((t) => t !== 'txodds')
@@ -175,6 +208,53 @@ function loadTxOddsConfig(): TxOddsIngestionConfig {
   }
 }
 
+function parseTwitterHandles(): string[] {
+  const raw = process.env.TWITTER_HANDLES?.trim() || ''
+  if (!raw) return []
+  return [
+    ...new Set(
+      raw
+        .split(',')
+        .map((s) => s.trim().replace(/^@/, '').toLowerCase())
+        .filter(Boolean),
+    ),
+  ]
+}
+
+function loadTwitterConfig(): TwitterIngestionConfig {
+  const bearerToken =
+    process.env.TWITTER_BEARER_TOKEN?.trim() ||
+    process.env.X_BEARER_TOKEN?.trim() ||
+    ''
+  if (!bearerToken) {
+    throw new Error('TWITTER_BEARER_TOKEN is required when twitter is enabled')
+  }
+
+  return {
+    bearerToken,
+    handles: parseTwitterHandles(),
+    pollIntervalMs: Math.max(15_000, Number(process.env.TWITTER_POLL_MS ?? 60_000) || 60_000),
+    maxResults: Math.min(100, Math.max(10, Number(process.env.TWITTER_MAX_RESULTS ?? 25) || 25)),
+  }
+}
+
+function loadLaunchpadConfig(): LaunchpadIngestionConfig {
+  const heliusApiKey =
+    process.env.HELIUS_API_KEY?.trim() ||
+    process.env.LAUNCHPAD_HELIUS_API_KEY?.trim() ||
+    ''
+  if (!heliusApiKey) {
+    throw new Error('HELIUS_API_KEY is required when launchpad scout is enabled')
+  }
+  return {
+    heliusApiKey,
+    pollMs: Math.max(0, Number(process.env.LAUNCHPAD_POLL_MS ?? 0) || 0),
+    minLiquidityUsd: Number(process.env.LAUNCHPAD_MIN_LIQUIDITY_USD ?? 500) || 500,
+    minAgeSec: Number(process.env.LAUNCHPAD_MIN_AGE_SEC ?? 0) || 0,
+    enabled: process.env.LAUNCHPAD_SCOUT_ENABLED?.trim().toLowerCase() !== 'false',
+  }
+}
+
 export function loadConfig(): IngestionConfig {
   const sources = parseSources()
 
@@ -182,6 +262,8 @@ export function loadConfig(): IngestionConfig {
     sources,
     telegram: sources.includes('telegram') ? loadTelegramConfig() : null,
     txodds: sources.includes('txodds') ? loadTxOddsConfig() : null,
+    twitter: sources.includes('twitter') ? loadTwitterConfig() : null,
+    launchpad: sources.includes('launchpad') ? loadLaunchpadConfig() : null,
     healthPort: Number(process.env.SIGNAL_INGESTION_HEALTH_PORT ?? 4101),
     streamMaxLen: Number(process.env.SIGNAL_STREAM_RAW_MAXLEN ?? 100_000),
     unifiedStreamMaxLen: Number(process.env.SIGNAL_STREAM_UNIFIED_MAXLEN ?? 100_000),

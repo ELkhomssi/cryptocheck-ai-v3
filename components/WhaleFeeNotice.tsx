@@ -1,9 +1,6 @@
 'use client'
-import { useState } from 'react'
 
 export default function WhaleFeeNotice({ onClose }: { onClose?: () => void }) {
-  const [pulse, setPulse] = useState(false)
-
   return (
     <div style={{
       background:'linear-gradient(135deg,rgba(0,212,130,0.06),rgba(0,0,0,0))',
@@ -19,17 +16,17 @@ export default function WhaleFeeNotice({ onClose }: { onClose?: () => void }) {
       <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
         <span style={{fontSize:18}}>🐋</span>
         <div>
-          <div style={{fontSize:11,fontWeight:700,color:'#00d4aa',letterSpacing:'0.08em'}}>WHALE PLAN — SUCCESS FEE MODEL</div>
-          <div style={{fontSize:9,color:'#6e7681',marginTop:1}}>Zero monthly cost · Pay only when you profit</div>
+          <div style={{fontSize:11,fontWeight:700,color:'#00d4aa',letterSpacing:'0.08em'}}>WHALE PLAN — PLATFORM FEE</div>
+          <div style={{fontSize:9,color:'#6e7681',marginTop:1}}>Transparent 0.50% platform fee · shown before every trade</div>
         </div>
       </div>
 
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}}>
         {[
           { label:'Monthly Cost',   val:'$0',   color:'#00d4aa', sub:'Always free' },
-          { label:'Success Fee',    val:'0.5%', color:'#d4af37', sub:'On profitable trades only' },
+          { label:'Platform Fee',   val:'0.50%', color:'#d4af37', sub:'Shown before every trade' },
           { label:'Min Trade Size', val:'$500', color:'#e2e8f0', sub:'Per transaction' },
-          { label:'Payout',         val:'Daily',color:'#e2e8f0', sub:'Automatic settlement' },
+          { label:'Route',         val:'Jupiter',color:'#e2e8f0', sub:'On-chain · non-custodial' },
         ].map(s => (
           <div key={s.label} style={{background:'rgba(0,0,0,0.3)',border:'1px solid #1f2937',borderRadius:6,padding:'8px 10px'}}>
             <div style={{fontSize:8,color:'#6e7681',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:3}}>{s.label}</div>
@@ -42,9 +39,9 @@ export default function WhaleFeeNotice({ onClose }: { onClose?: () => void }) {
       <div style={{fontSize:9,color:'#6e7681',lineHeight:1.6,borderTop:'1px solid #1f2937',paddingTop:10}}>
         <div style={{color:'#00d4aa',fontWeight:700,marginBottom:4}}>HOW IT WORKS:</div>
         <div>1. Connect your dedicated trading wallet</div>
-        <div>2. AI auto-sniper executes trades on your behalf</div>
-        <div>3. 0.5% fee deducted only from profitable closes</div>
-        <div>4. Losing trades = zero fee charged</div>
+        <div>2. AI auto-sniper builds risk-gated Jupiter swaps</div>
+        <div>3. Transparent 0.50% platform fee shown as a line item before you confirm</div>
+        <div>4. Fee routes on-chain via Jupiter — your wallet signs</div>
       </div>
 
       <button

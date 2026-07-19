@@ -40,7 +40,12 @@ export function parseSignalFeedFilter(raw: unknown): SignalFeedFilter {
   if (typeof f.search === 'string' && f.search.trim()) {
     filter.search = f.search.trim().toLowerCase()
   }
-  if (f.sourceTag === 'telegram' || f.sourceTag === 'txodds' || f.sourceTag === 'all') {
+  if (
+    f.sourceTag === 'telegram' ||
+    f.sourceTag === 'txodds' ||
+    f.sourceTag === 'twitter' ||
+    f.sourceTag === 'all'
+  ) {
     filter.sourceTag = f.sourceTag
   }
   if (f.subjectType === 'token' || f.subjectType === 'match_event' || f.subjectType === 'all') {

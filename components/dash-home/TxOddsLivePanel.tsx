@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import type { Decision } from '@cryptocheck/signal-contracts'
 import type { UnifiedSignal } from '@cryptocheck/signal-contracts'
 import { formatAge } from '@/lib/signals-dashboard/format'
@@ -76,9 +75,9 @@ export function TxOddsLivePanel({ matches, decisionsByMatch, loading }: TxOddsLi
           <span className="h-2 w-2 animate-pulse-dot rounded-full bg-dash-orangeTx" />
           <p className="text-[13px] font-semibold text-dash-orangeTx">TXODDS LIVE MATCHES · SENTINEL EDGE</p>
         </div>
-        <Link href="/dashboard/signals/agent" className="text-xs font-semibold text-dash-green hover:underline">
-          View agent →
-        </Link>
+        <a href="/dashboard#hot-opportunities" className="text-xs font-semibold text-dash-green hover:underline">
+          Sports Odds tab →
+        </a>
       </header>
       <p className="mb-3 text-[11px] text-dash-tlo">Sports signals informational only — not swap recommendations</p>
 

@@ -1,5 +1,6 @@
-import { SentinelEdgeDashboard } from '@/components/sentinel-edge/SentinelEdgeDashboard'
+import { redirect } from 'next/navigation'
 
-export default function SentinelEdgePage() {
-  return <SentinelEdgeDashboard />
+/** Sentinel Edge opens as Sports Odds drawer on Official Dashboard — no separate product page. */
+export default function SentinelEdgeRedirectPage() {
+  redirect('/dashboard#hot-opportunities')
 }

@@ -1,10 +1,12 @@
 {
   "institutional": {
     "page": {
-      "kicker": "SECURITY INTELLIGENCE INFRASTRUCTURE",
-      "title": "AI Security Intelligence Terminal",
+      "kicker": "DASHBOARD PRO · FOR DEVELOPERS",
+      "title": "Dashboard Pro",
       "subtitle": "Detect rugs, honeypots & insider wallets in real-time",
       "description": "Explainable scoring, pipeline transparency, and RPC-attested simulation — unified on",
+      "breadcrumb_home": "Home",
+      "breadcrumb_current": "Dashboard Pro",
       "tier_hint_signed_out": "Sign in to sync institutional entitlements.",
       "tier_hint_upgrade": "Upgrade to Pro or Institutional for live API, exports, and full simulation.",
       "consumer_app": "Consumer app",

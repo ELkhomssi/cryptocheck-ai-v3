@@ -97,7 +97,7 @@ export function TopTradersPanel() {
       )}
 
       <Link
-        href="/dashboard/revenue/portfolio"
+        href="/dashboard#hot-opportunities"
         className="mt-4 block w-full rounded-lg border border-[var(--cc-inner)] py-2 text-center text-xs font-semibold text-[var(--cc-mid)] hover:text-[var(--cc-hi)]"
       >
         Track Top Traders

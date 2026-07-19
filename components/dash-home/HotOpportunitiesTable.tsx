@@ -200,7 +200,7 @@ export function HotOpportunitiesTable({
 
       <footer className="border-t border-dash-innerline py-3 text-center">
         <Link
-          href="/dashboard/signals"
+          href="/dashboard#hot-opportunities"
           className="text-xs font-semibold text-dash-green transition-colors duration-150 hover:text-dash-greenHi hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-dash-green"
         >
           View All Opportunities

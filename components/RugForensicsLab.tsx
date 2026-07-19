@@ -84,7 +84,7 @@ export default function RugForensicsLab() {
     try {
       const apiKey = await loadAccessKeyMaterial()
       if (!apiKey) {
-        setError('API key required — paste your key in the Intelligence Terminal first.')
+        setError('API key required — paste your key in Dashboard Pro first.')
         return
       }
       const res = await fetch('/api/forensics', {

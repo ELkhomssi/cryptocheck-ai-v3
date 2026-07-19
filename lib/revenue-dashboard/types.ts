@@ -104,6 +104,11 @@ export type FeeRecord = {
   humanWalletHeuristic?: 'likely_human' | 'likely_bot' | 'unknown'
   /** Optional link back to Master Feed signal row. */
   signalId?: string
+  /**
+   * Execution path that produced this fee row.
+   * e.g. `jupiter` | `launchlab-raydium-direct` — same ledger, dual paths.
+   */
+  source?: string
 }
 
 export type PortfolioPosition = {

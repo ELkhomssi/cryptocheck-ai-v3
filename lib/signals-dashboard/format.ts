@@ -30,12 +30,14 @@ export function eventTypeLabel(type: string): string {
 export function sourceTagLabel(tag: SourceTag | string): string {
   if (tag === 'telegram') return 'Telegram'
   if (tag === 'txodds') return 'TxODDS'
+  if (tag === 'twitter') return 'X'
   return String(tag)
 }
 
 export function sourceBadgeClasses(tag: SourceTag | string): string {
   if (tag === 'telegram') return 'border-sky-400/40 bg-sky-400/10 text-sky-300'
   if (tag === 'txodds') return 'border-amber-400/40 bg-amber-400/10 text-amber-300'
+  if (tag === 'twitter') return 'border-white/25 bg-white/10 text-white'
   return 'border-white/10 bg-white/5 text-rd-lo'
 }
 

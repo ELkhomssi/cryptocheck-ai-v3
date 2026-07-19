@@ -1,10 +1,12 @@
 {
   "institutional": {
     "page": {
-      "kicker": "INFRASTRUCTURE DE RENSEIGNEMENT SÉCURITAIRE",
-      "title": "Terminal d'intelligence de sécurité IA",
+      "kicker": "DASHBOARD PRO · POUR DÉVELOPPEURS",
+      "title": "Dashboard Pro",
       "subtitle": "Détectez les rug pulls, honeypots et portefeuilles insiders en temps réel",
       "description": "Scoring explicable, transparence du pipeline et simulation attestée RPC — unifié sur",
+      "breadcrumb_home": "Accueil",
+      "breadcrumb_current": "Dashboard Pro",
       "tier_hint_signed_out": "Connectez-vous pour synchroniser vos droits institutionnels.",
       "tier_hint_upgrade": "Passez Pro ou Institutionnel pour l'API live, les exports et la simulation complète.",
       "consumer_app": "Application grand public",

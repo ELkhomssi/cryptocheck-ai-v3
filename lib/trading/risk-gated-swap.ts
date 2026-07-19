@@ -1,6 +1,7 @@
 /**
  * Risk-gated swap engine — every swap is risk-scored (via the scan gateway, fast mode)
  * before it can execute. Score 80+ is a hard block with no override.
+ * Applies to ALL mints (including tokens launched via CryptoCheck LaunchLab).
  */
 
 import 'server-only'
@@ -189,6 +190,41 @@ export async function assessSwapIntent(intent: SwapIntent): Promise<SwapDecision
     estimatedOutput: sim?.outAmount,
     warnings,
     blockedReason,
+  }
+}
+
+/**
+ * Mint-level risk gate shared by Jupiter and LaunchLAB Raydium bonding-curve paths.
+ * Thin alias — always delegates to `assessSwapIntent` (same module, same thresholds).
+ * Bonding-curve mints typically have no Jupiter route; `assessSwapIntent` already
+ * treats sim failure as best-effort and still applies hard-block / whale rules.
+ */
+export async function validateTokenRisk(
+  mintAddress: string,
+  options?: {
+    walletAddress?: string
+    amountUsd?: number
+    slippageBps?: number
+  },
+): Promise<SwapDecision> {
+  return assessSwapIntent({
+    walletAddress: options?.walletAddress ?? '',
+    fromToken: SOL_MINT,
+    toToken: mintAddress,
+    amountUsd: options?.amountUsd ?? 1,
+    slippageBps: options?.slippageBps ?? 100,
+    chain: 'solana',
+  })
+}
+
+/** DANGER-gate error for LaunchLAB UI — mirrors SwapBlockedError semantics. */
+export class LaunchLabBlockedError extends Error {
+  constructor(
+    readonly reasons: string[],
+    readonly decision: SwapDecision,
+  ) {
+    super(decision.blockedReason ?? (reasons.join('; ') || 'Trade blocked by risk policy'))
+    this.name = 'LaunchLabBlockedError'
   }
 }
 

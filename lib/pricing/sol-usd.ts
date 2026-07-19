@@ -2,19 +2,29 @@ import 'server-only'
 
 const WSOL = 'So11111111111111111111111111111111111111112'
 
+const PRICE_URLS = [
+  `https://api.jup.ag/price/v2?ids=${WSOL}`,
+  `https://lite-api.jup.ag/price/v2?ids=${WSOL}`,
+]
+
 /** Live SOL/USD for swap quotes and fee displays. */
 export async function fetchSolUsdPrice(): Promise<number> {
-  try {
-    const res = await fetch(`https://price.jup.ag/v6/price?ids=${WSOL}`, {
-      next: { revalidate: 30 },
-    })
-    const data = (await res.json()) as {
-      data?: Record<string, { price?: number }>
+  for (const url of PRICE_URLS) {
+    try {
+      const headers: HeadersInit = { Accept: 'application/json' }
+      const key = process.env.JUPITER_API_KEY?.trim()
+      if (key) (headers as Record<string, string>)['x-api-key'] = key
+      const res = await fetch(url, { headers, next: { revalidate: 30 } })
+      if (!res.ok) continue
+      const data = (await res.json()) as {
+        data?: Record<string, { price?: number | string }>
+      }
+      const raw = data?.data?.[WSOL]?.price
+      const price = typeof raw === 'number' ? raw : Number(raw)
+      if (Number.isFinite(price) && price > 0) return price
+    } catch {
+      /* try next host */
     }
-    const price = data?.data?.[WSOL]?.price
-    if (typeof price === 'number' && price > 0) return price
-  } catch {
-    /* fall through */
   }
   try {
     const cg = await fetch(

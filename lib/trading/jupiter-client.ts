@@ -1,12 +1,16 @@
 /**
- * Jupiter v6 client — Solana swap quotes, simulation, and swap-transaction build.
- * Native fetch only (no SDK dependency). Quote + simulate are server-safe;
- * signing/sending is delegated to a caller-supplied wallet (client-side).
+ * Jupiter Swap API client — quotes + swap-transaction build.
+ * Native fetch only (no SDK). Uses Metis Swap API hosts (quote-api.jup.ag retired).
+ * Signing/sending stays wallet-side (non-custodial).
  */
 
-const JUPITER_QUOTE_API = 'https://quote-api.jup.ag/v6/quote'
-const JUPITER_SWAP_API = 'https://quote-api.jup.ag/v6/swap'
-const DEFAULT_TIMEOUT_MS = 4000
+const JUPITER_SWAP_BASES = [
+  (process.env.JUPITER_API_BASE ?? '').replace(/\/$/, ''),
+  'https://api.jup.ag/swap/v1',
+  'https://lite-api.jup.ag/swap/v1',
+].filter(Boolean)
+
+const DEFAULT_TIMEOUT_MS = 8_000
 
 export type JupiterQuote = {
   inputMint: string
@@ -25,33 +29,55 @@ export type JupiterQuote = {
 export class JupiterError extends Error {
   constructor(
     message: string,
-    readonly status?: number
+    readonly status?: number,
   ) {
     super(message)
     this.name = 'JupiterError'
   }
 }
 
-/** Minimal wallet surface — avoids a hard dependency on @solana/wallet-adapter types. */
 export type JupiterQuoteOptions = {
   platformFeeBps?: number
 }
 
 export type JupiterSwapBuildOptions = {
   feeAccount?: string
+  prioritizationFeeLamports?: number | 'auto' | { jitoTipLamports: number }
 }
 
-/** Minimal wallet surface — avoids a hard dependency on @solana/wallet-adapter types. */
 export type WalletLike = {
   publicKey: { toBase58(): string } | null
   signTransaction: <T>(tx: T) => Promise<T>
 }
 
-async function fetchJson(url: string, init?: RequestInit, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<unknown> {
+function jupiterHeaders(extra?: HeadersInit): HeadersInit {
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+  }
+  const key = process.env.JUPITER_API_KEY?.trim()
+  if (key) headers['x-api-key'] = key
+  if (extra) {
+    const e = new Headers(extra)
+    e.forEach((v, k) => {
+      headers[k] = v
+    })
+  }
+  return headers
+}
+
+async function fetchJson(
+  url: string,
+  init?: RequestInit,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<unknown> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
-    const res = await fetch(url, { ...init, signal: controller.signal })
+    const res = await fetch(url, {
+      ...init,
+      headers: jupiterHeaders(init?.headers),
+      signal: controller.signal,
+    })
     const text = await res.text()
     const parsed = text ? JSON.parse(text) : null
     if (!res.ok) {
@@ -70,12 +96,28 @@ async function fetchJson(url: string, init?: RequestInit, timeoutMs = DEFAULT_TI
   }
 }
 
+/** Try primary + fallback Jupiter hosts (retired quote-api.jup.ag). */
+async function fetchJsonWithFallback(
+  pathAndQuery: string,
+  init?: RequestInit,
+): Promise<unknown> {
+  let last: unknown
+  for (const base of JUPITER_SWAP_BASES) {
+    try {
+      return await fetchJson(`${base}${pathAndQuery}`, init)
+    } catch (e) {
+      last = e
+    }
+  }
+  throw last instanceof Error ? last : new JupiterError(String(last))
+}
+
 export async function getJupiterQuote(
   inputMint: string,
   outputMint: string,
   amountLamports: number,
   slippageBps: number,
-  options?: JupiterQuoteOptions
+  options?: JupiterQuoteOptions,
 ): Promise<JupiterQuote> {
   const q = new URLSearchParams({
     inputMint,
@@ -87,7 +129,7 @@ export async function getJupiterQuote(
   if (typeof feeBps === 'number' && feeBps > 0) {
     q.set('platformFeeBps', String(feeBps))
   }
-  const data = (await fetchJson(`${JUPITER_QUOTE_API}?${q.toString()}`)) as Record<string, unknown>
+  const data = (await fetchJsonWithFallback(`/quote?${q.toString()}`)) as Record<string, unknown>
   if (!data || typeof data.outAmount !== 'string') {
     throw new JupiterError('No route found for this pair/amount')
   }
@@ -113,7 +155,7 @@ export async function simulateJupiterSwap(
   inputMint: string,
   outputMint: string,
   amountLamports: number,
-  slippageBps = 50
+  slippageBps = 50,
 ): Promise<{ priceImpactPct: number; outAmount: number }> {
   const quote = await getJupiterQuote(inputMint, outputMint, amountLamports, slippageBps)
   return {
@@ -129,7 +171,7 @@ export async function simulateJupiterSwap(
 export async function buildJupiterSwapTransaction(
   quote: JupiterQuote,
   userPublicKey: string,
-  options?: JupiterSwapBuildOptions
+  options?: JupiterSwapBuildOptions,
 ): Promise<string> {
   const body: Record<string, unknown> = {
     quoteResponse: quote.raw,
@@ -140,7 +182,10 @@ export async function buildJupiterSwapTransaction(
   if (options?.feeAccount) {
     body.feeAccount = options.feeAccount
   }
-  const data = (await fetchJson(JUPITER_SWAP_API, {
+  if (options?.prioritizationFeeLamports != null) {
+    body.prioritizationFeeLamports = options.prioritizationFeeLamports
+  }
+  const data = (await fetchJsonWithFallback(`/swap`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),

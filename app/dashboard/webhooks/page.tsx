@@ -1,5 +1,10 @@
-import WebhooksClient from '@/app/dashboard/webhooks/webhooks-client'
+import { requireAuthenticatedPage } from '@/lib/operator/require-operator'
+import WebhooksClient from './webhooks-client'
 
-export default function DashboardWebhooksPage() {
+/** Enterprise webhooks UI — session required; Enterprise enforced on APIs. */
+export const dynamic = 'force-dynamic'
+
+export default async function DashboardWebhooksPage() {
+  await requireAuthenticatedPage('/dashboard/webhooks')
   return <WebhooksClient />
 }

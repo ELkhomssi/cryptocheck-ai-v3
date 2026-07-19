@@ -5,8 +5,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, type ReactNode, type ComponentType } from 'react'
 import type { AgentFeedEvent, UnifiedSignal } from '@cryptocheck/signal-contracts'
-import type { ScanResult } from '@/lib/revenue-dashboard/types'
-import { SignalSwapSheet } from '@/components/signals-dashboard/SignalSwapSheet'
 import { useSignalFeed } from '@/lib/signals-dashboard/use-signal-feed'
 import { formatAge } from '@/lib/signals-dashboard/format'
 import { buildTickerAlerts } from '@/lib/command-center/alerts'
@@ -16,9 +14,7 @@ import {
   rankHotOpportunities,
   type HotSortKey,
 } from '@/lib/command-center/stats'
-import { scanResultToFactors, verdictLabel } from '@/lib/command-center/scan-factors'
 import { truncateWallet, type TopTradersResult } from '@/lib/command-center/top-traders-types'
-import { appToolUrl } from '@/lib/dashboard/app-routes'
 import { DASHBOARD_NAV, isDashNavActive } from '@/lib/dashboard/nav'
 import { CryptoCheckLogo } from '@/components/brand/CryptoCheckLogo'
 import { DataSourcesStrip } from './DataSourcesStrip'
@@ -26,8 +22,13 @@ import { FeedConnectionPill } from './primitives/FeedConnectionPill'
 import { FeedSectionState } from './primitives/FeedSectionState'
 import type { FeedLoadState } from '@/lib/signals-dashboard/feed-load-state'
 import { VerifiedTrackRecordPanel } from './VerifiedTrackRecordPanel'
-import { SniperPanel } from './SniperPanel'
-import { SpinTheWheel } from './SpinTheWheel'
+import { ActionPanel } from './ActionPanel'
+import { ActionPanelProvider, useActionPanel } from './action-panel-context'
+import { AccountMenu } from './AccountMenu'
+import { DashToastProvider } from './DashToast'
+import { LaunchedLane } from './LaunchedLane'
+import { RewardsWidget } from './RewardsWidget'
+import { MatchCard } from './TxOddsLivePanel'
 import {
   Bell,
   ChevronLeft,
@@ -90,19 +91,6 @@ function payloadStr(signal: UnifiedSignal, key: string): string {
   if (v == null || v === '') return '—'
   if (typeof v === 'number') return v.toLocaleString()
   return String(v)
-}
-
-function factorTone(word: string): string {
-  if (['Low', 'Safe', 'Strong', 'Good'].includes(word)) return 'text-dash-green'
-  if (word === 'Moderate') return 'text-dash-gold'
-  return 'text-dash-red'
-}
-
-function riskWord(verdict: ScanResult['verdict'] | undefined): string {
-  if (verdict === 'SAFE') return 'Low Risk'
-  if (verdict === 'CAUTION') return 'Moderate Risk'
-  if (verdict) return 'High Risk'
-  return '—'
 }
 
 /* ── Primitives ──────────────────────────────────────────────────────────── */
@@ -290,20 +278,33 @@ function SmartMoneyAvatars() {
   )
 }
 
-function scrollToHot() {
-  document.getElementById('hot-opportunities')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
-
 /* ── Main layout (NORO Marketplace) ──────────────────────────────────────── */
 
-export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: DashboardNewProps) {
+export function DashboardNew(props: DashboardNewProps) {
+  return (
+    <DashToastProvider>
+      <ActionPanelProvider>
+        <DashboardNewInner {...props} />
+      </ActionPanelProvider>
+    </DashToastProvider>
+  )
+}
+
+function DashboardNewInner({ userEmail, effectiveTier, isAnonymousPreview }: DashboardNewProps) {
   const pathname = usePathname()
+  const { selectSignal, setMode } = useActionPanel()
+  const [launchRefreshKey, setLaunchRefreshKey] = useState(0)
   const premiumToken =
     typeof process.env.NEXT_PUBLIC_SIGNAL_PREMIUM_TOKEN === 'string'
       ? process.env.NEXT_PUBLIC_SIGNAL_PREMIUM_TOKEN
       : undefined
 
-  // Token lane — Telegram CAs → stats / Hot Opps / Early Gems.
+  const [feedTab, setFeedTab] = useState<'token' | 'match_event'>('token')
+  const [agentOpen, setAgentOpen] = useState(false)
+
+  const tokenFeed = useSignalFeed({ subjectType: 'token', sourceTag: 'telegram' }, { premiumToken })
+  const sportsFeed = useSignalFeed({ subjectType: 'match_event' }, { premiumToken })
+
   const {
     signals: tokenSignalsMap,
     connection,
@@ -311,16 +312,17 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
     errorMessage,
     recentIds,
     reload,
-  } = useSignalFeed({ subjectType: 'token', sourceTag: 'telegram' }, { premiumToken })
+  } = tokenFeed
 
   const reconnecting = connection === 'reconnecting'
   const feedHandshake = connection === 'connecting' || connection === 'listening'
 
   const tokenSignals = useMemo(() => [...tokenSignalsMap.values()], [tokenSignalsMap])
+  const sportsSignals = useMemo(() => [...sportsFeed.signals.values()], [sportsFeed.signals])
   const stats = useMemo(() => computeAlphaFeedStats(tokenSignals), [tokenSignals])
 
   const [sort, setSort] = useState<HotSortKey>('score')
-  const [filter24h, setFilter24h] = useState(true)
+  const [filter24h, setFilter24h] = useState(false)
   const [filterSafe, setFilterSafe] = useState(false)
   const hotRows = useMemo(() => {
     const ranked = rankHotOpportunities(tokenSignals, sort, filter24h)
@@ -341,8 +343,8 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
   }, [])
 
   const tickerAlerts = useMemo(
-    () => buildTickerAlerts(tokenSignals, agentEvents),
-    [tokenSignals, agentEvents],
+    () => buildTickerAlerts([...tokenSignals, ...sportsSignals], agentEvents),
+    [tokenSignals, sportsSignals, agentEvents],
   )
 
   const [topTraders, setTopTraders] = useState<TopTradersResult | null>(null)
@@ -355,46 +357,43 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
       )
   }, [])
 
-  const [scan, setScan] = useState<ScanResult | null>(null)
-  const [scanning, setScanning] = useState(false)
-  const [mintInput, setMintInput] = useState('')
-  const [swapSignal, setSwapSignal] = useState<UnifiedSignal | null>(null)
-  const [sheetOpen, setSheetOpen] = useState(false)
-
-  const runScan = useCallback(async (mint: string) => {
-    setScanning(true)
-    try {
-      const res = await fetch('/api/revenue/scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mint }),
-      })
-      const body = await res.json()
-      if (res.ok) setScan(body as ScanResult)
-    } catch (e) {
-      console.error('[dashboard] scan failed', e)
-    } finally {
-      setScanning(false)
-    }
-  }, [])
-
   const onScanRow = useCallback(
     (signal: UnifiedSignal) => {
-      const mint = signal.contractAddress?.trim()
-      if (mint) void runScan(mint)
+      selectSignal(signal, 'scan')
+      document.getElementById('action-panel')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     },
-    [runScan],
+    [selectSignal],
   )
 
-  const onSwap = useCallback((signal: UnifiedSignal) => {
-    setSwapSignal(signal)
-    setSheetOpen(true)
-  }, [])
+  const onSwap = useCallback(
+    (signal: UnifiedSignal) => {
+      selectSignal(signal, 'swap')
+      document.getElementById('action-panel')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    },
+    [selectSignal],
+  )
+
+  const onNavPanel = useCallback(
+    (panel?: 'scan' | 'swap' | 'sniper' | 'launch' | 'rewards' | 'sports') => {
+      if (!panel) return
+      if (panel === 'sports') {
+        setFeedTab('match_event')
+        document.getElementById('hot-opportunities')?.scrollIntoView({ behavior: 'smooth' })
+        return
+      }
+      if (panel === 'rewards') {
+        document.getElementById('rewards')?.scrollIntoView({ behavior: 'smooth' })
+        return
+      }
+      setMode(panel)
+      document.getElementById('action-panel')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    },
+    [setMode],
+  )
 
   const displayName = userEmail ? userEmail.split('@')[0] : 'Guest'
   const tierLabel =
     effectiveTier === 'FREE' ? 'Free Member' : effectiveTier === 'PRO' ? 'Pro Member' : effectiveTier
-  const scanFactors = scan ? scanResultToFactors(scan) : null
   const showUpgrade = isAnonymousPreview || effectiveTier === 'FREE'
 
   const metricTiles: Array<{
@@ -488,6 +487,21 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
                       ? 'bg-dash-green/10 font-medium text-dash-green'
                       : 'text-dash-tmid hover:bg-dash-panel2 hover:text-dash-thi'
                   }`
+                  if (item.panel) {
+                    return (
+                      <button
+                        key={item.label}
+                        type="button"
+                        onClick={() => onNavPanel(item.panel)}
+                        className={cls + ' w-full text-left'}
+                      >
+                        {active ? (
+                          <span className="absolute bottom-1 left-0 top-1 w-[3px] rounded-r bg-dash-green" />
+                        ) : null}
+                        {inner}
+                      </button>
+                    )
+                  }
                   return item.external ? (
                     <a key={item.label} href={item.href} className={cls}>
                       {active ? (
@@ -507,29 +521,6 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
               </div>
             ))}
           </nav>
-
-          <div className="m-3 rounded-dash-inner border border-dash-hairline bg-dash-panel2 p-3">
-            <p className="font-space text-[11px] font-semibold uppercase tracking-[0.14em] text-dash-gold">
-              Deal Flow Access
-            </p>
-            <p className="mt-1 text-xs text-dash-tmid">
-              Unlock Investor Pro signals, curated deal flow, and priority scan throughput.
-            </p>
-            <div className="mt-3 flex flex-col gap-2">
-              <Link
-                href="/app/upgrade"
-                className="block w-full rounded-dash-chip bg-dash-gold py-2 text-center text-xs font-bold text-dash-bg noro-glow-orange transition-opacity duration-150 hover:opacity-90"
-              >
-                Upgrade Pro
-              </Link>
-              <Link
-                href="/app/upgrade"
-                className="block w-full rounded-dash-chip border border-dash-sky py-2 text-center text-xs font-semibold text-dash-sky transition-colors duration-150 hover:bg-dash-sky/10"
-              >
-                Premium
-              </Link>
-            </div>
-          </div>
         </aside>
 
         {/* ── Center column ── */}
@@ -577,17 +568,7 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
                   <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-dash-gold" />
                 ) : null}
               </Link>
-              <div className="flex items-center gap-2 rounded-dash-pill border border-dash-innerline bg-dash-panel2 px-3 py-1.5">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-dash-green/20 text-xs font-bold text-dash-green">
-                  {displayName.slice(0, 1).toUpperCase()}
-                </span>
-                <div className="hidden sm:block">
-                  <p className="max-w-[140px] truncate text-[13px] font-medium text-dash-thi">
-                    {displayName}
-                  </p>
-                  <p className="text-[10px] uppercase tracking-wider text-dash-tlo">{tierLabel}</p>
-                </div>
-              </div>
+              <AccountMenu name={displayName} tier={tierLabel} />
             </div>
           </header>
 
@@ -597,34 +578,15 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
             </p>
           ) : null}
 
-          {/* Hero */}
-          <section className="dash-glass rounded-dash border border-dash-hairline px-5 py-8 md:px-8 md:py-10">
-            <span className="inline-flex rounded-dash-pill border border-dash-hairline px-3 py-1 font-space text-[10px] font-semibold uppercase tracking-[0.16em] text-dash-tmid">
-              The Smart Alpha Marketplace
-            </span>
-            <h1 className="mt-4 max-w-xl font-space text-3xl font-semibold tracking-tight text-dash-thi md:text-4xl">
-              Discover. Analyze.{' '}
-              <span className="text-dash-sky">Invest</span> in alpha.
-            </h1>
-            <p className="mt-3 max-w-lg text-sm text-dash-tmid">
-              Verified opportunities from multi-source intelligence — scan, score, and execute with
-              risk-gated swaps.
+          {/* Hero — Scan / Swap input dominates first viewport */}
+          <section
+            id="action-panel"
+            className="dash-glass relative z-10 rounded-dash border border-dash-green/25 px-4 py-5 shadow-dash-glow-emerald md:px-6 md:py-6"
+          >
+            <p className="mb-3 font-space text-[11px] font-semibold uppercase tracking-[0.16em] text-dash-tlo">
+              Scan · Swap · Snipe
             </p>
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={scrollToHot}
-                className="inline-flex items-center gap-2 rounded-dash-chip bg-dash-green px-5 py-2.5 text-sm font-bold text-dash-bg noro-glow-green transition-opacity duration-150 hover:opacity-90"
-              >
-                Explore Opportunities →
-              </button>
-              <Link
-                href="/dashboard/signals"
-                className="inline-flex items-center gap-2 rounded-dash-chip border border-dash-hairline px-5 py-2.5 text-sm font-semibold text-dash-thi transition-colors duration-150 hover:border-dash-green/40 hover:text-dash-green"
-              >
-                View Signals
-              </Link>
-            </div>
+            <ActionPanel onLaunched={() => setLaunchRefreshKey((k) => k + 1)} />
           </section>
 
           {/* Metric cards */}
@@ -671,14 +633,42 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
             id="hot-opportunities"
             className="dash-glass overflow-hidden rounded-dash border border-dash-hairline"
           >
+            <div className="flex flex-wrap items-center gap-2 border-b border-dash-innerline px-4 py-2 md:px-5">
+              <button
+                type="button"
+                onClick={() => setFeedTab('token')}
+                className={`rounded-dash-pill border px-3 py-1 text-[11px] font-bold uppercase tracking-wider ${
+                  feedTab === 'token'
+                    ? 'border-dash-green/40 bg-dash-green/10 text-dash-green'
+                    : 'border-dash-innerline text-dash-tmid'
+                }`}
+              >
+                Alpha
+              </button>
+              <button
+                type="button"
+                onClick={() => setFeedTab('match_event')}
+                className={`rounded-dash-pill border px-3 py-1 text-[11px] font-bold uppercase tracking-wider ${
+                  feedTab === 'match_event'
+                    ? 'border-dash-gold/40 bg-dash-gold/10 text-dash-gold'
+                    : 'border-dash-innerline text-dash-tmid'
+                }`}
+              >
+                Sports Odds
+              </button>
+            </div>
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-dash-innerline px-4 py-3 md:px-5">
               <div>
                 <p className="font-space text-[15px] font-semibold text-dash-thi">
-                  Top verified opportunities
+                  {feedTab === 'token' ? 'Top verified opportunities' : 'Live sports odds'}
                 </p>
-                <p className="mt-0.5 text-xs text-dash-tmid">Real-time AI-ranked token signals</p>
+                <p className="mt-0.5 text-xs text-dash-tmid">
+                  {feedTab === 'token'
+                    ? 'Real-time AI-ranked token signals'
+                    : 'TxODDS match events · informational only · no swap'}
+                </p>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className={`flex flex-wrap items-center gap-2 ${feedTab === 'match_event' ? 'hidden' : ''}`}>
                 <button
                   type="button"
                   onClick={() => setFilter24h((v) => !v)}
@@ -727,7 +717,8 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            {feedTab === 'token' ? (
+              <div className="overflow-x-auto">
               <FeedSectionState
                 state={feedState === 'data' && hotRows.length === 0 ? 'empty' : feedState}
                 errorMessage={errorMessage ?? undefined}
@@ -753,7 +744,7 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
                     </tr>
                   </thead>
                   <tbody>
-                    {hotRows.slice(0, 8).map((signal, idx) => {
+                    {hotRows.slice(0, 40).map((signal, idx) => {
                       const label = signal.label || signal.contractAddress?.slice(0, 6) || 'Token'
                       const score = Math.round(signal.scoreValue ?? 0)
                       const smartCount = signal.sourceCount ?? 0
@@ -788,6 +779,9 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
                                 </div>
                                 <p className="font-dash-mono text-[11px] text-dash-tmid">
                                   {signal.contractAddress?.slice(0, 8) ?? '—'}…
+                                  <span className="ml-1.5 text-dash-sky">
+                                    · {signal.sourceTag === 'telegram' ? 'Telegram' : signal.sourceTag}
+                                  </span>
                                 </p>
                               </div>
                             </div>
@@ -841,10 +835,82 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
                 </table>
               </FeedSectionState>
             </div>
+            ) : (
+              <div className="p-4 md:p-5">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-[11px] text-dash-tlo">
+                    Informational only · not swap recommendations · CryptoCheck AI signals
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setAgentOpen((v) => !v)}
+                    className="text-xs font-semibold text-dash-green hover:underline"
+                  >
+                    {agentOpen ? 'Hide Sentinel Edge' : 'Sentinel Edge agent'}
+                  </button>
+                </div>
+                {agentOpen ? (
+                  <div
+                    id="sentinel-edge-drawer"
+                    className="mb-4 max-h-[360px] overflow-y-auto rounded-dash-inner border border-dash-innerline bg-dash-inset p-3"
+                  >
+                    <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-dash-gold">
+                      Agent tape
+                    </p>
+                    {agentEvents.length === 0 ? (
+                      <p className="text-xs text-dash-tmid">No agent events yet.</p>
+                    ) : (
+                      <ul className="space-y-2">
+                        {agentEvents.slice(0, 12).map((ev, i) => {
+                          const detail =
+                            ev.type === 'agent.decision'
+                              ? `${ev.decision.side} · ${ev.decision.matchId}`
+                              : ev.type === 'agent.settlement'
+                                ? ev.settlement.matchId
+                                : ev.standDown.reason
+                          return (
+                            <li
+                              key={`${ev.type}-${i}`}
+                              className="rounded-dash-chip border border-dash-innerline px-2 py-1.5 text-[11px] text-dash-tmid"
+                            >
+                              <span className="font-dash-mono text-dash-thi">{ev.type}</span>
+                              {detail ? <span className="ml-2">{String(detail)}</span> : null}
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                ) : null}
+                <FeedSectionState
+                  state={
+                    sportsFeed.feedState === 'data' && sportsSignals.length === 0
+                      ? 'empty'
+                      : sportsFeed.feedState
+                  }
+                  errorMessage={sportsFeed.errorMessage ?? undefined}
+                  onRetry={() => void sportsFeed.reload()}
+                  emptyMessage="No live matches — awaiting next kickoff"
+                  loadingSkeleton={
+                    <div className="flex gap-3 overflow-x-auto">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="h-32 min-w-[240px] shrink-0 animate-shimmer rounded-dash-inner bg-dash-panel2" />
+                      ))}
+                    </div>
+                  }
+                >
+                  <div className="flex gap-3 overflow-x-auto pb-1">
+                    {sportsSignals.slice(0, 12).map((m) => (
+                      <MatchCard key={m.id} match={m} />
+                    ))}
+                  </div>
+                </FeedSectionState>
+              </div>
+            )}
 
             <footer className="border-t border-dash-innerline py-3 text-center">
               <Link
-                href="/dashboard/signals"
+                href="#hot-opportunities"
                 className="text-xs font-semibold text-dash-green hover:underline"
               >
                 View All Opportunities
@@ -865,7 +931,7 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
                 accent="orange"
                 action={
                   <Link
-                    href="/dashboard/signals"
+                    href="#hot-opportunities"
                     className="text-xs font-semibold text-dash-gold hover:underline"
                   >
                     View All
@@ -893,7 +959,13 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
                   return (
                     <article
                       key={g.id}
-                      className="rounded-dash-inner border border-dash-hairline bg-dash-panel2 p-3 transition-all duration-150 hover:-translate-y-0.5 hover:border-dash-gold/40"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => onScanRow(g)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') onScanRow(g)
+                      }}
+                      className="cursor-pointer rounded-dash-inner border border-dash-hairline bg-dash-panel2 p-3 transition-all duration-150 hover:-translate-y-0.5 hover:border-dash-gold/40"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
@@ -930,83 +1002,11 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
           </section>
         </div>
 
-        {/* ── Right rail ── */}
+        {/* ── Right rail — secondary panels (ActionPanel is hero in center) ── */}
         <aside className="flex min-w-0 flex-col gap-4 min-[1100px]:col-start-3 min-[1100px]:row-start-1">
-          <section className="dash-glass rounded-dash border border-dash-hairline p-4 md:p-5">
-            <div className="mb-4">
-              <SectionHeading
-                icon={Shield}
-                title="AI Token Scanner"
-                subtitle="Powered by Neural V4"
-                accent="blue"
-              />
-            </div>
+          <LaunchedLane refreshKey={launchRefreshKey} />
 
-            {scanning ? (
-              <div className="flex flex-col items-center py-8">
-                <div className="h-[110px] w-[110px] animate-shimmer rounded-full bg-dash-panel2" />
-                <p className="mt-4 text-xs text-dash-tmid">Scanning on-chain intelligence…</p>
-              </div>
-            ) : scan ? (
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-                <div className="flex flex-col items-center">
-                  <ScoreRing value={scan.safetyScore} size={110} stroke={6} />
-                  <p className="font-dash-mono mt-1 text-[11px] text-dash-tlo">/100</p>
-                  <p className="font-dash-mono text-[11px] uppercase text-dash-tmid">
-                    {riskWord(scan.verdict)}
-                  </p>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-dash-tlo">AI Verdict</p>
-                  <p className="font-space text-base font-semibold text-dash-thi">
-                    {verdictLabel(scan.verdict)}
-                  </p>
-                  <div className="mt-3 border-t border-dash-innerline pt-2">
-                    {scanFactors?.map((f) => (
-                      <div key={f.label} className="flex items-center gap-2 py-1.5 text-xs">
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-dash-green" />
-                        <span className="shrink-0 text-[12px] text-dash-tmid">{f.label}</span>
-                        <span className="min-w-0 flex-1 border-b border-dotted border-dash-innerline" />
-                        <span className={`shrink-0 text-[12px] font-medium ${factorTone(f.status)}`}>
-                          {f.status}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center py-6 text-center opacity-70">
-                <ScoreRing value={0} size={100} stroke={6} />
-                <p className="mt-4 text-sm text-dash-tmid">Scan a token to analyze</p>
-              </div>
-            )}
-
-            <div className="mt-4 space-y-2">
-              <input
-                type="text"
-                value={mintInput}
-                onChange={(e) => setMintInput(e.target.value)}
-                placeholder="Paste Solana mint address…"
-                className="font-dash-mono w-full rounded-dash-chip border border-dash-innerline bg-dash-inset px-3 py-2 text-xs text-dash-thi placeholder:text-dash-tlo focus:outline-none focus-visible:ring-2 focus-visible:ring-dash-green"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  const m = mintInput.trim()
-                  if (m.length >= 32) void runScan(m)
-                }}
-                disabled={scanning || mintInput.trim().length < 32}
-                className="w-full rounded-dash-chip bg-dash-green py-2.5 text-xs font-bold uppercase tracking-wider text-dash-bg noro-glow-green transition-opacity duration-150 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Scan Any Token
-              </button>
-            </div>
-          </section>
-
-          <SpinTheWheel />
-
-          <SniperPanel />
+          <RewardsWidget />
 
           <VerifiedTrackRecordPanel />
 
@@ -1016,7 +1016,7 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
                 <p className="font-space text-[13px] font-semibold text-dash-gold">Top Smart Money</p>
                 <p className="text-[11px] text-dash-tmid">Last 30 Days</p>
               </div>
-              <Link href={appToolUrl('whales')} className="text-xs text-dash-tlo hover:text-dash-gold">
+              <Link href="#hot-opportunities" className="text-xs text-dash-tlo hover:text-dash-gold">
                 View All
               </Link>
             </header>
@@ -1053,7 +1053,7 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
               </ul>
             )}
             <Link
-              href={appToolUrl('whales')}
+              href="#hot-opportunities"
               className="mt-4 block w-full rounded-dash-chip border border-dash-gold/30 py-2 text-center text-xs font-semibold text-dash-gold transition-colors duration-150 hover:bg-dash-gold/10"
             >
               Track Smart Money
@@ -1093,7 +1093,6 @@ export function DashboardNew({ userEmail, effectiveTier, isAnonymousPreview }: D
         </footer>
       </div>
 
-      <SignalSwapSheet open={sheetOpen} onClose={() => setSheetOpen(false)} signal={swapSignal} />
     </div>
   )
 }
