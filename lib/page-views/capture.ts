@@ -17,7 +17,10 @@ export function isBot(ua: string | null): boolean {
 export async function hashIp(raw: string | null, salt = process.env.IP_HASH_SALT ?? ''): Promise<string | null> {
   if (!raw) return null
   const enc = new TextEncoder().encode(raw + salt)
-  const digest = await crypto.subtle.digest('SHA-256', enc)
+  // Copy into a fresh ArrayBuffer — TS DOM lib rejects SharedArrayBuffer-backed views.
+  const bytes = new Uint8Array(enc.byteLength)
+  bytes.set(enc)
+  const digest = await crypto.subtle.digest('SHA-256', bytes)
   return Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
