@@ -26,15 +26,14 @@ export const FEE_DISCLOSURE_PATH = '/legal/fees'
 export const TERMS_PATH = '/legal/terms'
 
 export function terminalDeepLink(mint?: string): string {
-  /** Retired Revenue Terminal — deep-link Official Dashboard Action Panel. */
+  /** Official Dashboard Action Panel — mint preloads scan/swap. */
   if (!mint?.trim()) return '/dashboard#action-panel'
-  return `/dashboard#action-panel`
+  return `/dashboard?mint=${encodeURIComponent(mint.trim())}&mode=scan#action-panel`
 }
 
 /** Deep-link to sell a held token into SOL/USDC (exit to safety). */
 export function terminalExitDeepLink(mint: string): string {
-  void mint
-  return '/dashboard#action-panel'
+  return `/dashboard?mint=${encodeURIComponent(mint.trim())}&mode=swap#action-panel`
 }
 
 /** Display price for verified badge (client-safe). Server uses VERIFIED_BADGE_PRICE_USD env. */

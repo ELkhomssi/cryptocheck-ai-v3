@@ -292,7 +292,7 @@ export function DashboardNew(props: DashboardNewProps) {
 
 function DashboardNewInner({ userEmail, effectiveTier, isAnonymousPreview }: DashboardNewProps) {
   const pathname = usePathname()
-  const { selectSignal, setMode } = useActionPanel()
+  const { selectSignal, setMode, selectMint } = useActionPanel()
   const [launchRefreshKey, setLaunchRefreshKey] = useState(0)
   const premiumToken =
     typeof process.env.NEXT_PUBLIC_SIGNAL_PREMIUM_TOKEN === 'string'
@@ -301,6 +301,29 @@ function DashboardNewInner({ userEmail, effectiveTier, isAnonymousPreview }: Das
 
   const [feedTab, setFeedTab] = useState<'token' | 'match_event'>('token')
   const [agentOpen, setAgentOpen] = useState(false)
+
+  // Deep-link: /dashboard?mint=…&mode=scan|swap|coach#action-panel
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const mint = params.get('mint')?.trim() ?? ''
+    const modeRaw = params.get('mode')?.trim() ?? 'scan'
+    const mode =
+      modeRaw === 'swap' || modeRaw === 'sniper' || modeRaw === 'coach' || modeRaw === 'launch'
+        ? modeRaw
+        : 'scan'
+    if (mint.length >= 32) {
+      selectMint(mint, mode === 'coach' ? 'scan' : mode)
+      if (mode === 'coach') setMode('coach')
+    } else if (mode === 'coach') {
+      setMode('coach')
+    }
+    if (window.location.hash.includes('action-panel') || mint.length >= 32 || mode === 'coach') {
+      window.setTimeout(() => {
+        document.getElementById('action-panel')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }, 80)
+    }
+  }, [selectMint, setMode])
 
   const tokenFeed = useSignalFeed({ subjectType: 'token', sourceTag: 'telegram' }, { premiumToken })
   const sportsFeed = useSignalFeed({ subjectType: 'match_event' }, { premiumToken })
@@ -584,7 +607,7 @@ function DashboardNewInner({ userEmail, effectiveTier, isAnonymousPreview }: Das
             className="dash-glass relative z-10 rounded-dash border border-dash-green/25 px-4 py-5 shadow-dash-glow-emerald md:px-6 md:py-6"
           >
             <p className="mb-3 font-space text-[11px] font-semibold uppercase tracking-[0.16em] text-dash-tlo">
-              Scan · Swap · Snipe
+              Scan · Swap · Snipe · Coach
             </p>
             <ActionPanel onLaunched={() => setLaunchRefreshKey((k) => k + 1)} />
           </section>

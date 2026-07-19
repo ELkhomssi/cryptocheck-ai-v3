@@ -21,7 +21,14 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
       for (const client of list) {
-        if ('focus' in client && client.url.includes('/dashboard/signals')) {
+        if ('focus' in client && (client.url.includes('/dashboard/signals') || client.url.includes('/dashboard'))) {
+          if (typeof client.navigate === 'function' && url) {
+            try {
+              return client.navigate(url).then(() => client.focus())
+            } catch {
+              return client.focus()
+            }
+          }
           return client.focus()
         }
       }

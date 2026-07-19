@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Crosshair, Rocket, Shield, Zap } from 'lucide-react'
+import { Crosshair, GraduationCap, Rocket, Shield, Zap } from 'lucide-react'
 import type { UnifiedSignal } from '@cryptocheck/signal-contracts'
 import { namespacedSignalId } from '@cryptocheck/signal-contracts'
 import { SignalSwapSheet } from '@/components/signals-dashboard/SignalSwapSheet'
@@ -10,6 +10,7 @@ import { formatAge } from '@/lib/signals-dashboard/format'
 import { useActionPanel, type ActionMode } from './action-panel-context'
 import { LaunchPanel } from './LaunchPanel'
 import { SniperPanel } from './SniperPanel'
+import { CoachPanel } from './CoachPanel'
 import { isLaunchModeEnabled } from '@/lib/launch/feature-flag'
 
 function riskWord(v: string): string {
@@ -88,6 +89,7 @@ const MODES: { id: ActionMode; label: string; icon: typeof Shield; disabled?: bo
   { id: 'scan', label: 'Scan', icon: Shield },
   { id: 'swap', label: 'Swap', icon: Zap },
   { id: 'sniper', label: 'Sniper', icon: Crosshair },
+  { id: 'coach', label: 'Coach', icon: GraduationCap },
   {
     id: 'launch',
     label: LAUNCH_ENABLED ? 'Launch' : 'Launch · Soon',
@@ -279,6 +281,8 @@ export function ActionPanel({ onLaunched }: { onLaunched?: (mint: string) => voi
           <SniperPanel />
         </div>
       ) : null}
+
+      {mode === 'coach' ? <CoachPanel /> : null}
 
       {mode === 'launch' ? (
         LAUNCH_ENABLED ? (

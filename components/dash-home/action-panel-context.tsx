@@ -11,7 +11,7 @@ import {
 import type { UnifiedSignal } from '@cryptocheck/signal-contracts'
 import type { ScanResult } from '@/lib/revenue-dashboard/types'
 
-export type ActionMode = 'scan' | 'swap' | 'sniper' | 'launch'
+export type ActionMode = 'scan' | 'swap' | 'sniper' | 'launch' | 'coach'
 
 type ActionPanelState = {
   mode: ActionMode
@@ -76,15 +76,22 @@ export function ActionPanelProvider({ children }: { children: ReactNode }) {
     [runScan],
   )
 
-  const selectMint = useCallback((m: string, nextMode: ActionMode = 'scan') => {
-    setMint(m.trim())
-    setSignal(null)
-    const mode =
-      nextMode === 'launch' && !(process.env.NEXT_PUBLIC_LAUNCH_MODE_ENABLED === 'true')
-        ? 'scan'
-        : nextMode
-    setMode(mode)
-  }, [])
+  const selectMint = useCallback(
+    (m: string, nextMode: ActionMode = 'scan') => {
+      const trimmed = m.trim()
+      setMint(trimmed)
+      setSignal(null)
+      const mode =
+        nextMode === 'launch' && !(process.env.NEXT_PUBLIC_LAUNCH_MODE_ENABLED === 'true')
+          ? 'scan'
+          : nextMode
+      setMode(mode)
+      if (trimmed.length >= 32 && (mode === 'scan' || mode === 'swap')) {
+        void runScan(trimmed)
+      }
+    },
+    [runScan],
+  )
 
   const clearScan = useCallback(() => setScan(null), [])
 
