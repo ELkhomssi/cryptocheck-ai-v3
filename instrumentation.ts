@@ -33,7 +33,12 @@ export async function register() {
     const connection = new Connection(getRpcUrl(), 'confirmed')
     await bootGuardOrThrow(connection)
   } catch (e) {
-    console.error('[launch-boot-guard]', e instanceof Error ? e.message : e)
-    throw e
+    // Log only — never brick landing / Scan / Swap / Sniper for a LaunchLAB platform
+    // misconfig. Prepare/confirm routes still enforce guards at request time.
+    console.error(
+      '[launch-boot-guard] non-fatal:',
+      e instanceof Error ? e.message : e,
+      '— set LAUNCHLAB_PLATFORM_ID to the PlatformConfig PDA (not a wallet).',
+    )
   }
 }
