@@ -16,6 +16,7 @@ import type { SwapDecision } from '@/lib/trading/risk-gated-swap'
 import { simulateSerializedSwapTransaction } from '@/lib/services/swap-simulation'
 import { PlatformFeeConfirmRows } from '@/components/launchpad/PlatformFeeConfirmRows'
 import { computePlatformFeeDisclosure } from '@/lib/launchpad/platform-fee'
+import { sendSignedSwap } from '@/lib/execution/client-submit'
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112'
 
@@ -190,8 +191,13 @@ export function SignalSwapSheet({ signal, open, onClose, variant = 'sheet' }: Pr
 
       const tx = VersionedTransaction.deserialize(Buffer.from(swapTxBase64, 'base64'))
       const signed = await wallet.signTransaction(tx)
-      const sig = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false })
-      await connection.confirmTransaction(sig, 'confirmed')
+      const sent = await sendSignedSwap({
+        signed,
+        connection,
+        strategy,
+        opportunityId,
+      })
+      const sig = sent.signature
       setSignature(sig)
 
       await fetch('/api/revenue/record-fee', {

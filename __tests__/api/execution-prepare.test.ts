@@ -101,6 +101,13 @@ describe('execution OMS — Jito plan', () => {
   })
 })
 
+describe('execution OMS — client submit helper', () => {
+  it('exports sendSignedSwap for browser path', async () => {
+    const mod = await import('../../lib/execution/client-submit')
+    assert.equal(typeof mod.sendSignedSwap, 'function')
+  })
+})
+
 describe('execution OMS — audit status mapping', () => {
   it('maps block reasons to terminal statuses', () => {
     const base: Prep = {

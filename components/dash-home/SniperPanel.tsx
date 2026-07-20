@@ -7,6 +7,7 @@ import { VersionedTransaction } from '@solana/web3.js'
 import { Crown, Loader2, ShieldCheck, TriangleAlert, Zap } from 'lucide-react'
 import type { SnipeCandidate } from '@cryptocheck/signal-contracts'
 import { ANNUAL_SAVINGS_BADGE_PCT, type BillingCycle } from '@/lib/billing/upgrade-plans'
+import { sendSignedSwap } from '@/lib/execution/client-submit'
 
 type CandidatesResponse = {
   authenticated: boolean
@@ -278,8 +279,13 @@ export function SniperPanel() {
         const signed = await wallet.signTransaction(tx)
 
         setRow(c.id, { status: 'confirming', feeHuman })
-        const sig = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false })
-        await connection.confirmTransaction(sig, 'confirmed')
+        const sent = await sendSignedSwap({
+          signed,
+          connection,
+          strategy,
+          opportunityId: typeof body?.opportunityId === 'string' ? body.opportunityId : null,
+        })
+        const sig = sent.signature
 
         await fetch('/api/signals/snipe/record', {
           method: 'POST',

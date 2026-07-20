@@ -52,3 +52,5 @@ export {
   finalizeAuditWithSignature,
   preparedToAuditStatus,
 } from './audit-store'
+export { submitSignedExecution, pollJitoBundleStatus } from './submit'
+export type { BundlePollStatus } from './submit'
