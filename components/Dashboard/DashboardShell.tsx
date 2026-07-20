@@ -26,6 +26,7 @@ export function DashboardShell({
 }) {
   const pathname = usePathname()
   const isCommandCenterHome = pathname === '/dashboard'
+  const isTradingTerminal = pathname === '/dashboard/terminal' || pathname.startsWith('/dashboard/terminal/')
   const [health, setHealth] = useState<HealthPayload | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
@@ -104,9 +105,15 @@ export function DashboardShell({
           isAnonymousPreview ? 'pt-24 md:pt-20' : 'pt-12 md:pt-11'
         }`}
       >
-        <div className="relative z-[2] mx-auto max-w-[1200px] px-4 py-8 md:px-8 md:py-10">
-          {children}
-        </div>
+        {isTradingTerminal ? (
+          <div className="relative z-[2] h-full min-h-[calc(100vh-2.75rem)] overflow-hidden">
+            {children}
+          </div>
+        ) : (
+          <div className="relative z-[2] mx-auto max-w-[1200px] px-4 py-8 md:px-8 md:py-10">
+            {children}
+          </div>
+        )}
       </main>
     </div>
   )

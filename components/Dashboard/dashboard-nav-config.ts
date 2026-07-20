@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   ArrowLeftRight,
   Rocket,
+  Terminal,
 } from 'lucide-react'
 
 export type DashboardNavItem = {
@@ -21,6 +22,7 @@ export type DashboardNavItem = {
  */
 export const primaryNavItems: DashboardNavItem[] = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
+  { href: '/dashboard/terminal', label: 'Terminal', icon: Terminal },
   { href: '/dashboard/investigate', label: 'Dashboard Pro', icon: Code2, badge: 'DEV' },
   { href: '/dashboard?mode=swap#action-panel', label: 'Swap', icon: ArrowLeftRight },
   { href: '/dashboard?mode=sniper#action-panel', label: 'Sniper', icon: Crosshair },

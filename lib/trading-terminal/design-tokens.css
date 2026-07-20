@@ -1,0 +1,134 @@
+/**
+ * Trading Intelligence Terminal tokens — ember for action/brand only.
+ * PnL / risk use semantic green/red/amber — never ember.
+ */
+
+:root {
+  --tit-ember: #f25101;
+  --tit-ember-dim: #b93300;
+
+  --tit-bg-0: #07090c;
+  --tit-bg-1: #0c1016;
+  --tit-bg-2: #121822;
+  --tit-bg-3: #1a2230;
+
+  --tit-text-0: #e8eef7;
+  --tit-text-1: #9aa8bc;
+  --tit-text-2: #6b7a90;
+
+  --tit-pos: #3fe05a;
+  --tit-neg: #ff5a5a;
+  --tit-warn: #f2b84c;
+
+  --tit-safe: #3fe05a;
+  --tit-caution: #f2b84c;
+  --tit-danger: #ff5a5a;
+
+  --tit-sp-1: 4px;
+  --tit-sp-2: 8px;
+  --tit-sp-3: 12px;
+  --tit-sp-4: 16px;
+  --tit-radius: 4px;
+
+  --tit-motion: 120ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --tit-motion: 0ms;
+  }
+}
+
+.tit-shell {
+  background: var(--tit-bg-0);
+  color: var(--tit-text-0);
+  font-family: var(--font-space-grotesk), 'IBM Plex Sans', system-ui, sans-serif;
+}
+
+.tit-mono {
+  font-family: var(--font-mono-terminal), 'IBM Plex Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.tit-panel {
+  background: var(--tit-bg-1);
+  border: 1px solid color-mix(in srgb, var(--tit-text-2) 35%, transparent);
+  border-radius: var(--tit-radius);
+}
+
+.tit-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tit-text-2);
+}
+
+.tit-btn-ember {
+  background: var(--tit-ember);
+  color: #fff;
+  border-radius: var(--tit-radius);
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: background var(--tit-motion);
+}
+
+.tit-btn-ember:hover {
+  background: var(--tit-ember-dim);
+}
+
+.tit-btn-ember:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tit-compliance {
+  font-size: 0.65rem;
+  color: var(--tit-text-2);
+  line-height: 1.4;
+}
+
+.tit-sample-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--tit-warn) 18%, transparent);
+  color: var(--tit-warn);
+  border: 1px solid color-mix(in srgb, var(--tit-warn) 40%, transparent);
+}
+
+.tit-row-active {
+  background: color-mix(in srgb, var(--tit-ember) 12%, transparent);
+  border-left: 2px solid var(--tit-ember);
+}
+
+.tit-flash-pos {
+  animation: tit-flash-pos var(--tit-motion) ease-out;
+}
+
+.tit-flash-neg {
+  animation: tit-flash-neg var(--tit-motion) ease-out;
+}
+
+@keyframes tit-flash-pos {
+  from {
+    background: color-mix(in srgb, var(--tit-pos) 28%, transparent);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+@keyframes tit-flash-neg {
+  from {
+    background: color-mix(in srgb, var(--tit-neg) 28%, transparent);
+  }
+  to {
+    background: transparent;
+  }
+}
