@@ -89,7 +89,7 @@ export function canArmSniper(input: {
   maxRiskScore: number
   riskAck: boolean
   maxSol: number
-}): { ok: true } | { ok: false; reason: string } {
+}): { ok: boolean; reason: string | null } {
   if (input.mint.length < 32) return { ok: false, reason: 'Focus a mint first' }
   if (!input.riskAck) return { ok: false, reason: 'Acknowledge pre-arm risk summary' }
   if (!(input.maxSol > 0)) return { ok: false, reason: 'Max SOL must be > 0' }
@@ -100,5 +100,5 @@ export function canArmSniper(input: {
       reason: `Risk ${input.riskScore} ≥ abort threshold ${input.maxRiskScore}`,
     }
   }
-  return { ok: true }
+  return { ok: true, reason: null }
 }
