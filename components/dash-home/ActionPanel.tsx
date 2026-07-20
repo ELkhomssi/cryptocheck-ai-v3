@@ -11,6 +11,7 @@ import { useActionPanel, type ActionMode } from './action-panel-context'
 import { LaunchPanel } from './LaunchPanel'
 import { SniperPanel } from './SniperPanel'
 import { CoachPanel } from './CoachPanel'
+import { GuardianExitPrompt } from './GuardianExitPrompt'
 import { isLaunchModeEnabled } from '@/lib/launch/feature-flag'
 
 function riskWord(v: string): string {
@@ -112,7 +113,17 @@ function useSyncedDraft(seed: string) {
 export function ActionPanel({ onLaunched }: { onLaunched?: (mint: string) => void } = {}) {
   const { mode, setMode, mint, scan, scanning, signal, runScan, selectMint } = useActionPanel()
   const [mintDraft, setMintDraft] = useSyncedDraft(mint)
+  const [guardianExitId, setGuardianExitId] = useState<string | null>(null)
   const factors = scan ? scanResultToFactors(scan) : null
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const id = new URLSearchParams(window.location.search).get('guardianExit')?.trim() ?? ''
+    if (id.length >= 8) {
+      setGuardianExitId(id)
+      setMode('swap')
+    }
+  }, [setMode])
 
   const swapSignal: UnifiedSignal | null =
     signal?.subjectType === 'token'
@@ -261,6 +272,7 @@ export function ActionPanel({ onLaunched }: { onLaunched?: (mint: string) => voi
       {mode === 'swap' ? (
         <div>
           <p className="mb-2 font-space text-[13px] font-semibold text-dash-green">Risk-gated Swap</p>
+          {guardianExitId ? <GuardianExitPrompt pendingId={guardianExitId} /> : null}
           {swapSignal ? (
             <SignalSwapSheet
               signal={swapSignal}

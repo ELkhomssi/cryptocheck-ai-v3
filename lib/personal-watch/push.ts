@@ -66,3 +66,49 @@ export async function dispatchWatchDegradePush(event: WatchDegradeEvent): Promis
   }
   return { sent }
 }
+
+/**
+ * Push Guardian auto-exit ready-to-sign deeplink (premium only).
+ */
+export async function dispatchGuardianExitPush(
+  userId: string,
+  mint: string,
+  pendingId: string,
+): Promise<{ sent: number }> {
+  const tier = await resolveSignalTier({ userId })
+  if (tier !== 'premium') return { sent: 0 }
+
+  const sb = getSupabaseAdmin()
+  const { data: subs } = await sb
+    .from('signal_push_subscription')
+    .select('endpoint, p256dh, auth')
+    .eq('user_id', userId)
+
+  if (!subs?.length) return { sent: 0 }
+
+  const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ?? 'https://www.cryptocheckai.com'
+  const deepLink = `${base}/dashboard?mint=${encodeURIComponent(mint)}&mode=swap&guardianExit=${encodeURIComponent(pendingId)}#action-panel`
+
+  const payload = JSON.stringify({
+    title: 'Guardian Auto-Exit · sign now',
+    body: `${mint.slice(0, 4)}…${mint.slice(-4)} flagged DANGER — tap to sign your exit (non-custodial).`,
+    url: deepLink,
+    type: 'guardian_auto_exit',
+    pendingId,
+    mint,
+  })
+
+  let sent = 0
+  for (const sub of subs) {
+    try {
+      await sendWebPush(
+        { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
+        payload,
+      )
+      sent += 1
+    } catch {
+      /* expired */
+    }
+  }
+  return { sent }
+}

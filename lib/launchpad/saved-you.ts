@@ -13,7 +13,7 @@ export type UserBlockRow = {
   verdict: string
   score: number | null
   evidence: string | null
-  source: 'swap' | 'snipe' | 'manual' | 'watch'
+  source: 'swap' | 'snipe' | 'manual' | 'watch' | 'auto_exit'
   intendedAmountUsd: number | null
   blockedAt: string
   outcome: 'pending' | 'rugged' | 'survived' | 'expired'
@@ -27,7 +27,7 @@ export async function logUserBlock(input: {
   verdict: string
   score?: number
   evidence?: string
-  source: 'swap' | 'snipe' | 'manual' | 'watch'
+  source: 'swap' | 'snipe' | 'manual' | 'watch' | 'auto_exit'
   intendedAmountUsd?: number
 }): Promise<string | null> {
   try {

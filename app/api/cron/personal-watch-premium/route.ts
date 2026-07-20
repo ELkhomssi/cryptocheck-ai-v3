@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server'
 import { runPersonalWatchTick } from '@/lib/personal-watch/runner'
+import { PERSONAL_WATCH_PREMIUM_INTERVAL_SEC } from '@/lib/personal-watch/constants'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 export const maxDuration = 300
 
 /**
- * GET/POST /api/cron/personal-watch
- * Continuous rescan of unique tokens across watchlist ∪ portfolio holdings.
+ * GET/POST /api/cron/personal-watch-premium
+ * Premium-tier accelerated rescans (~45s throttle per mint).
  * Auth: Bearer CRON_SECRET
  */
 async function run(req: Request) {
@@ -19,16 +20,14 @@ async function run(req: Request) {
   }
 
   try {
-    const result = await runPersonalWatchTick('free')
+    const result = await runPersonalWatchTick('premium')
     return NextResponse.json({
       ok: true,
       ...result,
       evidence: {
-        mode: 'free',
-        costModel: 'scansExecuted === unique mints scanned this tick (capped), not user×mint',
-        watchlistRows: result.watchlistRows,
-        uniqueMints: result.uniqueMints,
-        scansExecuted: result.scansExecuted,
+        mode: 'premium',
+        targetIntervalSec: PERSONAL_WATCH_PREMIUM_INTERVAL_SEC,
+        costModel: 'premium mints only; one scan per unique mint per throttle window',
         timestamp: new Date().toISOString(),
       },
     })

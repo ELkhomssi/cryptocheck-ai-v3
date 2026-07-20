@@ -4,16 +4,24 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useActionPanel } from './action-panel-context'
 import { dashToast } from './DashToast'
-import type { CoachInsight, WatchDegradeEvent } from '@/lib/personal-watch/constants'
+import { GuardianAutoExitControls } from './GuardianAutoExitControls'
+import type {
+  CoachAlertView,
+  CoachInsight,
+  GuardianAutoExitEvent,
+  WatchDegradeEvent,
+} from '@/lib/personal-watch/constants'
 
 type CoachPayload = {
   premium: boolean
   upgradeHint: string | null
+  delayedTeaser: CoachAlertView | null
   weekly: { line: string; savesThisWeek: number; patternsFlagged: number; degradeAlertsThisWeek: number }
   alerts: WatchDegradeEvent[]
   insights: CoachInsight[]
   insightEmptyReason: string | null
   tradeCount: number
+  guardianEvents: GuardianAutoExitEvent[]
   saves: Array<{
     id: string
     mint: string
@@ -40,12 +48,14 @@ export function CoachPanel() {
       }
       const body = (await res.json()) as CoachPayload
       setData(body)
-      const newest = body.alerts[0]?.id
-      if (newest && seenAlert && newest !== seenAlert) {
-        const a = body.alerts[0]!
-        dashToast(`Watch: ${a.newVerdict} · ${a.reason.slice(0, 80)}`)
+      if (body.premium) {
+        const newest = body.alerts[0]?.id
+        if (newest && seenAlert && newest !== seenAlert) {
+          const a = body.alerts[0]!
+          dashToast(`Watch: ${a.newVerdict} · ${a.reason.slice(0, 80)}`)
+        }
+        if (newest) setSeenAlert(newest)
       }
-      if (newest) setSeenAlert(newest)
     } catch {
       setData(null)
     }
@@ -79,7 +89,26 @@ export function CoachPanel() {
         <p className="mt-1 text-[10px] text-dash-tlo">Every number is from your real rows — never fabricated.</p>
       </div>
 
-      {!data.premium && data.upgradeHint ? (
+      {data.premium ? <GuardianAutoExitControls /> : null}
+
+      {!data.premium && data.delayedTeaser ? (
+        <div className="relative overflow-hidden rounded-dash-chip border border-dash-gold/30 bg-dash-gold/10 px-3 py-3">
+          <div className="pointer-events-none select-none blur-sm">
+            <p className="font-dash-mono text-[10px] text-dash-tlo">
+              {data.delayedTeaser.prevVerdict} → {data.delayedTeaser.newVerdict}
+            </p>
+            <p className="mt-1 text-[11px] text-dash-thi">{data.delayedTeaser.reason}</p>
+            <p className="font-dash-mono mt-1 truncate text-[10px] text-dash-tlo">{data.delayedTeaser.mint}</p>
+          </div>
+          <p className="mt-2 text-[11px] text-dash-gold">
+            {data.upgradeHint}{' '}
+            <Link href="/app/upgrade" className="underline">
+              Upgrade
+            </Link>
+          </p>
+          <p className="mt-1 text-[10px] text-dash-tlo">90s delay · real event — not a demo alert</p>
+        </div>
+      ) : !data.premium && data.upgradeHint ? (
         <p className="rounded-dash-chip border border-dash-gold/30 bg-dash-gold/10 px-3 py-2 text-[11px] text-dash-gold">
           {data.upgradeHint}{' '}
           <Link href="/app/upgrade" className="underline">
@@ -90,7 +119,7 @@ export function CoachPanel() {
 
       <section>
         <p className="mb-2 text-[10px] uppercase tracking-[0.14em] text-dash-tlo">Recent watch alerts</p>
-        {data.alerts.length === 0 ? (
+        {data.alerts.length === 0 && !data.delayedTeaser ? (
           <p className="rounded-dash-chip border border-dashed border-dash-innerline px-3 py-4 text-center text-[11px] text-dash-tmid">
             No watch alerts yet. Add tokens to Watchlist or run a Portfolio scan — we re-check unique
             mints on an interval and only alert on real degradations.
@@ -133,6 +162,30 @@ export function CoachPanel() {
           </ul>
         )}
       </section>
+
+      {data.premium && data.guardianEvents.length > 0 ? (
+        <section>
+          <p className="mb-2 text-[10px] uppercase tracking-[0.14em] text-dash-tlo">Guardian auto-exits</p>
+          <ul className="space-y-2">
+            {data.guardianEvents.map((g) => (
+              <li key={g.id} className="rounded-dash-chip border border-dash-innerline px-3 py-2">
+                <span className="font-dash-mono text-[10px] uppercase text-dash-tlo">{g.status}</span>
+                <p className="mt-1 text-[11px] text-dash-thi">{g.reason ?? g.mint}</p>
+                {g.txSignature ? (
+                  <a
+                    href={`https://solscan.io/tx/${g.txSignature}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-dash-mono text-[10px] text-dash-sky underline"
+                  >
+                    {g.txSignature.slice(0, 12)}…
+                  </a>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section>
         <p className="mb-2 text-[10px] uppercase tracking-[0.14em] text-dash-tlo">
@@ -182,8 +235,8 @@ export function CoachPanel() {
         <p className="mb-2 text-[10px] uppercase tracking-[0.14em] text-dash-tlo">Saved-You</p>
         {data.saves.length === 0 ? (
           <p className="rounded-dash-chip border border-dashed border-dash-innerline px-3 py-4 text-center text-[11px] text-dash-tmid">
-            No proven saves yet. Watch DANGER alerts feed the same Saved-You engine as swap/snipe
-            blocks.
+            No proven saves yet. Watch DANGER alerts and Guardian auto-exits feed the same Saved-You
+            engine.
           </p>
         ) : (
           <ul className="space-y-2">

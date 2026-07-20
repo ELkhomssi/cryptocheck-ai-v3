@@ -20,15 +20,11 @@ export async function GET() {
   }
 
   const tier = await resolveSignalTier({ userId: user.id })
-  const dash = await buildCoachDashboard(user.id)
+  const dash = await buildCoachDashboard(user.id, tier)
 
   return NextResponse.json({
     tier,
     premium: tier === 'premium',
     ...dash,
-    upgradeHint:
-      tier === 'premium'
-        ? null
-        : 'Watch alerts + coach insights are a premium hook — upgrade for continuous personal watch pushes.',
   })
 }

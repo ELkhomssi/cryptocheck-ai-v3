@@ -11,6 +11,8 @@ import {
   type CoachWeeklySummary,
 } from './constants'
 import { countWatchDegradesSince, listWatchDegradeEventsForUser } from './events'
+import { applyFreeTierWatchDelay } from './coach-delay'
+import { listGuardianEventsForUser } from './guardian-auto-exit'
 import { nearestSnapshotBefore } from './snapshot-store'
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112'
@@ -205,8 +207,8 @@ export async function buildCoachWeeklySummary(userId: string): Promise<CoachWeek
   return { savesThisWeek, patternsFlagged, degradeAlertsThisWeek, line }
 }
 
-export async function buildCoachDashboard(userId: string) {
-  const [alerts, insightPack, weekly, saves] = await Promise.all([
+export async function buildCoachDashboard(userId: string, tier: 'free' | 'premium' = 'premium') {
+  const [rawAlerts, insightPack, weekly, saves, guardianEvents] = await Promise.all([
     listWatchDegradeEventsForUser(userId, 15),
     buildCoachInsights(userId),
     buildCoachWeeklySummary(userId),
@@ -224,14 +226,20 @@ export async function buildCoachDashboard(userId: string) {
         return []
       }
     })(),
+    listGuardianEventsForUser(userId, 5),
   ])
+
+  const { alerts, delayedTeaser, upgradeHint } = applyFreeTierWatchDelay(rawAlerts, tier)
 
   return {
     weekly,
     alerts,
+    delayedTeaser,
+    upgradeHint,
     insights: insightPack.insights,
     insightEmptyReason: insightPack.emptyReason,
     tradeCount: insightPack.tradeCount,
     saves,
+    guardianEvents,
   }
 }

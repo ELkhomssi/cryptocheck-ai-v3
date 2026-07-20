@@ -26,6 +26,10 @@
       "schedule": "*/10 * * * *"
     },
     {
+      "path": "/api/cron/personal-watch-premium",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/cron/saved-you-grade",
       "schedule": "0 * * * *"
     }
