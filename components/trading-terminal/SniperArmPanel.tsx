@@ -210,9 +210,9 @@ export function SniperArmPanel() {
             />
             I reviewed the pre-arm summary. Not financial advice.
           </label>
-          {!armCheck.ok ? (
+          {!armCheck.ok && (
             <p className="text-[0.6rem] text-[var(--tit-warn)]">{armCheck.reason}</p>
-          ) : null}
+          )}
           <button
             type="button"
             disabled={!armCheck.ok}
