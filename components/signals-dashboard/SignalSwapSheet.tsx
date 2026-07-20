@@ -19,6 +19,15 @@ import { computePlatformFeeDisclosure } from '@/lib/launchpad/platform-fee'
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112'
 
+type ExecStrategy = 'aggressive' | 'balanced' | 'conservative' | 'smart_entry'
+
+const STRATEGIES: { id: ExecStrategy; label: string }[] = [
+  { id: 'conservative', label: 'Safe' },
+  { id: 'balanced', label: 'Balanced' },
+  { id: 'aggressive', label: 'Fast' },
+  { id: 'smart_entry', label: 'Smart' },
+]
+
 type Props = {
   signal: UnifiedSignal | null
   open: boolean
@@ -32,6 +41,8 @@ export function SignalSwapSheet({ signal, open, onClose, variant = 'sheet' }: Pr
   const wallet = useWallet()
 
   const [amountUsd, setAmountUsd] = useState(50)
+  const [strategy, setStrategy] = useState<ExecStrategy>('balanced')
+  const [omsNote, setOmsNote] = useState<string | null>(null)
   const [quote, setQuote] = useState<SwapQuote | null>(null)
   const [quoteLoading, setQuoteLoading] = useState(false)
   const [decision, setDecision] = useState<SwapDecision | null>(null)
@@ -94,6 +105,7 @@ export function SignalSwapSheet({ signal, open, onClose, variant = 'sheet' }: Pr
     setSignature(null)
     setDangerOk(false)
     setDangerTyped('')
+    setOmsNote(null)
     void loadQuote()
   }, [open, signal, loadQuote])
 
@@ -107,20 +119,74 @@ export function SignalSwapSheet({ signal, open, onClose, variant = 'sheet' }: Pr
       setDangerOpen(true)
       return
     }
+    if (decision && !decision.allowed) {
+      setError(decision.blockedReason ?? 'Swap blocked by risk policy')
+      return
+    }
 
     setSwapping(true)
     setError(null)
+    setOmsNote(null)
     try {
-      const feeAcct = quote.platformFee.feeTokenAccount?.trim()
-      const swapTxBase64 = await buildJupiterSwapTransaction(
-        quote.quote,
-        wallet.publicKey.toBase58(),
-        feeAcct && quote.platformFee.bps > 0 ? { feeAccount: feeAcct } : undefined,
-      )
-      const sim = await simulateSerializedSwapTransaction(connection, swapTxBase64)
-      if (sim.sellSimulationFailed) {
-        throw new Error(sim.rpcError ?? 'Simulation failed')
+      const solPrice = 150
+      const amountSol = amountUsd / solPrice
+      let swapTxBase64: string | null = null
+      let opportunityId: string | null = null
+      let usedOms = false
+
+      const prepRes = await fetch('/api/execution/prepare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mint,
+          walletAddress: wallet.publicKey.toBase58(),
+          amountSol,
+          slippageBps: quote.slippageBps || DEFAULT_SLIPPAGE_BPS,
+          strategy,
+          source: signal?.sourceTag === 'launchpad' ? 'launchlab' : 'smart_alpha',
+          symbol: tokenSignal?.tokenSymbol,
+          clientRequestId: signal?.id,
+        }),
+      })
+      const prepBody = await prepRes.json().catch(() => ({}))
+
+      if (prepRes.status === 401) {
+        const feeAcct = quote.platformFee.feeTokenAccount?.trim()
+        swapTxBase64 = await buildJupiterSwapTransaction(
+          quote.quote,
+          wallet.publicKey.toBase58(),
+          feeAcct && quote.platformFee.bps > 0 ? { feeAccount: feeAcct } : undefined,
+        )
+        const sim = await simulateSerializedSwapTransaction(connection, swapTxBase64)
+        if (sim.sellSimulationFailed) {
+          throw new Error(sim.rpcError ?? 'Simulation failed')
+        }
+      } else if (!prepRes.ok || !prepBody?.allowed || !prepBody?.swapTransaction) {
+        throw new Error(
+          typeof prepBody?.blockReason === 'string'
+            ? prepBody.blockReason
+            : typeof prepBody?.error === 'string'
+              ? prepBody.error
+              : 'OMS prepare blocked',
+        )
+      } else {
+        usedOms = true
+        opportunityId = typeof prepBody.opportunityId === 'string' ? prepBody.opportunityId : null
+        swapTxBase64 = String(prepBody.swapTransaction)
+        const safety = prepBody.safety?.score
+        const simConf = prepBody.simulation?.confidence
+        setOmsNote(
+          [
+            strategy,
+            typeof safety === 'number' ? `safety ${safety}` : null,
+            typeof simConf === 'number' ? `sim ${(simConf * 100).toFixed(0)}%` : null,
+          ]
+            .filter(Boolean)
+            .join(' · '),
+        )
       }
+
+      if (!swapTxBase64) throw new Error('No swap transaction')
 
       const tx = VersionedTransaction.deserialize(Buffer.from(swapTxBase64, 'base64'))
       const signed = await wallet.signTransaction(tx)
@@ -143,7 +209,21 @@ export function SignalSwapSheet({ signal, open, onClose, variant = 'sheet' }: Pr
           feeTokenAccount: quote.platformFee.feeTokenAccount,
           signalId: signal?.id,
         }),
-      })
+      }).catch(() => undefined)
+
+      if (usedOms && opportunityId) {
+        await fetch('/api/execution/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            opportunityId,
+            mint,
+            walletAddress: wallet.publicKey.toBase58(),
+            txSignature: sig,
+            amountSol,
+          }),
+        }).catch(() => undefined)
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Swap failed')
     } finally {
@@ -157,7 +237,7 @@ export function SignalSwapSheet({ signal, open, onClose, variant = 'sheet' }: Pr
         <div className={variant === 'inline' ? 'max-h-[70vh] overflow-y-auto' : undefined}>
         <div className="mb-4 flex items-start justify-between gap-2">
           <div>
-            <p className="rd-label">Safe swap · Jupiter</p>
+            <p className="rd-label">Risk-gated swap · OMS</p>
             <h2 id="swap-sheet-title" className="font-rd-display text-lg font-bold uppercase text-rd-hi">
               {tokenSignal?.tokenSymbol ?? tokenSignal?.label}
             </h2>
@@ -198,6 +278,29 @@ export function SignalSwapSheet({ signal, open, onClose, variant = 'sheet' }: Pr
             />
           </div>
         ) : null}
+
+
+        <div className="mb-3">
+          <p className="mb-1.5 font-rd-mono text-[0.55rem] uppercase tracking-wider text-rd-lo">
+            Execution strategy
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {STRATEGIES.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setStrategy(s.id)}
+                className={`rounded-rd-sm px-2.5 py-1 text-[11px] font-semibold ${
+                  strategy === s.id
+                    ? 'bg-rd-green text-rd-navy'
+                    : 'border border-white/15 text-rd-mid hover:text-rd-hi'
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="flex flex-wrap gap-2">
           {SIGNAL_AMOUNT_PRESETS_USD.map((n) => (
@@ -251,6 +354,10 @@ export function SignalSwapSheet({ signal, open, onClose, variant = 'sheet' }: Pr
           </ul>
         ) : null}
 
+        {omsNote ? (
+          <p className="mt-2 font-rd-mono text-[10px] text-rd-mid">OMS · {omsNote}</p>
+        ) : null}
+
         {error ? (
           <p className="mt-3 text-sm text-rd-danger" role="alert">
             {error}
@@ -271,11 +378,11 @@ export function SignalSwapSheet({ signal, open, onClose, variant = 'sheet' }: Pr
           </button>
           <button
             type="button"
-            disabled={!quote || swapping || !wallet.connected}
+            disabled={!quote || swapping || !wallet.connected || (decision != null && !decision.allowed)}
             onClick={() => void executeSwap()}
             className="flex-1 rounded-rd-sm bg-rd-green px-4 py-2.5 font-rd-display text-[0.62rem] font-bold uppercase tracking-wider text-rd-navy disabled:opacity-50"
           >
-            {swapping ? 'Signing…' : 'Jupiter · Simulate & swap'}
+            {swapping ? 'Preparing…' : 'Simulate & swap'}
           </button>
         </div>
 

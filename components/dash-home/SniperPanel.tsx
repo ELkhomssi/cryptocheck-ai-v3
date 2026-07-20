@@ -82,6 +82,7 @@ export function SniperPanel() {
   const [guardian, setGuardian] = useState<GuardianSnapshot | null>(null)
   const [lastVerdictPath, setLastVerdictPath] = useState<string | null>(null)
   const [lastResolveMs, setLastResolveMs] = useState<number | null>(null)
+  const [strategy, setStrategy] = useState<'aggressive' | 'balanced' | 'conservative'>('aggressive')
 
   // Candidate ids already handled by auto-mode (seeded on arm so the existing
   // backlog is never retroactively sniped) + a serialization lock.
@@ -231,6 +232,7 @@ export function SniperPanel() {
             signalId: c.id,
             symbol: c.symbol,
             confirm,
+            strategy,
           }),
         })
         const body = await res.json()
@@ -294,6 +296,20 @@ export function SniperPanel() {
           }),
         }).catch(() => undefined)
 
+        if (typeof body?.opportunityId === 'string') {
+          await fetch('/api/execution/confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              opportunityId: body.opportunityId,
+              mint: c.mint,
+              walletAddress: wallet.publicKey.toBase58(),
+              txSignature: sig,
+              amountSol,
+            }),
+          }).catch(() => undefined)
+        }
+
         setRow(c.id, {
           status: 'done',
           signature: sig,
@@ -304,7 +320,7 @@ export function SniperPanel() {
         setRow(c.id, { status: 'error', message: e instanceof Error ? e.message : 'Snipe failed' })
       }
     },
-    [wallet, connection, amountSol, setRow],
+    [wallet, connection, amountSol, strategy, setRow],
   )
 
   // On arm: seed the "seen" set with the current backlog so Full Auto only
@@ -479,7 +495,27 @@ export function SniperPanel() {
 
       {/* Amount presets (SOL) — full-access only */}
       {fullAccess ? (
-      <div className="mb-3 flex items-center gap-2">
+      <div className="mb-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] uppercase tracking-wider text-dash-tlo">Strategy</span>
+          <div className="flex flex-wrap gap-1.5">
+            {(['conservative', 'balanced', 'aggressive'] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setStrategy(s)}
+                className={`rounded-dash-chip px-2.5 py-1 text-[10px] font-semibold capitalize transition-colors duration-150 ${
+                  strategy === s
+                    ? 'bg-dash-green text-dash-bg'
+                    : 'border border-dash-innerline text-dash-tmid hover:text-dash-thi'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+      <div className="flex items-center gap-2">
         <span className="text-[10px] uppercase tracking-wider text-dash-tlo">Size</span>
         <div className="flex flex-wrap gap-1.5">
           {AMOUNT_PRESETS_SOL.map((n) => (
@@ -497,6 +533,7 @@ export function SniperPanel() {
             </button>
           ))}
         </div>
+      </div>
       </div>
       ) : null}
 

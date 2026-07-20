@@ -234,6 +234,129 @@ export async function POST(req: Request) {
     scannedAt: new Date().toISOString(),
   })
 
+  // Institutional OMS path — capital + sim + safety + Jito plan.
+  // Default ON; set EXEC_OMS_ENABLED=false to use legacy Jupiter-only build.
+  const omsEnabled = process.env.EXEC_OMS_ENABLED !== 'false'
+  if (omsEnabled) {
+    const { prepareExecution, insertOpportunity, insertAuditFromPrepare, preparedToAuditStatus } =
+      await import('@/lib/execution')
+    type Strat = import('@/lib/execution').ExecutionStrategyMode
+    const strategyRaw = typeof body.strategy === 'string' ? body.strategy : 'aggressive'
+    const strategy: Strat =
+      strategyRaw === 'conservative' ||
+      strategyRaw === 'balanced' ||
+      strategyRaw === 'aggressive' ||
+      strategyRaw === 'smart_entry' ||
+      strategyRaw === 'post_dump_entry' ||
+      strategyRaw === 'liquidity_confirmation'
+        ? strategyRaw
+        : 'aggressive'
+    const opportunityId = crypto.randomUUID()
+    const opp: import('@/lib/execution').OpportunityIntake = {
+      opportunityId,
+      source: 'sniper',
+      userId: gate.userId,
+      walletAddress: userPublicKey,
+      mint,
+      symbol,
+      chain: 'solana',
+      side: 'buy',
+      amountSol,
+      strategy,
+      maxSlippageBps: slippageBps,
+      clientRequestId: signalId,
+      createdAt: new Date().toISOString(),
+    }
+    await insertOpportunity(opp)
+    const prepared = await prepareExecution(opp)
+    const omsStatus = preparedToAuditStatus(prepared)
+    const auditId = (await insertAuditFromPrepare(opp, prepared, omsStatus)) ?? opportunityId
+
+    if (!prepared.allowed || !prepared.unsignedTxBase64) {
+      return NextResponse.json(
+        {
+          error: prepared.blockReason ?? 'OMS prepare blocked',
+          code: 'OMS_BLOCKED',
+          opportunityId,
+          auditId,
+          verdictPath,
+          decision,
+          risk: prepared.risk,
+          simulation: prepared.simulation,
+          safety: prepared.safety,
+          capital: prepared.capital,
+          jitoPlan: prepared.jitoPlan,
+          compliance: SIGNAL_COMPLIANCE,
+        },
+        { status: 422 },
+      )
+    }
+
+    let feeAccount: string | null = null
+    let feeBps = 0
+    if (isPlatformFeeConfigured()) {
+      const feeCheck = await assertPlatformFeeAccountForOutput(mint)
+      if (feeCheck.ok) {
+        feeAccount = feeCheck.feeAccount
+        feeBps = getPlatformFeeBps()
+      }
+    }
+    const platformFeeOms = computePlatformFeeDisclosure({
+      feeBps: feeAccount ? feeBps : 0,
+      feeAccount,
+      outAmountBase: prepared.simulation?.expectedOutAmountBase ?? '0',
+      inAmountBase: String(Math.floor(amountSol * 1e9)),
+      inputMint: SOL_MINT,
+      outputMint: mint,
+    })
+
+    await logSnipeAction({
+      id: crypto.randomUUID(),
+      userId: gate.userId,
+      signalId,
+      mint,
+      symbol,
+      action: 'attempt',
+      allowed: true,
+      neuralScore: 100 - decision.riskScore,
+      verdict: decision.verdict,
+      redFlags: [],
+      evidenceSummary: `OMS prepare ${opportunityId} · fee=${platformFeeOms.feeAmountHuman}`,
+      createdAt: new Date().toISOString(),
+    })
+
+    const tRes = Date.now()
+    return NextResponse.json(
+      {
+        swapTransaction: prepared.unsignedTxBase64,
+        decision,
+        verdictPath,
+        opportunityId,
+        auditId,
+        oms: true,
+        risk: prepared.risk,
+        simulation: prepared.simulation,
+        safety: prepared.safety,
+        capital: prepared.capital,
+        jitoPlan: prepared.jitoPlan,
+        platformFeeBps: platformFeeOms.feeBps,
+        platformFee: platformFeeOms,
+        priceImpactPct: prepared.simulation?.priceImpactPct ?? 0,
+        slippageBps,
+        amountSol,
+        timing: {
+          request_received_ms: tReq,
+          response_returned_ms: tRes,
+          total_delta_ms: tRes - tReq,
+          resolve_delta_ms,
+          assess_delta_ms,
+        },
+        compliance: SIGNAL_COMPLIANCE,
+      },
+      { headers: { 'cache-control': 'no-store' } },
+    )
+  }
+
   const lamports = Math.floor(amountSol * 1_000_000_000)
   const feeConfigured = isPlatformFeeConfigured()
   let feeBps = 0
