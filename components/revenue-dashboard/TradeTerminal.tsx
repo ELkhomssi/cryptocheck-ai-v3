@@ -20,7 +20,7 @@ import {
 import type { ScanResult, SwapQuote } from '@/lib/revenue-dashboard/types'
 import { isQuoteExpired } from '@/lib/revenue-dashboard/swap-quote'
 import { buildJupiterSwapTransaction } from '@/lib/trading/jupiter-client'
-import { getPlatformFeeAccount, isPlatformFeeConfigured } from '@/lib/trading/platform-fee-config'
+import { isPlatformFeeConfigured } from '@/lib/trading/platform-fee-config'
 import type { SwapDecision } from '@/lib/trading/risk-gated-swap'
 import { simulateSerializedSwapTransaction } from '@/lib/services/swap-simulation'
 
@@ -285,11 +285,11 @@ export function TradeTerminal() {
       )
       if (!balance.ok) throw new Error('message' in balance ? balance.message : 'Insufficient balance')
 
-      const feeAccount = getPlatformFeeAccount()
+      const feeAccount = activeQuote.platformFee.feeTokenAccount?.trim()
       const swapTxBase64 = await buildJupiterSwapTransaction(
         activeQuote.quote,
         wallet.publicKey.toBase58(),
-        feeAccount ? { feeAccount } : undefined,
+        feeAccount && activeQuote.platformFee.bps > 0 ? { feeAccount } : undefined,
       )
 
       const sim = await simulateSerializedSwapTransaction(connection, swapTxBase64)

@@ -136,7 +136,7 @@ export function LaunchLabApp() {
             CryptoCheck
           </Link>
           <nav className="flex flex-wrap items-center gap-3 text-[13px] text-zinc-500">
-            <Link href="/dashboard/launchpad/swap" className="hover:text-zinc-200">
+            <Link href="/dashboard?mode=swap#action-panel" className="hover:text-zinc-200">
               Swap
             </Link>
             <Link href="/dashboard" className="hover:text-zinc-200">
@@ -145,7 +145,7 @@ export function LaunchLabApp() {
             <span className="rounded-full bg-cyan-500/15 px-2.5 py-0.5 font-medium text-cyan-300">
               LaunchLab
             </span>
-            <Link href="/dashboard/launchpad/sniper" className="hover:text-zinc-200">
+            <Link href="/dashboard?mode=sniper#action-panel" className="hover:text-zinc-200">
               Sniper
             </Link>
           </nav>
@@ -427,7 +427,7 @@ export function LaunchLabApp() {
                 <ExternalLink className="h-3.5 w-3.5" /> Solscan
               </a>
               <Link
-                href={`/dashboard/launchpad/swap?mint=${encodeURIComponent(selected.mint)}`}
+                href={`/dashboard?mint=${encodeURIComponent(selected.mint)}&mode=swap#action-panel`}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-400/90 px-3 py-2 text-xs font-semibold text-zinc-950 hover:bg-cyan-300"
               >
                 Risk Swap

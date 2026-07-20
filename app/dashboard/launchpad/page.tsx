@@ -1,25 +1,31 @@
 import Link from 'next/link'
-import { Crosshair, HandCoins, HeartHandshake, Rocket, Zap } from 'lucide-react'
+import { HeartHandshake, HandCoins, Rocket, ArrowLeftRight, Crosshair } from 'lucide-react'
 import { LAUNCHPAD_NAV } from '@/lib/launchpad/constants'
-import { getPlatformFeeBps, getPlatformFeeAccount, isPlatformFeeConfigured } from '@/lib/trading/platform-fee-config'
+import {
+  getPlatformFeeAuthority,
+  getPlatformFeeBps,
+  getPlatformFeeAccount,
+  isPlatformFeeConfigured,
+} from '@/lib/trading/platform-fee-config'
 
 export default function LaunchpadHomePage() {
   const bps = getPlatformFeeBps()
   const feeOk = isPlatformFeeConfigured()
   const account = getPlatformFeeAccount()
+  const authority = getPlatformFeeAuthority()
 
   const cards = [
     {
       href: LAUNCHPAD_NAV.swap,
-      icon: Zap,
+      icon: ArrowLeftRight,
       title: 'Risk-gated swap',
-      body: 'Jupiter quote with an explicit Platform fee line before you sign.',
+      body: 'Opens the official Dashboard Action Panel — one quote, explicit Platform fee, wallet signs.',
     },
     {
       href: LAUNCHPAD_NAV.sniper,
       icon: Crosshair,
       title: 'Verified sniper',
-      body: 'Cache-first Neural V4 verdicts — fast and safe, not a pure latency race.',
+      body: 'Same unified Sniper panel — cache-first verdicts, not a pure latency race.',
     },
     {
       href: LAUNCHPAD_NAV.saves,
@@ -45,8 +51,11 @@ export default function LaunchpadHomePage() {
           Launchpad
         </h2>
         <p className="mt-2 max-w-xl text-sm text-rd-mid">
-          Fees fund the firehose. Cached verdicts deliver speed. Saved-You receipts prove the gate
-          worked. Counsel before mainnet scale.
+          Browse saves and fee disclosure here. Swap and Sniper hand off to the official{' '}
+          <Link href="/dashboard" className="text-rd-green underline">
+            Dashboard
+          </Link>{' '}
+          Action Panel — one execution surface.
         </p>
       </header>
 
@@ -65,12 +74,14 @@ export default function LaunchpadHomePage() {
           <div>
             <dt className="text-[10px] uppercase text-rd-lo">Status</dt>
             <dd className={feeOk ? 'text-rd-green' : 'text-rd-caution'}>
-              {feeOk ? 'Configured' : 'Set PLATFORM_FEE_ACCOUNT'}
+              {feeOk ? 'Configured' : 'Set PLATFORM_FEE_AUTHORITY'}
             </dd>
           </div>
           <div>
-            <dt className="text-[10px] uppercase text-rd-lo">Fee ATA</dt>
-            <dd className="font-rd-mono truncate text-xs text-rd-mid">{account ?? '—'}</dd>
+            <dt className="text-[10px] uppercase text-rd-lo">Fee authority / ATA</dt>
+            <dd className="font-rd-mono truncate text-xs text-rd-mid">
+              {authority ?? account ?? '—'}
+            </dd>
           </div>
         </dl>
       </section>

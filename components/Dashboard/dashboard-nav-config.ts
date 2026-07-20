@@ -22,8 +22,8 @@ export type DashboardNavItem = {
 export const primaryNavItems: DashboardNavItem[] = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
   { href: '/dashboard/investigate', label: 'Dashboard Pro', icon: Code2, badge: 'DEV' },
-  { href: '/dashboard/launchpad/swap', label: 'Swap', icon: ArrowLeftRight },
-  { href: '/dashboard/launchpad/sniper', label: 'Sniper', icon: Crosshair },
+  { href: '/dashboard?mode=swap#action-panel', label: 'Swap', icon: ArrowLeftRight },
+  { href: '/dashboard?mode=sniper#action-panel', label: 'Sniper', icon: Crosshair },
   { href: '/launchLab', label: 'LaunchLab', icon: Rocket },
   { href: '/dashboard/alerts', label: 'Alerts', icon: Bell },
 ]

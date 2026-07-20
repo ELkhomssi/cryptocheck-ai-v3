@@ -8,7 +8,7 @@ export type LaunchpadNavItem = {
   icon: LucideIcon
 }
 
-/** Align with Trading Workspace — no fee/ops items. */
+/** Overview + saves + LaunchLab handoff — Swap/Sniper live on unified /dashboard. */
 export const LAUNCHPAD_SIDEBAR: LaunchpadNavItem[] = [
   { href: LAUNCHPAD_NAV.home, label: 'Overview', icon: Rocket },
   { href: LAUNCHPAD_NAV.swap, label: 'Swap', icon: Zap },

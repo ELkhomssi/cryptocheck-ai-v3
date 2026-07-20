@@ -27,8 +27,6 @@ import { ActionPanelProvider, useActionPanel } from './action-panel-context'
 import { AccountMenu } from './AccountMenu'
 import { DashToastProvider } from './DashToast'
 import { LaunchedLane } from './LaunchedLane'
-import { RewardsWidget } from './RewardsWidget'
-import { MatchCard } from './TxOddsLivePanel'
 import {
   Bell,
   ChevronLeft,
@@ -299,9 +297,6 @@ function DashboardNewInner({ userEmail, effectiveTier, isAnonymousPreview }: Das
       ? process.env.NEXT_PUBLIC_SIGNAL_PREMIUM_TOKEN
       : undefined
 
-  const [feedTab, setFeedTab] = useState<'token' | 'match_event'>('token')
-  const [agentOpen, setAgentOpen] = useState(false)
-
   // Deep-link: /dashboard?mint=…&mode=scan|swap|coach#action-panel
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -326,7 +321,6 @@ function DashboardNewInner({ userEmail, effectiveTier, isAnonymousPreview }: Das
   }, [selectMint, setMode])
 
   const tokenFeed = useSignalFeed({ subjectType: 'token', sourceTag: 'telegram' }, { premiumToken })
-  const sportsFeed = useSignalFeed({ subjectType: 'match_event' }, { premiumToken })
 
   const {
     signals: tokenSignalsMap,
@@ -341,7 +335,6 @@ function DashboardNewInner({ userEmail, effectiveTier, isAnonymousPreview }: Das
   const feedHandshake = connection === 'connecting' || connection === 'listening'
 
   const tokenSignals = useMemo(() => [...tokenSignalsMap.values()], [tokenSignalsMap])
-  const sportsSignals = useMemo(() => [...sportsFeed.signals.values()], [sportsFeed.signals])
   const stats = useMemo(() => computeAlphaFeedStats(tokenSignals), [tokenSignals])
 
   const [sort, setSort] = useState<HotSortKey>('score')
@@ -366,8 +359,8 @@ function DashboardNewInner({ userEmail, effectiveTier, isAnonymousPreview }: Das
   }, [])
 
   const tickerAlerts = useMemo(
-    () => buildTickerAlerts([...tokenSignals, ...sportsSignals], agentEvents),
-    [tokenSignals, sportsSignals, agentEvents],
+    () => buildTickerAlerts(tokenSignals, agentEvents),
+    [tokenSignals, agentEvents],
   )
 
   const [topTraders, setTopTraders] = useState<TopTradersResult | null>(null)
@@ -397,17 +390,8 @@ function DashboardNewInner({ userEmail, effectiveTier, isAnonymousPreview }: Das
   )
 
   const onNavPanel = useCallback(
-    (panel?: 'scan' | 'swap' | 'sniper' | 'launch' | 'rewards' | 'sports') => {
+    (panel?: 'scan' | 'swap' | 'sniper' | 'launch') => {
       if (!panel) return
-      if (panel === 'sports') {
-        setFeedTab('match_event')
-        document.getElementById('hot-opportunities')?.scrollIntoView({ behavior: 'smooth' })
-        return
-      }
-      if (panel === 'rewards') {
-        document.getElementById('rewards')?.scrollIntoView({ behavior: 'smooth' })
-        return
-      }
       setMode(panel)
       document.getElementById('action-panel')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     },
@@ -656,42 +640,16 @@ function DashboardNewInner({ userEmail, effectiveTier, isAnonymousPreview }: Das
             id="hot-opportunities"
             className="dash-glass overflow-hidden rounded-dash border border-dash-hairline"
           >
-            <div className="flex flex-wrap items-center gap-2 border-b border-dash-innerline px-4 py-2 md:px-5">
-              <button
-                type="button"
-                onClick={() => setFeedTab('token')}
-                className={`rounded-dash-pill border px-3 py-1 text-[11px] font-bold uppercase tracking-wider ${
-                  feedTab === 'token'
-                    ? 'border-dash-green/40 bg-dash-green/10 text-dash-green'
-                    : 'border-dash-innerline text-dash-tmid'
-                }`}
-              >
-                Alpha
-              </button>
-              <button
-                type="button"
-                onClick={() => setFeedTab('match_event')}
-                className={`rounded-dash-pill border px-3 py-1 text-[11px] font-bold uppercase tracking-wider ${
-                  feedTab === 'match_event'
-                    ? 'border-dash-gold/40 bg-dash-gold/10 text-dash-gold'
-                    : 'border-dash-innerline text-dash-tmid'
-                }`}
-              >
-                Sports Odds
-              </button>
-            </div>
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-dash-innerline px-4 py-3 md:px-5">
               <div>
                 <p className="font-space text-[15px] font-semibold text-dash-thi">
-                  {feedTab === 'token' ? 'Top verified opportunities' : 'Live sports odds'}
+                  Top verified opportunities
                 </p>
                 <p className="mt-0.5 text-xs text-dash-tmid">
-                  {feedTab === 'token'
-                    ? 'Real-time AI-ranked token signals'
-                    : 'TxODDS match events · informational only · no swap'}
+                  Real-time AI-ranked token signals
                 </p>
               </div>
-              <div className={`flex flex-wrap items-center gap-2 ${feedTab === 'match_event' ? 'hidden' : ''}`}>
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setFilter24h((v) => !v)}
@@ -740,8 +698,7 @@ function DashboardNewInner({ userEmail, effectiveTier, isAnonymousPreview }: Das
               </div>
             </div>
 
-            {feedTab === 'token' ? (
-              <div className="overflow-x-auto">
+            <div className="overflow-x-auto">
               <FeedSectionState
                 state={feedState === 'data' && hotRows.length === 0 ? 'empty' : feedState}
                 errorMessage={errorMessage ?? undefined}
@@ -858,78 +815,6 @@ function DashboardNewInner({ userEmail, effectiveTier, isAnonymousPreview }: Das
                 </table>
               </FeedSectionState>
             </div>
-            ) : (
-              <div className="p-4 md:p-5">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-[11px] text-dash-tlo">
-                    Informational only · not swap recommendations · CryptoCheck AI signals
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setAgentOpen((v) => !v)}
-                    className="text-xs font-semibold text-dash-green hover:underline"
-                  >
-                    {agentOpen ? 'Hide Sentinel Edge' : 'Sentinel Edge agent'}
-                  </button>
-                </div>
-                {agentOpen ? (
-                  <div
-                    id="sentinel-edge-drawer"
-                    className="mb-4 max-h-[360px] overflow-y-auto rounded-dash-inner border border-dash-innerline bg-dash-inset p-3"
-                  >
-                    <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-dash-gold">
-                      Agent tape
-                    </p>
-                    {agentEvents.length === 0 ? (
-                      <p className="text-xs text-dash-tmid">No agent events yet.</p>
-                    ) : (
-                      <ul className="space-y-2">
-                        {agentEvents.slice(0, 12).map((ev, i) => {
-                          const detail =
-                            ev.type === 'agent.decision'
-                              ? `${ev.decision.side} · ${ev.decision.matchId}`
-                              : ev.type === 'agent.settlement'
-                                ? ev.settlement.matchId
-                                : ev.standDown.reason
-                          return (
-                            <li
-                              key={`${ev.type}-${i}`}
-                              className="rounded-dash-chip border border-dash-innerline px-2 py-1.5 text-[11px] text-dash-tmid"
-                            >
-                              <span className="font-dash-mono text-dash-thi">{ev.type}</span>
-                              {detail ? <span className="ml-2">{String(detail)}</span> : null}
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    )}
-                  </div>
-                ) : null}
-                <FeedSectionState
-                  state={
-                    sportsFeed.feedState === 'data' && sportsSignals.length === 0
-                      ? 'empty'
-                      : sportsFeed.feedState
-                  }
-                  errorMessage={sportsFeed.errorMessage ?? undefined}
-                  onRetry={() => void sportsFeed.reload()}
-                  emptyMessage="No live matches — awaiting next kickoff"
-                  loadingSkeleton={
-                    <div className="flex gap-3 overflow-x-auto">
-                      {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="h-32 min-w-[240px] shrink-0 animate-shimmer rounded-dash-inner bg-dash-panel2" />
-                      ))}
-                    </div>
-                  }
-                >
-                  <div className="flex gap-3 overflow-x-auto pb-1">
-                    {sportsSignals.slice(0, 12).map((m) => (
-                      <MatchCard key={m.id} match={m} />
-                    ))}
-                  </div>
-                </FeedSectionState>
-              </div>
-            )}
 
             <footer className="border-t border-dash-innerline py-3 text-center">
               <Link
@@ -1029,7 +914,6 @@ function DashboardNewInner({ userEmail, effectiveTier, isAnonymousPreview }: Das
         <aside className="flex min-w-0 flex-col gap-4 min-[1100px]:col-start-3 min-[1100px]:row-start-1">
           <LaunchedLane refreshKey={launchRefreshKey} />
 
-          <RewardsWidget />
 
           <VerifiedTrackRecordPanel />
 

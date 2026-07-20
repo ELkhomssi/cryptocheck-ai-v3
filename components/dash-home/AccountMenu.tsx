@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useId, useRef, useState } from 'react'
-import { ChevronDown, Code2, CreditCard, KeyRound } from 'lucide-react'
+import { ChevronDown, Code2, CreditCard, Gift, KeyRound } from 'lucide-react'
 
 export type AccountMenuProps = {
   name: string
@@ -119,6 +119,15 @@ export function AccountMenu({ name, tier, variant = 'chip' }: AccountMenuProps) 
           >
             <CreditCard className="h-3.5 w-3.5 text-zinc-500" strokeWidth={1.5} />
             Billing
+          </Link>
+          <Link
+            href="/dashboard/rewards"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-3 py-2 font-mono text-xs text-zinc-300 transition-colors hover:bg-white/[0.05] hover:text-zinc-50"
+          >
+            <Gift className="h-3.5 w-3.5 text-zinc-500" strokeWidth={1.5} />
+            Rewards
           </Link>
           <Link
             href="/dashboard/api-keys"

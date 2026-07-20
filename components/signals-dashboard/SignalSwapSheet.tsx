@@ -12,7 +12,6 @@ import { SIGNAL_AMOUNT_PRESETS_USD } from '@/lib/signal-aggregator/constants'
 import type { SwapQuote } from '@/lib/revenue-dashboard/types'
 import { isQuoteExpired } from '@/lib/revenue-dashboard/swap-quote'
 import { buildJupiterSwapTransaction } from '@/lib/trading/jupiter-client'
-import { getPlatformFeeAccount, isPlatformFeeConfigured } from '@/lib/trading/platform-fee-config'
 import type { SwapDecision } from '@/lib/trading/risk-gated-swap'
 import { simulateSerializedSwapTransaction } from '@/lib/services/swap-simulation'
 import { PlatformFeeConfirmRows } from '@/components/launchpad/PlatformFeeConfirmRows'
@@ -112,10 +111,11 @@ export function SignalSwapSheet({ signal, open, onClose, variant = 'sheet' }: Pr
     setSwapping(true)
     setError(null)
     try {
+      const feeAcct = quote.platformFee.feeTokenAccount?.trim()
       const swapTxBase64 = await buildJupiterSwapTransaction(
         quote.quote,
         wallet.publicKey.toBase58(),
-        isPlatformFeeConfigured() ? { feeAccount: getPlatformFeeAccount() } : undefined,
+        feeAcct && quote.platformFee.bps > 0 ? { feeAccount: feeAcct } : undefined,
       )
       const sim = await simulateSerializedSwapTransaction(connection, swapTxBase64)
       if (sim.sellSimulationFailed) {

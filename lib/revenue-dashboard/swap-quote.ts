@@ -1,5 +1,10 @@
 import type { JupiterQuote } from '@/lib/trading/jupiter-client'
-import { getPlatformFeeAccount, getPlatformFeeBps } from '@/lib/trading/platform-fee-config'
+import {
+  getPlatformFeeAccount,
+  getPlatformFeeBps,
+  isPlatformFeeConfigured,
+  resolvePlatformFeeAccountForMint,
+} from '@/lib/trading/platform-fee-config'
 import type { SwapQuote } from './types'
 
 const QUOTE_TTL_MS = 30_000
@@ -31,15 +36,20 @@ function feeBaseFromQuote(quote: JupiterQuote, bps: number): string {
 
 export function buildSwapQuoteFromJupiter(
   quote: JupiterQuote,
-  meta?: { solUsd?: number; inputDecimals?: number }
+  meta?: { solUsd?: number; inputDecimals?: number; feeTokenAccountOverride?: string }
 ): SwapQuote {
-  const bps = getPlatformFeeBps()
-  const feeAccount = getPlatformFeeAccount() ?? ''
-  const feeBase = feeBaseFromQuote(quote, bps)
+  const configured = isPlatformFeeConfigured()
+  const bps = configured ? getPlatformFeeBps() : 0
+  const feeAccount =
+    meta?.feeTokenAccountOverride?.trim() ||
+    getPlatformFeeAccount() ||
+    resolvePlatformFeeAccountForMint(quote.outputMint) ||
+    ''
+  const feeBase = configured && feeAccount ? feeBaseFromQuote(quote, bps) : '0'
   const now = Date.now()
 
   let feeUsd: number | undefined
-  if (meta?.solUsd && quote.inputMint === 'So11111111111111111111111111111111111111112') {
+  if (configured && meta?.solUsd && quote.inputMint === 'So11111111111111111111111111111111111111112') {
     const lamports = Number(quote.inAmount)
     const sol = lamports / 1e9
     const volUsd = sol * meta.solUsd

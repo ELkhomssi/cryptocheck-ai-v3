@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { gatewayResponseHeaders } from '@/lib/connect/scan-gateway'
 import { getJupiterQuote } from '@/lib/trading/jupiter-client'
-import { getPlatformFeeAccount, getPlatformFeeBps } from '@/lib/trading/platform-fee-config'
+import { getPlatformFeeBps, isPlatformFeeConfigured } from '@/lib/trading/platform-fee-config'
 import { fetchSolUsdPrice } from '@/lib/pricing/sol-usd'
 import { isValidSolanaMint } from '@/lib/validation/mint'
 import { buildSwapQuoteFromJupiter } from '@/lib/revenue-dashboard/swap-quote'
@@ -66,11 +66,11 @@ export async function POST(req: NextRequest) {
   }
 
   const feeBps = getPlatformFeeBps()
-  const feeAccount = getPlatformFeeAccount()
   const amountBase = parseInputAmountBase(inputMint, amount, body.tokenDecimals)
 
-  let applyFee = Boolean(feeAccount && feeBps > 0)
-  if (applyFee && feeAccount) {
+  let feeAccount: string | null = null
+  let applyFee = isPlatformFeeConfigured() && feeBps > 0
+  if (applyFee) {
     const { assertPlatformFeeAccountForOutput } = await import('@/lib/launchpad/fee-account')
     const check = await assertPlatformFeeAccountForOutput(outputMint)
     if (check.ok === false) {
@@ -83,6 +83,7 @@ export async function POST(req: NextRequest) {
         { status: 422, headers: gatewayResponseHeaders() },
       )
     }
+    feeAccount = check.feeAccount
   }
 
   try {
@@ -92,7 +93,10 @@ export async function POST(req: NextRequest) {
       }),
       fetchSolUsdPrice(),
     ])
-    const swapQuote = buildSwapQuoteFromJupiter(quote, { solUsd })
+    const swapQuote = buildSwapQuoteFromJupiter(quote, {
+      solUsd,
+      feeTokenAccountOverride: feeAccount ?? undefined,
+    })
     return NextResponse.json(
       {
         ...swapQuote,

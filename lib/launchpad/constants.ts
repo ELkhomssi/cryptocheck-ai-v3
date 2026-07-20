@@ -4,8 +4,9 @@ export const LAUNCHPAD_BASE_PATH = '/dashboard/launchpad'
 
 export const LAUNCHPAD_NAV = {
   home: LAUNCHPAD_BASE_PATH,
-  swap: `${LAUNCHPAD_BASE_PATH}/swap`,
-  sniper: `${LAUNCHPAD_BASE_PATH}/sniper`,
+  /** Handoff to unified Action Panel — no legacy mini-swap. */
+  swap: '/dashboard?mode=swap#action-panel',
+  sniper: '/dashboard?mode=sniper#action-panel',
   saves: `${LAUNCHPAD_BASE_PATH}/saves`,
   fees: `${LAUNCHPAD_BASE_PATH}/fees`,
 } as const

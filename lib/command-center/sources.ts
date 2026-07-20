@@ -11,11 +11,71 @@ import {
 } from '@/lib/signal-aggregator/service-heartbeat'
 
 export type DataSourceStatus = {
-  telegram: { live: boolean; channelCount: number }
+  telegram: {
+    live: boolean
+    channelCount: number
+    /** ISO timestamp of newest telegram row in signal_normalized (null if none). */
+    lastIngestAt?: string | null
+    /** Sample public channel handles (for UI). */
+    sampleChannels?: string[]
+  }
   txodds: { live: boolean }
   twitter: { live: boolean; handleCount: number }
   /** When true, a worker heartbeat proves ingestion is actively running. */
   ingestionWorkerLive?: boolean
+}
+
+/** Newest telegram ingest + a few channel handles for the Data Sources chip. */
+export async function readTelegramFeedMeta(): Promise<{
+  lastIngestAt: string | null
+  sampleChannels: string[]
+}> {
+  try {
+    const sb = getSupabaseAdmin()
+    const { data: latest } = await sb
+      .from('signal_normalized')
+      .select('ingest_timestamp')
+      .eq('source_tag', 'telegram')
+      .eq('dropped', false)
+      .order('ingest_timestamp', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    const lastIngestAt =
+      latest && typeof (latest as { ingest_timestamp?: string }).ingest_timestamp === 'string'
+        ? (latest as { ingest_timestamp: string }).ingest_timestamp
+        : null
+
+    const { data: channelRows } = await sb
+      .from('telegram_channels')
+      .select('username')
+      .eq('enabled', true)
+      .eq('platform', 'telegram')
+      .order('username', { ascending: true })
+      .limit(5)
+
+    let sampleChannels = (channelRows ?? [])
+      .map((r) => (typeof r.username === 'string' ? r.username : ''))
+      .filter(Boolean)
+      .map((u) => (u.startsWith('@') ? u : `@${u}`))
+
+    if (sampleChannels.length === 0) {
+      const legacy = await sb
+        .from('telegram_channels')
+        .select('username')
+        .eq('enabled', true)
+        .order('username', { ascending: true })
+        .limit(5)
+      sampleChannels = (legacy.data ?? [])
+        .map((r) => (typeof r.username === 'string' ? r.username : ''))
+        .filter(Boolean)
+        .map((u) => (u.startsWith('@') ? u : `@${u}`))
+    }
+
+    return { lastIngestAt, sampleChannels }
+  } catch {
+    return { lastIngestAt: null, sampleChannels: [] }
+  }
 }
 
 /** Enabled public channels in Supabase (configured, not necessarily ingesting). */
@@ -84,7 +144,7 @@ function emptyTwitter(): { live: boolean; handleCount: number } {
 
 export function buildDataSourceStatus(txoddsLive: boolean, channelCount: number): DataSourceStatus {
   return {
-    telegram: { live: channelCount > 0, channelCount },
+    telegram: { live: channelCount > 0, channelCount, lastIngestAt: null, sampleChannels: [] },
     txodds: { live: txoddsLive },
     twitter: emptyTwitter(),
     ingestionWorkerLive: false,
@@ -95,10 +155,13 @@ export function buildDataSourceStatus(txoddsLive: boolean, channelCount: number)
  * Prefer live Redis heartbeat from telegram-monitor / twitter-monitor.
  */
 export async function buildDataSourceStatusLive(txoddsLive: boolean): Promise<DataSourceStatus> {
-  const hb = await readTelegramMonitorHeartbeat()
-  const twHb = await readServiceHeartbeat('twitter-monitor')
-  const fromDb = await readTelegramChannelCountFromSupabase()
-  const twitterFromDb = await readTwitterHandleCountFromSupabase()
+  const [hb, twHb, fromDb, twitterFromDb, feedMeta] = await Promise.all([
+    readTelegramMonitorHeartbeat(),
+    readServiceHeartbeat('twitter-monitor'),
+    readTelegramChannelCountFromSupabase(),
+    readTwitterHandleCountFromSupabase(),
+    readTelegramFeedMeta(),
+  ])
 
   const twitter = (() => {
     if (isHeartbeatFresh(twHb) && twHb) {
@@ -115,11 +178,17 @@ export async function buildDataSourceStatusLive(txoddsLive: boolean): Promise<Da
     return { live: false, handleCount: twitterFromDb }
   })()
 
+  const withMeta = (telegram: { live: boolean; channelCount: number }) => ({
+    ...telegram,
+    lastIngestAt: feedMeta.lastIngestAt,
+    sampleChannels: feedMeta.sampleChannels,
+  })
+
   if (isHeartbeatFresh(hb) && hb) {
     const fromHb = heartbeatToSourceStatus(hb)
     if (fromHb.channelCount > 0) {
       return {
-        telegram: fromHb,
+        telegram: withMeta(fromHb),
         txodds: { live: txoddsLive },
         twitter,
         ingestionWorkerLive: true,
@@ -127,10 +196,10 @@ export async function buildDataSourceStatusLive(txoddsLive: boolean): Promise<Da
     }
     const channelCount = fromDb > 0 ? fromDb : readTelegramChannelCountFromConfig()
     return {
-      telegram: {
+      telegram: withMeta({
         live: channelCount > 0 && hb.status !== 'down',
         channelCount,
-      },
+      }),
       txodds: { live: txoddsLive },
       twitter,
       ingestionWorkerLive: true,
@@ -139,7 +208,7 @@ export async function buildDataSourceStatusLive(txoddsLive: boolean): Promise<Da
 
   if (fromDb > 0) {
     return {
-      telegram: { live: false, channelCount: fromDb },
+      telegram: withMeta({ live: false, channelCount: fromDb }),
       txodds: { live: txoddsLive },
       twitter,
       ingestionWorkerLive: isHeartbeatFresh(twHb),
@@ -149,6 +218,10 @@ export async function buildDataSourceStatusLive(txoddsLive: boolean): Promise<Da
   const fromFile = readTelegramChannelCountFromConfig()
   return {
     ...buildDataSourceStatus(txoddsLive, fromFile),
+    telegram: withMeta({
+      live: fromFile > 0,
+      channelCount: fromFile,
+    }),
     twitter,
     ingestionWorkerLive: isHeartbeatFresh(twHb),
   }

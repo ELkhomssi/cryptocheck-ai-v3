@@ -27,8 +27,8 @@ export const COMMAND_NAV: CommandNavGroup[] = [
     items: [
       { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
       { href: '/dashboard#action-panel', label: 'Scan', icon: Scan },
-      { href: '/dashboard/launchpad/swap', label: 'Swap', icon: ArrowLeftRight },
-      { href: '/dashboard/launchpad/sniper', label: 'Sniper', icon: Crosshair },
+      { href: '/dashboard?mode=swap#action-panel', label: 'Swap', icon: ArrowLeftRight },
+      { href: '/dashboard?mode=sniper#action-panel', label: 'Sniper', icon: Crosshair },
       { href: '/dashboard/launchpad/saves', label: 'Your Saves', icon: HeartHandshake },
       { href: '/dashboard/alerts', label: 'Alerts', icon: Bell },
     ],

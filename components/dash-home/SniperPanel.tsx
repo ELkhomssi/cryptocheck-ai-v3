@@ -17,6 +17,12 @@ type CandidatesResponse = {
   candidates: SnipeCandidate[]
 }
 
+type GuardianSnapshot = {
+  killSwitch: boolean
+  armedPositions: number
+  premium: boolean
+}
+
 type RowStatus = 'idle' | 'building' | 'needsConfirm' | 'signing' | 'confirming' | 'done' | 'error'
 type RowState = {
   status: RowStatus
@@ -37,6 +43,31 @@ function verdictTone(verdict: string): string {
   return 'bg-dash-red/20 text-dash-red'
 }
 
+function medianMs(values: number[]): number | null {
+  const xs = values.filter((n) => Number.isFinite(n) && n >= 0).sort((a, b) => a - b)
+  if (xs.length === 0) return null
+  const mid = Math.floor(xs.length / 2)
+  return xs.length % 2 === 0 ? Math.round((xs[mid - 1]! + xs[mid]!) / 2) : Math.round(xs[mid]!)
+}
+
+function EdgeStat({
+  label,
+  value,
+  hint,
+}: {
+  label: string
+  value: string
+  hint?: string
+}) {
+  return (
+    <div className="rounded-dash-inner border border-dash-innerline bg-dash-panel2 px-2.5 py-2">
+      <p className="text-[9px] font-semibold uppercase tracking-wider text-dash-tlo">{label}</p>
+      <p className="font-dash-mono mt-0.5 text-[12px] font-semibold tabular-nums text-dash-thi">{value}</p>
+      {hint ? <p className="mt-0.5 text-[9px] leading-snug text-dash-tlo">{hint}</p> : null}
+    </div>
+  )
+}
+
 export function SniperPanel() {
   const { connection } = useConnection()
   const wallet = useWallet()
@@ -48,6 +79,9 @@ export function SniperPanel() {
   const [autoCount, setAutoCount] = useState(0)
   const [upgradeCycle, setUpgradeCycle] = useState<BillingCycle>('annual')
   const [checkoutBusy, setCheckoutBusy] = useState(false)
+  const [guardian, setGuardian] = useState<GuardianSnapshot | null>(null)
+  const [lastVerdictPath, setLastVerdictPath] = useState<string | null>(null)
+  const [lastResolveMs, setLastResolveMs] = useState<number | null>(null)
 
   // Candidate ids already handled by auto-mode (seeded on arm so the existing
   // backlog is never retroactively sniped) + a serialization lock.
@@ -74,9 +108,65 @@ export function SniperPanel() {
     return () => clearInterval(t)
   }, [load])
 
+  useEffect(() => {
+    let cancelled = false
+    const loadGuardian = async () => {
+      try {
+        const res = await fetch('/api/guardian/settings', { cache: 'no-store' })
+        if (res.status === 401 || res.status === 403) {
+          if (!cancelled) setGuardian({ killSwitch: false, armedPositions: 0, premium: false })
+          return
+        }
+        if (!res.ok) return
+        const body = (await res.json()) as {
+          killSwitch?: boolean
+          positions?: Array<{ enabled?: boolean }>
+          global?: { enabled?: boolean } | null
+        }
+        const armedPositions = (body.positions ?? []).filter((p) => p.enabled).length
+        const globalOn = body.global?.enabled === true
+        if (!cancelled) {
+          setGuardian({
+            killSwitch: Boolean(body.killSwitch),
+            armedPositions: armedPositions + (globalOn ? 1 : 0),
+            premium: true,
+          })
+        }
+      } catch {
+        // leave prior
+      }
+    }
+    void loadGuardian()
+    const t = setInterval(() => void loadGuardian(), 30_000)
+    return () => {
+      cancelled = true
+      clearInterval(t)
+    }
+  }, [])
+
   const fullAccess = data?.fullAccess ?? false
   const armed = data?.armed ?? false
   const candidates = useMemo(() => data?.candidates ?? [], [data])
+
+  const candidateLatencyMs = useMemo(
+    () => medianMs(candidates.map((c) => c.scanLatencyMs)),
+    [candidates],
+  )
+
+  const guardianLabel = useMemo(() => {
+    if (!guardian) return '…'
+    if (!guardian.premium) return 'Off'
+    if (guardian.killSwitch) return 'Kill ON'
+    if (guardian.armedPositions > 0) return 'Armed'
+    return 'Standby'
+  }, [guardian])
+
+  const guardianHint = useMemo(() => {
+    if (!guardian?.premium) return 'Premium auto-exit'
+    if (guardian.killSwitch) return 'Exits paused'
+    if (guardian.armedPositions > 0) return `${guardian.armedPositions} standing`
+    return 'Authorize in Coach'
+  }, [guardian])
 
   const toggleArm = useCallback(async () => {
     if (!fullAccess || arming) return
@@ -144,6 +234,10 @@ export function SniperPanel() {
           }),
         })
         const body = await res.json()
+
+        if (typeof body?.verdictPath === 'string') setLastVerdictPath(body.verdictPath)
+        const resolveMs = Number(body?.timing?.resolve_delta_ms)
+        if (Number.isFinite(resolveMs)) setLastResolveMs(resolveMs)
 
         if (res.status === 403) {
           // Two shapes: risk-block ({ decision }) vs entitlement gate (scan error payload).
@@ -252,7 +346,7 @@ export function SniperPanel() {
           <Zap className="mt-0.5 h-4 w-4 text-dash-green" />
           <div>
             <p className="text-[13px] font-semibold text-dash-green">AI SNIPER</p>
-            <p className="text-[11px] text-dash-tmid">Scanned · kill-switch · you sign</p>
+            <p className="text-[11px] text-dash-tmid">Verified · not just fastest</p>
           </div>
         </div>
 
@@ -285,6 +379,38 @@ export function SniperPanel() {
           </Link>
         )}
       </header>
+
+      <div className="mb-3 grid grid-cols-3 gap-2">
+        <EdgeStat
+          label="Scan latency"
+          value={
+            lastResolveMs != null
+              ? `${lastResolveMs}ms`
+              : candidateLatencyMs != null
+                ? `${candidateLatencyMs}ms`
+                : '—'
+          }
+          hint={
+            lastResolveMs != null
+              ? lastVerdictPath === 'cache-hit'
+                ? 'Last cache-hit resolve'
+                : 'Last verdict resolve'
+              : candidateLatencyMs != null
+                ? 'Median candidate scan'
+                : 'Awaiting candidates'
+          }
+        />
+        <EdgeStat
+          label="Verdict path"
+          value={lastVerdictPath ?? 'cache-ready'}
+          hint="Kill-switch before sign"
+        />
+        <EdgeStat label="Guardian" value={guardianLabel} hint={guardianHint} />
+      </div>
+      <p className="mb-3 text-[10px] leading-relaxed text-dash-tmid">
+        Neural Score gated · DANGER hard-blocked · you sign every swap. Speed without a verified
+        verdict is noise.
+      </p>
 
       {armed ? (
         <div className="mb-3 flex items-center justify-between rounded-dash-inner border border-dash-green/30 bg-dash-greenDim px-3 py-1.5">

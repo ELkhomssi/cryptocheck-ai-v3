@@ -306,6 +306,7 @@ export async function POST(req: Request) {
     createdAt: new Date().toISOString(),
   })
 
+  const tRes = Date.now()
   return NextResponse.json(
     {
       swapTransaction,
@@ -316,6 +317,12 @@ export async function POST(req: Request) {
       priceImpactPct,
       slippageBps,
       amountSol,
+      timing: {
+        request_received_ms: tReq,
+        response_returned_ms: tRes,
+        total_delta_ms: tRes - tReq,
+        resolve_delta_ms,
+      },
       compliance: SIGNAL_COMPLIANCE,
     },
     { headers: { 'cache-control': 'no-store' } },
