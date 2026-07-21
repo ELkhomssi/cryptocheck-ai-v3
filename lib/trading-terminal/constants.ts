@@ -10,7 +10,7 @@ export const TERMS_PATH = '/legal/terms'
 
 export const SOL_MINT = 'So11111111111111111111111111111111111111112'
 
-/** Chart layout modes (V1 ships 1/2/4; 6 reserved for V2 UI but grid is ready). */
+/** Chart layout modes — default workspace is 6-pane (Bloomberg density). */
 export type ChartMode = 1 | 2 | 4 | 6
 
 export const CHART_MODES: ChartMode[] = [1, 2, 4, 6]

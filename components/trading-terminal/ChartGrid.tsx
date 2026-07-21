@@ -1,15 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Expand, Lock, Maximize2, Minimize2, Star, Unlock } from 'lucide-react'
 import {
   CHART_TIMEFRAMES,
-  dexscreenerEmbedUrl,
   type ChartTimeframe,
 } from '@/lib/trading-terminal/chart-engine'
 import { CHART_MODES, TIT_DND_MIME, type ChartMode } from '@/lib/trading-terminal/constants'
+import { getTerminalSnapshot } from '@/lib/trading-terminal/data/adapters'
 import { decodeTitDrag } from '@/lib/trading-terminal/dnd'
+import {
+  fetchLiveOhlcv,
+  mapDemoSeedCandles,
+  type OhlcvResult,
+} from '@/lib/trading-terminal/ohlcv-feed'
+import { CandlestickChart } from './CandlestickChart'
 import { useTerminalFocus } from './TerminalFocusProvider'
+
+/** Per-slot default TFs — denser multi-pane look (reference terminal). */
+const SLOT_DEFAULT_TF: ChartTimeframe[] = ['5m', '5m', '15m', '1H', '5m', '15m']
 
 const LINK_COLORS = ['#22D3EE', '#7C5CFF', '#F97316', '#22C55E', '#EAB308', '#F04438'] as const
 
@@ -20,15 +29,49 @@ function gridClass(mode: ChartMode): string {
   return 'grid-cols-3 grid-rows-2'
 }
 
-function DexScreenerBody({ mint, symbol }: { mint: string; symbol: string }) {
-  return (
-    <iframe
-      title={`Chart ${symbol || mint}`}
-      src={dexscreenerEmbedUrl(mint)}
-      className="min-h-0 flex-1 border-0 bg-[var(--tit-bg-0)]"
-      sandbox="allow-scripts allow-same-origin allow-popups"
-    />
-  )
+function useSlotOhlcv(
+  mint: string,
+  symbol: string,
+  timeframe: ChartTimeframe,
+  dataMode: 'demo' | 'live',
+): OhlcvResult {
+  const [live, setLive] = useState<OhlcvResult>({ status: 'loading' })
+
+  const demo = useMemo(() => {
+    if (dataMode !== 'demo' || !mint) return null
+    const snap = getTerminalSnapshot('demo')
+    if (snap.charts.status !== 'ready') return null
+    const slot = snap.charts.data.find((c) => c.mint === mint)
+    if (!slot) return null
+    const candles = mapDemoSeedCandles(slot.candles)
+    return {
+      status: 'ready' as const,
+      candles,
+      lastPrice: slot.lastPrice,
+      changePct: slot.changePct,
+      source: 'demo' as const,
+    }
+  }, [dataMode, mint])
+
+  useEffect(() => {
+    if (dataMode === 'demo' || !mint || mint.length < 32) {
+      setLive({ status: 'unavailable', reason: 'No symbol loaded.' })
+      return
+    }
+    let cancelled = false
+    setLive({ status: 'loading' })
+    void fetchLiveOhlcv({ mint, symbol, timeframe }).then((r) => {
+      if (!cancelled) setLive(r)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [dataMode, mint, symbol, timeframe])
+
+  if (dataMode === 'demo') {
+    return demo ?? { status: 'unavailable', reason: 'No symbol loaded.' }
+  }
+  return live
 }
 
 function ChartSlot({
@@ -49,11 +92,11 @@ function ChartSlot({
     activeSlot,
     setActiveSlot,
     toggleSlotLock,
-    focusMint,
     loadMintToSlot,
     swapSlots,
     selectMint,
     addToWatchlist,
+    dataMode,
   } = useTerminalFocus()
   const slot = slots[index]
   const mint = slot?.mint ?? ''
@@ -61,8 +104,12 @@ function ChartSlot({
   const locked = slot?.locked ?? false
   const active = index === activeSlot
   const [dragOver, setDragOver] = useState(false)
+  const ohlcv = useSlotOhlcv(mint, symbol, timeframe, dataMode)
 
   if (maximized != null && maximized !== index) return null
+
+  const lastPrice = ohlcv.status === 'ready' ? ohlcv.lastPrice : null
+  const changePct = ohlcv.status === 'ready' ? ohlcv.changePct : null
 
   return (
     <div
@@ -131,9 +178,22 @@ function ChartSlot({
         <span className="tit-mono rounded bg-[var(--tit-bg-3)] px-1 text-[0.5rem] text-[var(--tit-text-2)]">
           {timeframe}
         </span>
-        <span className="tit-mono truncate text-[0.5rem] text-[var(--tit-text-2)]">
-          {mint ? `${mint.slice(0, 6)}…` : 'Drop a symbol'}
-        </span>
+        {lastPrice != null ? (
+          <span className="tit-mono text-[0.65rem] font-semibold text-[var(--tit-text-0)]">
+            ${lastPrice < 0.01 ? lastPrice.toPrecision(3) : lastPrice.toFixed(4)}
+          </span>
+        ) : null}
+        {changePct != null ? (
+          <span
+            className={`tit-mono text-[0.55rem] ${
+              changePct >= 0 ? 'text-[var(--tit-pos)]' : 'text-[var(--tit-neg)]'
+            }`}
+          >
+            {changePct >= 0 ? '▲' : '▼'}
+            {changePct >= 0 ? '+' : ''}
+            {changePct.toFixed(2)}%
+          </span>
+        ) : null}
         <button
           type="button"
           className="ml-auto rounded p-0.5 text-[var(--tit-text-2)] hover:text-[var(--tit-accent)]"
@@ -175,25 +235,47 @@ function ChartSlot({
         </button>
       </div>
 
-      {mint ? (
-        <DexScreenerBody mint={mint} symbol={symbol} />
-      ) : (
+      {!mint ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-1 p-3 text-center text-xs text-[var(--tit-text-1)]">
           <span>{dragOver ? 'Release to load symbol' : 'No symbol loaded'}</span>
           <span className="text-[0.65rem] text-[var(--tit-text-2)]">
             Select from Discover to analyze.
           </span>
         </div>
+      ) : ohlcv.status === 'loading' ? (
+        <div className="flex flex-1 items-center justify-center">
+          <div className="tit-skeleton h-full w-full opacity-40" />
+        </div>
+      ) : ohlcv.status === 'building' ? (
+        <div className="flex flex-1 items-center justify-center text-[0.7rem] text-[var(--tit-text-1)]">
+          Building history…
+        </div>
+      ) : ohlcv.status === 'unavailable' ? (
+        <div className="flex flex-1 items-center justify-center text-[0.7rem] text-[var(--tit-text-1)]">
+          {ohlcv.reason}
+        </div>
+      ) : (
+        <CandlestickChart candles={ohlcv.candles} />
       )}
     </div>
   )
 }
 
 export function ChartGrid() {
-  const { chartMode, slots, setChartMode } = useTerminalFocus()
-  const [timeframe, setTimeframe] = useState<ChartTimeframe>('5m')
+  const { chartMode, slots, setChartMode, dataMode, activeSlot } = useTerminalFocus()
+  const [slotTfs, setSlotTfs] = useState<ChartTimeframe[]>(() => [...SLOT_DEFAULT_TF])
   const [linkGroup, setLinkGroup] = useState(0)
   const [maximized, setMaximized] = useState<number | null>(null)
+  const activeTf = slotTfs[activeSlot] ?? '5m'
+
+  const setActiveTimeframe = (tf: ChartTimeframe) => {
+    setSlotTfs((prev) => {
+      const next = [...prev]
+      while (next.length < slots.length) next.push('5m')
+      next[activeSlot] = tf
+      return next
+    })
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-1">
@@ -231,7 +313,7 @@ export function ChartGrid() {
           />
         </button>
         <span className="tit-mono text-[0.5rem] text-[var(--tit-text-2)]">
-          Drag Discover · double-click to maximize
+          {dataMode === 'demo' ? 'Candles · demo seed' : 'Candles · live OHLCV'}
         </span>
         <button
           type="button"
@@ -252,7 +334,7 @@ export function ChartGrid() {
           <div key={i} className="min-h-0">
             <ChartSlot
               index={i}
-              timeframe={timeframe}
+              timeframe={slotTfs[i] ?? SLOT_DEFAULT_TF[i % SLOT_DEFAULT_TF.length]!}
               linkGroup={linkGroup}
               maximized={maximized}
               onMaximize={setMaximized}
@@ -262,14 +344,14 @@ export function ChartGrid() {
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center gap-1 border-t border-[var(--tit-border)] px-0.5 py-1">
-        <span className="tit-label mr-1">TF</span>
+        <span className="tit-label mr-1">TF · slot {activeSlot + 1}</span>
         {CHART_TIMEFRAMES.map((tf) => (
           <button
             key={tf}
             type="button"
-            onClick={() => setTimeframe(tf)}
+            onClick={() => setActiveTimeframe(tf)}
             className={`tit-mono rounded px-1.5 py-0.5 text-[0.55rem] ${
-              timeframe === tf
+              activeTf === tf
                 ? 'bg-[var(--tit-accent)]/20 text-[var(--tit-accent-bright)]'
                 : 'text-[var(--tit-text-2)] hover:text-[var(--tit-text-1)]'
             }`}
@@ -277,9 +359,6 @@ export function ChartGrid() {
             {tf}
           </button>
         ))}
-        <span className="tit-mono ml-auto text-[0.45rem] text-[var(--tit-text-2)]">
-          Timeframe · chart engine settings
-        </span>
       </div>
     </div>
   )

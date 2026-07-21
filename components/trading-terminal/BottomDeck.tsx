@@ -118,7 +118,9 @@ function PositionsTable() {
             <thead className="sticky top-0 bg-[var(--tit-bg-2)]">
               <tr className="tit-label text-[0.5rem]">
                 <th className="px-2 py-1">Token</th>
-                <th className="px-2 py-1">Value</th>
+                <th className="px-2 py-1">Size</th>
+                <th className="px-2 py-1">Entry</th>
+                <th className="px-2 py-1">Price</th>
                 <th className="px-2 py-1">P/L%</th>
                 <th className="px-2 py-1">Risk</th>
                 <th className="px-2 py-1" />
@@ -140,7 +142,21 @@ function PositionsTable() {
                       {p.symbol}
                     </button>
                   </td>
-                  <td className="tit-mono px-2 py-0.5 text-[0.6rem]">${p.valueUsd.toFixed(2)}</td>
+                  <td className="tit-mono px-2 py-0.5 text-[0.55rem] text-[var(--tit-text-1)]">
+                    {'size' in p && p.size > 0
+                      ? p.size.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                      : '—'}
+                  </td>
+                  <td className="tit-mono px-2 py-0.5 text-[0.55rem] text-[var(--tit-text-1)]">
+                    {'entryUsd' in p && p.entryUsd > 0
+                      ? `$${p.entryUsd < 0.01 ? p.entryUsd.toPrecision(3) : p.entryUsd.toFixed(4)}`
+                      : '—'}
+                  </td>
+                  <td className="tit-mono px-2 py-0.5 text-[0.55rem] text-[var(--tit-text-0)]">
+                    {'priceUsd' in p && p.priceUsd > 0
+                      ? `$${p.priceUsd < 0.01 ? p.priceUsd.toPrecision(3) : p.priceUsd.toFixed(4)}`
+                      : `$${p.valueUsd.toFixed(2)}`}
+                  </td>
                   <td
                     className={`tit-mono px-2 py-0.5 text-[0.6rem] ${
                       p.pnlPct >= 0 ? 'text-[var(--tit-pos)]' : 'text-[var(--tit-neg)]'
