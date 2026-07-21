@@ -100,7 +100,12 @@ export type DemoCoachBundle = {
   }
   portfolioHealth: { score: number; issues: string[] }
   riskExposure: { categories: Array<{ name: string; pct: number }>; flags: string[] }
-  opportunities: Array<{ symbol: string; reason: string; conviction: number }>
+  opportunities: Array<{
+    symbol: string
+    reason: string
+    conviction: number
+    riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH'
+  }>
   threats: Array<{ symbol: string; reason: string; severity: 'LOW' | 'MED' | 'HIGH' }>
   smartMoney: { netFlowUsd: number; notable: string[] }
   capitalAllocation: string
@@ -131,6 +136,8 @@ export type DemoCoachBundle = {
     mint: string
     name: string
     verdict: 'SAFE' | 'CAUTION' | 'DANGER' | 'BLOCKED'
+    /** Opportunity Engine conviction 0–100 (derived / DEMO_SEED). */
+    convictionScore: number
     riskScore: number
     confidencePct: number
     evidenceCoveragePct: number

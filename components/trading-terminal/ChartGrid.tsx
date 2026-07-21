@@ -182,37 +182,37 @@ function ChartSlot({
         e.dataTransfer.setData(TIT_DND_MIME, JSON.stringify({ mint, symbol }))
         e.dataTransfer.effectAllowed = 'move'
       }}
-      className={`tit-panel-flat relative flex min-h-0 flex-col overflow-hidden ${
-        active ? 'ring-1 ring-[var(--tit-accent)]' : ''
-      } ${dragOver ? 'ring-2 ring-[var(--tit-accent)]' : ''} ${
+      className={`relative flex min-h-0 flex-col overflow-hidden border border-[var(--tit-border)] bg-[var(--tit-bg-1)] ${
+        active ? 'border-[var(--tit-accent)]' : ''
+      } ${dragOver ? 'border-[var(--tit-accent)]' : ''} ${
         maximized === index ? 'col-span-full row-span-full' : ''
       }`}
     >
-      <div className="flex h-7 shrink-0 items-center gap-1.5 border-b border-[var(--tit-border)] px-1.5">
+      <div
+        className="flex shrink-0 items-center gap-1 border-b border-[var(--tit-border)] px-1.5"
+        style={{ height: 'var(--tit-chart-header-h)' }}
+      >
         <span
-          className="h-2 w-2 shrink-0 rounded-full"
+          className="h-1.5 w-1.5 shrink-0 rounded-full"
           style={{ background: LINK_COLORS[linkGroup % LINK_COLORS.length] }}
           title="Link group"
           aria-hidden
         />
-        <span className="tit-mono text-[0.65rem] font-semibold text-[var(--tit-text-0)]">
+        <span className="tit-mono text-[0.6rem] font-semibold text-[var(--tit-text-0)]">
           {symbol ? `${symbol}/SOL` : '—'}
         </span>
-        <span className="tit-mono rounded bg-[var(--tit-bg-3)] px-1 text-[0.5rem] text-[var(--tit-text-2)]">
-          {timeframe}
-        </span>
+        <span className="tit-mono text-[0.45rem] text-[var(--tit-text-2)]">{timeframe}</span>
         {lastPrice != null ? (
-          <span className="tit-mono text-[0.65rem] font-semibold text-[var(--tit-text-0)]">
+          <span className="tit-mono text-[0.6rem] font-semibold text-[var(--tit-text-0)]">
             ${lastPrice < 0.01 ? lastPrice.toPrecision(3) : lastPrice.toFixed(4)}
           </span>
         ) : null}
         {changePct != null ? (
           <span
-            className={`tit-mono text-[0.55rem] ${
+            className={`tit-mono text-[0.5rem] ${
               changePct >= 0 ? 'text-[var(--tit-pos)]' : 'text-[var(--tit-neg)]'
             }`}
           >
-            {changePct >= 0 ? '▲' : '▼'}
             {changePct >= 0 ? '+' : ''}
             {changePct.toFixed(2)}%
           </span>
@@ -301,11 +301,12 @@ export function ChartGrid() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-0.5">
+    <div className="flex min-h-0 flex-1 flex-col gap-0">
       <div
-        className={`grid min-h-0 flex-1 gap-0.5 ${
+        className={`grid min-h-0 flex-1 ${
           maximized != null ? 'grid-cols-1 grid-rows-1' : gridClass(chartMode)
         }`}
+        style={{ gap: 'var(--tit-chart-gap)' }}
       >
         {slots.map((_, i) => (
           <div key={i} className="min-h-0">

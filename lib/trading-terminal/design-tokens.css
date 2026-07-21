@@ -49,14 +49,17 @@
   --tit-radius: 8px;
 
   --tit-motion: 150ms;
-  --tit-icon-rail: 56px;
+  --tit-icon-rail: 52px;
   --tit-left-panel: 0px;
-  --tit-right-panel: 25vw;
-  --tit-footer: 28px;
-  --tit-topbar: 48px;
+  /* PART IV: intelligence dominates (~40%), charts context (~50%+) */
+  --tit-right-panel: min(420px, 40vw);
+  --tit-footer: 26px;
+  --tit-topbar: 44px;
   --tit-metrics: 0px;
-  --tit-bottom-strip: 15vh;
-  --tit-row-h: 28px;
+  --tit-bottom-strip: 88px;
+  --tit-row-h: 26px;
+  --tit-chart-gap: 3px;
+  --tit-chart-header-h: 24px;
 
   /* Prompt aliases */
   --bg-0: var(--tit-bg-0);
@@ -87,9 +90,9 @@
 
 @media (max-width: 1536px) {
   :root {
-    --tit-right-panel: min(360px, 28vw);
-    --tit-icon-rail: 52px;
-    --tit-bottom-strip: 15vh;
+    --tit-right-panel: min(380px, 38vw);
+    --tit-icon-rail: 48px;
+    --tit-bottom-strip: 80px;
   }
 }
 
@@ -107,8 +110,8 @@
   width: 100%;
   max-height: 100vh;
   overflow: hidden;
-  /* Rail | Charts (~60–70%) | AI workstation (~25%) */
-  grid-template-columns: var(--tit-icon-rail) minmax(0, 1fr) minmax(300px, var(--tit-right-panel));
+  /* Rail | Charts (~50%+) | AI intelligence (~40%) — PART IV hierarchy */
+  grid-template-columns: var(--tit-icon-rail) minmax(0, 1fr) minmax(340px, var(--tit-right-panel));
   grid-template-rows:
     var(--tit-topbar)
     minmax(0, 1fr)

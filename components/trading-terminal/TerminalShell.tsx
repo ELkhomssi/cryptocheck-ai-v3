@@ -6,7 +6,7 @@ import { useSignalFeed } from '@/lib/signals-dashboard/use-signal-feed'
 import { AiIntelligenceWorkstation } from './AiIntelligenceWorkstation'
 import { ChartGrid } from './ChartGrid'
 import { IconRail, type TerminalPane } from './IconRail'
-import { IntelligenceBottom } from './IntelligenceBottom'
+import { ConvictionRadar } from './IntelligenceBottom'
 import { KeyboardHelp } from './KeyboardHelp'
 import { TerminalFocusProvider, useTerminalFocus } from './TerminalFocusProvider'
 import { TerminalStatusBar } from './TerminalStatusBar'
@@ -14,9 +14,8 @@ import { TerminalTopBar } from './TerminalTopBar'
 import { useTerminalKeyboard } from './useTerminalKeyboard'
 
 /**
- * AI Trading Intelligence Terminal shell.
- * Hierarchy: Charts (~60%) · AI Workstation (~25%) · Bottom intel (~15%).
- * No page scroll. No metric ribbon. No Discover sidebar.
+ * AI Trading Intelligence Terminal — PART IV hierarchy.
+ * Intelligence column ~40% · Charts context · Conviction radar strip.
  */
 function TerminalWorkspace() {
   const feed = useSignalFeed({ subjectType: 'token' })
@@ -97,7 +96,7 @@ function TerminalWorkspace() {
 
       <div
         ref={chartsRef}
-        className="tit-area-center flex min-h-0 min-w-0 flex-col overflow-hidden p-1"
+        className="tit-area-center flex min-h-0 min-w-0 flex-col overflow-hidden p-0.5"
       >
         <ChartGrid />
       </div>
@@ -106,8 +105,11 @@ function TerminalWorkspace() {
         <AiIntelligenceWorkstation />
       </div>
 
-      <div ref={bottomRef} className="tit-area-bottom min-h-0 overflow-hidden border-t border-[var(--tit-border)]">
-        <IntelligenceBottom />
+      <div
+        ref={bottomRef}
+        className="tit-area-bottom min-h-0 overflow-hidden border-t border-[var(--tit-border)] bg-[var(--tit-bg-0)]"
+      >
+        <ConvictionRadar />
       </div>
 
       <TerminalStatusBar />
