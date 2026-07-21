@@ -54,6 +54,12 @@ type TerminalFocusApi = {
   setChartMode: (m: ChartMode) => void
   setActiveSlot: (i: number) => void
   setTicketSide: (s: 'buy' | 'sell') => void
+  /** Ticket size in SOL — drives Portfolio Impact + Trade Plan sizing. */
+  ticketAmountSol: number
+  setTicketAmountSol: (n: number) => void
+  /** Last known SOL/USD for impact math (from ribbon/API). */
+  solPriceUsd: number | null
+  setSolPriceUsd: (n: number | null) => void
   setCoachCollapsed: (v: boolean) => void
   setDiscoverCollapsed: (v: boolean) => void
   setPositionsOpen: (v: boolean) => void
@@ -97,6 +103,8 @@ export function TerminalFocusProvider({ children }: { children: ReactNode }) {
   const [scanning, setScanning] = useState(false)
   const [scanError, setScanError] = useState<string | null>(null)
   const [ticketSide, setTicketSide] = useState<'buy' | 'sell'>('buy')
+  const [ticketAmountSol, setTicketAmountSol] = useState(0.25)
+  const [solPriceUsd, setSolPriceUsd] = useState<number | null>(null)
   const [coachCollapsed, setCoachCollapsed] = useState(false)
   const [discoverCollapsed, setDiscoverCollapsed] = useState(false)
   const [positionsOpen, setPositionsOpen] = useState(false)
@@ -378,6 +386,10 @@ export function TerminalFocusProvider({ children }: { children: ReactNode }) {
       scanning,
       scanError,
       ticketSide,
+      ticketAmountSol,
+      setTicketAmountSol,
+      solPriceUsd,
+      setSolPriceUsd,
       coachCollapsed,
       discoverCollapsed,
       positionsOpen,
@@ -419,6 +431,8 @@ export function TerminalFocusProvider({ children }: { children: ReactNode }) {
       scanning,
       scanError,
       ticketSide,
+      ticketAmountSol,
+      solPriceUsd,
       coachCollapsed,
       discoverCollapsed,
       positionsOpen,

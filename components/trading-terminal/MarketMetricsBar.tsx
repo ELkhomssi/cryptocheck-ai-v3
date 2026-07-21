@@ -1,28 +1,86 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import type { MarketStat } from '@/lib/trading-terminal/market-stats'
+import { awaitingStat, loadingStat } from '@/lib/trading-terminal/market-stats'
+import { flatBaseline, mockSparkline } from '@/lib/trading-terminal/mocks/market-sparklines.mock'
 
 type SolPricePayload = { price?: number; source?: string }
 
-type MetricCell = {
-  label: string
-  value: string
-  delta: string | null
-  tone: 'pos' | 'neg' | 'neutral'
+function Sparkline({ points, tone }: { points: number[]; tone: MarketStat['tone'] }) {
+  const series = points.length >= 2 ? points : flatBaseline()
+  const min = Math.min(...series)
+  const max = Math.max(...series)
+  const span = max - min || 1
+  const w = 64
+  const h = 22
+  const d = series
+    .map((v, i) => {
+      const x = (i / (series.length - 1)) * w
+      const y = h - ((v - min) / span) * (h - 2) - 1
+      return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`
+    })
+    .join(' ')
+  const stroke =
+    tone === 'pos' ? 'var(--tit-pos)' : tone === 'neg' ? 'var(--tit-neg)' : 'var(--tit-text-2)'
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden className="opacity-80">
+      <path d={d} fill="none" stroke={stroke} strokeWidth={1.25} />
+    </svg>
+  )
+}
+
+function StatCard({ stat }: { stat: MarketStat }) {
+  if (stat.loading) {
+    return (
+      <div className="flex min-w-[7.5rem] flex-1 flex-col justify-center gap-1 border-r border-[var(--tit-border)] px-3 py-2">
+        <span className="tit-label">{stat.label}</span>
+        <div className="tit-skeleton h-4 w-16" />
+        <div className="tit-skeleton h-3 w-12" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex min-w-[7.5rem] flex-1 flex-col justify-center border-r border-[var(--tit-border)] px-3 py-2">
+      <span className="tit-label">{stat.label}</span>
+      <div className="flex items-baseline gap-1.5">
+        <span className="tit-mono text-[0.95rem] font-semibold text-[var(--tit-text-0)]">
+          {stat.value ?? '—'}
+        </span>
+        {stat.changePct ? (
+          <span
+            className={`tit-mono text-[0.55rem] ${
+              stat.tone === 'pos'
+                ? 'text-[var(--tit-pos)]'
+                : stat.tone === 'neg'
+                  ? 'text-[var(--tit-neg)]'
+                  : 'text-[var(--tit-text-2)]'
+            }`}
+          >
+            {stat.changePct}
+          </span>
+        ) : null}
+      </div>
+      {!stat.value ? (
+        <span className="tit-awaiting">{stat.awaitingCaption}</span>
+      ) : (
+        <div className="mt-0.5">
+          <Sparkline points={stat.sparkline} tone={stat.tone} />
+        </div>
+      )}
+    </div>
+  )
 }
 
 /**
- * Market ribbon — only real feeds. SOL from /api/sol-price.
- * Other cells stay honest "—" until wired to live sources (no fabricated sparklines).
+ * Market ribbon — SOL + health from real APIs; other metrics awaiting feed.
+ * Sparklines: MOCK_ONLY series when a value is present (SOL); flat baseline otherwise.
  */
 export function MarketMetricsBar() {
-  const [sol, setSol] = useState<MetricCell>({
-    label: 'SOL Price',
-    value: '—',
-    delta: null,
-    tone: 'neutral',
-  })
+  const [solPrice, setSolPrice] = useState<number | null>(null)
   const [health, setHealth] = useState<'ok' | 'degraded' | 'unknown'>('unknown')
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
@@ -36,14 +94,9 @@ export function MarketMetricsBar() {
         if (priceRes.ok) {
           const body = (await priceRes.json()) as SolPricePayload
           if (typeof body.price === 'number' && body.source !== 'fallback') {
-            setSol({
-              label: 'SOL Price',
-              value: `$${body.price.toFixed(2)}`,
-              delta: null,
-              tone: 'neutral',
-            })
+            setSolPrice(body.price)
           } else {
-            setSol({ label: 'SOL Price', value: '—', delta: null, tone: 'neutral' })
+            setSolPrice(null)
           }
         }
         if (healthRes.ok) {
@@ -54,6 +107,8 @@ export function MarketMetricsBar() {
         }
       } catch {
         if (!cancelled) setHealth('degraded')
+      } finally {
+        if (!cancelled) setLoading(false)
       }
     }
     void load()
@@ -64,64 +119,62 @@ export function MarketMetricsBar() {
     }
   }, [])
 
-  const cells: MetricCell[] = [
-    { label: 'Market Cap', value: '—', delta: null, tone: 'neutral' },
-    { label: '24H Volume', value: '—', delta: null, tone: 'neutral' },
-    { label: 'BTC Dom.', value: '—', delta: null, tone: 'neutral' },
-    sol,
-    { label: 'Active Wallets', value: '—', delta: null, tone: 'neutral' },
-  ]
+  const stats: MarketStat[] = useMemo(() => {
+    const spark = mockSparkline(42)
+    const sol: MarketStat = loading
+      ? loadingStat('sol_price', 'SOL PRICE')
+      : solPrice != null
+        ? {
+            id: 'sol_price',
+            label: 'SOL PRICE',
+            value: `$${solPrice.toFixed(2)}`,
+            changePct: null,
+            tone: 'neutral',
+            sparkline: spark,
+            awaitingCaption: 'awaiting feed',
+            loading: false,
+          }
+        : awaitingStat('sol_price', 'SOL PRICE', flatBaseline())
+
+    return [
+      awaitingStat('market_cap', 'MARKET CAP', flatBaseline()),
+      awaitingStat('volume_24h', '24H VOLUME', flatBaseline()),
+      awaitingStat('btc_dominance', 'BTC DOMINANCE', flatBaseline()),
+      sol,
+      awaitingStat('active_wallets', 'ACTIVE WALLETS', flatBaseline()),
+    ]
+  }, [loading, solPrice])
 
   return (
     <div
-      className="flex shrink-0 items-stretch gap-0 overflow-x-auto border-b border-[var(--tit-border)] bg-[var(--tit-bg-0)]"
+      className="tit-area-ribbon flex items-stretch overflow-x-auto border-b border-[var(--tit-border)] bg-[var(--tit-bg-0)]"
       style={{ minHeight: 'var(--tit-metrics)' }}
+      aria-label="Market ribbon"
     >
-      {cells.map((c) => (
-        <div
-          key={c.label}
-          className="flex min-w-[7.5rem] flex-col justify-center border-r border-[var(--tit-border)] px-3 py-1.5"
-        >
-          <span className="tit-label">{c.label}</span>
-          <div className="flex items-baseline gap-1.5">
-            <span className="tit-mono text-[0.8rem] font-semibold text-[var(--tit-text-0)]">
-              {c.value}
-            </span>
-            {c.delta ? (
-              <span
-                className={`tit-mono text-[0.55rem] ${
-                  c.tone === 'pos'
-                    ? 'text-[var(--tit-pos)]'
-                    : c.tone === 'neg'
-                      ? 'text-[var(--tit-neg)]'
-                      : 'text-[var(--tit-text-2)]'
-                }`}
-              >
-                {c.delta}
-              </span>
-            ) : null}
-          </div>
-        </div>
+      {stats.map((s) => (
+        <StatCard key={s.id} stat={s} />
       ))}
 
-      <div className="flex min-w-[9rem] flex-col justify-center border-r border-[var(--tit-border)] px-3 py-1.5">
+      <div className="flex min-w-[8.5rem] flex-col justify-center border-r border-[var(--tit-border)] px-3 py-2">
         <span className="tit-label">Fear & Greed</span>
-        <span className="tit-mono text-[0.75rem] text-[var(--tit-text-2)]">Unavailable</span>
+        <span className="tit-mono text-[0.95rem] font-semibold text-[var(--tit-text-0)]">—</span>
+        <span className="tit-awaiting">awaiting feed</span>
       </div>
 
-      <div className="ml-auto flex min-w-[12rem] items-center gap-2 px-3">
+      <div className="ml-auto flex min-w-[13rem] items-center gap-2.5 px-3">
         <span
-          className={`h-2 w-2 shrink-0 rounded-full ${
+          className={`h-2.5 w-2.5 shrink-0 rounded-full ${
             health === 'ok'
               ? 'bg-[var(--tit-pos)]'
               : health === 'degraded'
                 ? 'bg-[var(--tit-warn)]'
                 : 'bg-[var(--tit-text-2)]'
           }`}
+          aria-hidden
         />
         <div>
           <p className="tit-label">Terminal Status</p>
-          <p className="tit-mono text-[0.65rem] text-[var(--tit-text-0)]">
+          <p className="tit-mono text-[0.7rem] text-[var(--tit-text-0)]">
             {health === 'ok'
               ? 'All Systems Operational'
               : health === 'degraded'

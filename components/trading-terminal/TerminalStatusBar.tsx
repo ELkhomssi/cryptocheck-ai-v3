@@ -36,22 +36,23 @@ export function TerminalStatusBar() {
 
   return (
     <footer
-      className="flex shrink-0 items-center gap-3 overflow-x-auto border-t border-[var(--tit-border)] bg-[var(--tit-bg-1)] px-3 tit-mono text-[0.55rem] text-[var(--tit-text-2)]"
+      className="tit-area-status flex items-center gap-3 overflow-x-auto border-t border-[var(--tit-border)] bg-[var(--tit-bg-0)] px-3 tit-mono text-[0.55rem] text-[var(--tit-text-2)]"
       style={{ height: 'var(--tit-footer)' }}
     >
       <span className="flex items-center gap-1.5">
         <span
           className={`h-1.5 w-1.5 rounded-full ${
-            isConnected ? 'bg-[var(--tit-pos)]' : 'bg-[var(--tit-text-2)]'
+            isConnected && status === 'ok' ? 'bg-[var(--tit-pos)]' : 'bg-[var(--tit-warn)]'
           }`}
         />
-        {isConnected ? 'WALLET CONNECTED' : 'WALLET OFF'}
+        {isConnected ? 'CONNECTED' : 'WALLET OFF'}
       </span>
-      <span>
-        Solana RPC {latency != null ? `${latency}ms` : '—'}
-      </span>
+      <span>Solana {latency != null ? `${latency}ms` : 'awaiting…'}</span>
       <span className={status === 'ok' ? 'text-[var(--tit-pos)]' : 'text-[var(--tit-warn)]'}>
         {status === 'ok' ? 'SYSTEMS OK' : 'DEGRADED'}
+      </span>
+      <span className="hidden text-[var(--tit-text-2)] lg:inline">
+        Block · TPS · movers ticker — awaiting chain feed
       </span>
       <span className="ml-auto text-[var(--tit-text-2)]">
         Not financial advice · DYOR · Non-custodial

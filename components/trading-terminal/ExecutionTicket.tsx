@@ -32,6 +32,8 @@ export function ExecutionTicket() {
     scan,
     portfolioTotalUsd,
     positionValueUsd,
+    ticketAmountSol,
+    setTicketAmountSol,
   } = useTerminalFocus()
 
   const [muted, setMuted] = useState(() => loadMutes())
@@ -137,23 +139,55 @@ export function ExecutionTicket() {
           onClick={() => setTicketSide('buy')}
           className={`flex-1 rounded py-1.5 text-xs font-semibold ${
             buy
-              ? 'bg-[var(--tit-pos)]/20 text-[var(--tit-pos)]'
+              ? 'bg-[var(--tit-pos)] text-[#041016]'
               : 'bg-[var(--tit-bg-2)] text-[var(--tit-text-2)]'
           }`}
         >
-          Buy (B)
+          BUY
         </button>
         <button
           type="button"
           onClick={() => setTicketSide('sell')}
           className={`flex-1 rounded py-1.5 text-xs font-semibold ${
             !buy
-              ? 'bg-[var(--tit-neg)]/20 text-[var(--tit-neg)]'
+              ? 'bg-[var(--tit-neg)] text-white'
               : 'bg-[var(--tit-bg-2)] text-[var(--tit-text-2)]'
           }`}
         >
-          Sell (S)
+          SELL
         </button>
+      </div>
+
+      <div className="px-3 pt-2">
+        <div className="mb-1 flex items-center justify-between">
+          <label className="tit-label" htmlFor="tit-ticket-amt">
+            Amount (SOL)
+          </label>
+          <span className="tit-mono text-[0.55rem] text-[var(--tit-text-2)]">
+            Drives coach impact
+          </span>
+        </div>
+        <input
+          id="tit-ticket-amt"
+          type="number"
+          min={0}
+          step={0.05}
+          value={ticketAmountSol}
+          onChange={(e) => setTicketAmountSol(Number(e.target.value) || 0)}
+          className="tit-input tit-mono w-full"
+        />
+        <div className="mt-1 flex gap-1">
+          {[0.25, 0.5, 1, 2].map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setTicketAmountSol(n)}
+              className="tit-mono flex-1 rounded border border-[var(--tit-border)] py-0.5 text-[0.55rem] text-[var(--tit-text-1)] hover:border-[var(--tit-accent)]"
+            >
+              {n}
+            </button>
+          ))}
+        </div>
       </div>
 
       {interrupts.length > 0 ? (

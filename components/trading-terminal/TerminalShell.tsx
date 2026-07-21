@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, useEffect } from 'react'
 import type { UnifiedSignal } from '@cryptocheck/signal-contracts'
 import { useSignalFeed } from '@/lib/signals-dashboard/use-signal-feed'
 import { BottomDeck } from './BottomDeck'
@@ -11,6 +11,7 @@ import { IconRail, type TerminalPane } from './IconRail'
 import { KeyboardHelp } from './KeyboardHelp'
 import { LeftColumn } from './LeftColumn'
 import { MarketMetricsBar } from './MarketMetricsBar'
+import { CenterAuxRow } from './CenterAuxRow'
 import { TerminalFocusProvider, useTerminalFocus } from './TerminalFocusProvider'
 import { TerminalStatusBar } from './TerminalStatusBar'
 import { TerminalTopBar } from './TerminalTopBar'
@@ -53,7 +54,7 @@ function TerminalWorkspace() {
   const intelRef = useRef<HTMLDivElement>(null)
 
   useTerminalKeyboard(rows, {
-    onTabVerdict: () => setCoachTab('verdict'),
+    onTabVerdict: () => setCoachTab('intel'),
     onTabRecord: () => setCoachTab('record'),
     onTabBrief: () => setCoachTab('brief'),
     onTabBehavior: () => setCoachTab('behavior'),
@@ -63,11 +64,38 @@ function TerminalWorkspace() {
     helpOpen,
   })
 
-  const { hydrated, setDiscoverCollapsed } = useTerminalFocus()
+  const { hydrated, setDiscoverCollapsed, setSolPriceUsd } = useTerminalFocus()
+
+  // Keep SOL price on focus bus for Trade Plan / Portfolio Impact
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const res = await fetch('/api/sol-price', { cache: 'no-store' })
+        if (!res.ok || cancelled) return
+        const body = (await res.json()) as { price?: number; source?: string }
+        if (typeof body.price === 'number' && body.source !== 'fallback') {
+          setSolPriceUsd(body.price)
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    void load()
+    const id = window.setInterval(() => void load(), 60_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(id)
+    }
+  }, [setSolPriceUsd])
 
   const onPane = (p: TerminalPane) => {
     setPane(p)
-    if (p === 'discover') {
+    if (p === 'help') {
+      setHelpOpen(true)
+      return
+    }
+    if (p === 'discover' || p === 'watchlists') {
       setDiscoverCollapsed(false)
       return
     }
@@ -76,14 +104,13 @@ function TerminalWorkspace() {
     if (p === 'portfolio') portfolioRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     if (p === 'history') historyRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     if (p === 'intel') intelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-    if (p === 'watchlists') setDiscoverCollapsed(false)
   }
 
   if (!hydrated) {
     return (
       <div className="tit-shell flex h-screen items-center justify-center">
         <div className="space-y-2 text-center">
-          <div className="mx-auto h-8 w-48 animate-pulse rounded bg-[var(--tit-bg-3)]" />
+          <div className="tit-skeleton mx-auto h-8 w-48" />
           <p className="text-xs text-[var(--tit-text-2)]">Restoring workspace…</p>
         </div>
       </div>
@@ -91,13 +118,12 @@ function TerminalWorkspace() {
   }
 
   return (
-    <div className="tit-shell flex h-screen flex-col overflow-hidden">
+    <div className="tit-shell tit-shell-grid">
       <TerminalTopBar onHelp={() => setHelpOpen(true)} />
       <MarketMetricsBar />
+      <IconRail active={pane} onSelect={onPane} />
 
-      <div className="flex min-h-0 flex-1">
-        <IconRail active={pane} onSelect={onPane} />
-
+      <div className="tit-area-left min-h-0 overflow-hidden">
         <LeftColumn
           rows={rows}
           loading={feed.feedState === 'loading'}
@@ -113,38 +139,30 @@ function TerminalWorkspace() {
           window={discoverWindow}
           onWindow={setDiscoverWindow}
         />
+      </div>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-1.5 overflow-hidden p-1.5">
-          <div ref={chartsRef} className="flex min-h-0 flex-[1.35] flex-col gap-1">
-            <div className="flex shrink-0 items-center gap-2 px-0.5">
-              <p className="tit-label">Multi-Chart Workspace</p>
-              <span className="tit-mono text-[0.5rem] text-[var(--tit-text-2)]">
-                DexScreener embed · drag Discover onto slots
-              </span>
-            </div>
-            <ChartGrid />
-          </div>
-
-          <div ref={sniperRef} className="min-h-0 shrink-0">
-            <div ref={portfolioRef}>
-              <div ref={historyRef}>
-                <div ref={intelRef}>
-                  <BottomDeck intelRows={allRows} />
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="tit-area-center flex min-h-0 min-w-0 flex-col gap-1 overflow-hidden p-1.5">
+        <div ref={chartsRef} className="flex min-h-0 flex-1 flex-col">
+          <ChartGrid />
         </div>
+        <div ref={sniperRef} className="shrink-0">
+          <CenterAuxRow />
+        </div>
+      </div>
 
-        <div
-          className="flex shrink-0 flex-col gap-1.5 border-l border-[var(--tit-border)] bg-[var(--tit-bg-0)] p-1.5"
-          style={{ width: 'var(--tit-right-panel)' }}
-        >
-          <div className="min-h-0 flex-[1.15]">
-            <CoachRail tab={coachTab} onTab={setCoachTab} />
-          </div>
-          <div className="min-h-0 flex-1">
-            <ExecutionTicket />
+      <div className="tit-area-coach flex min-h-0 flex-col overflow-hidden border-l border-[var(--tit-border)] bg-[var(--tit-bg-0)]">
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <CoachRail tab={coachTab} onTab={setCoachTab} />
+        </div>
+        <div className="max-h-[42%] min-h-[200px] shrink-0 border-t border-[var(--tit-border)]">
+          <ExecutionTicket />
+        </div>
+      </div>
+
+      <div ref={portfolioRef} className="tit-area-bottom min-h-0 overflow-hidden border-t border-[var(--tit-border)] p-1">
+        <div ref={historyRef}>
+          <div ref={intelRef}>
+            <BottomDeck intelRows={allRows} />
           </div>
         </div>
       </div>

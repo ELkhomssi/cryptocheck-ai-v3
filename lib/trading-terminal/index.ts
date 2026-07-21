@@ -95,3 +95,21 @@ export {
   type PersistedWatchlists,
 } from './watchlist-storage'
 export { encodeTitDrag, decodeTitDrag, type TitDragPayload } from './dnd'
+export { buildCoachAction, type CoachAction } from './coach-action'
+export { buildCoachTradePlan, type CoachTradePlan, type TradePlanRiskLevel } from './coach-trade-plan'
+export { computePortfolioImpact, type PortfolioImpact } from './portfolio-impact'
+export { loadSimilarSetups, type SimilarSetups } from './similar-setups'
+export { loadWeeklyIntel, type WeeklyIntel } from './weekly-intel'
+export {
+  awaitingStat,
+  loadingStat,
+  type MarketStat,
+  type MarketStatId,
+} from './market-stats'
+export {
+  DEFAULT_CHART_ENGINE,
+  CHART_TIMEFRAMES,
+  dexscreenerEmbedUrl,
+  type ChartEngineId,
+  type ChartTimeframe,
+} from './chart-engine'

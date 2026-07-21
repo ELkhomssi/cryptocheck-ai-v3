@@ -15,6 +15,7 @@ function truncMint(m: string) {
 function badgeFor(row: UnifiedSignal): { label: string; className: string } | null {
   if (row.sample) return { label: 'SAMPLE', className: 'tit-badge tit-badge-risk' }
   if (row.verdict === 'danger') return { label: 'RISK', className: 'tit-badge tit-badge-risk' }
+  if (row.verdict === 'safe') return { label: 'SAFE', className: 'tit-badge tit-badge-safe' }
   if (row.verdict === 'scanning') return { label: 'NEW', className: 'tit-badge tit-badge-new' }
   if (row.type === 'launch' || row.type === 'new_pool') {
     return { label: 'NEW', className: 'tit-badge tit-badge-new' }
@@ -22,7 +23,7 @@ function badgeFor(row: UnifiedSignal): { label: string; className: string } | nu
   if (typeof row.scoreValue === 'number' && row.scoreValue >= 70) {
     return { label: 'HOT', className: 'tit-badge tit-badge-hot' }
   }
-  if (row.verdict === 'safe' || row.verdict === 'caution') {
+  if (row.verdict === 'caution') {
     return { label: 'TRENDING', className: 'tit-badge tit-badge-trend' }
   }
   return null
@@ -104,7 +105,7 @@ export function LeftColumn({
 
       {!loading && !error && rows.length === 0 ? (
         <p className="p-2.5 text-[0.7rem] text-[var(--tit-text-1)]">
-          No token signals in window. Live when connection is live — no fabricated rows.
+          Scanning for movers… Live when connection is live — no fabricated rows.
         </p>
       ) : null}
 
@@ -133,9 +134,10 @@ export function LeftColumn({
                   if (mint) selectSignal(row)
                 }}
                 disabled={!mint || row.dropped}
-                className={`flex w-full items-center gap-2 px-2.5 py-1.5 text-left transition-colors duration-[var(--tit-motion)] hover:bg-[var(--tit-bg-2)] disabled:opacity-40 ${
+                className={`flex w-full items-center gap-2 px-2.5 text-left transition-colors duration-[var(--tit-motion)] hover:bg-[var(--tit-bg-3)] disabled:opacity-40 ${
                   active ? 'tit-row-active' : highlighted ? 'bg-[var(--tit-bg-2)]' : ''
                 }`}
+                style={{ height: 'var(--tit-row-h)' }}
               >
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-[var(--tit-bg-3)] tit-mono text-[0.55rem] font-bold text-[var(--tit-text-1)]">
                   {sym.slice(0, 2).toUpperCase()}

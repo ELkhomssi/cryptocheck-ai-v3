@@ -3,8 +3,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { UnifiedSignal } from '@cryptocheck/signal-contracts'
 import { loadTradeLog } from '@/lib/trading-terminal/trade-log'
-import { summarizeOutcomes, computeTradeOutcome } from '@/lib/trading-terminal/trade-outcomes'
-import { SniperArmPanel } from './SniperArmPanel'
 import { useTerminalPortfolio } from './MiniPortfolioCard'
 import { useTerminalFocus } from './TerminalFocusProvider'
 
@@ -20,7 +18,7 @@ function PortionsDonut({
     let cursor = 0
     const colors = [
       'var(--tit-accent)',
-      'var(--tit-info)',
+      'var(--tit-accent-2)',
       'var(--tit-pos)',
       'var(--tit-warn)',
       'var(--tit-hot)',
@@ -43,20 +41,24 @@ function PortionsDonut({
 
   return (
     <div className="tit-panel-flat flex h-full min-h-0 flex-col overflow-hidden">
-      <div className="border-b border-[var(--tit-border)] px-2 py-1.5">
+      <div className="border-b border-[var(--tit-border)] px-2 py-1">
         <p className="tit-label">Portions</p>
       </div>
-      <div className="flex flex-1 items-center gap-3 p-2">
+      <div className="flex flex-1 items-center gap-2 p-2">
         <div
-          className="relative h-16 w-16 shrink-0 rounded-full"
+          className="relative h-14 w-14 shrink-0 rounded-full"
           style={{ background: gradient }}
           aria-hidden
         >
-          <div className="absolute inset-2 rounded-full bg-[var(--tit-bg-1)]" />
+          <div className="absolute inset-2 flex items-center justify-center rounded-full bg-[var(--tit-bg-1)]">
+            <span className="tit-mono text-[0.55rem] text-[var(--tit-text-0)]">
+              {total > 0 ? `$${total.toFixed(0)}` : '—'}
+            </span>
+          </div>
         </div>
         <ul className="tit-scroll min-h-0 flex-1 space-y-0.5 overflow-y-auto">
           {slices.length === 0 ? (
-            <li className="text-[0.65rem] text-[var(--tit-text-2)]">No holdings</li>
+            <li className="text-[0.65rem] text-[var(--tit-text-1)]">No holdings yet — connect wallet.</li>
           ) : (
             slices.map((s) => (
               <li key={s.mint} className="flex justify-between text-[0.6rem]">
@@ -76,7 +78,7 @@ function PositionsTable() {
 
   return (
     <div className="tit-panel-flat flex h-full min-h-0 flex-col overflow-hidden">
-      <div className="flex items-center justify-between border-b border-[var(--tit-border)] px-2 py-1.5">
+      <div className="flex items-center justify-between border-b border-[var(--tit-border)] px-2 py-1">
         <p className="tit-label">Positions</p>
         {!isConnected ? (
           <button type="button" onClick={() => void connect()} className="tit-btn-accent px-2 py-0.5 text-[0.55rem]">
@@ -85,17 +87,20 @@ function PositionsTable() {
         ) : null}
       </div>
       {!isConnected ? (
-        <p className="p-2 text-[0.65rem] text-[var(--tit-text-2)]">Connect wallet to load positions.</p>
+        <p className="p-2 text-[0.65rem] text-[var(--tit-text-1)]">Connect wallet to load positions.</p>
       ) : loading && !data ? (
-        <p className="p-2 text-[var(--tit-text-2)]">Loading…</p>
+        <div className="space-y-1 p-2" aria-busy>
+          <div className="tit-skeleton h-4 w-full" />
+          <div className="tit-skeleton h-4 w-5/6" />
+        </div>
       ) : error ? (
         <p className="p-2 text-[var(--tit-neg)]">{error}</p>
       ) : !data?.positions.length ? (
-        <p className="p-2 text-[0.65rem] text-[var(--tit-text-2)]">No open positions.</p>
+        <p className="p-2 text-[0.65rem] text-[var(--tit-text-1)]">No open positions.</p>
       ) : (
         <div className="tit-scroll min-h-0 flex-1 overflow-auto">
           <table className="w-full text-left">
-            <thead className="sticky top-0 bg-[var(--tit-bg-1)]">
+            <thead className="sticky top-0 bg-[var(--tit-bg-2)]">
               <tr className="tit-label text-[0.5rem]">
                 <th className="px-2 py-1 font-bold">Token</th>
                 <th className="px-2 py-1 font-bold">Value</th>
@@ -108,9 +113,10 @@ function PositionsTable() {
               {data.positions.map((p) => (
                 <tr
                   key={p.mint}
-                  className="border-t border-[var(--tit-border)] hover:bg-[var(--tit-bg-2)]"
+                  className="border-t border-[var(--tit-border)] hover:bg-[var(--tit-bg-3)]"
+                  style={{ height: 'var(--tit-row-h)' }}
                 >
-                  <td className="px-2 py-1">
+                  <td className="px-2 py-0.5">
                     <button
                       type="button"
                       onClick={() => selectMint(p.mint, p.symbol)}
@@ -119,12 +125,12 @@ function PositionsTable() {
                       {p.symbol}
                     </button>
                   </td>
-                  <td className="tit-mono px-2 py-1 text-[0.6rem] text-[var(--tit-text-1)]">
+                  <td className="tit-mono px-2 py-0.5 text-[0.6rem] text-[var(--tit-text-1)]">
                     ${p.valueUsd.toFixed(2)}
                   </td>
-                  <td className="tit-mono px-2 py-1 text-[0.6rem]">{p.riskScore}</td>
+                  <td className="tit-mono px-2 py-0.5 text-[0.6rem]">{p.riskScore}</td>
                   <td
-                    className={`tit-mono px-2 py-1 text-[0.55rem] font-bold ${
+                    className={`tit-mono px-2 py-0.5 text-[0.55rem] font-bold ${
                       p.verdict === 'DANGER' || p.verdict === 'BLOCKED'
                         ? 'text-[var(--tit-danger)]'
                         : p.verdict === 'CAUTION'
@@ -134,13 +140,13 @@ function PositionsTable() {
                   >
                     {p.verdict}
                   </td>
-                  <td className="px-2 py-1 text-right">
+                  <td className="px-2 py-0.5 text-right">
                     <button
                       type="button"
                       onClick={() => armExit(p.mint, p.symbol)}
                       className="rounded border border-[var(--tit-border)] px-1.5 py-0.5 text-[0.5rem] font-bold text-[var(--tit-text-1)] hover:border-[var(--tit-danger)] hover:text-[var(--tit-danger)]"
                     >
-                      EXIT
+                      Exit
                     </button>
                   </td>
                 </tr>
@@ -167,11 +173,11 @@ function RecentTradesPanel() {
 
   return (
     <div className="tit-panel-flat flex h-full min-h-0 flex-col overflow-hidden">
-      <div className="border-b border-[var(--tit-border)] px-2 py-1.5">
+      <div className="border-b border-[var(--tit-border)] px-2 py-1">
         <p className="tit-label">Recent Trades</p>
       </div>
       {trades.length === 0 ? (
-        <p className="p-2 text-[0.65rem] text-[var(--tit-text-2)]">
+        <p className="p-2 text-[0.65rem] text-[var(--tit-text-1)]">
           No terminal fills yet. Confirmed swaps appear here.
         </p>
       ) : (
@@ -179,7 +185,8 @@ function RecentTradesPanel() {
           {trades.map((t) => (
             <li
               key={t.signature}
-              className="flex items-center gap-2 border-t border-[var(--tit-border)] px-2 py-1"
+              className="flex items-center gap-2 border-t border-[var(--tit-border)] px-2"
+              style={{ height: 'var(--tit-row-h)' }}
             >
               <span
                 className={`tit-mono text-[0.55rem] font-bold ${
@@ -210,11 +217,11 @@ function IntelFeedPanel({ rows }: { rows: UnifiedSignal[] }) {
 
   return (
     <div className="tit-panel-flat flex h-full min-h-0 flex-col overflow-hidden">
-      <div className="border-b border-[var(--tit-border)] px-2 py-1.5">
+      <div className="border-b border-[var(--tit-border)] px-2 py-1">
         <p className="tit-label">Intel Feed</p>
       </div>
       {rows.length === 0 ? (
-        <p className="p-2 text-[0.65rem] text-[var(--tit-text-2)]">Waiting for live signals…</p>
+        <p className="p-2 text-[0.65rem] text-[var(--tit-text-1)]">Waiting for live signals…</p>
       ) : (
         <ul className="tit-scroll min-h-0 flex-1 overflow-y-auto">
           {rows.slice(0, 40).map((r) => {
@@ -225,7 +232,7 @@ function IntelFeedPanel({ rows }: { rows: UnifiedSignal[] }) {
                   type="button"
                   disabled={!mint}
                   onClick={() => mint && selectSignal(r)}
-                  className="flex w-full items-start gap-2 border-t border-[var(--tit-border)] px-2 py-1 text-left hover:bg-[var(--tit-bg-2)] disabled:opacity-50"
+                  className="flex w-full items-start gap-2 border-t border-[var(--tit-border)] px-2 py-1 text-left hover:bg-[var(--tit-bg-3)] disabled:opacity-50"
                 >
                   <span className="tit-mono shrink-0 text-[0.5rem] text-[var(--tit-text-2)]">
                     {new Date(r.msgTimestamp || r.ingestTimestamp).toLocaleTimeString([], {
@@ -254,82 +261,18 @@ function IntelFeedPanel({ rows }: { rows: UnifiedSignal[] }) {
   )
 }
 
-function TradeMarksStrip() {
-  const summary = useMemo(() => {
-    const trades = loadTradeLog()
-    const outcomes = trades.map((t) => computeTradeOutcome(t, t.entryPriceUsd ?? null))
-    const s = summarizeOutcomes(outcomes)
-    const wins = outcomes.filter(
-      (o) => o.status === 'marked' && o.priceDeltaPct != null && o.priceDeltaPct > 0,
-    ).length
-    const marked = s.marked
-    return {
-      count: trades.length,
-      winRate: marked > 0 ? (wins / marked) * 100 : null,
-      avg: s.avgDeltaPct,
-      unavailable: s.unavailable,
-    }
-  }, [])
-
-  return (
-    <div className="tit-panel-flat flex h-full flex-col justify-center gap-1 px-3 py-2">
-      <p className="tit-label">Trade Marks</p>
-      <div className="flex flex-wrap items-baseline gap-3">
-        <span className="tit-mono text-[0.75rem] font-bold text-[var(--tit-text-0)]">
-          {summary.count} marked
-        </span>
-        <span className="tit-mono text-[0.65rem] text-[var(--tit-text-1)]">
-          Win{' '}
-          {summary.winRate != null ? (
-            <span className="text-[var(--tit-pos)]">{summary.winRate.toFixed(1)}%</span>
-          ) : (
-            '—'
-          )}
-        </span>
-        <span className="tit-mono text-[0.65rem] text-[var(--tit-text-1)]">
-          Avg Δ{' '}
-          {summary.avg != null ? (
-            <span className={summary.avg >= 0 ? 'text-[var(--tit-pos)]' : 'text-[var(--tit-neg)]'}>
-              {summary.avg >= 0 ? '+' : ''}
-              {summary.avg.toFixed(1)}%
-            </span>
-          ) : (
-            '—'
-          )}
-        </span>
-      </div>
-      <p className="text-[0.5rem] text-[var(--tit-text-2)]">
-        From confirmed terminal fills only
-        {summary.unavailable > 0 ? ` · ${summary.unavailable} unmarked` : ''}
-      </p>
-    </div>
-  )
-}
-
 type Props = { intelRows: UnifiedSignal[] }
 
+/** Bottom strip — Portions · Positions · Recent Trades · Intel Feed */
 export function BottomDeck({ intelRows }: Props) {
   const { data } = useTerminalPortfolio()
 
   return (
-    <div className="flex min-h-0 flex-col gap-1.5" style={{ height: 200 }}>
-      <div className="grid h-[72px] shrink-0 grid-cols-2 gap-1.5">
-        <div className="min-h-0 overflow-hidden">
-          <SniperArmPanel compact />
-        </div>
-        <TradeMarksStrip />
-      </div>
-      <div className="grid min-h-0 flex-1 grid-cols-[140px_1fr_1fr] gap-1.5">
-        <PortionsDonut
-          positions={data?.positions ?? []}
-          total={data?.totalValueUsd ?? 0}
-        />
-        <PositionsTable />
-        <div className="grid min-h-0 grid-rows-2 gap-1.5">
-          <RecentTradesPanel />
-          <IntelFeedPanel rows={intelRows} />
-        </div>
-      </div>
+    <div className="grid h-full min-h-0 grid-cols-[160px_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)] gap-1">
+      <PortionsDonut positions={data?.positions ?? []} total={data?.totalValueUsd ?? 0} />
+      <PositionsTable />
+      <RecentTradesPanel />
+      <IntelFeedPanel rows={intelRows} />
     </div>
   )
 }
