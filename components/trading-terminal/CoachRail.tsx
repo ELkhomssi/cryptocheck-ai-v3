@@ -39,7 +39,7 @@ export function CoachRail({ tab, onTab }: Props) {
               onClick={() => onTab(id)}
               className={`tit-mono shrink-0 rounded px-1.5 py-1 text-[0.55rem] ${
                 tab === id
-                  ? 'bg-[var(--tit-ember)] text-white'
+                  ? 'bg-[var(--tit-accent)] text-white'
                   : 'bg-[var(--tit-bg-2)] text-[var(--tit-text-1)]'
               }`}
             >

@@ -1,28 +1,38 @@
 /**
- * Trading Intelligence Terminal tokens — ember for action/brand only.
- * PnL / risk use semantic green/red/amber — never ember.
+ * CryptoCheck Terminal — design tokens matching the Trading Intelligence Terminal mockup.
+ * Brand accent = violet (action / active only). PnL / risk = green / red / amber — never violet.
  */
 
 :root {
-  --tit-ember: #f25101;
-  --tit-ember-dim: #b93300;
+  --tit-accent: #8b5cf6;
+  --tit-accent-bright: #a78bfa;
+  --tit-accent-dim: #6d28d9;
+  --tit-ember: #8b5cf6;
+  --tit-ember-dim: #6d28d9;
 
-  --tit-bg-0: #07090c;
-  --tit-bg-1: #0c1016;
-  --tit-bg-2: #121822;
-  --tit-bg-3: #1a2230;
+  --tit-bg-0: #06060a;
+  --tit-bg-1: #0c0c12;
+  --tit-bg-2: #12121a;
+  --tit-bg-3: #1a1a24;
+  --tit-bg-4: #22222e;
 
-  --tit-text-0: #e8eef7;
-  --tit-text-1: #9aa8bc;
-  --tit-text-2: #6b7a90;
+  --tit-border: rgba(255, 255, 255, 0.06);
+  --tit-border-strong: rgba(255, 255, 255, 0.1);
 
-  --tit-pos: #3fe05a;
-  --tit-neg: #ff5a5a;
-  --tit-warn: #f2b84c;
+  --tit-text-0: #f1f5f9;
+  --tit-text-1: #94a3b8;
+  --tit-text-2: #64748b;
 
-  --tit-safe: #3fe05a;
-  --tit-caution: #f2b84c;
-  --tit-danger: #ff5a5a;
+  --tit-pos: #4ade80;
+  --tit-neg: #f87171;
+  --tit-warn: #fbbf24;
+
+  --tit-safe: #4ade80;
+  --tit-caution: #fbbf24;
+  --tit-danger: #f87171;
+  --tit-blocked: #ef4444;
+  --tit-info: #60a5fa;
+  --tit-hot: #fb923c;
 
   --tit-sp-1: 4px;
   --tit-sp-2: 8px;
@@ -31,6 +41,12 @@
   --tit-radius: 4px;
 
   --tit-motion: 120ms;
+  --tit-icon-rail: 48px;
+  --tit-left-panel: 260px;
+  --tit-right-panel: 320px;
+  --tit-footer: 28px;
+  --tit-topbar: 44px;
+  --tit-metrics: 52px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -43,6 +59,8 @@
   background: var(--tit-bg-0);
   color: var(--tit-text-0);
   font-family: var(--font-space-grotesk), 'IBM Plex Sans', system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .tit-mono {
@@ -52,20 +70,44 @@
 
 .tit-panel {
   background: var(--tit-bg-1);
-  border: 1px solid color-mix(in srgb, var(--tit-text-2) 35%, transparent);
+  border: 1px solid var(--tit-border);
   border-radius: var(--tit-radius);
 }
 
+.tit-panel-flat {
+  background: var(--tit-bg-1);
+  border: 1px solid var(--tit-border);
+}
+
 .tit-label {
-  font-size: 0.625rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--tit-text-2);
 }
 
+.tit-btn-accent {
+  background: var(--tit-accent);
+  color: #fff;
+  border-radius: var(--tit-radius);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  transition: background var(--tit-motion);
+}
+
+.tit-btn-accent:hover {
+  background: var(--tit-accent-dim);
+}
+
+.tit-btn-accent:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .tit-btn-ember {
-  background: var(--tit-ember);
+  background: var(--tit-accent);
   color: #fff;
   border-radius: var(--tit-radius);
   font-size: 0.75rem;
@@ -74,7 +116,7 @@
 }
 
 .tit-btn-ember:hover {
-  background: var(--tit-ember-dim);
+  background: var(--tit-accent-dim);
 }
 
 .tit-btn-ember:disabled {
@@ -83,9 +125,9 @@
 }
 
 .tit-compliance {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   color: var(--tit-text-2);
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
 .tit-sample-tag {
@@ -93,7 +135,7 @@
   align-items: center;
   padding: 0.1rem 0.35rem;
   border-radius: 3px;
-  font-size: 0.55rem;
+  font-size: 0.5rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -102,9 +144,40 @@
   border: 1px solid color-mix(in srgb, var(--tit-warn) 40%, transparent);
 }
 
+.tit-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tit-badge-hot {
+  background: color-mix(in srgb, var(--tit-hot) 20%, transparent);
+  color: var(--tit-hot);
+}
+
+.tit-badge-new {
+  background: color-mix(in srgb, var(--tit-pos) 18%, transparent);
+  color: var(--tit-pos);
+}
+
+.tit-badge-trend {
+  background: color-mix(in srgb, var(--tit-info) 18%, transparent);
+  color: var(--tit-info);
+}
+
+.tit-badge-risk {
+  background: color-mix(in srgb, var(--tit-danger) 18%, transparent);
+  color: var(--tit-danger);
+}
+
 .tit-row-active {
-  background: color-mix(in srgb, var(--tit-ember) 12%, transparent);
-  border-left: 2px solid var(--tit-ember);
+  background: color-mix(in srgb, var(--tit-accent) 14%, transparent);
+  border-left: 2px solid var(--tit-accent);
 }
 
 .tit-flash-pos {
@@ -131,4 +204,29 @@
   to {
     background: transparent;
   }
+}
+
+.tit-scroll::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.tit-scroll::-webkit-scrollbar-thumb {
+  background: var(--tit-bg-4);
+  border-radius: 2px;
+}
+
+.tit-input {
+  height: 28px;
+  border-radius: var(--tit-radius);
+  border: 1px solid var(--tit-border-strong);
+  background: var(--tit-bg-0);
+  color: var(--tit-text-0);
+  padding: 0 8px;
+  font-size: 0.7rem;
+  outline: none;
+}
+
+.tit-input:focus {
+  border-color: var(--tit-accent);
 }

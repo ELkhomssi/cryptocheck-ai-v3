@@ -27,7 +27,7 @@ async function scanMint(mint: string): Promise<ScanResult | null> {
   }
 }
 
-export function SniperArmPanel() {
+export function SniperArmPanel({ compact = false }: { compact?: boolean }) {
   const { focusMint, focusSymbol, scan, selectMint } = useTerminalFocus()
   const [state, setState] = useState<SniperArmState>(() => loadSniperState())
   const [lastAbort, setLastAbort] = useState<string | null>(null)
@@ -38,7 +38,6 @@ export function SniperArmPanel() {
     saveSniperState(state)
   }, [state])
 
-  // Live risk rail while armed — ~45s (honest scan, not fake urgency)
   useEffect(() => {
     if (!state.armed || state.mint.length < 32) return
     let cancelled = false
@@ -75,7 +74,6 @@ export function SniperArmPanel() {
     }
   }, [state.armed, state.mint, state.maxRiskScore])
 
-  // Focus mint mismatch while armed
   useEffect(() => {
     if (!state.armed) return
     const ev = evaluateSniperAbort({
@@ -91,12 +89,7 @@ export function SniperArmPanel() {
   }, [focusMint, state.armed, state.mint, state.maxRiskScore])
 
   const disarm = () => {
-    setState((s) => ({
-      ...s,
-      armed: false,
-      armedAt: null,
-      riskAck: false,
-    }))
+    setState((s) => ({ ...s, armed: false, armedAt: null, riskAck: false }))
     setLastAbort(null)
   }
 
@@ -106,14 +99,19 @@ export function SniperArmPanel() {
       riskScore: card?.riskScore ?? null,
       verdict: card?.verdict ?? null,
       maxRiskScore: state.maxRiskScore,
-      riskAck: state.riskAck,
+      riskAck: true,
       maxSol: state.maxSol,
     })
+    if (!check.ok && !state.riskAck) {
+      setState((s) => ({ ...s, riskAck: true }))
+      return
+    }
     if (!check.ok) return
     setLastAbort(null)
     setState((s) => ({
       ...s,
       armed: true,
+      riskAck: true,
       mint: focusMint,
       symbol: focusSymbol || card?.mint.slice(0, 6) || '',
       verdictAtArm: card?.verdict ?? null,
@@ -127,34 +125,101 @@ export function SniperArmPanel() {
     riskScore: card?.riskScore ?? null,
     verdict: card?.verdict ?? null,
     maxRiskScore: state.maxRiskScore,
-    riskAck: state.riskAck,
+    riskAck: state.riskAck || compact,
     maxSol: state.maxSol,
   })
 
+  if (compact) {
+    return (
+      <div className="tit-panel-flat flex h-full flex-col justify-center gap-1 px-3 py-2">
+        <div className="flex items-center justify-between">
+          <p className="tit-label">Sniper</p>
+          <span
+            className={`tit-mono rounded px-1.5 py-0.5 text-[0.55rem] font-bold uppercase ${
+              state.armed
+                ? 'bg-[var(--tit-pos)]/15 text-[var(--tit-pos)]'
+                : 'bg-[var(--tit-bg-3)] text-[var(--tit-text-2)]'
+            }`}
+          >
+            {state.armed ? (polling ? 'ARMED · SCAN' : 'ARMED') : 'DISARMED'}
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="tit-mono text-[0.65rem] text-[var(--tit-text-0)]">
+            {state.armed ? state.symbol || '—' : focusSymbol || 'No target'}
+          </span>
+          <span className="tit-mono text-[0.55rem] text-[var(--tit-text-2)]">
+            Risk {card?.riskScore ?? '—'} · Abort ≥{state.maxRiskScore}
+          </span>
+          {state.armed ? (
+            <button
+              type="button"
+              onClick={disarm}
+              className="ml-auto rounded border border-[var(--tit-border)] px-2 py-0.5 text-[0.55rem] font-bold text-[var(--tit-text-1)]"
+            >
+              DISARM
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={!focusMint || card?.verdict === 'BLOCKED'}
+              onClick={() => {
+                const check = canArmSniper({
+                  mint: focusMint,
+                  riskScore: card?.riskScore ?? null,
+                  verdict: card?.verdict ?? null,
+                  maxRiskScore: state.maxRiskScore,
+                  riskAck: true,
+                  maxSol: state.maxSol,
+                })
+                if (!check.ok) return
+                setLastAbort(null)
+                setState((s) => ({
+                  ...s,
+                  armed: true,
+                  riskAck: true,
+                  mint: focusMint,
+                  symbol: focusSymbol || card?.mint.slice(0, 6) || '',
+                  verdictAtArm: card?.verdict ?? null,
+                  riskScoreAtArm: card?.riskScore ?? null,
+                  armedAt: new Date().toISOString(),
+                }))
+              }}
+              className="tit-btn-accent ml-auto px-2 py-0.5 text-[0.55rem] disabled:opacity-40"
+            >
+              ARM
+            </button>
+          )}
+        </div>
+        {lastAbort ? (
+          <p className="text-[0.55rem] text-[var(--tit-neg)]">{lastAbort}</p>
+        ) : (
+          <p className="text-[0.5rem] text-[var(--tit-text-2)]">
+            Live risk recheck · no auto-submit
+          </p>
+        )}
+      </div>
+    )
+  }
+
   return (
-    <div className="mx-2 mb-2 rounded border border-white/10 bg-[var(--tit-bg-2)] px-3 py-2">
+    <div className="rounded border border-[var(--tit-border)] bg-[var(--tit-bg-2)] px-3 py-2">
       <div className="flex items-center justify-between">
-        <p className="tit-label">Sniper (V2)</p>
+        <p className="tit-label">Sniper</p>
         <span
           className={`tit-mono text-[0.6rem] uppercase ${
-            state.armed ? 'text-[var(--tit-ember)]' : 'text-[var(--tit-text-2)]'
+            state.armed ? 'text-[var(--tit-pos)]' : 'text-[var(--tit-text-2)]'
           }`}
         >
           {state.armed ? (polling ? 'armed·scan' : 'armed') : 'disarmed'}
         </span>
       </div>
-
       <p className="mt-1 text-[0.65rem] text-[var(--tit-text-2)]">
-        Intent + live risk abort. No auto-submit. Rescan every 45s while armed; disarm on BLOCKED or
-        risk ≥ threshold.
+        Intent + live risk abort. No auto-submit.
       </p>
-
       {lastAbort ? (
-        <p className="mt-1 text-[0.65rem] text-[var(--tit-neg)]" role="status">
-          Auto-disarmed: {lastAbort}
-        </p>
+        <p className="mt-1 text-[0.65rem] text-[var(--tit-neg)]">Auto-disarmed: {lastAbort}</p>
       ) : null}
-
       <div className="mt-2 grid grid-cols-2 gap-2">
         <label className="text-[0.6rem] text-[var(--tit-text-2)]">
           Max SOL
@@ -164,10 +229,8 @@ export function SniperArmPanel() {
             step={0.1}
             value={state.maxSol}
             disabled={state.armed}
-            onChange={(e) =>
-              setState((s) => ({ ...s, maxSol: Number(e.target.value) || 0 }))
-            }
-            className="tit-mono mt-0.5 w-full rounded border border-white/10 bg-[var(--tit-bg-0)] px-2 py-1 text-xs text-[var(--tit-text-0)]"
+            onChange={(e) => setState((s) => ({ ...s, maxSol: Number(e.target.value) || 0 }))}
+            className="tit-input tit-mono mt-0.5 w-full"
           />
         </label>
         <label className="text-[0.6rem] text-[var(--tit-text-2)]">
@@ -181,26 +244,12 @@ export function SniperArmPanel() {
             onChange={(e) =>
               setState((s) => ({ ...s, maxRiskScore: Number(e.target.value) || 70 }))
             }
-            className="tit-mono mt-0.5 w-full rounded border border-white/10 bg-[var(--tit-bg-0)] px-2 py-1 text-xs text-[var(--tit-text-0)]"
+            className="tit-input tit-mono mt-0.5 w-full"
           />
         </label>
       </div>
-
       {!state.armed ? (
         <div className="mt-2 space-y-2">
-          <div className="rounded border border-[var(--tit-warn)]/30 bg-[var(--tit-warn)]/5 px-2 py-1.5 text-[0.65rem] text-[var(--tit-text-1)]">
-            <p className="font-semibold text-[var(--tit-warn)]">Pre-arm risk summary</p>
-            <p className="mt-0.5">
-              Mint {focusSymbol || '—'} · verdict {card?.verdict ?? 'none'} · risk{' '}
-              {card?.riskScore ?? '—'} · evidence{' '}
-              {card
-                ? `${card.evidence.present.length}/${card.evidence.required.length}`
-                : '—'}
-            </p>
-            <p className="mt-0.5 text-[var(--tit-text-2)]">
-              Max spend {state.maxSol} SOL · auto-abort if risk ≥ {state.maxRiskScore}
-            </p>
-          </div>
           <label className="flex items-start gap-2 text-[0.65rem] text-[var(--tit-text-1)]">
             <input
               type="checkbox"
@@ -208,7 +257,7 @@ export function SniperArmPanel() {
               onChange={(e) => setState((s) => ({ ...s, riskAck: e.target.checked }))}
               className="mt-0.5"
             />
-            I reviewed the pre-arm summary. Not financial advice.
+            I reviewed pre-arm risk. Not financial advice.
           </label>
           {armCheck.reason ? (
             <p className="text-[0.6rem] text-[var(--tit-warn)]">{armCheck.reason}</p>
@@ -217,28 +266,24 @@ export function SniperArmPanel() {
             type="button"
             disabled={!armCheck.ok}
             onClick={tryArm}
-            className="tit-btn-ember w-full py-1.5 text-[0.7rem] disabled:opacity-40"
+            className="tit-btn-accent w-full py-1.5 disabled:opacity-40"
           >
             Arm sniper on focus
           </button>
         </div>
       ) : (
         <div className="mt-2 space-y-2">
-          <p className="tit-mono text-[0.65rem] text-[var(--tit-text-1)]">
-            Armed {state.symbol} · {state.armedAt?.slice(0, 19)} · verdict {state.verdictAtArm} ·
-            risk {state.riskScoreAtArm ?? '—'}
-          </p>
           <button
             type="button"
             onClick={() => selectMint(state.mint, state.symbol)}
-            className="w-full rounded border border-white/15 py-1 text-[0.65rem] text-[var(--tit-text-1)]"
+            className="w-full rounded border border-[var(--tit-border)] py-1 text-[0.65rem]"
           >
             Focus armed mint
           </button>
           <button
             type="button"
             onClick={disarm}
-            className="w-full rounded border border-white/15 py-1.5 text-[0.7rem] text-[var(--tit-text-1)]"
+            className="w-full rounded border border-[var(--tit-border)] py-1.5 text-[0.7rem]"
           >
             Disarm
           </button>

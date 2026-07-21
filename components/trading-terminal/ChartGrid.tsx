@@ -79,15 +79,15 @@ function ChartSlot({ index }: { index: number }) {
         e.dataTransfer.setData(TIT_DND_MIME, JSON.stringify({ mint, symbol }))
         e.dataTransfer.effectAllowed = 'move'
       }}
-      className={`tit-panel relative flex min-h-0 flex-col overflow-hidden ${
-        active ? 'ring-1 ring-[var(--tit-ember)]' : ''
-      } ${dragOver ? 'ring-2 ring-[var(--tit-ember)]' : ''}`}
+      className={`tit-panel-flat relative flex min-h-0 flex-col overflow-hidden ${
+        active ? 'ring-1 ring-[var(--tit-accent)]' : ''
+      } ${dragOver ? 'ring-2 ring-[var(--tit-accent)]' : ''}`}
     >
-      <div className="flex h-8 shrink-0 items-center gap-2 border-b border-white/[0.06] px-2">
+      <div className="flex h-7 shrink-0 items-center gap-2 border-b border-[var(--tit-border)] px-2">
         <span className="tit-mono text-[0.65rem] font-semibold text-[var(--tit-text-0)]">
           {symbol || '—'}
         </span>
-        <span className="tit-mono truncate text-[0.55rem] text-[var(--tit-text-2)]">
+        <span className="tit-mono truncate text-[0.5rem] text-[var(--tit-text-2)]">
           {mint ? `${mint.slice(0, 6)}…` : 'Drop a symbol'}
         </span>
         <button
@@ -126,7 +126,7 @@ export function ChartGrid() {
   const { chartMode, slots } = useTerminalFocus()
 
   return (
-    <div className={`grid min-h-0 flex-1 gap-2 ${gridClass(chartMode)}`}>
+    <div className={`grid min-h-0 flex-1 gap-1 ${gridClass(chartMode)}`}>
       {slots.map((_, i) => (
         <div key={i} className="min-h-0">
           <ChartSlot index={i} />

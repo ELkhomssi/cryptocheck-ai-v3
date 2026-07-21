@@ -21,7 +21,6 @@ import {
 import { scanToVerdictCard } from '@/lib/trading-terminal/map-verdict'
 import { appendTrade } from '@/lib/trading-terminal/trade-log'
 import { CoachInterruptBanner } from './CoachInterruptBanner'
-import { SniperArmPanel } from './SniperArmPanel'
 import { useTerminalFocus } from './TerminalFocusProvider'
 
 export function ExecutionTicket() {
@@ -202,9 +201,7 @@ export function ExecutionTicket() {
         ) : null}
       </div>
 
-      {focusMint.length >= 32 ? <SniperArmPanel /> : null}
-
-      <p className="tit-compliance border-t border-white/[0.06] px-3 py-2">
+      <p className="tit-compliance border-t border-[var(--tit-border)] px-3 py-2">
         {COMPLIANCE_DISCLAIMER}{' '}
         <Link href={TERMS_PATH} className="underline hover:text-[var(--tit-text-1)]">
           Terms

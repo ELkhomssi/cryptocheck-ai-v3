@@ -12,9 +12,10 @@ const nextConfig = {
         destination: 'https://www.cryptocheckai.com/:path*',
         permanent: false,
       },
-      // Exact / prefix paths (substring "company" anywhere else is handled in middleware.ts)
       { source: '/company', destination: '/', permanent: true },
       { source: '/company/:path*', destination: '/', permanent: true },
+      { source: '/dashboard/terminal', destination: '/terminal', permanent: false },
+      { source: '/dashboard/terminal/:path*', destination: '/terminal', permanent: false },
     ]
   },
   async headers() {

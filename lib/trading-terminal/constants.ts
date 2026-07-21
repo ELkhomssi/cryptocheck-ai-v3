@@ -1,6 +1,6 @@
 /** AI Trading Intelligence Terminal — separate from revenue-dashboard & intelligence-terminal. */
 
-export const TERMINAL_BASE_PATH = '/dashboard/terminal'
+export const TERMINAL_BASE_PATH = '/terminal'
 
 export const COMPLIANCE_DISCLAIMER =
   'Not financial advice · DYOR. CryptoCheck does not custody funds or keys.'

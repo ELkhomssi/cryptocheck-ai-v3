@@ -26,7 +26,9 @@ export function DashboardShell({
 }) {
   const pathname = usePathname()
   const isCommandCenterHome = pathname === '/dashboard'
-  const isTradingTerminal = pathname === '/dashboard/terminal' || pathname.startsWith('/dashboard/terminal/')
+  const isTradingTerminal =
+    pathname === '/dashboard/terminal' || pathname.startsWith('/dashboard/terminal/')
+
   const [health, setHealth] = useState<HealthPayload | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
@@ -48,8 +50,8 @@ export function DashboardShell({
 
   const operational = health?.status === 'healthy'
 
-  // Overview `/dashboard` uses its own Trading Workspace chrome (DashboardNew).
-  if (isCommandCenterHome) {
+  // Overview + legacy terminal path: own full-viewport chrome (no dashboard sidebar).
+  if (isCommandCenterHome || isTradingTerminal) {
     return <>{children}</>
   }
 
@@ -105,15 +107,9 @@ export function DashboardShell({
           isAnonymousPreview ? 'pt-24 md:pt-20' : 'pt-12 md:pt-11'
         }`}
       >
-        {isTradingTerminal ? (
-          <div className="relative z-[2] h-full min-h-[calc(100vh-2.75rem)] overflow-hidden">
-            {children}
-          </div>
-        ) : (
-          <div className="relative z-[2] mx-auto max-w-[1200px] px-4 py-8 md:px-8 md:py-10">
-            {children}
-          </div>
-        )}
+        <div className="relative z-[2] mx-auto max-w-[1200px] px-4 py-8 md:px-8 md:py-10">
+          {children}
+        </div>
       </main>
     </div>
   )
