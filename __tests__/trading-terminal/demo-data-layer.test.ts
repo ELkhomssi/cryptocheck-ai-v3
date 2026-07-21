@@ -39,6 +39,11 @@ describe('adapters', () => {
     assert.equal(snap.coach.status, 'ready')
     assert.equal(snap.intel.status, 'ready')
     assert.equal(snap.marketStats.status, 'ready')
+    assert.equal(snap.charts.status, 'ready')
+    if (snap.charts.status === 'ready') {
+      assert.equal(snap.charts.data.length, 6)
+      assert.ok(snap.charts.data.every((c) => c.candles.length >= 20))
+    }
     if (snap.marketStats.status === 'ready') {
       assert.ok(snap.marketStats.data.every((s) => s.value != null))
     }

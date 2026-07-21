@@ -169,14 +169,16 @@ export function TerminalFocusProvider({ children }: { children: ReactNode }) {
     if (!focusMint || focusMint.length < 32) {
       setFocusMint(seed.focusMint)
       setFocusSymbol(seed.focusSymbol)
-      const next = emptySlots(chartMode)
-      for (let i = 0; i < Math.min(next.length, seed.charts.length); i++) {
-        const c = seed.charts[i]!
-        next[i] = { mint: c.mint, symbol: c.symbol, locked: false }
-      }
-      setSlots(next)
-      setActiveSlot(0)
     }
+    // Always hydrate 6-slot workspace from DEMO_SEED (reference layout)
+    setChartModeState(6)
+    const next = emptySlots(6)
+    for (let i = 0; i < Math.min(next.length, seed.charts.length); i++) {
+      const c = seed.charts[i]!
+      next[i] = { mint: c.mint, symbol: c.symbol, locked: false }
+    }
+    setSlots(next)
+    setActiveSlot(0)
     // demo scan card — synthetic ScanResult shape for coach map
     setScan({
       mint: seed.coach.mint,

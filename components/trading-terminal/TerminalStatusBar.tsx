@@ -1,14 +1,25 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSolana } from '@/components/SolanaProvider'
+import { getTerminalSnapshot } from '@/lib/trading-terminal/data/adapters'
 import { useTerminalFocus } from './TerminalFocusProvider'
 
 export function TerminalStatusBar() {
   const { isConnected } = useSolana()
-  const { dataMode } = useTerminalFocus()
+  const { dataMode, selectMint } = useTerminalFocus()
   const [latency, setLatency] = useState<number | null>(null)
   const [status, setStatus] = useState<'ok' | 'degraded'>('ok')
+  const snap = useMemo(() => getTerminalSnapshot(dataMode), [dataMode])
+
+  const movers =
+    dataMode === 'demo' && snap.discover.status === 'ready'
+      ? snap.discover.data.slice(0, 8)
+      : []
+  const hot =
+    dataMode === 'demo' && snap.discover.status === 'ready'
+      ? snap.discover.data.find((d) => d.badge === 'HOT')
+      : null
 
   useEffect(() => {
     if (dataMode === 'demo') {
@@ -57,15 +68,56 @@ export function TerminalStatusBar() {
         {dataMode === 'demo' || isConnected ? 'CONNECTED' : 'WALLET OFF'}
       </span>
       <span>Solana {latency != null ? `${latency}ms` : 'connecting…'}</span>
+      {dataMode === 'demo' ? (
+        <>
+          <span>Block 312,847,291</span>
+          <span>TPS 1,352</span>
+        </>
+      ) : null}
       <span className={status === 'ok' ? 'text-[var(--tit-pos)]' : 'text-[var(--tit-warn)]'}>
         {status === 'ok' ? 'SYSTEMS OK' : 'DEGRADED'}
       </span>
-      <span className="hidden text-[var(--tit-text-2)] lg:inline">
-        {dataMode === 'demo' ? 'Market ticker · demo' : 'Market ticker · connecting…'}
-      </span>
-      <span className="ml-auto text-[var(--tit-text-2)]">
+      {movers.length > 0 ? (
+        <div className="hidden min-w-0 flex-1 overflow-hidden lg:block">
+          <div className="animate-[tit-ticker_40s_linear_infinite] whitespace-nowrap">
+            {movers.map((m) => (
+              <span key={m.mint} className="mr-4">
+                <span className="text-[var(--tit-text-0)]">{m.symbol}</span>{' '}
+                <span className={m.changePct >= 0 ? 'text-[var(--tit-pos)]' : 'text-[var(--tit-neg)]'}>
+                  {m.changePct >= 0 ? '+' : ''}
+                  {m.changePct.toFixed(1)}%
+                </span>
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <span className="hidden text-[var(--tit-text-2)] lg:inline">Market ticker · connecting…</span>
+      )}
+      {hot ? (
+        <button
+          type="button"
+          onClick={() => selectMint(hot.mint, hot.symbol)}
+          className="hidden shrink-0 items-center gap-1 rounded border border-[var(--tit-hot)]/40 bg-[var(--tit-hot)]/10 px-2 py-0.5 text-[var(--tit-hot)] xl:inline-flex"
+        >
+          LAUNCHLAB HOT · {hot.symbol}
+          <span className="underline">View</span>
+        </button>
+      ) : null}
+      {dataMode === 'demo' ? <span className="shrink-0">Uptime 99.98%</span> : null}
+      <span className="ml-auto shrink-0 text-[var(--tit-text-2)]">
         Not financial advice · DYOR · Non-custodial
       </span>
+      <style jsx global>{`
+        @keyframes tit-ticker {
+          from {
+            transform: translateX(0);
+          }
+          to {
+            transform: translateX(-50%);
+          }
+        }
+      `}</style>
     </footer>
   )
 }

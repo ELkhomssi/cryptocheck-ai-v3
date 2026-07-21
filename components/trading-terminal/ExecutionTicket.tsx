@@ -39,11 +39,14 @@ export function ExecutionTicket() {
   const [muted, setMuted] = useState(() => loadMutes())
   const [overridden, setOverridden] = useState(false)
   const [dismissed, setDismissed] = useState(false)
+  const [orderType, setOrderType] = useState<'MARKET' | 'LIMIT' | 'DCA'>('MARKET')
+  const [reviewOpen, setReviewOpen] = useState(false)
 
   // Reset override when focus or side changes
   useEffect(() => {
     setOverridden(false)
     setDismissed(false)
+    setReviewOpen(false)
   }, [focusMint, ticketSide, scan?.scannedAt])
 
   const concentrationPct = useMemo(() => {
@@ -158,13 +161,30 @@ export function ExecutionTicket() {
         </button>
       </div>
 
+      <div className="flex gap-1 px-3 pt-2">
+        {(['MARKET', 'LIMIT', 'DCA'] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setOrderType(t)}
+            className={`tit-mono flex-1 rounded py-1 text-[0.55rem] font-bold ${
+              orderType === t
+                ? 'bg-[var(--tit-accent)]/20 text-[var(--tit-accent-bright)]'
+                : 'bg-[var(--tit-bg-2)] text-[var(--tit-text-2)]'
+            }`}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
       <div className="px-3 pt-2">
         <div className="mb-1 flex items-center justify-between">
           <label className="tit-label" htmlFor="tit-ticket-amt">
             Amount (SOL)
           </label>
           <span className="tit-mono text-[0.55rem] text-[var(--tit-text-2)]">
-            Drives coach impact
+            Slippage 1.0%
           </span>
         </div>
         <input
@@ -177,14 +197,19 @@ export function ExecutionTicket() {
           className="tit-input tit-mono w-full"
         />
         <div className="mt-1 flex gap-1">
-          {[0.25, 0.5, 1, 2].map((n) => (
+          {[
+            { label: '25%', n: 0.25 },
+            { label: '50%', n: 0.5 },
+            { label: '75%', n: 1 },
+            { label: 'MAX', n: 2 },
+          ].map((x) => (
             <button
-              key={n}
+              key={x.label}
               type="button"
-              onClick={() => setTicketAmountSol(n)}
+              onClick={() => setTicketAmountSol(x.n)}
               className="tit-mono flex-1 rounded border border-[var(--tit-border)] py-0.5 text-[0.55rem] text-[var(--tit-text-1)] hover:border-[var(--tit-accent)]"
             >
-              {n}
+              {x.label}
             </button>
           ))}
         </div>
@@ -200,16 +225,32 @@ export function ExecutionTicket() {
         />
       ) : null}
 
+      <div className="px-3 pt-2">
+        <button
+          type="button"
+          disabled={focusMint.length < 32 || softPending}
+          onClick={() => setReviewOpen(true)}
+          className="tit-btn-accent w-full py-2 text-[0.75rem] disabled:opacity-40"
+        >
+          REVIEW ORDER
+        </button>
+        {orderType !== 'MARKET' ? (
+          <p className="mt-1 text-center text-[0.5rem] text-[var(--tit-text-2)]">
+            {orderType} routed via market ticket until limit/DCA engine ships.
+          </p>
+        ) : null}
+      </div>
+
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {focusMint.length < 32 ? (
           <p className="px-1 py-3 text-xs text-[var(--tit-text-1)]">
-            Focus a token to arm the ticket
+            Select a symbol to arm the ticket.
           </p>
         ) : softPending ? (
           <p className="px-1 py-3 text-xs text-[var(--tit-warn)]">
             Ticket gated by coach interrupt. Press O to override (logged) or mute for 24h.
           </p>
-        ) : showSwap ? (
+        ) : reviewOpen && showSwap ? (
           <RiskGatedSwapPanel
             key={`${ticketSide}:${focusMint}:${overridden ? 'o' : 'n'}`}
             defaultFromToken={from}
@@ -232,7 +273,11 @@ export function ExecutionTicket() {
               })()
             }}
           />
-        ) : null}
+        ) : reviewOpen ? null : (
+          <p className="px-1 py-2 text-center text-[0.65rem] text-[var(--tit-text-2)]">
+            Review to open the risk-gated swap path.
+          </p>
+        )}
       </div>
 
       <p className="tit-compliance border-t border-[var(--tit-border)] px-3 py-2">

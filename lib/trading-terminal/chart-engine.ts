@@ -1,5 +1,5 @@
 /**
- * Pluggable chart engine — UI slots stay stable; swap DexScreener → lightweight-charts later.
+ * Pluggable chart engine — lightweight-charts is primary; DexScreener kept as fallback URL helper.
  */
 
 export type ChartTimeframe = '1m' | '5m' | '15m' | '1H' | '4H' | '1D'
@@ -11,9 +11,10 @@ export type ChartEngineSlotProps = {
   timeframe: ChartTimeframe
 }
 
-export type ChartEngineId = 'dexscreener' | 'lightweight' | 'tradingview'
+export type ChartEngineId = 'lightweight' | 'dexscreener' | 'tradingview'
 
-export const DEFAULT_CHART_ENGINE: ChartEngineId = 'dexscreener'
+/** Primary engine — institutional candlesticks via lightweight-charts. */
+export const DEFAULT_CHART_ENGINE: ChartEngineId = 'lightweight'
 
 export const CHART_TIMEFRAMES: ChartTimeframe[] = ['1m', '5m', '15m', '1H', '4H', '1D']
 
