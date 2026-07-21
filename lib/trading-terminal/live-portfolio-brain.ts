@@ -7,7 +7,7 @@ import type { RevenuePortfolioSummary } from '@/lib/revenue-dashboard/portfolio-
 import type { RevenueVerdict } from '@/lib/revenue-dashboard/types'
 
 export type LiveBrainAction = {
-  type: 'EXIT' | 'REDUCE' | 'MONITOR' | 'ADD' | 'WATCHLIST'
+  type: 'BUY' | 'EXIT' | 'REDUCE' | 'MONITOR' | 'ADD' | 'WATCHLIST' | 'WATCH'
   symbol: string
   mint: string
   reason: string

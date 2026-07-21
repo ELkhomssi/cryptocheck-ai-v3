@@ -68,7 +68,7 @@ const MINTS = {
   RIFT: 'DemoRiftCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC',
 } as const
 
-const FOCUS = MINTS.DOGEAI
+const FOCUS = MINTS.SOLCAT
 
 export function buildDemoSeed(now = Date.now()): DemoSeed {
   const rng = mulberry32(SEED)
@@ -195,10 +195,21 @@ export function buildDemoSeed(now = Date.now()): DemoSeed {
     },
   ]
 
-  const doge = discover[0]!
+  const doge = discover.find((d) => d.mint === MINTS.DOGEAI)!
+  const solcat = discover.find((d) => d.mint === MINTS.SOLCAT)!
+  const focusTok = discover.find((d) => d.mint === FOCUS)!
   const chartStart = now - 120 * 5 * 60 * 1000
 
-  const charts = discover.slice(0, 6).map((t, i) => {
+  const chartOrder = [
+    MINTS.SOLCAT,
+    MINTS.WHALE,
+    MINTS.AGENTX,
+    MINTS.PEPEAI,
+    MINTS.NOODLE,
+    MINTS.DOGEAI,
+  ]
+  const charts = chartOrder.map((mint) => {
+    const t = discover.find((d) => d.mint === mint)!
     const c = candles(rng, chartStart, 120, t.priceUsd)
     const last = c[c.length - 1]!
     const first = c[0]!
@@ -216,17 +227,17 @@ export function buildDemoSeed(now = Date.now()): DemoSeed {
     {
       id: 'demo-intel-1',
       kind: 'smart_money_buy',
-      headline: 'Smart money entry',
-      detail: `+$${182_000} net across 3 tracked wallets · ${doge.symbol}`,
-      mint: doge.mint,
-      symbol: doge.symbol,
+      headline: 'Smart money bought SOLCAT',
+      detail: `+$${182_000} net across 3 tracked wallets`,
+      mint: MINTS.SOLCAT,
+      symbol: 'SOLCAT',
       at: new Date(now - 2 * 60_000).toISOString(),
       ref: 'demo:tx:sm-buy-1',
     },
     {
       id: 'demo-intel-2',
       kind: 'new_pool',
-      headline: 'New liquidity pool',
+      headline: 'Liquidity pool created SOLCAT',
       detail: 'SOLCAT/SOL pool seeded · $240k initial LP',
       mint: MINTS.SOLCAT,
       symbol: 'SOLCAT',
@@ -236,8 +247,8 @@ export function buildDemoSeed(now = Date.now()): DemoSeed {
     {
       id: 'demo-intel-3',
       kind: 'whale_accumulation',
-      headline: 'Whale accumulation',
-      detail: 'WHALE · top wallet +2.1% supply in 1h',
+      headline: 'Whale accumulation WHALE',
+      detail: 'Top wallet +2.1% supply in 1h',
       mint: MINTS.WHALE,
       symbol: 'WHALE',
       at: new Date(now - 14 * 60_000).toISOString(),
@@ -246,28 +257,28 @@ export function buildDemoSeed(now = Date.now()): DemoSeed {
     {
       id: 'demo-intel-4',
       kind: 'large_buy',
-      headline: 'Large buy',
-      detail: 'AGENTX · $64k market buy',
+      headline: 'Large buy AGENTX',
+      detail: '+$94k single wallet',
       mint: MINTS.AGENTX,
       symbol: 'AGENTX',
-      at: new Date(now - 22 * 60_000).toISOString(),
+      at: new Date(now - 4 * 60_000).toISOString(),
       ref: 'demo:tx:buy-1',
     },
     {
       id: 'demo-intel-5',
       kind: 'risk_score_change',
-      headline: 'Risk score change',
-      detail: 'NOODLE risk 48 → 67 · liquidity thinning',
+      headline: 'Risk score changed NOODLE',
+      detail: 'Risk 48 → 71 · liquidity thinning',
       mint: MINTS.NOODLE,
       symbol: 'NOODLE',
-      at: new Date(now - 31 * 60_000).toISOString(),
+      at: new Date(now - 18 * 60_000).toISOString(),
       ref: 'demo:scan:noodle',
     },
     {
       id: 'demo-intel-6',
       kind: 'smart_money_sell',
-      headline: 'Smart money exit',
-      detail: 'NOODLE · −$41k net tracked outflow',
+      headline: 'Smart money exiting NOODLE',
+      detail: '−$41k net tracked outflow',
       mint: MINTS.NOODLE,
       symbol: 'NOODLE',
       at: new Date(now - 40 * 60_000).toISOString(),
@@ -279,7 +290,7 @@ export function buildDemoSeed(now = Date.now()): DemoSeed {
     tag: DEMO_SEED_TAG,
     seed: SEED,
     focusMint: FOCUS,
-    focusSymbol: doge.symbol,
+    focusSymbol: focusTok.symbol,
     solPriceUsd: 148.62,
     market: {
       stats: [
@@ -330,53 +341,73 @@ export function buildDemoSeed(now = Date.now()): DemoSeed {
     discover,
     charts,
     coach: {
-      mint: doge.mint,
-      symbol: doge.symbol,
-      name: doge.name,
-      verdict: 'CAUTION',
-      riskScore: 42,
-      safetyScore: 68,
-      confidencePct: 74,
-      evidenceCoveragePct: 80,
+      mint: solcat.mint,
+      symbol: solcat.symbol,
+      name: solcat.name,
+      verdict: 'SAFE',
+      riskScore: 28,
+      safetyScore: 82,
+      confidencePct: 92,
+      evidenceCoveragePct: 85,
       why: [
-        { text: 'Smart money entering (+$182k / 3 wallets)', direction: 'up', sourceField: 'smart_money_flow' },
-        { text: 'Liquidity growth slowing (LP +2% / 4h)', direction: 'risk', sourceField: 'lp_delta' },
-        { text: 'Holder concentration elevated (top10 38%)', direction: 'risk', sourceField: 'holder_concentration' },
-        { text: 'Mint authority disabled', direction: 'up', sourceField: 'mint_authority' },
-        { text: 'Whale accumulation detected', direction: 'up', sourceField: 'whale_activity' },
+        { text: 'Smart money accumulation +$182K (24h)', direction: 'up', sourceField: 'smart_money_flow' },
+        { text: 'Liquidity growth +21% in 24h', direction: 'up', sourceField: 'lp_delta' },
+        { text: 'Holder growth +14% in 24h', direction: 'up', sourceField: 'holder_growth' },
+        { text: 'Insider activity: none detected', direction: 'up', sourceField: 'insider' },
+        { text: 'Low deployer concentration (8.3%)', direction: 'up', sourceField: 'dev_concentration' },
       ],
-      action: 'Risk acceptable for a small position — monitor liquidity growth before sizing up.',
+      action: 'BUY SOLCAT — high-conviction SAFE setup with smart-money + LP confirmation.',
+      recommended: {
+        side: 'BUY',
+        symbol: solcat.symbol,
+        mint: solcat.mint,
+        name: solcat.name,
+        verdict: 'SAFE',
+        riskScore: 28,
+        confidencePct: 92,
+        evidenceCoveragePct: 85,
+        headline: 'BUY SOLCAT',
+      },
       tradePlan: {
-        entryZone: 'Near mark $0.0842 (zone $0.082–$0.086)',
-        riskLevel: 'MEDIUM',
-        invalidation: 'Abort if risk score ≥ 70 or liquidity −20% in 2h',
-        takeProfits: ['TP1 +12% ($0.094)', 'TP2 +22% ($0.103)'],
-        suggestedSize: '≤ 3% of book (~$374)',
+        entryZone: 'Near mark $0.0124 (zone $0.0118–$0.0128)',
+        riskLevel: 'LOW',
+        invalidation: 'Abort if risk score ≥ 55 or LP −15% in 2h',
+        takeProfits: ['TP1 +18%', 'TP2 +35%'],
+        suggestedSize: '≤ 2.5% of book',
       },
       portfolioHealth: {
         score: 71,
-        issues: ['Memecoin sleeve 47% of book', 'NOODLE liquidity deteriorating'],
+        issues: ['Memecoin sleeve elevated', 'NOODLE liquidity deteriorating'],
       },
       riskExposure: {
         categories: [
-          { name: 'Memecoins', pct: 47 },
-          { name: 'AI Agents', pct: 28 },
-          { name: 'SOL / stables', pct: 25 },
+          { name: 'Memecoins', pct: 37 },
+          { name: 'SOL', pct: 32 },
+          { name: 'AI Agents', pct: 18 },
+          { name: 'Others', pct: 13 },
         ],
-        flags: ['AI Agents cluster concentration elevated'],
+        flags: ['Reduce NOODLE before scaling SOLCAT'],
+      },
+      riskAnalysis: {
+        concentration: 'MEDIUM',
+        liquidity: 'LOW',
+        correlation: 'MEDIUM',
+        volatility: 'MEDIUM',
+        smartMoney: 'LOW',
       },
       opportunities: [
-        { symbol: 'SOLCAT', reason: 'Smart-money accumulation + LP expansion', conviction: 68 },
-        { symbol: 'RIFT', reason: 'Early holder growth + inactive insider cluster', conviction: 61 },
+        { symbol: 'SOLCAT', reason: 'Smart money + LP growth', conviction: 92 },
+        { symbol: 'AGENTX', reason: 'Accumulation detected', conviction: 78 },
+        { symbol: 'WHALE', reason: 'Strong inflow', conviction: 75 },
       ],
       threats: [
         { symbol: 'NOODLE', reason: 'LP −38% in 2h · smart-money exiting', severity: 'HIGH' },
       ],
       smartMoney: {
-        netFlowUsd: 141_000,
-        notable: ['DOGEAI +$182k (3 wallets)', 'NOODLE −$41k (2 wallets)'],
+        netFlowUsd: 182_000,
+        notable: ['SOLCAT +$182k (3 wallets)', 'NOODLE −$41k (2 wallets)'],
       },
-      capitalAllocation: '≤2–3% of book at CAUTION / risk 42 — guidance only, not advice.',
+      capitalAllocation: 'Size SOLCAT ≤2.5% of book after reducing NOODLE liquidity risk.',
       similar: {
         count: 12,
         avgOutcomePct: 18.4,
@@ -385,22 +416,28 @@ export function buildDemoSeed(now = Date.now()): DemoSeed {
       },
       actionQueue: [
         {
-          type: 'REDUCE',
-          symbol: 'NOODLE',
-          reason: 'Liquidity deterioration (LP −38% / 2h)',
+          type: 'BUY',
+          symbol: 'SOLCAT',
+          reason: 'High conviction — smart money + LP growth',
           priority: 1,
         },
         {
-          type: 'MONITOR',
-          symbol: 'DOGEAI',
-          reason: 'Smart money entering; liquidity growth slowing',
+          type: 'REDUCE',
+          symbol: 'NOODLE',
+          reason: 'Liquidity risk — LP deterioration',
           priority: 2,
         },
         {
-          type: 'WATCHLIST',
-          symbol: 'SOLCAT',
-          reason: 'Conviction rising on accumulation',
+          type: 'MONITOR',
+          symbol: 'AGENTX',
+          reason: 'Watch accumulation',
           priority: 3,
+        },
+        {
+          type: 'WATCH',
+          symbol: 'PEPEAI',
+          reason: 'Building momentum',
+          priority: 4,
         },
       ],
       weekly: {
@@ -467,14 +504,14 @@ export function buildDemoSeed(now = Date.now()): DemoSeed {
       },
     ],
     portions: {
-      totalUsd: 12_456.78,
-      pnl24hUsd: 1_245.27,
-      pnl24hPct: 11.1,
+      totalUsd: 24_560.23,
+      pnl24hUsd: 1_248.41,
+      pnl24hPct: 5.36,
       legend: [
-        { name: 'SOL', pct: 32, valueUsd: 3_986 },
-        { name: 'USDC', pct: 18, valueUsd: 2_242 },
-        { name: 'Memecoins', pct: 37, valueUsd: 4_609 },
-        { name: 'Others', pct: 13, valueUsd: 1_619 },
+        { name: 'SOL', pct: 32, valueUsd: 7_859 },
+        { name: 'USDC', pct: 18, valueUsd: 4_421 },
+        { name: 'Memecoins', pct: 37, valueUsd: 9_087 },
+        { name: 'Others', pct: 13, valueUsd: 3_193 },
       ],
     },
     trades: [

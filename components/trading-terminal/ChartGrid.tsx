@@ -262,7 +262,7 @@ function ChartSlot({
         <div className="flex flex-1 flex-col items-center justify-center gap-1 p-3 text-center text-xs text-[var(--tit-text-1)]">
           <span>{dragOver ? 'Release to load symbol' : 'No symbol loaded'}</span>
           <span className="text-[0.65rem] text-[var(--tit-text-2)]">
-            Select from Discover to analyze.
+            Search a CA or pick from Opportunity Radar.
           </span>
         </div>
       ) : ohlcv.status === 'loading' ? (
@@ -301,55 +301,9 @@ export function ChartGrid() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-1">
-      <div className="flex shrink-0 flex-wrap items-center gap-2 px-0.5">
-        <p className="tit-label">Workspace</p>
-        <div className="flex items-center gap-0.5" role="group" aria-label="Chart layout">
-          {CHART_MODES.map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => {
-                setMaximized(null)
-                setChartMode(m as ChartMode)
-              }}
-              className={`tit-mono h-6 w-6 rounded text-[0.6rem] font-bold ${
-                chartMode === m
-                  ? 'bg-[var(--tit-accent)] text-[#041016]'
-                  : 'bg-[var(--tit-bg-3)] text-[var(--tit-text-1)]'
-              }`}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
-        <button
-          type="button"
-          className="tit-mono rounded border border-[var(--tit-border)] px-1.5 py-0.5 text-[0.55rem] text-[var(--tit-text-2)]"
-          title="Link group color"
-          onClick={() => setLinkGroup((g) => (g + 1) % LINK_COLORS.length)}
-        >
-          Link
-          <span
-            className="ml-1 inline-block h-2 w-2 rounded-full align-middle"
-            style={{ background: LINK_COLORS[linkGroup] }}
-          />
-        </button>
-        <span className="tit-mono text-[0.5rem] text-[var(--tit-text-2)]">
-          {dataMode === 'demo' ? 'Candles · demo seed' : 'Candles · live OHLCV'}
-        </span>
-        <button
-          type="button"
-          className="ml-auto rounded p-1 text-[var(--tit-text-2)]"
-          aria-label="Fullscreen workspace"
-          onClick={() => setMaximized((m) => (m == null ? 0 : null))}
-        >
-          <Expand className="h-3.5 w-3.5" />
-        </button>
-      </div>
-
+    <div className="flex min-h-0 flex-1 flex-col gap-0.5">
       <div
-        className={`grid min-h-0 flex-1 gap-1 ${
+        className={`grid min-h-0 flex-1 gap-0.5 ${
           maximized != null ? 'grid-cols-1 grid-rows-1' : gridClass(chartMode)
         }`}
       >
@@ -366,14 +320,33 @@ export function ChartGrid() {
         ))}
       </div>
 
-      <div className="flex shrink-0 flex-wrap items-center gap-1 border-t border-[var(--tit-border)] px-0.5 py-1">
-        <span className="tit-label mr-1">TF · slot {activeSlot + 1}</span>
+      <div className="flex h-6 shrink-0 items-center gap-1 border-t border-[var(--tit-border)] px-1">
+        <div className="flex items-center gap-0.5" role="group" aria-label="Chart layout">
+          {CHART_MODES.map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => {
+                setMaximized(null)
+                setChartMode(m as ChartMode)
+              }}
+              className={`tit-mono h-5 w-5 rounded text-[0.55rem] font-bold ${
+                chartMode === m
+                  ? 'bg-[var(--tit-accent)] text-[#041016]'
+                  : 'text-[var(--tit-text-2)] hover:text-[var(--tit-text-0)]'
+              }`}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+        <span className="tit-label mx-1">TF</span>
         {CHART_TIMEFRAMES.map((tf) => (
           <button
             key={tf}
             type="button"
             onClick={() => setActiveTimeframe(tf)}
-            className={`tit-mono rounded px-1.5 py-0.5 text-[0.55rem] ${
+            className={`tit-mono rounded px-1 py-0.5 text-[0.5rem] ${
               activeTf === tf
                 ? 'bg-[var(--tit-accent)]/20 text-[var(--tit-accent-bright)]'
                 : 'text-[var(--tit-text-2)] hover:text-[var(--tit-text-1)]'
@@ -382,6 +355,28 @@ export function ChartGrid() {
             {tf}
           </button>
         ))}
+        <button
+          type="button"
+          className="ml-auto tit-mono text-[0.45rem] text-[var(--tit-text-2)]"
+          title="Link group"
+          onClick={() => setLinkGroup((g) => (g + 1) % LINK_COLORS.length)}
+        >
+          <span
+            className="inline-block h-2 w-2 rounded-full"
+            style={{ background: LINK_COLORS[linkGroup] }}
+          />
+        </button>
+        <span className="tit-mono text-[0.45rem] text-[var(--tit-text-2)]">
+          {dataMode === 'demo' ? 'demo' : 'live'}
+        </span>
+        <button
+          type="button"
+          className="rounded p-0.5 text-[var(--tit-text-2)]"
+          aria-label="Maximize chart"
+          onClick={() => setMaximized((m) => (m == null ? 0 : null))}
+        >
+          <Expand className="h-3 w-3" />
+        </button>
       </div>
     </div>
   )

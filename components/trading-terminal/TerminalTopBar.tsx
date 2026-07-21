@@ -1,27 +1,29 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Bell, ChevronDown, Search } from 'lucide-react'
 import { useSolana } from '@/components/SolanaProvider'
+import { getTerminalSnapshot } from '@/lib/trading-terminal/data/adapters'
 import { useTerminalFocus } from './TerminalFocusProvider'
-
-const NAV: { href: string; label: string; active?: boolean }[] = [
-  { href: '/terminal', label: 'TERMINAL', active: true },
-  { href: '/dashboard', label: 'IDASHBOARD' },
-  { href: '/dashboard/signals', label: 'SCANS' },
-  { href: '/dashboard/signals', label: 'ALERTS' },
-  { href: '/dashboard/signals', label: 'INTEL' },
-  { href: '/terminal', label: 'COACH' },
-  { href: '/docs', label: 'API' },
-  { href: '/dashboard/settings', label: 'SETTINGS' },
-]
+import { useTerminalPortfolio } from './MiniPortfolioCard'
 
 export function TerminalTopBar({ onHelp }: { onHelp?: () => void }) {
-  const { selectMint, focusSymbol, dataMode, setDataMode } = useTerminalFocus()
+  const { selectMint, focusSymbol, dataMode, setDataMode, portfolioTotalUsd } = useTerminalFocus()
+  const { data: livePortfolio } = useTerminalPortfolio()
   const { walletAddress, isConnected, connect, shortAddr } = useSolana()
   const [query, setQuery] = useState('')
   const searchRef = useRef<HTMLInputElement>(null)
+  const snap = useMemo(() => getTerminalSnapshot(dataMode), [dataMode])
+
+  const bookUsd =
+    dataMode === 'demo' && snap.portions.status === 'ready'
+      ? snap.portions.data.totalUsd
+      : livePortfolio?.totalValueUsd ?? portfolioTotalUsd
+  const pnlPct =
+    dataMode === 'demo' && snap.portions.status === 'ready'
+      ? snap.portions.data.pnl24hPct
+      : livePortfolio?.summary?.totalPnlPct ?? null
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -39,7 +41,7 @@ export function TerminalTopBar({ onHelp }: { onHelp?: () => void }) {
       className="tit-area-top flex items-center gap-3 border-b border-[var(--tit-border)] bg-[var(--tit-bg-1)] px-3"
       style={{ height: 'var(--tit-topbar)' }}
     >
-      <div className="flex min-w-0 shrink-0 items-center gap-2.5">
+      <Link href="/terminal" className="flex min-w-0 shrink-0 items-center gap-2.5">
         <span
           className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--tit-accent)]/15 text-[0.7rem] font-bold text-[var(--tit-accent)]"
           aria-hidden
@@ -48,30 +50,14 @@ export function TerminalTopBar({ onHelp }: { onHelp?: () => void }) {
         </span>
         <div className="min-w-0">
           <p className="truncate text-[0.85rem] font-bold tracking-tight text-[var(--tit-text-0)]">
-            CryptoCheck AI
+            CRYPTOCHECK AI
           </p>
-          <p className="tit-label !text-[10px] !tracking-[0.1em]">Trading Intelligence Terminal</p>
+          <p className="tit-label !text-[9px] !tracking-[0.12em]">Intelligence Terminal</p>
         </div>
-      </div>
-
-      <nav className="hidden items-center gap-0.5 xl:flex" aria-label="Terminal nav">
-        {NAV.map((item) => (
-          <Link
-            key={item.label}
-            href={item.href}
-            className={`tit-mono relative rounded px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] ${
-              item.active
-                ? 'text-[var(--tit-text-0)] after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-[var(--tit-accent)]'
-                : 'text-[var(--tit-text-1)] hover:text-[var(--tit-text-0)]'
-            }`}
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
+      </Link>
 
       <form
-        className="relative mx-auto flex min-w-0 max-w-md flex-1 items-center"
+        className="relative mx-auto flex min-w-0 max-w-lg flex-1 items-center"
         onSubmit={(e) => {
           e.preventDefault()
           const q = query.trim()
@@ -92,33 +78,47 @@ export function TerminalTopBar({ onHelp }: { onHelp?: () => void }) {
         </kbd>
       </form>
 
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2.5">
+        {bookUsd > 0 ? (
+          <div className="hidden text-right sm:block">
+            <p className="tit-mono text-[0.85rem] font-bold text-[var(--tit-text-0)]">
+              ${bookUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            </p>
+            {pnlPct != null ? (
+              <p
+                className={`tit-mono text-[0.55rem] ${
+                  pnlPct >= 0 ? 'text-[var(--tit-pos)]' : 'text-[var(--tit-neg)]'
+                }`}
+              >
+                {pnlPct >= 0 ? '+' : ''}
+                {pnlPct.toFixed(2)}%
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
         {dataMode === 'demo' ? (
-          <span
-            className="tit-mono rounded border border-[var(--tit-warn)]/50 bg-[var(--tit-warn)]/15 px-2 py-1 text-[0.55rem] font-bold uppercase tracking-wide text-[var(--tit-warn)]"
-            title="Labeled demo dataset — not live market state"
-          >
+          <span className="tit-mono rounded border border-[var(--tit-warn)]/50 bg-[var(--tit-warn)]/15 px-2 py-1 text-[0.5rem] font-bold uppercase tracking-wide text-[var(--tit-warn)]">
             DEMO DATA
           </span>
         ) : null}
         <button
           type="button"
           onClick={() => setDataMode(dataMode === 'demo' ? 'live' : 'demo')}
-          className="tit-mono rounded border border-[var(--tit-border)] px-2 py-1 text-[0.55rem] uppercase text-[var(--tit-text-1)] hover:border-[var(--tit-accent)]"
-          title="Switch demo / live data mode"
+          className="tit-mono rounded border border-[var(--tit-border)] px-2 py-1 text-[0.5rem] uppercase text-[var(--tit-text-1)] hover:border-[var(--tit-accent)]"
         >
           {dataMode === 'demo' ? 'Demo' : 'Live'}
         </button>
+
         <button
           type="button"
           className="relative rounded border border-[var(--tit-border)] p-1.5 text-[var(--tit-text-1)]"
           aria-label="Alerts"
-          title="Alerts"
         >
           <Bell className="h-3.5 w-3.5" />
           {dataMode === 'demo' ? (
             <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[var(--tit-hot)] px-0.5 text-[0.45rem] font-bold text-white">
-              ·
+              12
             </span>
           ) : null}
         </button>
@@ -132,7 +132,7 @@ export function TerminalTopBar({ onHelp }: { onHelp?: () => void }) {
               {(shortAddr || walletAddress).slice(0, 2)}
             </span>
             <span className="tit-mono text-[0.6rem] text-[var(--tit-text-1)]">
-              {shortAddr || `${walletAddress.slice(0, 4)}…${walletAddress.slice(-4)}`}
+              {shortAddr || `${walletAddress.slice(0, 4)}…`}
             </span>
             <ChevronDown className="h-3 w-3 text-[var(--tit-text-2)]" />
           </button>
