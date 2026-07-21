@@ -2,13 +2,20 @@
 
 import { useEffect, useState } from 'react'
 import { useSolana } from '@/components/SolanaProvider'
+import { useTerminalFocus } from './TerminalFocusProvider'
 
 export function TerminalStatusBar() {
   const { isConnected } = useSolana()
+  const { dataMode } = useTerminalFocus()
   const [latency, setLatency] = useState<number | null>(null)
   const [status, setStatus] = useState<'ok' | 'degraded'>('ok')
 
   useEffect(() => {
+    if (dataMode === 'demo') {
+      setLatency(42)
+      setStatus('ok')
+      return
+    }
     let cancelled = false
     const tick = async () => {
       const t0 = performance.now()
@@ -32,7 +39,7 @@ export function TerminalStatusBar() {
       cancelled = true
       window.clearInterval(id)
     }
-  }, [])
+  }, [dataMode])
 
   return (
     <footer
@@ -42,17 +49,19 @@ export function TerminalStatusBar() {
       <span className="flex items-center gap-1.5">
         <span
           className={`h-1.5 w-1.5 rounded-full ${
-            isConnected && status === 'ok' ? 'bg-[var(--tit-pos)]' : 'bg-[var(--tit-warn)]'
+            (isConnected || dataMode === 'demo') && status === 'ok'
+              ? 'bg-[var(--tit-pos)]'
+              : 'bg-[var(--tit-warn)]'
           }`}
         />
-        {isConnected ? 'CONNECTED' : 'WALLET OFF'}
+        {dataMode === 'demo' || isConnected ? 'CONNECTED' : 'WALLET OFF'}
       </span>
-      <span>Solana {latency != null ? `${latency}ms` : 'awaiting…'}</span>
+      <span>Solana {latency != null ? `${latency}ms` : 'connecting…'}</span>
       <span className={status === 'ok' ? 'text-[var(--tit-pos)]' : 'text-[var(--tit-warn)]'}>
         {status === 'ok' ? 'SYSTEMS OK' : 'DEGRADED'}
       </span>
       <span className="hidden text-[var(--tit-text-2)] lg:inline">
-        Block · TPS · movers ticker — awaiting chain feed
+        {dataMode === 'demo' ? 'Market ticker · demo' : 'Market ticker · connecting…'}
       </span>
       <span className="ml-auto text-[var(--tit-text-2)]">
         Not financial advice · DYOR · Non-custodial

@@ -18,7 +18,7 @@ const NAV: { href: string; label: string; active?: boolean }[] = [
 ]
 
 export function TerminalTopBar({ onHelp }: { onHelp?: () => void }) {
-  const { selectMint, focusSymbol } = useTerminalFocus()
+  const { selectMint, focusSymbol, dataMode, setDataMode } = useTerminalFocus()
   const { walletAddress, isConnected, connect, shortAddr } = useSolana()
   const [query, setQuery] = useState('')
   const searchRef = useRef<HTMLInputElement>(null)
@@ -93,6 +93,22 @@ export function TerminalTopBar({ onHelp }: { onHelp?: () => void }) {
       </form>
 
       <div className="flex shrink-0 items-center gap-2">
+        {dataMode === 'demo' ? (
+          <span
+            className="tit-mono rounded border border-[var(--tit-warn)]/50 bg-[var(--tit-warn)]/15 px-2 py-1 text-[0.55rem] font-bold uppercase tracking-wide text-[var(--tit-warn)]"
+            title="Labeled demo dataset — not live market state"
+          >
+            DEMO DATA
+          </span>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => setDataMode(dataMode === 'demo' ? 'live' : 'demo')}
+          className="tit-mono rounded border border-[var(--tit-border)] px-2 py-1 text-[0.55rem] uppercase text-[var(--tit-text-1)] hover:border-[var(--tit-accent)]"
+          title="Switch demo / live data mode"
+        >
+          {dataMode === 'demo' ? 'Demo' : 'Live'}
+        </button>
         <button
           type="button"
           className="relative rounded border border-[var(--tit-border)] p-1.5 text-[var(--tit-text-1)]"
@@ -100,6 +116,11 @@ export function TerminalTopBar({ onHelp }: { onHelp?: () => void }) {
           title="Alerts"
         >
           <Bell className="h-3.5 w-3.5" />
+          {dataMode === 'demo' ? (
+            <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[var(--tit-hot)] px-0.5 text-[0.45rem] font-bold text-white">
+              ·
+            </span>
+          ) : null}
         </button>
 
         {isConnected && walletAddress ? (

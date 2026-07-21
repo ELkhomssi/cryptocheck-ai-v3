@@ -113,3 +113,7 @@ export {
   type ChartEngineId,
   type ChartTimeframe,
 } from './chart-engine'
+export { getTerminalSnapshot, liveBaseSnapshot } from './data/adapters'
+export { getDemoSeed, buildDemoSeed, DEMO_SEED_TAG } from './data/demo-seed'
+export { defaultDataMode, DATA_MODE_STORAGE_KEY } from './data/mode'
+export type { TerminalDataMode, DiscoverToken, IntelEvent } from './data/types'

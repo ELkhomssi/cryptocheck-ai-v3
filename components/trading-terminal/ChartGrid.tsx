@@ -179,12 +179,9 @@ function ChartSlot({
         <DexScreenerBody mint={mint} symbol={symbol} />
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-1 p-3 text-center text-xs text-[var(--tit-text-1)]">
-          <span>{dragOver ? 'Release to load' : 'Drop token here'}</span>
+          <span>{dragOver ? 'Release to load symbol' : 'No symbol loaded'}</span>
           <span className="text-[0.65rem] text-[var(--tit-text-2)]">
-            {focusMint ? 'Or click Discover / press Enter' : 'Select a token in Discover'}
-          </span>
-          <span className="text-[0.5rem] text-[var(--tit-text-2)]">
-            Engine: DexScreener · pluggable for lightweight-charts
+            Select from Discover to analyze.
           </span>
         </div>
       )}
@@ -234,7 +231,7 @@ export function ChartGrid() {
           />
         </button>
         <span className="tit-mono text-[0.5rem] text-[var(--tit-text-2)]">
-          DexScreener · drag Discover · dbl-click maximize
+          Drag Discover · double-click to maximize
         </span>
         <button
           type="button"
@@ -281,7 +278,7 @@ export function ChartGrid() {
           </button>
         ))}
         <span className="tit-mono ml-auto text-[0.45rem] text-[var(--tit-text-2)]">
-          TF stored for native engine · DexScreener ignores until swap
+          Timeframe · chart engine settings
         </span>
       </div>
     </div>

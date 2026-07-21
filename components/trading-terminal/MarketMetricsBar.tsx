@@ -2,13 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import type { MarketStat } from '@/lib/trading-terminal/market-stats'
-import { awaitingStat, loadingStat } from '@/lib/trading-terminal/market-stats'
-import { flatBaseline, mockSparkline } from '@/lib/trading-terminal/mocks/market-sparklines.mock'
-
-type SolPricePayload = { price?: number; source?: string }
+import { getTerminalSnapshot } from '@/lib/trading-terminal/data/adapters'
+import { useTerminalFocus } from './TerminalFocusProvider'
 
 function Sparkline({ points, tone }: { points: number[]; tone: MarketStat['tone'] }) {
-  const series = points.length >= 2 ? points : flatBaseline()
+  const series = points.length >= 2 ? points : [50, 50]
   const min = Math.min(...series)
   const max = Math.max(...series)
   const span = max - min || 1
@@ -30,17 +28,46 @@ function Sparkline({ points, tone }: { points: number[]; tone: MarketStat['tone'
   )
 }
 
+function FearGauge({ score, label }: { score: number; label: string }) {
+  const pct = Math.max(0, Math.min(100, score)) / 100
+  const r = 28
+  const circ = Math.PI * r
+  return (
+    <div className="flex items-center gap-2">
+      <svg width={64} height={36} viewBox="0 0 64 36" aria-hidden>
+        <path
+          d="M4 32 A28 28 0 0 1 60 32"
+          fill="none"
+          stroke="var(--tit-bg-3)"
+          strokeWidth={6}
+          strokeLinecap="round"
+        />
+        <path
+          d="M4 32 A28 28 0 0 1 60 32"
+          fill="none"
+          stroke="var(--tit-caution)"
+          strokeWidth={6}
+          strokeLinecap="round"
+          strokeDasharray={`${circ * pct} ${circ}`}
+        />
+      </svg>
+      <div>
+        <p className="tit-mono text-[0.95rem] font-semibold text-[var(--tit-text-0)]">{score}</p>
+        <p className="text-[0.55rem] text-[var(--tit-text-1)]">{label}</p>
+      </div>
+    </div>
+  )
+}
+
 function StatCard({ stat }: { stat: MarketStat }) {
   if (stat.loading) {
     return (
       <div className="flex min-w-[7.5rem] flex-1 flex-col justify-center gap-1 border-r border-[var(--tit-border)] px-3 py-2">
         <span className="tit-label">{stat.label}</span>
         <div className="tit-skeleton h-4 w-16" />
-        <div className="tit-skeleton h-3 w-12" />
       </div>
     )
   }
-
   return (
     <div className="flex min-w-[7.5rem] flex-1 flex-col justify-center border-r border-[var(--tit-border)] px-3 py-2">
       <span className="tit-label">{stat.label}</span>
@@ -58,7 +85,10 @@ function StatCard({ stat }: { stat: MarketStat }) {
                   : 'text-[var(--tit-text-2)]'
             }`}
           >
-            {stat.changePct}
+            {stat.changePct.startsWith('-') || stat.changePct.startsWith('+')
+              ? stat.changePct
+              : `${stat.tone === 'neg' ? '' : '+'}${stat.changePct}`}
+            <span className="sr-only">{stat.tone === 'pos' ? 'up' : stat.tone === 'neg' ? 'down' : ''}</span>
           </span>
         ) : null}
       </div>
@@ -73,16 +103,13 @@ function StatCard({ stat }: { stat: MarketStat }) {
   )
 }
 
-/**
- * Market ribbon — SOL + health from real APIs; other metrics awaiting feed.
- * Sparklines: MOCK_ONLY series when a value is present (SOL); flat baseline otherwise.
- */
 export function MarketMetricsBar() {
-  const [solPrice, setSolPrice] = useState<number | null>(null)
+  const { dataMode, solPriceUsd } = useTerminalFocus()
+  const [liveSol, setLiveSol] = useState<number | null>(null)
   const [health, setHealth] = useState<'ok' | 'degraded' | 'unknown'>('unknown')
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (dataMode === 'demo') return
     let cancelled = false
     const load = async () => {
       try {
@@ -92,23 +119,17 @@ export function MarketMetricsBar() {
         ])
         if (cancelled) return
         if (priceRes.ok) {
-          const body = (await priceRes.json()) as SolPricePayload
+          const body = (await priceRes.json()) as { price?: number; source?: string }
           if (typeof body.price === 'number' && body.source !== 'fallback') {
-            setSolPrice(body.price)
-          } else {
-            setSolPrice(null)
+            setLiveSol(body.price)
           }
         }
         if (healthRes.ok) {
           const h = (await healthRes.json()) as { status?: string }
           setHealth(h.status === 'healthy' ? 'ok' : 'degraded')
-        } else {
-          setHealth('degraded')
         }
       } catch {
         if (!cancelled) setHealth('degraded')
-      } finally {
-        if (!cancelled) setLoading(false)
       }
     }
     void load()
@@ -117,33 +138,20 @@ export function MarketMetricsBar() {
       cancelled = true
       window.clearInterval(id)
     }
-  }, [])
+  }, [dataMode])
 
-  const stats: MarketStat[] = useMemo(() => {
-    const spark = mockSparkline(42)
-    const sol: MarketStat = loading
-      ? loadingStat('sol_price', 'SOL PRICE')
-      : solPrice != null
-        ? {
-            id: 'sol_price',
-            label: 'SOL PRICE',
-            value: `$${solPrice.toFixed(2)}`,
-            changePct: null,
-            tone: 'neutral',
-            sparkline: spark,
-            awaitingCaption: 'awaiting feed',
-            loading: false,
-          }
-        : awaitingStat('sol_price', 'SOL PRICE', flatBaseline())
+  const snap = useMemo(
+    () =>
+      getTerminalSnapshot(dataMode, {
+        solPriceUsd: liveSol ?? solPriceUsd,
+        healthOk: health === 'ok',
+      }),
+    [dataMode, liveSol, solPriceUsd, health],
+  )
 
-    return [
-      awaitingStat('market_cap', 'MARKET CAP', flatBaseline()),
-      awaitingStat('volume_24h', '24H VOLUME', flatBaseline()),
-      awaitingStat('btc_dominance', 'BTC DOMINANCE', flatBaseline()),
-      sol,
-      awaitingStat('active_wallets', 'ACTIVE WALLETS', flatBaseline()),
-    ]
-  }, [loading, solPrice])
+  const stats = snap.marketStats.status === 'ready' ? snap.marketStats.data : []
+  const fg = snap.fearGreed
+  const statusOk = dataMode === 'demo' ? true : health === 'ok'
 
   return (
     <div
@@ -155,31 +163,31 @@ export function MarketMetricsBar() {
         <StatCard key={s.id} stat={s} />
       ))}
 
-      <div className="flex min-w-[8.5rem] flex-col justify-center border-r border-[var(--tit-border)] px-3 py-2">
+      <div className="flex min-w-[9rem] flex-col justify-center border-r border-[var(--tit-border)] px-3 py-2">
         <span className="tit-label">Fear & Greed</span>
-        <span className="tit-mono text-[0.95rem] font-semibold text-[var(--tit-text-0)]">—</span>
-        <span className="tit-awaiting">awaiting feed</span>
+        {fg.status === 'ready' ? (
+          <FearGauge score={fg.data.score} label={fg.data.label} />
+        ) : (
+          <>
+            <span className="tit-mono text-[0.95rem] font-semibold text-[var(--tit-text-0)]">—</span>
+            <span className="tit-awaiting">
+              {fg.status === 'unavailable' ? fg.reason : 'Connecting…'}
+            </span>
+          </>
+        )}
       </div>
 
       <div className="ml-auto flex min-w-[13rem] items-center gap-2.5 px-3">
         <span
           className={`h-2.5 w-2.5 shrink-0 rounded-full ${
-            health === 'ok'
-              ? 'bg-[var(--tit-pos)]'
-              : health === 'degraded'
-                ? 'bg-[var(--tit-warn)]'
-                : 'bg-[var(--tit-text-2)]'
+            statusOk ? 'bg-[var(--tit-pos)]' : 'bg-[var(--tit-warn)]'
           }`}
           aria-hidden
         />
         <div>
           <p className="tit-label">Terminal Status</p>
           <p className="tit-mono text-[0.7rem] text-[var(--tit-text-0)]">
-            {health === 'ok'
-              ? 'All Systems Operational'
-              : health === 'degraded'
-                ? 'Degraded'
-                : 'Checking…'}
+            {statusOk ? 'All Systems Operational' : 'Degraded'}
           </p>
         </div>
       </div>

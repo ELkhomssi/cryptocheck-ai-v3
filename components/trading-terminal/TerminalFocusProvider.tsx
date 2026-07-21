@@ -28,6 +28,13 @@ import {
   type TerminalWatchlist,
   type WatchlistItem,
 } from '@/lib/trading-terminal/watchlist-storage'
+import type { TerminalDataMode } from '@/lib/trading-terminal/data/types'
+import {
+  defaultDataMode,
+  persistDataMode,
+  readStoredDataMode,
+} from '@/lib/trading-terminal/data/mode'
+import { getDemoSeed } from '@/lib/trading-terminal/data/demo-seed'
 
 function slotCount(mode: ChartMode): number {
   return mode
@@ -45,6 +52,9 @@ type TerminalFocusApi = {
   scanning: boolean
   scanError: string | null
   ticketSide: 'buy' | 'sell'
+  /** demo = labeled DEMO_SEED; live = real feeds + honest empties */
+  dataMode: TerminalDataMode
+  setDataMode: (m: TerminalDataMode) => void
   coachCollapsed: boolean
   discoverCollapsed: boolean
   positionsOpen: boolean
@@ -105,6 +115,7 @@ export function TerminalFocusProvider({ children }: { children: ReactNode }) {
   const [ticketSide, setTicketSide] = useState<'buy' | 'sell'>('buy')
   const [ticketAmountSol, setTicketAmountSol] = useState(0.25)
   const [solPriceUsd, setSolPriceUsd] = useState<number | null>(null)
+  const [dataMode, setDataModeState] = useState<TerminalDataMode>(defaultDataMode)
   const [coachCollapsed, setCoachCollapsed] = useState(false)
   const [discoverCollapsed, setDiscoverCollapsed] = useState(false)
   const [positionsOpen, setPositionsOpen] = useState(false)
@@ -117,6 +128,8 @@ export function TerminalFocusProvider({ children }: { children: ReactNode }) {
   const restoredFocus = useRef<string | null>(null)
 
   useEffect(() => {
+    const stored = readStoredDataMode()
+    if (stored) setDataModeState(stored)
     const ws = loadWorkspace()
     const wl = loadWatchlists()
     setWatchlists(wl.lists)
@@ -138,6 +151,61 @@ export function TerminalFocusProvider({ children }: { children: ReactNode }) {
     setHydrated(true)
     skipPersist.current = false
   }, [])
+
+  const setDataMode = useCallback((m: TerminalDataMode) => {
+    setDataModeState(m)
+    persistDataMode(m)
+  }, [])
+
+  // Apply DEMO_SEED focus + chart slots when entering demo with empty focus
+  useEffect(() => {
+    if (!hydrated || dataMode !== 'demo') return
+    const seed = getDemoSeed()
+    setSolPriceUsd(seed.solPriceUsd)
+    setPortfolioTotalUsd(seed.portions.totalUsd)
+    setPositionValues(
+      Object.fromEntries(seed.positions.map((p) => [p.mint, p.valueUsd])),
+    )
+    if (!focusMint || focusMint.length < 32) {
+      setFocusMint(seed.focusMint)
+      setFocusSymbol(seed.focusSymbol)
+      const next = emptySlots(chartMode)
+      for (let i = 0; i < Math.min(next.length, seed.charts.length); i++) {
+        const c = seed.charts[i]!
+        next[i] = { mint: c.mint, symbol: c.symbol, locked: false }
+      }
+      setSlots(next)
+      setActiveSlot(0)
+    }
+    // demo scan card — synthetic ScanResult shape for coach map
+    setScan({
+      mint: seed.coach.mint,
+      symbol: seed.coach.symbol,
+      name: seed.coach.name,
+      safetyScore: seed.coach.safetyScore,
+      riskScore: seed.coach.riskScore,
+      verdict:
+        seed.coach.verdict === 'DANGER'
+          ? 'DANGER'
+          : seed.coach.verdict === 'BLOCKED'
+            ? 'DANGER'
+            : seed.coach.verdict === 'SAFE'
+              ? 'SAFE'
+              : 'CAUTION',
+      confidence: 'high',
+      topSignals: seed.coach.why.map((w, i) => ({
+        id: `demo-${i}`,
+        label: w.text.slice(0, 40),
+        weight: w.direction === 'up' ? 5 : -5,
+        detail: w.text,
+      })),
+      evidenceLine: seed.coach.why[0]?.text ?? 'DEMO_SEED evidence',
+      scannedAt: new Date().toISOString(),
+      cache: 'miss',
+      sample: true,
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- apply once per mode enter
+  }, [hydrated, dataMode])
 
   useEffect(() => {
     if (!hydrated || skipPersist.current) return
@@ -390,6 +458,8 @@ export function TerminalFocusProvider({ children }: { children: ReactNode }) {
       setTicketAmountSol,
       solPriceUsd,
       setSolPriceUsd,
+      dataMode,
+      setDataMode,
       coachCollapsed,
       discoverCollapsed,
       positionsOpen,
@@ -433,6 +503,8 @@ export function TerminalFocusProvider({ children }: { children: ReactNode }) {
       ticketSide,
       ticketAmountSol,
       solPriceUsd,
+      dataMode,
+      setDataMode,
       coachCollapsed,
       discoverCollapsed,
       positionsOpen,
