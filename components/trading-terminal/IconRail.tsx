@@ -2,39 +2,42 @@
 
 import type { LucideIcon } from 'lucide-react'
 import {
-  Activity,
   Bell,
-  Crosshair,
+  Brain,
   HelpCircle,
   History,
   LayoutGrid,
   LineChart,
   Radar,
   Settings,
+  Sparkles,
   Wallet,
 } from 'lucide-react'
 
 export type TerminalPane =
-  | 'discover'
-  | 'charts'
-  | 'watchlists'
-  | 'sniper'
+  | 'coach'
+  | 'opportunities'
   | 'portfolio'
-  | 'history'
   | 'intel'
+  | 'watchlists'
+  | 'history'
   | 'alerts'
+  | 'charts'
   | 'settings'
   | 'help'
+  /** legacy aliases kept for keyboard helpers */
+  | 'discover'
+  | 'sniper'
 
 const MAIN: { id: TerminalPane; icon: LucideIcon; label: string; badge?: number }[] = [
-  { id: 'discover', icon: Radar, label: 'Discover' },
-  { id: 'charts', icon: LineChart, label: 'Charts' },
-  { id: 'watchlists', icon: LayoutGrid, label: 'Watchlists' },
-  { id: 'sniper', icon: Crosshair, label: 'Sniper' },
+  { id: 'coach', icon: Brain, label: 'Coach' },
+  { id: 'opportunities', icon: Sparkles, label: 'Opportunities' },
   { id: 'portfolio', icon: Wallet, label: 'Portfolio' },
+  { id: 'intel', icon: Radar, label: 'Intel Feed' },
+  { id: 'watchlists', icon: LayoutGrid, label: 'Watchlist' },
   { id: 'history', icon: History, label: 'History' },
-  { id: 'intel', icon: Activity, label: 'Intel Feed' },
-  { id: 'alerts', icon: Bell, label: 'Alerts', badge: 0 },
+  { id: 'alerts', icon: Bell, label: 'Alerts' },
+  { id: 'charts', icon: LineChart, label: 'Charts' },
 ]
 
 const FOOT: { id: TerminalPane; icon: LucideIcon; label: string }[] = [
@@ -86,14 +89,14 @@ function RailButton({
           </span>
         ) : null}
       </span>
-      <span className="max-w-full truncate text-center text-[9px] leading-tight tracking-wide">
+      <span className="max-w-full truncate text-center text-[8px] leading-tight tracking-wide">
         {label}
       </span>
     </button>
   )
 }
 
-/** Icon rail — focuses workspace panes; never navigates away from the terminal. */
+/** Slim icon rail — focuses workstation panes; stays on /terminal. */
 export function IconRail({ active, onSelect }: Props) {
   return (
     <nav

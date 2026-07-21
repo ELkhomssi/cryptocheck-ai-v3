@@ -111,11 +111,31 @@ export type DemoCoachBundle = {
     avgHoldDays: number
   }
   actionQueue: Array<{
-    type: 'EXIT' | 'REDUCE' | 'MONITOR' | 'ADD' | 'WATCHLIST'
+    type: 'BUY' | 'EXIT' | 'REDUCE' | 'MONITOR' | 'ADD' | 'WATCHLIST' | 'WATCH'
     symbol: string
     reason: string
     priority: number
   }>
+  /** Institutional risk gauges for bottom Risk Analysis panel. */
+  riskAnalysis: {
+    concentration: 'LOW' | 'MEDIUM' | 'HIGH'
+    liquidity: 'LOW' | 'MEDIUM' | 'HIGH'
+    correlation: 'LOW' | 'MEDIUM' | 'HIGH'
+    volatility: 'LOW' | 'MEDIUM' | 'HIGH'
+    smartMoney: 'LOW' | 'MEDIUM' | 'HIGH'
+  }
+  /** Primary recommended trade — most important signal after charts. */
+  recommended: {
+    side: 'BUY' | 'SELL' | 'HOLD' | 'REDUCE'
+    symbol: string
+    mint: string
+    name: string
+    verdict: 'SAFE' | 'CAUTION' | 'DANGER' | 'BLOCKED'
+    riskScore: number
+    confidencePct: number
+    evidenceCoveragePct: number
+    headline: string
+  }
   weekly: {
     weekOf: string
     topNarrative: string
