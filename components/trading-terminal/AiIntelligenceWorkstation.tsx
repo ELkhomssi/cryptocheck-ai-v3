@@ -54,12 +54,25 @@ export function AiIntelligenceWorkstation() {
   const headline = recommended
     ? recommended.headline
     : card
-      ? `${card.verdict === 'SAFE' ? 'BUY' : card.verdict === 'DANGER' || card.verdict === 'BLOCKED' ? 'AVOID' : 'REVIEW'} ${focusSymbol || '—'}`
+      ? `${
+          card.verdict === 'SAFE'
+            ? 'BUY'
+            : card.verdict === 'HIGH_RISK' || card.verdict === 'BLOCKED'
+              ? 'AVOID'
+              : 'REVIEW'
+        } ${focusSymbol || '—'}`
       : dataMode === 'live'
         ? 'Select a chart symbol'
         : '—'
 
-  const verdict = recommended?.verdict ?? (card?.verdict === 'HIGH_RISK' ? 'DANGER' : card?.verdict) ?? null
+  const verdict =
+    recommended?.verdict ??
+    (card?.verdict === 'HIGH_RISK'
+      ? 'DANGER'
+      : card?.verdict === 'INSUFFICIENT_DATA'
+        ? null
+        : card?.verdict) ??
+    null
   const riskScore = recommended?.riskScore ?? card?.riskScore ?? null
   const confidence =
     recommended?.confidencePct ??
