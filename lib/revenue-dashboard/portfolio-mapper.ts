@@ -26,6 +26,10 @@ export function mapTrackerPosition(p: TrackerPosition, totalValueUsd: number, sc
     concentrationPct: totalValueUsd > 0 ? (p.valueUsd / totalValueUsd) * 100 : 0,
     scannedAt,
     estimated: p.estimated,
+    avgEntryPriceUsd: p.avgEntryPriceUsd,
+    currentPriceUsd: p.currentPriceUsd,
+    pnlUsd: p.pnlUsd,
+    pnlPct: p.pnlPct,
   }
 }
 
@@ -39,6 +43,9 @@ export type RevenuePortfolioSummary = {
   exposure: TrackerPortfolio['riskExposure']
   positions: PortfolioPosition[]
   lastUpdatedAt: string
+  /** Book P&L when entry basis is known (partial if estimated). */
+  totalPnlUsd?: number
+  totalPnlPct?: number
 }
 
 export function mapTrackerPortfolio(portfolio: TrackerPortfolio): RevenuePortfolioSummary {
@@ -59,6 +66,8 @@ export function mapTrackerPortfolio(portfolio: TrackerPortfolio): RevenuePortfol
     exposure: portfolio.riskExposure,
     positions,
     lastUpdatedAt: portfolio.lastUpdatedAt,
+    totalPnlUsd: portfolio.totalPnlUsd,
+    totalPnlPct: portfolio.totalPnlPct,
   }
 }
 

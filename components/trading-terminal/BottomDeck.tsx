@@ -10,7 +10,7 @@ import { useTerminalFocus } from './TerminalFocusProvider'
 
 function PortionsPanel() {
   const { dataMode } = useTerminalFocus()
-  const { data } = useTerminalPortfolio()
+  const { data, brain } = useTerminalPortfolio()
   const snap = useMemo(() => getTerminalSnapshot(dataMode), [dataMode])
 
   if (dataMode === 'demo' && snap.portions.status === 'ready') {
@@ -45,25 +45,53 @@ function PortionsPanel() {
     )
   }
 
+  const portions = brain?.portions
   const positions = data?.positions ?? []
-  const total = data?.totalValueUsd ?? 0
+  const total = portions?.totalUsd ?? data?.totalValueUsd ?? 0
+  const legend =
+    portions?.legend ??
+    positions.slice(0, 4).map((p) => ({
+      name: p.symbol,
+      pct: total > 0 ? (p.valueUsd / total) * 100 : 0,
+      valueUsd: p.valueUsd,
+    }))
+
   return (
     <div className="tit-panel-flat flex h-full min-h-0 flex-col overflow-hidden">
       <div className="border-b border-[var(--tit-border)] px-2 py-1">
         <p className="tit-label">Portions</p>
       </div>
-      <div className="flex flex-1 items-center p-2">
+      <div className="flex flex-1 flex-col justify-center gap-1 p-2">
         {total <= 0 ? (
           <p className="text-[0.65rem] text-[var(--tit-text-1)]">Connect a wallet to analyze allocation.</p>
         ) : (
-          <ul className="w-full space-y-0.5">
-            {positions.slice(0, 4).map((p) => (
-              <li key={p.mint} className="flex justify-between text-[0.6rem]">
-                <span className="text-[var(--tit-text-1)]">{p.symbol}</span>
-                <span className="tit-mono">{((p.valueUsd / total) * 100).toFixed(0)}%</span>
-              </li>
-            ))}
-          </ul>
+          <>
+            <p className="tit-mono text-[0.95rem] font-bold text-[var(--tit-text-0)]">
+              ${total.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            </p>
+            {portions?.pnlPct != null ? (
+              <p
+                className={`tit-mono text-[0.65rem] ${
+                  portions.pnlPct >= 0 ? 'text-[var(--tit-pos)]' : 'text-[var(--tit-neg)]'
+                }`}
+              >
+                {portions.pnlPct >= 0 ? '▲' : '▼'}{' '}
+                {portions.pnlUsd != null
+                  ? `$${Math.abs(portions.pnlUsd).toFixed(2)} `
+                  : null}
+                ({portions.pnlPct >= 0 ? '+' : ''}
+                {portions.pnlPct.toFixed(2)}%)
+              </p>
+            ) : null}
+            <ul className="mt-1 space-y-0.5">
+              {legend.map((l) => (
+                <li key={l.name} className="flex justify-between text-[0.55rem]">
+                  <span className="text-[var(--tit-text-1)]">{l.name}</span>
+                  <span className="tit-mono text-[var(--tit-text-0)]">{l.pct.toFixed(0)}%</span>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </div>
     </div>
@@ -81,15 +109,16 @@ function PositionsTable() {
       : (data?.positions ?? []).map((p) => ({
           mint: p.mint,
           symbol: p.symbol,
-          size: 0,
-          entryUsd: 0,
-          priceUsd: 0,
-          pnlUsd: 0,
-          pnlPct: 0,
+          size: p.balance ?? 0,
+          entryUsd: p.avgEntryPriceUsd ?? 0,
+          priceUsd: p.currentPriceUsd ?? 0,
+          pnlUsd: p.pnlUsd ?? 0,
+          pnlPct: p.pnlPct ?? 0,
           change24hPct: 0,
           valueUsd: p.valueUsd,
           verdict: (p.verdict as 'SAFE' | 'CAUTION' | 'DANGER') || 'CAUTION',
           riskScore: p.riskScore,
+          estimated: p.estimated ?? false,
         }))
 
   return (
@@ -127,57 +156,61 @@ function PositionsTable() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((p) => (
-                <tr
-                  key={p.mint}
-                  className="border-t border-[var(--tit-border)] hover:bg-[var(--tit-bg-3)]"
-                  style={{ height: 'var(--tit-row-h)' }}
-                >
-                  <td className="px-2 py-0.5">
-                    <button
-                      type="button"
-                      onClick={() => selectMint(p.mint, p.symbol)}
-                      className="text-[0.65rem] font-semibold text-[var(--tit-text-0)] hover:text-[var(--tit-accent-bright)]"
-                    >
-                      {p.symbol}
-                    </button>
-                  </td>
-                  <td className="tit-mono px-2 py-0.5 text-[0.55rem] text-[var(--tit-text-1)]">
-                    {'size' in p && p.size > 0
-                      ? p.size.toLocaleString(undefined, { maximumFractionDigits: 2 })
-                      : '—'}
-                  </td>
-                  <td className="tit-mono px-2 py-0.5 text-[0.55rem] text-[var(--tit-text-1)]">
-                    {'entryUsd' in p && p.entryUsd > 0
-                      ? `$${p.entryUsd < 0.01 ? p.entryUsd.toPrecision(3) : p.entryUsd.toFixed(4)}`
-                      : '—'}
-                  </td>
-                  <td className="tit-mono px-2 py-0.5 text-[0.55rem] text-[var(--tit-text-0)]">
-                    {'priceUsd' in p && p.priceUsd > 0
-                      ? `$${p.priceUsd < 0.01 ? p.priceUsd.toPrecision(3) : p.priceUsd.toFixed(4)}`
-                      : `$${p.valueUsd.toFixed(2)}`}
-                  </td>
-                  <td
-                    className={`tit-mono px-2 py-0.5 text-[0.6rem] ${
-                      p.pnlPct >= 0 ? 'text-[var(--tit-pos)]' : 'text-[var(--tit-neg)]'
-                    }`}
+              {rows.map((p) => {
+                const estimated = 'estimated' in p && Boolean(p.estimated)
+                const fmtPx = (n: number) =>
+                  n <= 0 ? '—' : `$${n < 0.01 ? n.toPrecision(3) : n.toFixed(4)}`
+                return (
+                  <tr
+                    key={p.mint}
+                    className="border-t border-[var(--tit-border)] hover:bg-[var(--tit-bg-3)]"
+                    style={{ height: 'var(--tit-row-h)' }}
                   >
-                    {p.pnlPct === 0 && dataMode === 'live'
-                      ? '—'
-                      : `${p.pnlPct >= 0 ? '+' : ''}${p.pnlPct.toFixed(1)}%`}
-                  </td>
-                  <td className="tit-mono px-2 py-0.5 text-[0.55rem]">{p.riskScore}</td>
-                  <td className="px-2 py-0.5 text-right">
-                    <button
-                      type="button"
-                      onClick={() => armExit(p.mint, p.symbol)}
-                      className="rounded border border-[var(--tit-border)] px-1.5 py-0.5 text-[0.5rem] font-bold text-[var(--tit-text-1)] hover:border-[var(--tit-danger)] hover:text-[var(--tit-danger)]"
+                    <td className="px-2 py-0.5">
+                      <button
+                        type="button"
+                        onClick={() => selectMint(p.mint, p.symbol)}
+                        className="text-[0.65rem] font-semibold text-[var(--tit-text-0)] hover:text-[var(--tit-accent-bright)]"
+                      >
+                        {p.symbol}
+                      </button>
+                    </td>
+                    <td className="tit-mono px-2 py-0.5 text-[0.55rem] text-[var(--tit-text-1)]">
+                      {p.size > 0
+                        ? p.size.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                        : '—'}
+                    </td>
+                    <td className="tit-mono px-2 py-0.5 text-[0.55rem] text-[var(--tit-text-1)]">
+                      {fmtPx(p.entryUsd)}
+                      {estimated && p.entryUsd > 0 ? (
+                        <span className="ml-0.5 text-[0.45rem] text-[var(--tit-text-2)]">est</span>
+                      ) : null}
+                    </td>
+                    <td className="tit-mono px-2 py-0.5 text-[0.55rem] text-[var(--tit-text-0)]">
+                      {p.priceUsd > 0 ? fmtPx(p.priceUsd) : `$${p.valueUsd.toFixed(2)}`}
+                    </td>
+                    <td
+                      className={`tit-mono px-2 py-0.5 text-[0.6rem] ${
+                        p.pnlPct >= 0 ? 'text-[var(--tit-pos)]' : 'text-[var(--tit-neg)]'
+                      }`}
                     >
-                      Exit
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                      {estimated && dataMode === 'live'
+                        ? '—'
+                        : `${p.pnlPct >= 0 ? '+' : ''}${p.pnlPct.toFixed(1)}%`}
+                    </td>
+                    <td className="tit-mono px-2 py-0.5 text-[0.55rem]">{p.riskScore}</td>
+                    <td className="px-2 py-0.5 text-right">
+                      <button
+                        type="button"
+                        onClick={() => armExit(p.mint, p.symbol)}
+                        className="rounded border border-[var(--tit-border)] px-1.5 py-0.5 text-[0.5rem] font-bold text-[var(--tit-text-1)] hover:border-[var(--tit-danger)] hover:text-[var(--tit-danger)]"
+                      >
+                        Exit
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

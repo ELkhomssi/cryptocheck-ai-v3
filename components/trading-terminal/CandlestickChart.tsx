@@ -7,21 +7,30 @@ import {
   type ISeriesApi,
   type CandlestickData,
   type HistogramData,
+  type SeriesMarker,
+  type Time,
   ColorType,
   CrosshairMode,
 } from 'lightweight-charts'
 import type { Candle } from '@/lib/trading-terminal/ohlcv-feed'
 
+export type ChartTradeMark = {
+  time: number // unix seconds
+  side: 'buy' | 'sell'
+  label?: string
+}
+
 type Props = {
   candles: Candle[]
+  marks?: ChartTradeMark[]
   className?: string
 }
 
 /**
  * Institutional candlestick + volume — TradingView lightweight-charts.
- * Dark terminal tokens; no gaming chrome.
+ * Optional trade markers from DEMO_SEED / local trade log (never invented).
  */
-export function CandlestickChart({ candles, className = '' }: Props) {
+export function CandlestickChart({ candles, marks = [], className = '' }: Props) {
   const hostRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
@@ -126,8 +135,39 @@ export function CandlestickChart({ candles, className = '' }: Props) {
 
     candleSeriesRef.current.setData(cs)
     volumeSeriesRef.current.setData(vs)
+
+    // Snap marks onto nearest candle time so lightweight-charts accepts them
+    if (marks.length > 0 && cs.length > 0) {
+      const times = cs.map((c) => Number(c.time))
+      const nearest = (t: number) => {
+        let best = times[0]!
+        let bestDist = Math.abs(best - t)
+        for (const x of times) {
+          const d = Math.abs(x - t)
+          if (d < bestDist) {
+            best = x
+            bestDist = d
+          }
+        }
+        return best
+      }
+      const markers: SeriesMarker<Time>[] = marks.map((m) => {
+        const buy = m.side === 'buy'
+        return {
+          time: nearest(Math.floor(m.time)) as Time,
+          position: buy ? 'belowBar' : 'aboveBar',
+          color: buy ? '#22C55E' : '#EF4444',
+          shape: buy ? 'arrowUp' : 'arrowDown',
+          text: m.label ?? (buy ? 'B' : 'S'),
+        }
+      })
+      candleSeriesRef.current.setMarkers(markers)
+    } else {
+      candleSeriesRef.current.setMarkers([])
+    }
+
     chartRef.current?.timeScale().fitContent()
-  }, [candles])
+  }, [candles, marks])
 
   return <div ref={hostRef} className={`min-h-0 w-full flex-1 ${className}`} />
 }

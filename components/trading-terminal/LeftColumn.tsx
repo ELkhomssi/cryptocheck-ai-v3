@@ -1,11 +1,12 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { UnifiedSignal } from '@cryptocheck/signal-contracts'
 import { TIT_DND_MIME } from '@/lib/trading-terminal/constants'
 import { encodeTitDrag } from '@/lib/trading-terminal/dnd'
 import { getTerminalSnapshot } from '@/lib/trading-terminal/data/adapters'
 import type { DiscoverToken } from '@/lib/trading-terminal/data/types'
+import { applyDexQuotes, fetchDexQuotes } from '@/lib/trading-terminal/discover-enrich'
 import { useTerminalFocus } from './TerminalFocusProvider'
 import { MiniPortfolioCard } from './MiniPortfolioCard'
 import { WatchlistSideList } from './WatchlistSideList'
@@ -77,10 +78,30 @@ export function LeftColumn({
 
   const snap = useMemo(() => getTerminalSnapshot(dataMode), [dataMode])
 
-  const tokens: DiscoverToken[] = useMemo(() => {
+  const baseTokens: DiscoverToken[] = useMemo(() => {
     if (dataMode === 'demo' && snap.discover.status === 'ready') return snap.discover.data
     return rows.map(signalToDiscover).filter((t): t is DiscoverToken => Boolean(t))
   }, [dataMode, snap.discover, rows])
+
+  const [enriched, setEnriched] = useState<DiscoverToken[] | null>(null)
+
+  useEffect(() => {
+    if (dataMode !== 'live' || baseTokens.length === 0) {
+      setEnriched(null)
+      return
+    }
+    let cancelled = false
+    const mints = baseTokens.slice(0, 24).map((t) => t.mint)
+    void fetchDexQuotes(mints).then((quotes) => {
+      if (cancelled) return
+      setEnriched(applyDexQuotes(baseTokens, quotes))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [dataMode, baseTokens])
+
+  const tokens = dataMode === 'live' && enriched ? enriched : baseTokens
 
   const watchlists =
     dataMode === 'demo' && snap.watchlists.status === 'ready' ? snap.watchlists.data : null
