@@ -23,6 +23,7 @@ import type { TerminalVerdict } from '@/lib/trading-terminal/types'
 import { loadWeeklyIntel } from '@/lib/trading-terminal/weekly-intel'
 import { BehaviorCoachPanel } from './BehaviorCoachPanel'
 import { CoachTrackRecord } from './CoachTrackRecord'
+import { useTerminalPortfolio } from './MiniPortfolioCard'
 import { TradeOutcomesPanel } from './TradeOutcomesPanel'
 import { useTerminalFocus } from './TerminalFocusProvider'
 
@@ -112,6 +113,12 @@ export function IntelligenceColumn({ tab, onTab }: Props) {
   const demoCoach = snap.coach.status === 'ready' ? snap.coach.data : null
   const card = scanToVerdictCard(scan)
   const focused = Boolean(focusMint) || dataMode === 'demo'
+  const { brain: liveBrain, isConnected: walletConnected } = useTerminalPortfolio()
+  const portfolioBrain = demoCoach
+    ? null
+    : dataMode === 'live' && liveBrain
+      ? liveBrain
+      : null
 
   const [weekly, setWeekly] = useState(() =>
     typeof window === 'undefined' ? null : loadWeeklyIntel(),
@@ -473,8 +480,12 @@ export function IntelligenceColumn({ tab, onTab }: Props) {
 
               <Section
                 title="Portfolio Health"
-                collapsed={!focused && !demoCoach}
-                oneLiner="Connect a wallet to analyze your book."
+                collapsed={!focused && !demoCoach && !portfolioBrain}
+                oneLiner={
+                  walletConnected || demoCoach
+                    ? undefined
+                    : 'Connect a wallet to analyze your book.'
+                }
               >
                 {demoCoach ? (
                   <>
@@ -492,6 +503,22 @@ export function IntelligenceColumn({ tab, onTab }: Props) {
                       ))}
                     </ul>
                   </>
+                ) : portfolioBrain ? (
+                  <>
+                    <p className="tit-mono text-[1rem] font-bold text-[var(--tit-text-0)]">
+                      {portfolioBrain.health.score}
+                      <span className="ml-1 text-[0.55rem] font-normal text-[var(--tit-text-2)]">
+                        /100
+                      </span>
+                    </p>
+                    <ul className="mt-1 space-y-0.5">
+                      {portfolioBrain.health.issues.map((i) => (
+                        <li key={i} className="text-[0.65rem] text-[var(--tit-warn)]">
+                          · {i}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
                 ) : (
                   <p className="text-[0.65rem] text-[var(--tit-text-1)]">
                     Connect a wallet to analyze your book.
@@ -499,7 +526,11 @@ export function IntelligenceColumn({ tab, onTab }: Props) {
                 )}
               </Section>
 
-              <Section title="Risk Exposure" collapsed={!demoCoach} oneLiner="Awaiting portfolio.">
+              <Section
+                title="Risk Exposure"
+                collapsed={!demoCoach && !portfolioBrain}
+                oneLiner="Awaiting portfolio."
+              >
                 {demoCoach ? (
                   <>
                     <ul className="space-y-0.5">
@@ -511,6 +542,25 @@ export function IntelligenceColumn({ tab, onTab }: Props) {
                       ))}
                     </ul>
                     {demoCoach.riskExposure.flags.map((f) => (
+                      <p key={f} className="mt-1 text-[0.6rem] text-[var(--tit-warn)]">
+                        {f}
+                      </p>
+                    ))}
+                  </>
+                ) : portfolioBrain ? (
+                  <>
+                    <p className="tit-mono mb-1 text-[0.6rem] text-[var(--tit-text-2)]">
+                      Band {portfolioBrain.riskExposure.band}
+                    </p>
+                    <ul className="space-y-0.5">
+                      {portfolioBrain.riskExposure.categories.map((c) => (
+                        <li key={c.name} className="flex justify-between text-[0.65rem]">
+                          <span className="text-[var(--tit-text-1)]">{c.name}</span>
+                          <span className="tit-mono text-[var(--tit-text-0)]">{c.pct}%</span>
+                        </li>
+                      ))}
+                    </ul>
+                    {portfolioBrain.riskExposure.flags.map((f) => (
                       <p key={f} className="mt-1 text-[0.6rem] text-[var(--tit-warn)]">
                         {f}
                       </p>
@@ -558,7 +608,7 @@ export function IntelligenceColumn({ tab, onTab }: Props) {
 
               <Section
                 title="AI Threat Radar"
-                collapsed={!demoCoach}
+                collapsed={!demoCoach && !portfolioBrain}
                 oneLiner="No active threats on held positions."
               >
                 {demoCoach?.threats.length ? (
@@ -567,6 +617,21 @@ export function IntelligenceColumn({ tab, onTab }: Props) {
                       <li key={t.symbol} className="text-[0.7rem] text-[var(--tit-neg)]">
                         <span className="tit-mono font-bold">{t.symbol}</span> · {t.reason}{' '}
                         <span className="tit-badge tit-badge-risk">{t.severity}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : portfolioBrain?.threats.length ? (
+                  <ul className="space-y-1">
+                    {portfolioBrain.threats.map((t) => (
+                      <li key={t.mint} className="text-[0.7rem] text-[var(--tit-neg)]">
+                        <button
+                          type="button"
+                          className="text-left"
+                          onClick={() => selectMint(t.mint, t.symbol)}
+                        >
+                          <span className="tit-mono font-bold">{t.symbol}</span> · {t.reason}{' '}
+                          <span className="tit-badge tit-badge-risk">{t.severity}</span>
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -610,12 +675,16 @@ export function IntelligenceColumn({ tab, onTab }: Props) {
 
               <Section
                 title="Capital Allocation"
-                collapsed={!demoCoach}
+                collapsed={!demoCoach && !portfolioBrain}
                 oneLiner="Guidance available after scan + portfolio load."
               >
                 {demoCoach ? (
                   <p className="text-[0.7rem] text-[var(--tit-text-0)]">
                     {demoCoach.capitalAllocation}
+                  </p>
+                ) : portfolioBrain ? (
+                  <p className="text-[0.7rem] text-[var(--tit-text-0)]">
+                    {portfolioBrain.capitalAllocation}
                   </p>
                 ) : null}
               </Section>
@@ -683,7 +752,7 @@ export function IntelligenceColumn({ tab, onTab }: Props) {
 
               <Section
                 title="AI Action Queue"
-                collapsed={!demoCoach}
+                collapsed={!demoCoach && !portfolioBrain}
                 oneLiner="No priority actions — book is balanced."
               >
                 {demoCoach?.actionQueue.length ? (
@@ -698,6 +767,27 @@ export function IntelligenceColumn({ tab, onTab }: Props) {
                         </span>{' '}
                         <span className="tit-mono font-semibold">{a.symbol}</span>
                         <p className="text-[var(--tit-text-1)]">{a.reason}</p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : portfolioBrain?.actionQueue.length ? (
+                  <ul className="space-y-1">
+                    {portfolioBrain.actionQueue.map((a) => (
+                      <li
+                        key={`${a.type}-${a.mint}`}
+                        className="rounded border border-[var(--tit-border)] bg-[var(--tit-bg-2)] px-2 py-1.5 text-[0.7rem]"
+                      >
+                        <button
+                          type="button"
+                          className="w-full text-left"
+                          onClick={() => selectMint(a.mint, a.symbol)}
+                        >
+                          <span className="tit-mono font-bold text-[var(--tit-accent-bright)]">
+                            {a.type}
+                          </span>{' '}
+                          <span className="tit-mono font-semibold">{a.symbol}</span>
+                          <p className="text-[var(--tit-text-1)]">{a.reason}</p>
+                        </button>
                       </li>
                     ))}
                   </ul>

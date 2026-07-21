@@ -3,16 +3,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSolana } from '@/components/SolanaProvider'
 import { getTerminalSnapshot } from '@/lib/trading-terminal/data/adapters'
+import type { DiscoverToken } from '@/lib/trading-terminal/data/types'
+import { applyDexQuotes, fetchDexQuotes } from '@/lib/trading-terminal/discover-enrich'
 import { useTerminalFocus } from './TerminalFocusProvider'
 
 export function TerminalStatusBar() {
   const { isConnected } = useSolana()
-  const { dataMode, selectMint } = useTerminalFocus()
+  const { dataMode, selectMint, focusMint, focusSymbol } = useTerminalFocus()
   const [latency, setLatency] = useState<number | null>(null)
   const [status, setStatus] = useState<'ok' | 'degraded'>('ok')
+  const [liveTicker, setLiveTicker] = useState<DiscoverToken[]>([])
   const snap = useMemo(() => getTerminalSnapshot(dataMode), [dataMode])
 
-  const movers =
+  const demoMovers =
     dataMode === 'demo' && snap.discover.status === 'ready'
       ? snap.discover.data.slice(0, 8)
       : []
@@ -20,6 +23,8 @@ export function TerminalStatusBar() {
     dataMode === 'demo' && snap.discover.status === 'ready'
       ? snap.discover.data.find((d) => d.badge === 'HOT')
       : null
+
+  const movers = dataMode === 'demo' ? demoMovers : liveTicker
 
   useEffect(() => {
     if (dataMode === 'demo') {
@@ -52,6 +57,47 @@ export function TerminalStatusBar() {
     }
   }, [dataMode])
 
+  // Live ticker: enrich focus + a few well-known SOL liquid names via DexScreener when feed sparse
+  useEffect(() => {
+    if (dataMode !== 'live') {
+      setLiveTicker([])
+      return
+    }
+    let cancelled = false
+    const SOL = 'So11111111111111111111111111111111111111112'
+    const seeds: DiscoverToken[] = [
+      {
+        mint: SOL,
+        symbol: 'SOL',
+        name: 'Solana',
+        priceUsd: 0,
+        changePct: 0,
+        marketCapUsd: 0,
+        views: 0,
+        badge: null,
+      },
+    ]
+    if (focusMint && focusMint.length >= 32 && !focusMint.startsWith('Demo')) {
+      seeds.push({
+        mint: focusMint,
+        symbol: focusSymbol || focusMint.slice(0, 4),
+        name: focusSymbol || focusMint.slice(0, 4),
+        priceUsd: 0,
+        changePct: 0,
+        marketCapUsd: 0,
+        views: 0,
+        badge: null,
+      })
+    }
+    void fetchDexQuotes(seeds.map((s) => s.mint)).then((q) => {
+      if (cancelled) return
+      setLiveTicker(applyDexQuotes(seeds, q).filter((t) => t.priceUsd > 0 || t.changePct !== 0))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [dataMode, focusMint, focusSymbol])
+
   return (
     <footer
       className="tit-area-status flex items-center gap-3 overflow-x-auto border-t border-[var(--tit-border)] bg-[var(--tit-bg-0)] px-3 tit-mono text-[0.55rem] text-[var(--tit-text-2)]"
@@ -83,6 +129,11 @@ export function TerminalStatusBar() {
             {movers.map((m) => (
               <span key={m.mint} className="mr-4">
                 <span className="text-[var(--tit-text-0)]">{m.symbol}</span>{' '}
+                {m.priceUsd > 0 ? (
+                  <span className="text-[var(--tit-text-1)]">
+                    ${m.priceUsd < 1 ? m.priceUsd.toPrecision(3) : m.priceUsd.toFixed(2)}{' '}
+                  </span>
+                ) : null}
                 <span className={m.changePct >= 0 ? 'text-[var(--tit-pos)]' : 'text-[var(--tit-neg)]'}>
                   {m.changePct >= 0 ? '+' : ''}
                   {m.changePct.toFixed(1)}%

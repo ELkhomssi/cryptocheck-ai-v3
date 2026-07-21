@@ -14,7 +14,8 @@ import {
   mapDemoSeedCandles,
   type OhlcvResult,
 } from '@/lib/trading-terminal/ohlcv-feed'
-import { CandlestickChart } from './CandlestickChart'
+import { loadTradeLog } from '@/lib/trading-terminal/trade-log'
+import { CandlestickChart, type ChartTradeMark } from './CandlestickChart'
 import { useTerminalFocus } from './TerminalFocusProvider'
 
 /** Per-slot default TFs — denser multi-pane look (reference terminal). */
@@ -105,6 +106,28 @@ function ChartSlot({
   const active = index === activeSlot
   const [dragOver, setDragOver] = useState(false)
   const ohlcv = useSlotOhlcv(mint, symbol, timeframe, dataMode)
+
+  const marks: ChartTradeMark[] = useMemo(() => {
+    if (!mint) return []
+    if (dataMode === 'demo') {
+      const snap = getTerminalSnapshot('demo')
+      if (snap.trades.status !== 'ready') return []
+      return snap.trades.data
+        .filter((t) => t.mint === mint)
+        .map((t) => ({
+          time: Math.floor(Date.parse(t.at) / 1000),
+          side: t.side,
+          label: t.side === 'buy' ? 'B' : 'S',
+        }))
+    }
+    return loadTradeLog()
+      .filter((t) => t.mint === mint)
+      .map((t) => ({
+        time: Math.floor(Date.parse(t.at) / 1000),
+        side: t.side,
+        label: t.side === 'buy' ? 'B' : 'S',
+      }))
+  }, [dataMode, mint])
 
   if (maximized != null && maximized !== index) return null
 
@@ -255,7 +278,7 @@ function ChartSlot({
           {ohlcv.reason}
         </div>
       ) : (
-        <CandlestickChart candles={ohlcv.candles} />
+        <CandlestickChart candles={ohlcv.candles} marks={marks} />
       )}
     </div>
   )

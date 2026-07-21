@@ -124,6 +124,11 @@ export type PortfolioPosition = {
   scannedAt: string
   /** True when price/value is estimated rather than quoted. */
   estimated: boolean
+  /** Spot / entry from portfolio tracker when known. */
+  avgEntryPriceUsd?: number
+  currentPriceUsd?: number
+  pnlUsd?: number
+  pnlPct?: number
 }
 
 export type AlertSeverity = 'info' | 'warning' | 'critical'
