@@ -15,7 +15,7 @@ import {
 import type { Candle } from '@/lib/trading-terminal/ohlcv-feed'
 
 export type ChartTradeMark = {
-  time: number // unix seconds
+  time: number
   side: 'buy' | 'sell'
   label?: string
 }
@@ -27,8 +27,8 @@ type Props = {
 }
 
 /**
- * Institutional candlestick + volume — TradingView lightweight-charts.
- * Optional trade markers from DEMO_SEED / local trade log (never invented).
+ * PROMPT 25 — Institutional chart theme (Bloomberg calm, not neon retail).
+ * Desaturated candles, hairline grid, subtle volume.
  */
 export function CandlestickChart({ candles, marks = [], className = '' }: Props) {
   const hostRef = useRef<HTMLDivElement>(null)
@@ -44,38 +44,49 @@ export function CandlestickChart({ candles, marks = [], className = '' }: Props)
       layout: {
         background: { type: ColorType.Solid, color: '#0C1017' },
         textColor: '#5B6675',
-        fontSize: 10,
+        fontSize: 9,
         fontFamily: "var(--font-mono-terminal), 'JetBrains Mono', monospace",
       },
       grid: {
-        vertLines: { color: '#1E2633' },
-        horzLines: { color: '#1E2633' },
+        vertLines: { color: 'rgba(30,38,51,0.45)' },
+        horzLines: { color: 'rgba(30,38,51,0.45)' },
       },
       crosshair: {
         mode: CrosshairMode.Normal,
-        vertLine: { color: '#2A3646', labelBackgroundColor: '#1A2233' },
-        horzLine: { color: '#2A3646', labelBackgroundColor: '#1A2233' },
+        vertLine: {
+          color: 'rgba(42,54,70,0.8)',
+          width: 1,
+          labelBackgroundColor: '#1A2233',
+        },
+        horzLine: {
+          color: 'rgba(42,54,70,0.8)',
+          width: 1,
+          labelBackgroundColor: '#1A2233',
+        },
       },
       rightPriceScale: {
-        borderColor: '#1E2633',
-        scaleMargins: { top: 0.08, bottom: 0.22 },
+        borderVisible: false,
+        scaleMargins: { top: 0.06, bottom: 0.18 },
       },
       timeScale: {
-        borderColor: '#1E2633',
+        borderVisible: false,
         timeVisible: true,
         secondsVisible: false,
       },
+      handleScroll: { vertTouchDrag: false },
       width: el.clientWidth,
       height: el.clientHeight || 200,
     })
 
+    // Desaturated ~15% vs neon retail greens/reds
     const candleSeries = chart.addCandlestickSeries({
-      upColor: '#22C55E',
-      downColor: '#EF4444',
-      borderUpColor: '#22C55E',
-      borderDownColor: '#EF4444',
-      wickUpColor: '#22C55E',
-      wickDownColor: '#EF4444',
+      upColor: '#1FA855',
+      downColor: '#D63B3B',
+      borderUpColor: '#1FA855',
+      borderDownColor: '#D63B3B',
+      wickUpColor: '#1A8F48',
+      wickDownColor: '#B83232',
+      borderVisible: false,
     })
 
     const volumeSeries = chart.addHistogramSeries({
@@ -83,7 +94,7 @@ export function CandlestickChart({ candles, marks = [], className = '' }: Props)
       priceScaleId: '',
     })
     volumeSeries.priceScale().applyOptions({
-      scaleMargins: { top: 0.8, bottom: 0 },
+      scaleMargins: { top: 0.86, bottom: 0 },
     })
 
     chartRef.current = chart
@@ -129,14 +140,13 @@ export function CandlestickChart({ candles, marks = [], className = '' }: Props)
       vs.push({
         time: t as HistogramData['time'],
         value: c.volume,
-        color: c.close >= c.open ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)',
+        color: c.close >= c.open ? 'rgba(31,168,85,0.22)' : 'rgba(214,59,59,0.22)',
       })
     }
 
     candleSeriesRef.current.setData(cs)
     volumeSeriesRef.current.setData(vs)
 
-    // Snap marks onto nearest candle time so lightweight-charts accepts them
     if (marks.length > 0 && cs.length > 0) {
       const times = cs.map((c) => Number(c.time))
       const nearest = (t: number) => {
@@ -156,7 +166,7 @@ export function CandlestickChart({ candles, marks = [], className = '' }: Props)
         return {
           time: nearest(Math.floor(m.time)) as Time,
           position: buy ? 'belowBar' : 'aboveBar',
-          color: buy ? '#22C55E' : '#EF4444',
+          color: buy ? '#1FA855' : '#D63B3B',
           shape: buy ? 'arrowUp' : 'arrowDown',
           text: m.label ?? (buy ? 'B' : 'S'),
         }

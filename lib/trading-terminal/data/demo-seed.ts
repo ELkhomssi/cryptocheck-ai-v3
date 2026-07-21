@@ -363,9 +363,10 @@ export function buildDemoSeed(now = Date.now()): DemoSeed {
         mint: solcat.mint,
         name: solcat.name,
         verdict: 'SAFE',
+        convictionScore: 92,
         riskScore: 28,
-        confidencePct: 92,
-        evidenceCoveragePct: 85,
+        confidencePct: 89,
+        evidenceCoveragePct: 84,
         headline: 'BUY SOLCAT',
       },
       tradePlan: {
@@ -396,9 +397,24 @@ export function buildDemoSeed(now = Date.now()): DemoSeed {
         smartMoney: 'LOW',
       },
       opportunities: [
-        { symbol: 'SOLCAT', reason: 'Smart money + LP growth', conviction: 92 },
-        { symbol: 'AGENTX', reason: 'Accumulation detected', conviction: 78 },
-        { symbol: 'WHALE', reason: 'Strong inflow', conviction: 75 },
+        {
+          symbol: 'SOLCAT',
+          reason: 'Smart money +$182k · LP +21%',
+          conviction: 92,
+          riskLevel: 'MEDIUM',
+        },
+        {
+          symbol: 'AGENTX',
+          reason: 'Accumulation · holder growth',
+          conviction: 78,
+          riskLevel: 'LOW',
+        },
+        {
+          symbol: 'WHALE',
+          reason: 'Strong inflow · new capital',
+          conviction: 75,
+          riskLevel: 'MEDIUM',
+        },
       ],
       threats: [
         { symbol: 'NOODLE', reason: 'LP −38% in 2h · smart-money exiting', severity: 'HIGH' },
