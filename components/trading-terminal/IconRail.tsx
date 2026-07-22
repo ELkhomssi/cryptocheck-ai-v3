@@ -31,7 +31,7 @@ export type TerminalPane =
 
 const MAIN: { id: TerminalPane; icon: LucideIcon; label: string; badge?: number }[] = [
   { id: 'coach', icon: Brain, label: 'Coach' },
-  { id: 'opportunities', icon: Sparkles, label: 'Ops' },
+  { id: 'opportunities', icon: Sparkles, label: 'Alpha' },
   { id: 'portfolio', icon: Wallet, label: 'Book' },
   { id: 'intel', icon: Radar, label: 'Intel' },
   { id: 'watchlists', icon: LayoutGrid, label: 'Watch' },
