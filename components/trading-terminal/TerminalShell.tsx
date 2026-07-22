@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, useEffect } from 'react'
 import type { UnifiedSignal } from '@cryptocheck/signal-contracts'
 import { useSignalFeed } from '@/lib/signals-dashboard/use-signal-feed'
 import { AiIntelligenceWorkstation } from './AiIntelligenceWorkstation'
+import { AiCopilotDesk } from './copilot/AiCopilotDesk'
 import { IconRail, type TerminalPane } from './IconRail'
 import { KeyboardHelp } from './KeyboardHelp'
 import { PrimaryChart } from './PrimaryChart'
@@ -15,7 +16,7 @@ import { useTerminalKeyboard } from './useTerminalKeyboard'
 
 /**
  * Institutional Intelligence Terminal —
- * Watchlist · Primary chart (full height) · Coach AI research desk.
+ * Watchlist · Primary chart · Coach AI · AI Copilot desk.
  */
 function TerminalWorkspace() {
   const feed = useSignalFeed({ subjectType: 'token' })
@@ -31,6 +32,7 @@ function TerminalWorkspace() {
 
   const chartsRef = useRef<HTMLDivElement>(null)
   const leftRef = useRef<HTMLDivElement>(null)
+  const copilotRef = useRef<HTMLDivElement>(null)
 
   useTerminalKeyboard(allRows, {
     onTabVerdict: () => setPane('coach'),
@@ -43,7 +45,7 @@ function TerminalWorkspace() {
     helpOpen,
   })
 
-  const { hydrated, setSolPriceUsd } = useTerminalFocus()
+  const { hydrated, setSolPriceUsd, dataMode } = useTerminalFocus()
 
   useEffect(() => {
     let cancelled = false
@@ -67,10 +69,16 @@ function TerminalWorkspace() {
     }
   }, [setSolPriceUsd])
 
+  const copilotDesk = pane === 'copilot'
+
   const onPane = (p: TerminalPane) => {
     setPane(p)
     if (p === 'help') {
       setHelpOpen(true)
+      return
+    }
+    if (p === 'copilot') {
+      copilotRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
       return
     }
     if (p === 'charts' || p === 'coach') {
@@ -103,24 +111,32 @@ function TerminalWorkspace() {
   }
 
   return (
-    <div className="tit-shell tit-shell-grid">
+    <div className={`tit-shell tit-shell-grid${copilotDesk ? ' tit-shell-grid-copilot' : ''}`}>
       <TerminalTopBar onHelp={() => setHelpOpen(true)} />
       <IconRail active={pane} onSelect={onPane} />
 
-      <div ref={leftRef} className="tit-area-left min-h-0 overflow-hidden">
-        <WatchlistPanel />
-      </div>
+      {copilotDesk ? (
+        <div ref={copilotRef} className="tit-area-copilot min-h-0 overflow-hidden">
+          <AiCopilotDesk mode={dataMode} />
+        </div>
+      ) : (
+        <>
+          <div ref={leftRef} className="tit-area-left min-h-0 overflow-hidden">
+            <WatchlistPanel />
+          </div>
 
-      <div
-        ref={chartsRef}
-        className="tit-area-center flex min-h-0 min-w-0 flex-col overflow-hidden p-1.5"
-      >
-        <PrimaryChart />
-      </div>
+          <div
+            ref={chartsRef}
+            className="tit-area-center flex min-h-0 min-w-0 flex-col overflow-hidden p-1.5"
+          >
+            <PrimaryChart />
+          </div>
 
-      <div className="tit-area-coach min-h-0 overflow-hidden">
-        <AiIntelligenceWorkstation />
-      </div>
+          <div className="tit-area-coach min-h-0 overflow-hidden">
+            <AiIntelligenceWorkstation />
+          </div>
+        </>
+      )}
 
       <TerminalStatusBar />
       <KeyboardHelp open={helpOpen} onClose={() => setHelpOpen(false)} />

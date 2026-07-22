@@ -3,6 +3,7 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   Bell,
+  Bot,
   Brain,
   HelpCircle,
   History,
@@ -16,6 +17,7 @@ import {
 
 export type TerminalPane =
   | 'coach'
+  | 'copilot'
   | 'opportunities'
   | 'portfolio'
   | 'intel'
@@ -30,6 +32,7 @@ export type TerminalPane =
   | 'sniper'
 
 const MAIN: { id: TerminalPane; icon: LucideIcon; label: string; badge?: number }[] = [
+  { id: 'copilot', icon: Bot, label: 'AI' },
   { id: 'coach', icon: Brain, label: 'Coach' },
   { id: 'opportunities', icon: Sparkles, label: 'Ops' },
   { id: 'portfolio', icon: Wallet, label: 'Book' },
