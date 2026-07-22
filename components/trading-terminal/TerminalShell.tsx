@@ -5,7 +5,6 @@ import type { UnifiedSignal } from '@cryptocheck/signal-contracts'
 import { useSignalFeed } from '@/lib/signals-dashboard/use-signal-feed'
 import { AiIntelligenceWorkstation } from './AiIntelligenceWorkstation'
 import { IconRail, type TerminalPane } from './IconRail'
-import { ConvictionRadar } from './IntelligenceBottom'
 import { KeyboardHelp } from './KeyboardHelp'
 import { PrimaryChart } from './PrimaryChart'
 import { TerminalFocusProvider, useTerminalFocus } from './TerminalFocusProvider'
@@ -16,7 +15,7 @@ import { useTerminalKeyboard } from './useTerminalKeyboard'
 
 /**
  * Institutional Intelligence Terminal —
- * Watchlist · Primary chart (~70%) · Coach AI research desk.
+ * Watchlist · Primary chart (full height) · Coach AI research desk.
  */
 function TerminalWorkspace() {
   const feed = useSignalFeed({ subjectType: 'token' })
@@ -32,7 +31,6 @@ function TerminalWorkspace() {
 
   const chartsRef = useRef<HTMLDivElement>(null)
   const leftRef = useRef<HTMLDivElement>(null)
-  const bottomRef = useRef<HTMLDivElement>(null)
 
   useTerminalKeyboard(allRows, {
     onTabVerdict: () => setPane('coach'),
@@ -78,11 +76,15 @@ function TerminalWorkspace() {
     if (p === 'charts' || p === 'coach') {
       chartsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
-    if (p === 'watchlists' || p === 'discover') {
+    if (
+      p === 'watchlists' ||
+      p === 'discover' ||
+      p === 'opportunities' ||
+      p === 'portfolio' ||
+      p === 'intel' ||
+      p === 'alerts'
+    ) {
       leftRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-    }
-    if (p === 'opportunities' || p === 'portfolio' || p === 'intel' || p === 'alerts') {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
   }
 
@@ -118,13 +120,6 @@ function TerminalWorkspace() {
 
       <div className="tit-area-coach min-h-0 overflow-hidden">
         <AiIntelligenceWorkstation />
-      </div>
-
-      <div
-        ref={bottomRef}
-        className="tit-area-bottom min-h-0 overflow-hidden border-t border-[var(--tit-border)]"
-      >
-        <ConvictionRadar />
       </div>
 
       <TerminalStatusBar />

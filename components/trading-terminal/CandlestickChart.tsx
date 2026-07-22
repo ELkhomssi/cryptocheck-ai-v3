@@ -23,12 +23,22 @@ export type ChartTradeMark = {
   label?: string
 }
 
+export type CrosshairOhlc = {
+  time: number
+  open: number
+  high: number
+  low: number
+  close: number
+  volume: number
+} | null
+
 type Props = {
   candles: Candle[]
   /** @deprecated prefer eventMarks from overlay builder */
   marks?: ChartTradeMark[]
   eventMarks?: ChartEventMark[]
   zones?: ChartPriceZone[]
+  onCrosshair?: (bar: CrosshairOhlc) => void
   className?: string
 }
 
@@ -46,6 +56,7 @@ export function CandlestickChart({
   marks = [],
   eventMarks,
   zones = [],
+  onCrosshair,
   className = '',
 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null)
@@ -53,6 +64,10 @@ export function CandlestickChart({
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
   const priceLinesRef = useRef<IPriceLine[]>([])
+  const candlesRef = useRef(candles)
+  const onCrosshairRef = useRef(onCrosshair)
+  candlesRef.current = candles
+  onCrosshairRef.current = onCrosshair
 
   useEffect(() => {
     const el = hostRef.current
@@ -86,16 +101,16 @@ export function CandlestickChart({
       },
       rightPriceScale: {
         borderVisible: false,
-        scaleMargins: { top: 0.06, bottom: 0.22 },
+        scaleMargins: { top: 0.05, bottom: 0.18 },
         entireTextOnly: true,
       },
       timeScale: {
         borderVisible: false,
         timeVisible: true,
         secondsVisible: false,
-        rightOffset: 8,
-        barSpacing: 14,
-        minBarSpacing: 6,
+        rightOffset: 10,
+        barSpacing: 16,
+        minBarSpacing: 7,
         fixLeftEdge: false,
         fixRightEdge: false,
       },
@@ -115,7 +130,7 @@ export function CandlestickChart({
         touch: true,
       },
       width: el.clientWidth,
-      height: el.clientHeight || 420,
+      height: el.clientHeight || 520,
     })
 
     const candleSeries = chart.addCandlestickSeries({
@@ -138,7 +153,33 @@ export function CandlestickChart({
       priceScaleId: '',
     })
     volumeSeries.priceScale().applyOptions({
-      scaleMargins: { top: 0.78, bottom: 0 },
+      scaleMargins: { top: 0.8, bottom: 0 },
+    })
+
+    chart.subscribeCrosshairMove((param) => {
+      const cb = onCrosshairRef.current
+      if (!cb) return
+      if (!param.time || !param.seriesData.size) {
+        cb(null)
+        return
+      }
+      const raw = param.seriesData.get(candleSeries) as
+        | { open?: number; high?: number; low?: number; close?: number; time?: Time }
+        | undefined
+      if (!raw || raw.open == null || raw.close == null) {
+        cb(null)
+        return
+      }
+      const t = Math.floor(Number(param.time))
+      const match = candlesRef.current.find((c) => Math.floor(c.time) === t)
+      cb({
+        time: t,
+        open: raw.open,
+        high: raw.high ?? raw.open,
+        low: raw.low ?? raw.open,
+        close: raw.close,
+        volume: match?.volume ?? 0,
+      })
     })
 
     chartRef.current = chart
@@ -193,14 +234,13 @@ export function CandlestickChart({
       vs.push({
         time: t as HistogramData['time'],
         value: c.volume,
-        color: up ? 'rgba(0,230,118,0.38)' : 'rgba(255,82,82,0.38)',
+        color: up ? 'rgba(0,230,118,0.42)' : 'rgba(255,82,82,0.42)',
       })
     }
 
     candleSeriesRef.current.setData(cs)
     volumeSeriesRef.current.setData(vs)
 
-    // Merge event marks + legacy trade marks
     const markers: SeriesMarker<Time>[] = []
     const times = cs.map((c) => Number(c.time))
     const nearest = (t: number) => {
@@ -240,11 +280,9 @@ export function CandlestickChart({
       }
     }
 
-    // One marker per time — lightweight-charts keeps last per timestamp better if sorted
     markers.sort((a, b) => Number(a.time) - Number(b.time))
     candleSeriesRef.current.setMarkers(markers)
 
-    // Price zones / liquidity / conviction / risk
     for (const pl of priceLinesRef.current) {
       try {
         candleSeriesRef.current.removePriceLine(pl)

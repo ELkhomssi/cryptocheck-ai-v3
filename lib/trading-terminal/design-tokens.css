@@ -69,8 +69,8 @@
   --tit-footer: 28px;
   --tit-topbar: 52px;
   --tit-metrics: 0px;
-  /* Slim radar — primary chart owns vertical space */
-  --tit-bottom-strip: 72px;
+  /* Slim radar reserved — primary chart owns vertical space (strip collapsed) */
+  --tit-bottom-strip: 0px;
   --tit-row-h: 28px;
   --tit-chart-gap: 4px;
   --tit-chart-header-h: 36px;
@@ -134,7 +134,7 @@
     --tit-left-panel: 220px;
     --tit-right-panel: min(340px, 28vw);
     --tit-icon-rail: 52px;
-    --tit-bottom-strip: 68px;
+    --tit-bottom-strip: 0px;
   }
 }
 
@@ -144,7 +144,7 @@
     --tit-right-panel: min(420px, 24vw);
     --tit-topbar: 56px;
     --tit-chart-header-h: 40px;
-    --tit-bottom-strip: 80px;
+    --tit-bottom-strip: 0px;
   }
 }
 
@@ -194,12 +194,10 @@
   grid-template-rows:
     var(--tit-topbar)
     minmax(0, 1fr)
-    var(--tit-bottom-strip)
     var(--tit-footer);
   grid-template-areas:
     'top top top top'
     'rail left center coach'
-    'rail left bottom coach'
     'status status status status';
 }
 
@@ -225,7 +223,7 @@
   grid-area: coach;
 }
 .tit-area-bottom {
-  grid-area: bottom;
+  display: none;
 }
 .tit-area-status {
   grid-area: status;
