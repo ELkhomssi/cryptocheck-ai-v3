@@ -21,7 +21,7 @@ import { useTerminalFocus } from './TerminalFocusProvider'
 /** Per-slot default TFs — denser multi-pane look (reference terminal). */
 const SLOT_DEFAULT_TF: ChartTimeframe[] = ['5m', '5m', '15m', '1H', '5m', '15m']
 
-const LINK_COLORS = ['#22D3EE', '#7C5CFF', '#F97316', '#22C55E', '#EAB308', '#F04438'] as const
+const LINK_COLORS = ['#00D4FF', '#29B6F6', '#FF8A3D', '#00E676', '#FFC857', '#FF5252'] as const
 
 function gridClass(mode: ChartMode): string {
   if (mode === 1) return 'grid-cols-1 grid-rows-1'
@@ -182,34 +182,38 @@ function ChartSlot({
         e.dataTransfer.setData(TIT_DND_MIME, JSON.stringify({ mint, symbol }))
         e.dataTransfer.effectAllowed = 'move'
       }}
-      className={`relative flex min-h-0 flex-col overflow-hidden border border-[var(--tit-border)] bg-[var(--tit-bg-1)] ${
-        active ? 'border-[var(--tit-accent)]' : ''
-      } ${dragOver ? 'border-[var(--tit-accent)]' : ''} ${
+      className={`relative flex min-h-0 flex-col overflow-hidden rounded-[10px] border bg-[rgba(11,17,24,0.65)] transition-all duration-[var(--tit-motion)] ${
+        active
+          ? 'border-[var(--tit-accent)]/55 shadow-[0_0_0_1px_rgba(0,212,255,0.12),0_8px_28px_rgba(0,0,0,0.35)]'
+          : 'border-[var(--tit-border)] hover:border-[var(--tit-border-strong)]'
+      } ${dragOver ? '!border-[var(--tit-accent)]' : ''} ${
         maximized === index ? 'col-span-full row-span-full' : ''
       }`}
     >
       <div
-        className="flex shrink-0 items-center gap-1 border-b border-[var(--tit-border)] px-1.5"
+        className="flex shrink-0 items-center gap-1.5 border-b border-[var(--tit-border)] bg-[rgba(5,7,10,0.45)] px-2"
         style={{ height: 'var(--tit-chart-header-h)' }}
       >
         <span
-          className="h-1.5 w-1.5 shrink-0 rounded-full"
-          style={{ background: LINK_COLORS[linkGroup % LINK_COLORS.length] }}
+          className="h-2 w-2 shrink-0 rounded-full shadow-[0_0_8px_currentColor]"
+          style={{ background: LINK_COLORS[linkGroup % LINK_COLORS.length], color: LINK_COLORS[linkGroup % LINK_COLORS.length] }}
           title="Link group"
           aria-hidden
         />
-        <span className="tit-mono text-[0.6rem] font-semibold text-[var(--tit-text-0)]">
+        <span className="tit-mono text-[0.72rem] font-semibold tracking-tight text-[var(--tit-text-0)]">
           {symbol ? `${symbol}/SOL` : '—'}
         </span>
-        <span className="tit-mono text-[0.45rem] text-[var(--tit-text-2)]">{timeframe}</span>
+        <span className="tit-mono rounded border border-[var(--tit-border)] px-1 py-px text-[0.52rem] text-[var(--tit-text-2)]">
+          {timeframe}
+        </span>
         {lastPrice != null ? (
-          <span className="tit-mono text-[0.6rem] font-semibold text-[var(--tit-text-0)]">
+          <span className="tit-mono text-[0.72rem] font-semibold text-[var(--tit-text-0)]">
             ${lastPrice < 0.01 ? lastPrice.toPrecision(3) : lastPrice.toFixed(4)}
           </span>
         ) : null}
         {changePct != null ? (
           <span
-            className={`tit-mono text-[0.5rem] ${
+            className={`tit-mono text-[0.62rem] font-medium ${
               changePct >= 0 ? 'text-[var(--tit-pos)]' : 'text-[var(--tit-neg)]'
             }`}
           >
@@ -219,7 +223,7 @@ function ChartSlot({
         ) : null}
         <button
           type="button"
-          className="ml-auto rounded p-0.5 text-[var(--tit-text-2)] hover:text-[var(--tit-accent)]"
+          className="ml-auto rounded-md p-1 text-[var(--tit-text-2)] transition-colors hover:bg-white/[0.04] hover:text-[var(--tit-accent)]"
           aria-label="Add to watchlist"
           disabled={!mint}
           onClick={(e) => {
@@ -228,11 +232,11 @@ function ChartSlot({
             addToWatchlist({ mint, symbol: symbol || mint.slice(0, 6) })
           }}
         >
-          <Star className="h-3 w-3" />
+          <Star className="h-3.5 w-3.5" />
         </button>
         <button
           type="button"
-          className="rounded p-0.5 text-[var(--tit-text-2)] hover:text-[var(--tit-text-0)]"
+          className="rounded-md p-1 text-[var(--tit-text-2)] transition-colors hover:bg-white/[0.04] hover:text-[var(--tit-text-0)]"
           aria-label={maximized === index ? 'Restore' : 'Maximize'}
           onClick={(e) => {
             e.stopPropagation()
@@ -240,29 +244,31 @@ function ChartSlot({
           }}
         >
           {maximized === index ? (
-            <Minimize2 className="h-3 w-3" />
+            <Minimize2 className="h-3.5 w-3.5" />
           ) : (
-            <Maximize2 className="h-3 w-3" />
+            <Maximize2 className="h-3.5 w-3.5" />
           )}
         </button>
         <button
           type="button"
-          className="rounded p-0.5 text-[var(--tit-text-2)] hover:text-[var(--tit-text-0)]"
+          className="rounded-md p-1 text-[var(--tit-text-2)] transition-colors hover:bg-white/[0.04] hover:text-[var(--tit-text-0)]"
           aria-label={locked ? 'Unlock chart' : 'Lock chart'}
           onClick={(e) => {
             e.stopPropagation()
             toggleSlotLock(index)
           }}
         >
-          {locked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
+          {locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
         </button>
       </div>
 
       {!mint ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-1 p-3 text-center text-xs text-[var(--tit-text-1)]">
-          <span>{dragOver ? 'Release to load symbol' : 'No symbol loaded'}</span>
-          <span className="text-[0.65rem] text-[var(--tit-text-2)]">
-            Search a CA or pick from Opportunity Radar.
+        <div className="flex flex-1 flex-col items-center justify-center gap-1.5 p-4 text-center">
+          <span className="text-[0.8rem] text-[var(--tit-text-1)]">
+            {dragOver ? 'Release to load symbol' : 'No symbol loaded'}
+          </span>
+          <span className="max-w-[220px] text-[0.68rem] text-[var(--tit-text-2)]">
+            Search a contract or pick from Opportunity Radar.
           </span>
         </div>
       ) : ohlcv.status === 'loading' ? (
@@ -270,11 +276,11 @@ function ChartSlot({
           <div className="tit-skeleton h-full w-full opacity-40" />
         </div>
       ) : ohlcv.status === 'building' ? (
-        <div className="flex flex-1 items-center justify-center text-[0.7rem] text-[var(--tit-text-1)]">
+        <div className="flex flex-1 items-center justify-center text-[0.72rem] text-[var(--tit-text-1)]">
           Building history…
         </div>
       ) : ohlcv.status === 'unavailable' ? (
-        <div className="flex flex-1 items-center justify-center text-[0.7rem] text-[var(--tit-text-1)]">
+        <div className="flex flex-1 items-center justify-center text-[0.72rem] text-[var(--tit-text-1)]">
           {ohlcv.reason}
         </div>
       ) : (
@@ -321,7 +327,7 @@ export function ChartGrid() {
         ))}
       </div>
 
-      <div className="flex h-6 shrink-0 items-center gap-1 border-t border-[var(--tit-border)] px-1">
+      <div className="mt-1 flex h-7 shrink-0 items-center gap-1.5 rounded-[8px] border border-[var(--tit-border)] bg-[rgba(11,17,24,0.7)] px-1.5 backdrop-blur-sm">
         <div className="flex items-center gap-0.5" role="group" aria-label="Chart layout">
           {CHART_MODES.map((m) => (
             <button
@@ -331,25 +337,25 @@ export function ChartGrid() {
                 setMaximized(null)
                 setChartMode(m as ChartMode)
               }}
-              className={`tit-mono h-5 w-5 rounded text-[0.55rem] font-bold ${
+              className={`tit-mono h-5 w-5 rounded-md text-[0.58rem] font-bold transition-colors ${
                 chartMode === m
-                  ? 'bg-[var(--tit-accent)] text-[#041016]'
-                  : 'text-[var(--tit-text-2)] hover:text-[var(--tit-text-0)]'
+                  ? 'bg-[var(--tit-accent)] text-[#041016] shadow-[0_0_12px_rgba(0,212,255,0.35)]'
+                  : 'text-[var(--tit-text-2)] hover:bg-white/[0.04] hover:text-[var(--tit-text-0)]'
               }`}
             >
               {m}
             </button>
           ))}
         </div>
-        <span className="tit-label mx-1">TF</span>
+        <span className="tit-label mx-1 !text-[8px]">TF</span>
         {CHART_TIMEFRAMES.map((tf) => (
           <button
             key={tf}
             type="button"
             onClick={() => setActiveTimeframe(tf)}
-            className={`tit-mono rounded px-1 py-0.5 text-[0.5rem] ${
+            className={`tit-mono rounded-md px-1.5 py-0.5 text-[0.58rem] transition-colors ${
               activeTf === tf
-                ? 'bg-[var(--tit-accent)]/20 text-[var(--tit-accent-bright)]'
+                ? 'bg-[var(--tit-accent)]/15 text-[var(--tit-accent-bright)] ring-1 ring-[var(--tit-accent)]/30'
                 : 'text-[var(--tit-text-2)] hover:text-[var(--tit-text-1)]'
             }`}
           >
@@ -358,25 +364,25 @@ export function ChartGrid() {
         ))}
         <button
           type="button"
-          className="ml-auto tit-mono text-[0.45rem] text-[var(--tit-text-2)]"
+          className="ml-auto tit-mono text-[0.5rem] text-[var(--tit-text-2)]"
           title="Link group"
           onClick={() => setLinkGroup((g) => (g + 1) % LINK_COLORS.length)}
         >
           <span
-            className="inline-block h-2 w-2 rounded-full"
-            style={{ background: LINK_COLORS[linkGroup] }}
+            className="inline-block h-2 w-2 rounded-full shadow-[0_0_8px_currentColor]"
+            style={{ background: LINK_COLORS[linkGroup], color: LINK_COLORS[linkGroup] }}
           />
         </button>
-        <span className="tit-mono text-[0.45rem] text-[var(--tit-text-2)]">
+        <span className="tit-mono text-[0.52rem] uppercase tracking-wide text-[var(--tit-text-2)]">
           {dataMode === 'demo' ? 'demo' : 'live'}
         </span>
         <button
           type="button"
-          className="rounded p-0.5 text-[var(--tit-text-2)]"
+          className="rounded-md p-1 text-[var(--tit-text-2)] hover:bg-white/[0.04] hover:text-[var(--tit-text-0)]"
           aria-label="Maximize chart"
           onClick={() => setMaximized((m) => (m == null ? 0 : null))}
         >
-          <Expand className="h-3 w-3" />
+          <Expand className="h-3.5 w-3.5" />
         </button>
       </div>
     </div>

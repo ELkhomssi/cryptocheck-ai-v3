@@ -14,8 +14,7 @@ import { TerminalTopBar } from './TerminalTopBar'
 import { useTerminalKeyboard } from './useTerminalKeyboard'
 
 /**
- * AI Trading Intelligence Terminal — PART IV hierarchy.
- * Intelligence column ~40% · Charts context · Conviction radar strip.
+ * Institutional Intelligence Terminal — charts center · Coach AI desk · Bloomberg status.
  */
 function TerminalWorkspace() {
   const feed = useSignalFeed({ subjectType: 'token' })
@@ -84,7 +83,13 @@ function TerminalWorkspace() {
   if (!hydrated) {
     return (
       <div className="tit-shell flex h-screen items-center justify-center">
-        <div className="tit-skeleton h-8 w-48" />
+        <div className="flex flex-col items-center gap-3">
+          <div className="tit-skeleton h-10 w-10 rounded-[10px]" />
+          <div className="tit-skeleton h-3 w-40" />
+          <p className="tit-mono text-[0.65rem] uppercase tracking-[0.14em] text-[var(--tit-text-2)]">
+            Initializing desk…
+          </p>
+        </div>
       </div>
     )
   }
@@ -96,7 +101,7 @@ function TerminalWorkspace() {
 
       <div
         ref={chartsRef}
-        className="tit-area-center flex min-h-0 min-w-0 flex-col overflow-hidden p-0.5"
+        className="tit-area-center flex min-h-0 min-w-0 flex-col overflow-hidden p-1.5"
       >
         <ChartGrid />
       </div>
@@ -107,7 +112,7 @@ function TerminalWorkspace() {
 
       <div
         ref={bottomRef}
-        className="tit-area-bottom min-h-0 overflow-hidden border-t border-[var(--tit-border)] bg-[var(--tit-bg-0)]"
+        className="tit-area-bottom min-h-0 overflow-hidden border-t border-[var(--tit-border)]"
       >
         <ConvictionRadar />
       </div>

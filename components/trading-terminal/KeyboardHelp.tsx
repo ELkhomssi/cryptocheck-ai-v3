@@ -25,31 +25,38 @@ export function KeyboardHelp({ open, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
       role="dialog"
       aria-label="Keyboard shortcuts"
       onClick={onClose}
     >
       <div
-        className="tit-panel w-full max-w-md p-4"
+        className="tit-panel w-full max-w-md overflow-hidden p-0"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-3 flex items-center justify-between">
-          <p className="tit-label">Keyboard map</p>
+        <div className="flex items-center justify-between border-b border-[var(--tit-border)] px-4 py-3">
+          <div>
+            <p className="tit-display text-[0.9rem] font-semibold">Keyboard map</p>
+            <p className="tit-mono text-[0.55rem] uppercase tracking-[0.12em] text-[var(--tit-text-2)]">
+              Desk shortcuts
+            </p>
+          </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-xs text-[var(--tit-text-2)] hover:text-[var(--tit-text-0)]"
+            className="tit-btn-ghost px-2 py-1 text-[0.7rem] text-[var(--tit-text-2)]"
           >
             Esc
           </button>
         </div>
-        <table className="w-full text-left text-xs">
+        <table className="w-full text-left text-[0.78rem]">
           <tbody>
             {ROWS.map((r) => (
-              <tr key={r.keys} className="border-b border-white/[0.04]">
-                <td className="tit-mono py-1.5 pr-3 text-[var(--tit-ember)]">{r.keys}</td>
-                <td className="py-1.5 text-[var(--tit-text-1)]">{r.action}</td>
+              <tr key={r.keys} className="border-b border-[var(--tit-border-subtle)]">
+                <td className="tit-mono px-4 py-2.5 pr-3 text-[var(--tit-accent-bright)]">
+                  {r.keys}
+                </td>
+                <td className="px-4 py-2.5 text-[var(--tit-text-1)]">{r.action}</td>
               </tr>
             ))}
           </tbody>

@@ -123,27 +123,30 @@ export function ExecutionTicket() {
   const showSwap = focusMint.length >= 32 && (!softPending || hard)
 
   return (
-    <section className="tit-panel flex flex-col overflow-hidden" aria-label="Execution ticket">
-      <div className="flex items-center gap-2 border-b border-white/[0.06] px-3 py-2">
-        <p className="tit-label">Ticket</p>
-        <span className="tit-mono truncate text-[0.65rem] text-[var(--tit-text-1)]">
+    <section
+      className="flex h-full min-h-0 flex-col overflow-hidden bg-[rgba(5,7,10,0.35)]"
+      aria-label="Execution ticket"
+    >
+      <div className="flex items-center gap-2 border-b border-[var(--tit-border)] px-4 py-2.5">
+        <p className="tit-section-title">Ticket</p>
+        <span className="tit-mono truncate text-[0.68rem] text-[var(--tit-text-1)]">
           {focusSymbol || '—'} {focusMint ? `· ${focusMint.slice(0, 4)}…` : ''}
         </span>
         {scan?.verdict ? (
-          <span className="tit-mono ml-auto text-[0.6rem] uppercase text-[var(--tit-text-2)]">
+          <span className="tit-mono ml-auto rounded-md border border-[var(--tit-border)] px-1.5 py-0.5 text-[0.58rem] uppercase text-[var(--tit-text-2)]">
             {scan.verdict}
           </span>
         ) : null}
       </div>
 
-      <div className="flex gap-1 px-3 pt-2">
+      <div className="flex gap-1.5 px-4 pt-3">
         <button
           type="button"
           onClick={() => setTicketSide('buy')}
-          className={`flex-1 rounded py-1.5 text-xs font-semibold ${
+          className={`flex-1 rounded-[8px] py-2 text-xs font-bold tracking-wide transition-all ${
             buy
-              ? 'bg-[var(--tit-pos)] text-[#041016]'
-              : 'bg-[var(--tit-bg-2)] text-[var(--tit-text-2)]'
+              ? 'bg-[var(--tit-pos)] text-[#041016] shadow-[0_0_18px_rgba(0,230,118,0.35)]'
+              : 'bg-[var(--tit-bg-2)] text-[var(--tit-text-2)] hover:text-[var(--tit-text-0)]'
           }`}
         >
           BUY
@@ -151,26 +154,26 @@ export function ExecutionTicket() {
         <button
           type="button"
           onClick={() => setTicketSide('sell')}
-          className={`flex-1 rounded py-1.5 text-xs font-semibold ${
+          className={`flex-1 rounded-[8px] py-2 text-xs font-bold tracking-wide transition-all ${
             !buy
-              ? 'bg-[var(--tit-neg)] text-white'
-              : 'bg-[var(--tit-bg-2)] text-[var(--tit-text-2)]'
+              ? 'bg-[var(--tit-neg)] text-white shadow-[0_0_18px_rgba(255,82,82,0.3)]'
+              : 'bg-[var(--tit-bg-2)] text-[var(--tit-text-2)] hover:text-[var(--tit-text-0)]'
           }`}
         >
           SELL
         </button>
       </div>
 
-      <div className="flex gap-1 px-3 pt-2">
+      <div className="flex gap-1 px-4 pt-2">
         {(['MARKET', 'LIMIT', 'DCA'] as const).map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => setOrderType(t)}
-            className={`tit-mono flex-1 rounded py-1 text-[0.55rem] font-bold ${
+            className={`tit-mono flex-1 rounded-md py-1.5 text-[0.58rem] font-bold transition-colors ${
               orderType === t
-                ? 'bg-[var(--tit-accent)]/20 text-[var(--tit-accent-bright)]'
-                : 'bg-[var(--tit-bg-2)] text-[var(--tit-text-2)]'
+                ? 'bg-[var(--tit-accent)]/15 text-[var(--tit-accent-bright)] ring-1 ring-[var(--tit-accent)]/30'
+                : 'bg-[var(--tit-bg-2)] text-[var(--tit-text-2)] hover:text-[var(--tit-text-1)]'
             }`}
           >
             {t}
@@ -178,14 +181,12 @@ export function ExecutionTicket() {
         ))}
       </div>
 
-      <div className="px-3 pt-2">
-        <div className="mb-1 flex items-center justify-between">
+      <div className="px-4 pt-3">
+        <div className="mb-1.5 flex items-center justify-between">
           <label className="tit-label" htmlFor="tit-ticket-amt">
             Amount (SOL)
           </label>
-          <span className="tit-mono text-[0.55rem] text-[var(--tit-text-2)]">
-            Slippage 1.0%
-          </span>
+          <span className="tit-mono text-[0.55rem] text-[var(--tit-text-2)]">Slippage 1.0%</span>
         </div>
         <input
           id="tit-ticket-amt"
@@ -196,7 +197,7 @@ export function ExecutionTicket() {
           onChange={(e) => setTicketAmountSol(Number(e.target.value) || 0)}
           className="tit-input tit-mono w-full"
         />
-        <div className="mt-1 flex gap-1">
+        <div className="mt-1.5 flex gap-1">
           {[
             { label: '25%', n: 0.25 },
             { label: '50%', n: 0.5 },
@@ -207,7 +208,7 @@ export function ExecutionTicket() {
               key={x.label}
               type="button"
               onClick={() => setTicketAmountSol(x.n)}
-              className="tit-mono flex-1 rounded border border-[var(--tit-border)] py-0.5 text-[0.55rem] text-[var(--tit-text-1)] hover:border-[var(--tit-accent)]"
+              className="tit-mono flex-1 rounded-md border border-[var(--tit-border)] py-1 text-[0.55rem] text-[var(--tit-text-1)] transition-colors hover:border-[var(--tit-accent)] hover:text-[var(--tit-accent-bright)]"
             >
               {x.label}
             </button>
