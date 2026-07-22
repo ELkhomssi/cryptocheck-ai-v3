@@ -12,13 +12,19 @@ import { TerminalFocusProvider, useTerminalFocus } from './TerminalFocusProvider
 import { TerminalStatusBar } from './TerminalStatusBar'
 import { TerminalTopBar } from './TerminalTopBar'
 import { WatchlistPanel } from './WatchlistPanel'
+import { WhaleIntelligenceDesk } from './whale/WhaleIntelligenceDesk'
 import { useTerminalKeyboard } from './useTerminalKeyboard'
 
 const INTEL_PANES: TerminalPane[] = ['intel', 'alerts', 'opportunities']
 
 /**
  * Institutional Intelligence Terminal —
+<<<<<<< HEAD
  * Chart desk · Market Intelligence center (Intel rail).
+=======
+ * Watchlist · Primary chart (full height) · Coach AI research desk
+ * · Whale Intelligence (full desk swap).
+>>>>>>> origin/cursor/whale-intelligence-center-1482
  */
 function TerminalWorkspace() {
   const feed = useSignalFeed({ subjectType: 'token' })
@@ -34,6 +40,7 @@ function TerminalWorkspace() {
 
   const chartsRef = useRef<HTMLDivElement>(null)
   const leftRef = useRef<HTMLDivElement>(null)
+  const whaleRef = useRef<HTMLDivElement>(null)
 
   useTerminalKeyboard(allRows, {
     onTabVerdict: () => setPane('coach'),
@@ -46,8 +53,12 @@ function TerminalWorkspace() {
     helpOpen,
   })
 
+<<<<<<< HEAD
   const { hydrated, setSolPriceUsd } = useTerminalFocus()
   const showMarketIntel = INTEL_PANES.includes(pane)
+=======
+  const { hydrated, setSolPriceUsd, dataMode } = useTerminalFocus()
+>>>>>>> origin/cursor/whale-intelligence-center-1482
 
   useEffect(() => {
     let cancelled = false
@@ -71,13 +82,22 @@ function TerminalWorkspace() {
     }
   }, [setSolPriceUsd])
 
+  const whaleDesk = pane === 'whale'
+
   const onPane = (p: TerminalPane) => {
     setPane(p)
     if (p === 'help') {
       setHelpOpen(true)
       return
     }
+<<<<<<< HEAD
     if (INTEL_PANES.includes(p)) return
+=======
+    if (p === 'whale') {
+      whaleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      return
+    }
+>>>>>>> origin/cursor/whale-intelligence-center-1482
     if (p === 'charts' || p === 'coach') {
       chartsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
@@ -101,6 +121,7 @@ function TerminalWorkspace() {
   }
 
   return (
+<<<<<<< HEAD
     <div className={`tit-shell ${showMarketIntel ? 'tit-shell-grid-mi' : 'tit-shell-grid'}`}>
       <TerminalTopBar onHelp={() => setHelpOpen(true)} />
       <IconRail active={pane} onSelect={onPane} />
@@ -108,6 +129,15 @@ function TerminalWorkspace() {
       {showMarketIntel ? (
         <div className="tit-area-mi-main min-h-0 overflow-hidden">
           <MarketIntelligenceDesk />
+=======
+    <div className={`tit-shell tit-shell-grid${whaleDesk ? ' tit-shell-grid-whale' : ''}`}>
+      <TerminalTopBar onHelp={() => setHelpOpen(true)} />
+      <IconRail active={pane} onSelect={onPane} />
+
+      {whaleDesk ? (
+        <div ref={whaleRef} className="tit-area-whale min-h-0 overflow-hidden">
+          <WhaleIntelligenceDesk mode={dataMode} />
+>>>>>>> origin/cursor/whale-intelligence-center-1482
         </div>
       ) : (
         <>

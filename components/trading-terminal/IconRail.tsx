@@ -4,6 +4,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   Bell,
   Brain,
+  Fish,
   HelpCircle,
   History,
   LayoutGrid,
@@ -19,6 +20,7 @@ export type TerminalPane =
   | 'opportunities'
   | 'portfolio'
   | 'intel'
+  | 'whale'
   | 'watchlists'
   | 'history'
   | 'alerts'
@@ -35,6 +37,11 @@ const MAIN: { id: TerminalPane; icon: LucideIcon; label: string; badge?: number 
   { id: 'coach', icon: Brain, label: 'Coach' },
   { id: 'opportunities', icon: Sparkles, label: 'Ops' },
   { id: 'portfolio', icon: Wallet, label: 'Book' },
+<<<<<<< HEAD
+=======
+  { id: 'intel', icon: Radar, label: 'Intel' },
+  { id: 'whale', icon: Fish, label: 'Whale' },
+>>>>>>> origin/cursor/whale-intelligence-center-1482
   { id: 'watchlists', icon: LayoutGrid, label: 'Watch' },
   { id: 'history', icon: History, label: 'Hist' },
   { id: 'alerts', icon: Bell, label: 'Alerts' },
