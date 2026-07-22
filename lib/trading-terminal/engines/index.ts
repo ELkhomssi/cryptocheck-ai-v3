@@ -48,3 +48,11 @@ export {
   resolveIntelligence,
   type IntelligenceBundle,
 } from './resolve-intelligence'
+
+export {
+  detectMarketStructure,
+  type MarketStructureResult,
+  type StructureLabel,
+  type StructureLabelKind,
+  type StructureBias,
+} from './market-structure'

@@ -106,8 +106,8 @@ export function TerminalFocusProvider({ children }: { children: ReactNode }) {
   const [focusMint, setFocusMint] = useState('')
   const [focusSymbol, setFocusSymbol] = useState('')
   const [focusSignal, setFocusSignal] = useState<UnifiedSignal | null>(null)
-  const [chartMode, setChartModeState] = useState<ChartMode>(6)
-  const [slots, setSlots] = useState<ChartSlotState[]>(() => emptySlots(6))
+  const [chartMode, setChartModeState] = useState<ChartMode>(1)
+  const [slots, setSlots] = useState<ChartSlotState[]>(() => emptySlots(1))
   const [activeSlot, setActiveSlot] = useState(0)
   const [scan, setScan] = useState<ScanResult | null>(null)
   const [scanning, setScanning] = useState(false)
@@ -134,9 +134,17 @@ export function TerminalFocusProvider({ children }: { children: ReactNode }) {
     const wl = loadWatchlists()
     setWatchlists(wl.lists)
     if (ws) {
-      setChartModeState(ws.chartMode)
-      setSlots(ws.slots)
-      setActiveSlot(ws.activeSlot)
+      // Institutional desk: always primary single-chart workspace
+      setChartModeState(1)
+      const focusSlot = ws.slots.find((s) => s.mint === ws.focusMint) ?? ws.slots[0]
+      setSlots([
+        focusSlot ?? {
+          mint: ws.focusMint || '',
+          symbol: ws.focusSymbol || '',
+          locked: false,
+        },
+      ])
+      setActiveSlot(0)
       setFocusMint(ws.focusMint)
       setFocusSymbol(ws.focusSymbol)
       setCoachCollapsed(ws.coachCollapsed)
@@ -170,14 +178,19 @@ export function TerminalFocusProvider({ children }: { children: ReactNode }) {
       setFocusMint(seed.focusMint)
       setFocusSymbol(seed.focusSymbol)
     }
-    // Always hydrate 6-slot workspace from DEMO_SEED (reference layout)
-    setChartModeState(6)
-    const next = emptySlots(6)
-    for (let i = 0; i < Math.min(next.length, seed.charts.length); i++) {
-      const c = seed.charts[i]!
-      next[i] = { mint: c.mint, symbol: c.symbol, locked: false }
-    }
-    setSlots(next)
+    // Primary chart workspace — single focus slot (institutional desk)
+    setChartModeState(1)
+    const focus = focusMint && focusMint.length >= 32 ? focusMint : seed.focusMint
+    const sym =
+      focusSymbol && focusMint && focusMint.length >= 32 ? focusSymbol : seed.focusSymbol
+    const chartRow = seed.charts.find((c) => c.mint === focus) ?? seed.charts[0]
+    setSlots([
+      {
+        mint: chartRow?.mint ?? focus,
+        symbol: chartRow?.symbol ?? sym,
+        locked: false,
+      },
+    ])
     setActiveSlot(0)
     // demo scan card — synthetic ScanResult shape for coach map
     setScan({
