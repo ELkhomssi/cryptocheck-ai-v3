@@ -5,6 +5,7 @@ import type { UnifiedSignal } from '@cryptocheck/signal-contracts'
 import { useSignalFeed } from '@/lib/signals-dashboard/use-signal-feed'
 import { AiIntelligenceWorkstation } from './AiIntelligenceWorkstation'
 import { AlphaDiscoveryDesk } from './alpha/AlphaDiscoveryDesk'
+import { AiCopilotDesk } from './copilot/AiCopilotDesk'
 import { IconRail, type TerminalPane } from './IconRail'
 import { KeyboardHelp } from './KeyboardHelp'
 import { MarketIntelligenceDesk } from './MarketIntelligenceDesk'
@@ -17,9 +18,10 @@ import { WatchlistPanel } from './WatchlistPanel'
 import { WhaleIntelligenceDesk } from './whale/WhaleIntelligenceDesk'
 import { useTerminalKeyboard } from './useTerminalKeyboard'
 
-type FullDesk = 'mi' | 'whale' | 'alpha' | 'port' | null
+type FullDesk = 'mi' | 'whale' | 'alpha' | 'port' | 'copilot' | null
 
 function resolveFullDesk(pane: TerminalPane): FullDesk {
+  if (pane === 'copilot') return 'copilot'
   if (pane === 'intel' || pane === 'alerts') return 'mi'
   if (pane === 'whale') return 'whale'
   if (pane === 'opportunities' || pane === 'discover') return 'alpha'
@@ -27,9 +29,26 @@ function resolveFullDesk(pane: TerminalPane): FullDesk {
   return null
 }
 
+function shellClassFor(desk: FullDesk): string {
+  switch (desk) {
+    case 'mi':
+      return 'tit-shell tit-shell-grid-mi'
+    case 'whale':
+      return 'tit-shell tit-shell-grid tit-shell-grid-whale'
+    case 'alpha':
+      return 'tit-shell tit-shell-grid tit-shell-grid-alpha'
+    case 'port':
+      return 'tit-shell tit-shell-grid tit-shell-grid-port'
+    case 'copilot':
+      return 'tit-shell tit-shell-grid tit-shell-grid-copilot'
+    default:
+      return 'tit-shell tit-shell-grid'
+  }
+}
+
 /**
  * Institutional Intelligence Terminal —
- * Chart · Market · Whale · Alpha · Portfolio desks.
+ * Chart · AI Copilot · Market · Whale · Alpha · Portfolio.
  */
 function TerminalWorkspace() {
   const feed = useSignalFeed({ subjectType: 'token' })
@@ -112,17 +131,6 @@ function TerminalWorkspace() {
     }
   }
 
-  const shellClass =
-    fullDesk === 'mi'
-      ? 'tit-shell tit-shell-grid-mi'
-      : fullDesk === 'whale'
-        ? 'tit-shell tit-shell-grid tit-shell-grid-whale'
-        : fullDesk === 'alpha'
-          ? 'tit-shell tit-shell-grid tit-shell-grid-alpha'
-          : fullDesk === 'port'
-            ? 'tit-shell tit-shell-grid tit-shell-grid-port'
-            : 'tit-shell tit-shell-grid'
-
   if (!hydrated) {
     return (
       <div className="tit-shell flex h-screen items-center justify-center">
@@ -138,14 +146,18 @@ function TerminalWorkspace() {
   }
 
   return (
-    <div className={shellClass}>
+    <div className={shellClassFor(fullDesk)}>
       <TerminalTopBar onHelp={() => setHelpOpen(true)} />
       <IconRail
         active={pane === 'discover' ? 'opportunities' : pane}
         onSelect={onPane}
       />
 
-      {fullDesk === 'mi' ? (
+      {fullDesk === 'copilot' ? (
+        <div className="tit-area-copilot min-h-0 overflow-hidden">
+          <AiCopilotDesk mode={dataMode} />
+        </div>
+      ) : fullDesk === 'mi' ? (
         <div className="tit-area-mi-main min-h-0 overflow-hidden">
           <MarketIntelligenceDesk />
         </div>
