@@ -10,7 +10,7 @@ export const TERMS_PATH = '/legal/terms'
 
 export const SOL_MINT = 'So11111111111111111111111111111111111111112'
 
-/** Chart layout modes — default workspace is 6-pane (Bloomberg density). */
+/** Chart layout modes — primary desk is single-pane; multi retained for keyboard compat. */
 export type ChartMode = 1 | 2 | 4 | 6
 
 export const CHART_MODES: ChartMode[] = [1, 2, 4, 6]

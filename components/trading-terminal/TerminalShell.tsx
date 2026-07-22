@@ -4,17 +4,19 @@ import { useMemo, useRef, useState, useEffect } from 'react'
 import type { UnifiedSignal } from '@cryptocheck/signal-contracts'
 import { useSignalFeed } from '@/lib/signals-dashboard/use-signal-feed'
 import { AiIntelligenceWorkstation } from './AiIntelligenceWorkstation'
-import { ChartGrid } from './ChartGrid'
 import { IconRail, type TerminalPane } from './IconRail'
 import { ConvictionRadar } from './IntelligenceBottom'
 import { KeyboardHelp } from './KeyboardHelp'
+import { PrimaryChart } from './PrimaryChart'
 import { TerminalFocusProvider, useTerminalFocus } from './TerminalFocusProvider'
 import { TerminalStatusBar } from './TerminalStatusBar'
 import { TerminalTopBar } from './TerminalTopBar'
+import { WatchlistPanel } from './WatchlistPanel'
 import { useTerminalKeyboard } from './useTerminalKeyboard'
 
 /**
- * Institutional Intelligence Terminal — charts center · Coach AI desk · Bloomberg status.
+ * Institutional Intelligence Terminal —
+ * Watchlist · Primary chart (~70%) · Coach AI research desk.
  */
 function TerminalWorkspace() {
   const feed = useSignalFeed({ subjectType: 'token' })
@@ -26,9 +28,10 @@ function TerminalWorkspace() {
   }, [feed.orderedIds, feed.signals])
 
   const [helpOpen, setHelpOpen] = useState(false)
-  const [pane, setPane] = useState<TerminalPane>('coach')
+  const [pane, setPane] = useState<TerminalPane>('charts')
 
   const chartsRef = useRef<HTMLDivElement>(null)
+  const leftRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useTerminalKeyboard(allRows, {
@@ -75,6 +78,9 @@ function TerminalWorkspace() {
     if (p === 'charts' || p === 'coach') {
       chartsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
+    if (p === 'watchlists' || p === 'discover') {
+      leftRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
     if (p === 'opportunities' || p === 'portfolio' || p === 'intel' || p === 'alerts') {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
@@ -99,11 +105,15 @@ function TerminalWorkspace() {
       <TerminalTopBar onHelp={() => setHelpOpen(true)} />
       <IconRail active={pane} onSelect={onPane} />
 
+      <div ref={leftRef} className="tit-area-left min-h-0 overflow-hidden">
+        <WatchlistPanel />
+      </div>
+
       <div
         ref={chartsRef}
         className="tit-area-center flex min-h-0 min-w-0 flex-col overflow-hidden p-1.5"
       >
-        <ChartGrid />
+        <PrimaryChart />
       </div>
 
       <div className="tit-area-coach min-h-0 overflow-hidden">

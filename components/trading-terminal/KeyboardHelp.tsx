@@ -2,11 +2,8 @@
 
 const ROWS: Array<{ keys: string; action: string }> = [
   { keys: '⌘K / /', action: 'Focus mint search' },
-  { keys: '1 2 4 6', action: 'Chart layout mode' },
   { keys: 'B / S', action: 'Buy / Sell ticket' },
   { keys: 'O', action: 'Override soft coach interrupt' },
-  { keys: 'C', action: 'Collapse coach rail body' },
-  { keys: '⌘D', action: 'Toggle Discover rail' },
   { keys: 'W', action: 'Cycle watchlist' },
   { keys: 'P', action: 'Toggle positions drawer' },
   { keys: '↑ ↓ ↵', action: 'Navigate Discover · load' },

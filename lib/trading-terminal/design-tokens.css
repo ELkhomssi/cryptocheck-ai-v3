@@ -62,16 +62,18 @@
   --tit-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
   --tit-icon-rail: 56px;
-  --tit-left-panel: 0px;
-  /* Intelligence column — research-desk width */
-  --tit-right-panel: min(440px, 38vw);
+  /* Left watchlist desk */
+  --tit-left-panel: 248px;
+  /* Intelligence column — research-desk width (~25–28%) */
+  --tit-right-panel: min(380px, 26vw);
   --tit-footer: 28px;
   --tit-topbar: 52px;
   --tit-metrics: 0px;
-  --tit-bottom-strip: 96px;
+  /* Slim radar — primary chart owns vertical space */
+  --tit-bottom-strip: 72px;
   --tit-row-h: 28px;
   --tit-chart-gap: 4px;
-  --tit-chart-header-h: 28px;
+  --tit-chart-header-h: 36px;
 
   /* Glass / depth */
   --tit-glass-bg: rgba(11, 17, 24, 0.72);
@@ -129,18 +131,20 @@
 
 @media (max-width: 1536px) {
   :root {
-    --tit-right-panel: min(400px, 40vw);
+    --tit-left-panel: 220px;
+    --tit-right-panel: min(340px, 28vw);
     --tit-icon-rail: 52px;
-    --tit-bottom-strip: 88px;
+    --tit-bottom-strip: 68px;
   }
 }
 
 @media (min-width: 2560px) {
   :root {
-    --tit-right-panel: min(480px, 32vw);
+    --tit-left-panel: 280px;
+    --tit-right-panel: min(420px, 24vw);
     --tit-topbar: 56px;
-    --tit-chart-header-h: 32px;
-    --tit-bottom-strip: 104px;
+    --tit-chart-header-h: 40px;
+    --tit-bottom-strip: 80px;
   }
 }
 
@@ -181,17 +185,22 @@
   width: 100%;
   max-height: 100vh;
   overflow: hidden;
-  grid-template-columns: var(--tit-icon-rail) minmax(0, 1fr) minmax(360px, var(--tit-right-panel));
+  /* Rail | Watchlist | Primary chart (~70%) | Coach AI research */
+  grid-template-columns:
+    var(--tit-icon-rail)
+    var(--tit-left-panel)
+    minmax(0, 1fr)
+    minmax(300px, var(--tit-right-panel));
   grid-template-rows:
     var(--tit-topbar)
     minmax(0, 1fr)
     var(--tit-bottom-strip)
     var(--tit-footer);
   grid-template-areas:
-    'top top top'
-    'rail center coach'
-    'rail bottom coach'
-    'status status status';
+    'top top top top'
+    'rail left center coach'
+    'rail left bottom coach'
+    'status status status status';
 }
 
 .tit-area-top {
@@ -204,7 +213,10 @@
   grid-area: rail;
 }
 .tit-area-left {
-  display: none;
+  grid-area: left;
+  display: flex;
+  min-height: 0;
+  min-width: 0;
 }
 .tit-area-center {
   grid-area: center;
