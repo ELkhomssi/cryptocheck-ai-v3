@@ -6,6 +6,7 @@ import { useSignalFeed } from '@/lib/signals-dashboard/use-signal-feed'
 import { AiIntelligenceWorkstation } from './AiIntelligenceWorkstation'
 import { IconRail, type TerminalPane } from './IconRail'
 import { KeyboardHelp } from './KeyboardHelp'
+import { MarketIntelligenceDesk } from './MarketIntelligenceDesk'
 import { PrimaryChart } from './PrimaryChart'
 import { TerminalFocusProvider, useTerminalFocus } from './TerminalFocusProvider'
 import { TerminalStatusBar } from './TerminalStatusBar'
@@ -13,9 +14,11 @@ import { TerminalTopBar } from './TerminalTopBar'
 import { WatchlistPanel } from './WatchlistPanel'
 import { useTerminalKeyboard } from './useTerminalKeyboard'
 
+const INTEL_PANES: TerminalPane[] = ['intel', 'alerts', 'opportunities']
+
 /**
  * Institutional Intelligence Terminal —
- * Watchlist · Primary chart (full height) · Coach AI research desk.
+ * Chart desk · Market Intelligence center (Intel rail).
  */
 function TerminalWorkspace() {
   const feed = useSignalFeed({ subjectType: 'token' })
@@ -44,6 +47,7 @@ function TerminalWorkspace() {
   })
 
   const { hydrated, setSolPriceUsd } = useTerminalFocus()
+  const showMarketIntel = INTEL_PANES.includes(pane)
 
   useEffect(() => {
     let cancelled = false
@@ -73,17 +77,11 @@ function TerminalWorkspace() {
       setHelpOpen(true)
       return
     }
+    if (INTEL_PANES.includes(p)) return
     if (p === 'charts' || p === 'coach') {
       chartsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
-    if (
-      p === 'watchlists' ||
-      p === 'discover' ||
-      p === 'opportunities' ||
-      p === 'portfolio' ||
-      p === 'intel' ||
-      p === 'alerts'
-    ) {
+    if (p === 'watchlists' || p === 'discover' || p === 'portfolio') {
       leftRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
   }
@@ -103,24 +101,32 @@ function TerminalWorkspace() {
   }
 
   return (
-    <div className="tit-shell tit-shell-grid">
+    <div className={`tit-shell ${showMarketIntel ? 'tit-shell-grid-mi' : 'tit-shell-grid'}`}>
       <TerminalTopBar onHelp={() => setHelpOpen(true)} />
       <IconRail active={pane} onSelect={onPane} />
 
-      <div ref={leftRef} className="tit-area-left min-h-0 overflow-hidden">
-        <WatchlistPanel />
-      </div>
+      {showMarketIntel ? (
+        <div className="tit-area-mi-main min-h-0 overflow-hidden">
+          <MarketIntelligenceDesk />
+        </div>
+      ) : (
+        <>
+          <div ref={leftRef} className="tit-area-left min-h-0 overflow-hidden">
+            <WatchlistPanel />
+          </div>
 
-      <div
-        ref={chartsRef}
-        className="tit-area-center flex min-h-0 min-w-0 flex-col overflow-hidden p-1.5"
-      >
-        <PrimaryChart />
-      </div>
+          <div
+            ref={chartsRef}
+            className="tit-area-center flex min-h-0 min-w-0 flex-col overflow-hidden p-1.5"
+          >
+            <PrimaryChart />
+          </div>
 
-      <div className="tit-area-coach min-h-0 overflow-hidden">
-        <AiIntelligenceWorkstation />
-      </div>
+          <div className="tit-area-coach min-h-0 overflow-hidden">
+            <AiIntelligenceWorkstation />
+          </div>
+        </>
+      )}
 
       <TerminalStatusBar />
       <KeyboardHelp open={helpOpen} onClose={() => setHelpOpen(false)} />

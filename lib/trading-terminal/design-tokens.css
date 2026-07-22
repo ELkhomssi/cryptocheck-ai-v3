@@ -229,6 +229,28 @@
   grid-area: status;
 }
 
+/* Market Intelligence desk — full workspace under topbar */
+.tit-shell-grid-mi {
+  display: grid;
+  height: 100vh;
+  width: 100%;
+  max-height: 100vh;
+  overflow: hidden;
+  grid-template-columns: var(--tit-icon-rail) minmax(0, 1fr);
+  grid-template-rows: var(--tit-topbar) minmax(0, 1fr) var(--tit-footer);
+  grid-template-areas:
+    'top top'
+    'rail mi'
+    'status status';
+}
+
+.tit-area-mi-main {
+  grid-area: mi;
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+}
+
 /* ═══════════════════════════════════════════
    Typography
    ═══════════════════════════════════════════ */
