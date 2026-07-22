@@ -1,16 +1,19 @@
-import { Inter, JetBrains_Mono, Space_Grotesk } from 'next/font/google'
+import { Inter, Inter_Tight, JetBrains_Mono } from 'next/font/google'
+import { GeistSans } from 'geist/font/sans'
+import { GeistMono } from 'geist/font/mono'
 import '@/lib/trading-terminal/design-tokens.css'
 
 const inter = Inter({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
+  variable: '--font-inter',
   display: 'swap',
 })
 
-const spaceGrotesk = Space_Grotesk({
+const interTight = Inter_Tight({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-space-grotesk',
+  weight: ['500', '600', '700'],
+  variable: '--font-display',
   display: 'swap',
 })
 
@@ -24,7 +27,10 @@ const jetbrainsMono = JetBrains_Mono({
 export default function TerminalRootLayout({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className={`${inter.className} ${spaceGrotesk.variable} ${jetbrainsMono.variable} antialiased`}
+      className={`${GeistSans.variable} ${GeistMono.variable} ${inter.variable} ${interTight.variable} ${jetbrainsMono.variable} ${inter.className} antialiased`}
+      style={{
+        fontFamily: 'var(--font-geist-sans), var(--font-inter), ui-sans-serif, system-ui, sans-serif',
+      }}
     >
       {children}
     </div>

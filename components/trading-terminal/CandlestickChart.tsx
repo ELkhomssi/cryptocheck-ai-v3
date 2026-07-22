@@ -11,6 +11,7 @@ import {
   type Time,
   ColorType,
   CrosshairMode,
+  LineStyle,
 } from 'lightweight-charts'
 import type { Candle } from '@/lib/trading-terminal/ohlcv-feed'
 
@@ -27,8 +28,8 @@ type Props = {
 }
 
 /**
- * PROMPT 25 — Institutional chart theme (Bloomberg calm, not neon retail).
- * Desaturated candles, hairline grid, subtle volume.
+ * Institutional chart theme — TradingView-grade clarity.
+ * Deep black canvas, crisp candles, professional crosshair, volume underlay.
  */
 export function CandlestickChart({ candles, marks = [], className = '' }: Props) {
   const hostRef = useRef<HTMLDivElement>(null)
@@ -42,51 +43,56 @@ export function CandlestickChart({ candles, marks = [], className = '' }: Props)
 
     const chart = createChart(el, {
       layout: {
-        background: { type: ColorType.Solid, color: '#0C1017' },
-        textColor: '#5B6675',
-        fontSize: 9,
+        background: { type: ColorType.Solid, color: '#05070A' },
+        textColor: '#6B7585',
+        fontSize: 11,
         fontFamily: "var(--font-mono-terminal), 'JetBrains Mono', monospace",
       },
       grid: {
-        vertLines: { color: 'rgba(30,38,51,0.45)' },
-        horzLines: { color: 'rgba(30,38,51,0.45)' },
+        vertLines: { color: 'rgba(255,255,255,0.035)', style: LineStyle.Solid },
+        horzLines: { color: 'rgba(255,255,255,0.035)', style: LineStyle.Solid },
       },
       crosshair: {
         mode: CrosshairMode.Normal,
         vertLine: {
-          color: 'rgba(42,54,70,0.8)',
+          color: 'rgba(0,212,255,0.45)',
           width: 1,
-          labelBackgroundColor: '#1A2233',
+          style: LineStyle.Dashed,
+          labelBackgroundColor: '#111927',
         },
         horzLine: {
-          color: 'rgba(42,54,70,0.8)',
+          color: 'rgba(0,212,255,0.45)',
           width: 1,
-          labelBackgroundColor: '#1A2233',
+          style: LineStyle.Dashed,
+          labelBackgroundColor: '#111927',
         },
       },
       rightPriceScale: {
         borderVisible: false,
-        scaleMargins: { top: 0.06, bottom: 0.18 },
+        scaleMargins: { top: 0.04, bottom: 0.2 },
+        entireTextOnly: true,
       },
       timeScale: {
         borderVisible: false,
         timeVisible: true,
         secondsVisible: false,
+        rightOffset: 4,
+        barSpacing: 8,
+        minBarSpacing: 4,
       },
       handleScroll: { vertTouchDrag: false },
       width: el.clientWidth,
-      height: el.clientHeight || 200,
+      height: el.clientHeight || 240,
     })
 
-    // Desaturated ~15% vs neon retail greens/reds
     const candleSeries = chart.addCandlestickSeries({
-      upColor: '#1FA855',
-      downColor: '#D63B3B',
-      borderUpColor: '#1FA855',
-      borderDownColor: '#D63B3B',
-      wickUpColor: '#1A8F48',
-      wickDownColor: '#B83232',
-      borderVisible: false,
+      upColor: '#00E676',
+      downColor: '#FF5252',
+      borderUpColor: '#00E676',
+      borderDownColor: '#FF5252',
+      wickUpColor: '#00C853',
+      wickDownColor: '#E53935',
+      borderVisible: true,
     })
 
     const volumeSeries = chart.addHistogramSeries({
@@ -94,7 +100,7 @@ export function CandlestickChart({ candles, marks = [], className = '' }: Props)
       priceScaleId: '',
     })
     volumeSeries.priceScale().applyOptions({
-      scaleMargins: { top: 0.86, bottom: 0 },
+      scaleMargins: { top: 0.82, bottom: 0 },
     })
 
     chartRef.current = chart
@@ -140,7 +146,7 @@ export function CandlestickChart({ candles, marks = [], className = '' }: Props)
       vs.push({
         time: t as HistogramData['time'],
         value: c.volume,
-        color: c.close >= c.open ? 'rgba(31,168,85,0.22)' : 'rgba(214,59,59,0.22)',
+        color: c.close >= c.open ? 'rgba(0,230,118,0.28)' : 'rgba(255,82,82,0.28)',
       })
     }
 
@@ -166,7 +172,7 @@ export function CandlestickChart({ candles, marks = [], className = '' }: Props)
         return {
           time: nearest(Math.floor(m.time)) as Time,
           position: buy ? 'belowBar' : 'aboveBar',
-          color: buy ? '#1FA855' : '#D63B3B',
+          color: buy ? '#00E676' : '#FF5252',
           shape: buy ? 'arrowUp' : 'arrowDown',
           text: m.label ?? (buy ? 'B' : 'S'),
         }

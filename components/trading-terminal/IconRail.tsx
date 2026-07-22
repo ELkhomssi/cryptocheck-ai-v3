@@ -31,11 +31,11 @@ export type TerminalPane =
 
 const MAIN: { id: TerminalPane; icon: LucideIcon; label: string; badge?: number }[] = [
   { id: 'coach', icon: Brain, label: 'Coach' },
-  { id: 'opportunities', icon: Sparkles, label: 'Opportunities' },
-  { id: 'portfolio', icon: Wallet, label: 'Portfolio' },
-  { id: 'intel', icon: Radar, label: 'Intel Feed' },
-  { id: 'watchlists', icon: LayoutGrid, label: 'Watchlist' },
-  { id: 'history', icon: History, label: 'History' },
+  { id: 'opportunities', icon: Sparkles, label: 'Ops' },
+  { id: 'portfolio', icon: Wallet, label: 'Book' },
+  { id: 'intel', icon: Radar, label: 'Intel' },
+  { id: 'watchlists', icon: LayoutGrid, label: 'Watch' },
+  { id: 'history', icon: History, label: 'Hist' },
   { id: 'alerts', icon: Bell, label: 'Alerts' },
   { id: 'charts', icon: LineChart, label: 'Charts' },
 ]
@@ -72,24 +72,33 @@ function RailButton({
       aria-label={label}
       aria-current={active ? 'page' : undefined}
       onClick={() => onSelect(id)}
-      className={`relative flex w-full flex-col items-center gap-0.5 px-1 py-1.5 transition-colors duration-[var(--tit-motion)] ${
+      className={`relative flex w-full flex-col items-center gap-1 px-1 py-2 transition-all duration-[var(--tit-motion)] ${
         active
-          ? 'bg-[var(--tit-bg-2)] text-[var(--tit-accent)]'
-          : 'text-[var(--tit-text-2)] hover:bg-[var(--tit-bg-2)] hover:text-[var(--tit-text-0)]'
+          ? 'text-[var(--tit-accent-bright)]'
+          : 'text-[var(--tit-text-2)] hover:text-[var(--tit-text-0)]'
       }`}
     >
       {active ? (
-        <span className="absolute bottom-1 left-0 top-1 w-0.5 bg-[var(--tit-accent)]" aria-hidden />
+        <span
+          className="absolute bottom-1.5 left-0 top-1.5 w-[2px] rounded-r bg-[var(--tit-accent)] shadow-[0_0_10px_rgba(0,212,255,0.55)]"
+          aria-hidden
+        />
       ) : null}
-      <span className="relative">
+      <span
+        className={`relative flex h-8 w-8 items-center justify-center rounded-[10px] transition-all duration-[var(--tit-motion)] ${
+          active
+            ? 'bg-[var(--tit-accent)]/12 ring-1 ring-[var(--tit-accent)]/30 shadow-[0_0_16px_rgba(0,212,255,0.15)]'
+            : 'hover:bg-white/[0.04]'
+        }`}
+      >
         <Icon className="h-4 w-4" strokeWidth={1.75} />
         {badge != null && badge > 0 ? (
-          <span className="absolute -right-2 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[var(--tit-hot)] px-0.5 text-[0.45rem] font-bold text-white">
+          <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[var(--tit-hot)] px-0.5 text-[0.45rem] font-bold text-white">
             {badge > 9 ? '9+' : badge}
           </span>
         ) : null}
       </span>
-      <span className="max-w-full truncate text-center text-[8px] leading-tight tracking-wide">
+      <span className="max-w-full truncate text-center text-[8px] font-medium leading-tight tracking-[0.04em]">
         {label}
       </span>
     </button>
@@ -100,7 +109,7 @@ function RailButton({
 export function IconRail({ active, onSelect }: Props) {
   return (
     <nav
-      className="tit-area-rail flex flex-col border-r border-[var(--tit-border)] bg-[var(--tit-bg-1)] py-1"
+      className="tit-area-rail flex flex-col border-r border-[var(--tit-border)] bg-[rgba(11,17,24,0.72)] py-2 backdrop-blur-md"
       style={{ width: 'var(--tit-icon-rail)' }}
       aria-label="Terminal panes"
     >
@@ -109,7 +118,7 @@ export function IconRail({ active, onSelect }: Props) {
           <RailButton key={item.id} {...item} active={active === item.id} onSelect={onSelect} />
         ))}
       </div>
-      <div className="mt-auto flex flex-col gap-0.5 border-t border-[var(--tit-border)] pt-1">
+      <div className="mt-auto flex flex-col gap-0.5 border-t border-[var(--tit-border)] pt-2">
         {FOOT.map((item) => (
           <RailButton key={item.id} {...item} active={active === item.id} onSelect={onSelect} />
         ))}
