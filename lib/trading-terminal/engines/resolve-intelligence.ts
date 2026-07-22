@@ -1,6 +1,6 @@
 /**
  * Resolve intelligence bundle for the terminal UI.
- * Demo: engines run on DEMO measured inputs.
+ * Demo: engines run on DEMO measured inputs + seed intel.
  * Live: portfolio brain + empty opportunities until live market inputs wired.
  */
 
@@ -10,6 +10,8 @@ import type { RevenuePortfolioSummary } from '@/lib/revenue-dashboard/portfolio-
 import { rankOpportunities, type Opportunity } from './opportunity-engine'
 import { buildActionQueue, type QueuedAction } from './action-queue'
 import { buildWalletCoachNudges, type CoachNudge } from './wallet-coach'
+import { attributeOpportunity, type CausalAttribution } from './causal-attribution'
+import { buildTerminalAlerts, type TerminalAlert } from './alerts-engine'
 import { getDemoOpportunityInputs } from './demo-opportunity-inputs'
 import type { TerminalDataMode } from '../data/types'
 
@@ -20,7 +22,50 @@ export type IntelligenceBundle = {
   nudges: CoachNudge[]
   brain: LivePortfolioBrain | null
   hero: Opportunity | null
+  /** Causal shares for hero (or focus mint when ranked). */
+  attribution: CausalAttribution | null
+  alerts: TerminalAlert[]
   methodNote: string
+}
+
+function syntheticDemoSummary(): RevenuePortfolioSummary {
+  const seed = getDemoSeed()
+  const syntheticSummary: RevenuePortfolioSummary = {
+    walletAddress: 'DEMO',
+    totalValueUsd: seed.portions.totalUsd,
+    holdingCount: seed.positions.length,
+    flaggedCount: seed.positions.filter((p) => p.verdict !== 'SAFE').length,
+    flaggedValueUsd: seed.positions
+      .filter((p) => p.verdict !== 'SAFE')
+      .reduce((a, p) => a + p.valueUsd, 0),
+    flaggedPct: 0,
+    exposure: 'MEDIUM',
+    positions: seed.positions.map((p) => ({
+      mint: p.mint,
+      symbol: p.symbol,
+      name: p.symbol,
+      balance: p.size,
+      valueUsd: p.valueUsd,
+      safetyScore: 100 - p.riskScore,
+      riskScore: p.riskScore,
+      verdict: p.verdict,
+      concentrationPct: seed.portions.totalUsd > 0 ? (p.valueUsd / seed.portions.totalUsd) * 100 : 0,
+      scannedAt: new Date().toISOString(),
+      estimated: false,
+      avgEntryPriceUsd: p.entryUsd,
+      currentPriceUsd: p.priceUsd,
+      pnlUsd: p.pnlUsd,
+      pnlPct: p.pnlPct,
+    })),
+    lastUpdatedAt: new Date().toISOString(),
+    totalPnlUsd: seed.portions.pnl24hUsd,
+    totalPnlPct: seed.portions.pnl24hPct,
+  }
+  syntheticSummary.flaggedPct =
+    syntheticSummary.totalValueUsd > 0
+      ? (syntheticSummary.flaggedValueUsd / syntheticSummary.totalValueUsd) * 100
+      : 0
+  return syntheticSummary
 }
 
 export function resolveIntelligence(input: {
@@ -30,7 +75,8 @@ export function resolveIntelligence(input: {
 }): IntelligenceBundle {
   if (input.mode === 'demo') {
     const seed = getDemoSeed()
-    const opportunities = rankOpportunities(getDemoOpportunityInputs())
+    const measured = getDemoOpportunityInputs()
+    const opportunities = rankOpportunities(measured)
     const brainFromSeed: LivePortfolioBrain = {
       health: seed.coach.portfolioHealth,
       riskExposure: {
@@ -56,45 +102,8 @@ export function resolveIntelligence(input: {
         legend: seed.portions.legend,
       },
     }
-    // Re-derive brain actions from positions via same live function shape
-    const syntheticSummary: RevenuePortfolioSummary = {
-      walletAddress: 'DEMO',
-      totalValueUsd: seed.portions.totalUsd,
-      holdingCount: seed.positions.length,
-      flaggedCount: seed.positions.filter((p) => p.verdict !== 'SAFE').length,
-      flaggedValueUsd: seed.positions
-        .filter((p) => p.verdict !== 'SAFE')
-        .reduce((a, p) => a + p.valueUsd, 0),
-      flaggedPct: 0,
-      exposure: 'MEDIUM',
-      positions: seed.positions.map((p) => ({
-        mint: p.mint,
-        symbol: p.symbol,
-        name: p.symbol,
-        balance: p.size,
-        valueUsd: p.valueUsd,
-        safetyScore: 100 - p.riskScore,
-        riskScore: p.riskScore,
-        verdict: p.verdict,
-        concentrationPct: seed.portions.totalUsd > 0 ? (p.valueUsd / seed.portions.totalUsd) * 100 : 0,
-        scannedAt: new Date().toISOString(),
-        estimated: false,
-        avgEntryPriceUsd: p.entryUsd,
-        currentPriceUsd: p.priceUsd,
-        pnlUsd: p.pnlUsd,
-        pnlPct: p.pnlPct,
-      })),
-      lastUpdatedAt: new Date().toISOString(),
-      totalPnlUsd: seed.portions.pnl24hUsd,
-      totalPnlPct: seed.portions.pnl24hPct,
-    }
-    syntheticSummary.flaggedPct =
-      syntheticSummary.totalValueUsd > 0
-        ? (syntheticSummary.flaggedValueUsd / syntheticSummary.totalValueUsd) * 100
-        : 0
 
-    const brain = buildLivePortfolioBrain(syntheticSummary)
-    // Prefer seed threat copy when richer
+    const brain = buildLivePortfolioBrain(syntheticDemoSummary())
     brain.threats = brainFromSeed.threats.length ? brainFromSeed.threats : brain.threats
 
     const actions = buildActionQueue({
@@ -107,7 +116,17 @@ export function resolveIntelligence(input: {
       brain,
       opportunities,
     })
-    const hero = opportunities[0] ?? null
+    const focus = input.focusMint ?? seed.focusMint
+    const hero =
+      opportunities.find((o) => o.mint === focus) ?? opportunities[0] ?? null
+    const heroInput = measured.find((m) => m.mint === (hero?.mint ?? focus)) ?? null
+    const attribution = heroInput ? attributeOpportunity(heroInput) : null
+    const alerts = buildTerminalAlerts({
+      intelEvents: seed.intel,
+      brain,
+      opportunities,
+      nudges,
+    })
 
     return {
       mode: 'demo',
@@ -116,7 +135,9 @@ export function resolveIntelligence(input: {
       nudges,
       brain,
       hero,
-      methodNote: 'opportunity-engine-v1 · DEMO_SEED measured inputs',
+      attribution,
+      alerts,
+      methodNote: 'opportunity-engine-v1 · causal-attribution-v1 · DEMO_SEED',
     }
   }
 
@@ -142,6 +163,12 @@ export function resolveIntelligence(input: {
     brain,
     opportunities,
   })
+  const alerts = buildTerminalAlerts({
+    intelEvents: [], // honest — no fabricated market intel
+    brain,
+    opportunities,
+    nudges,
+  })
 
   return {
     mode: 'live',
@@ -150,7 +177,9 @@ export function resolveIntelligence(input: {
     nudges,
     brain,
     hero: null,
+    attribution: null,
+    alerts,
     methodNote:
-      'Live opportunity inputs (smart-money / LP / holders) not yet wired — portfolio actions only.',
+      'Live opportunity / causal feeds not yet wired — portfolio threats + coach only.',
   }
 }

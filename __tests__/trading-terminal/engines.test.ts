@@ -11,6 +11,11 @@ import { buildActionQueue } from '../../lib/trading-terminal/engines/action-queu
 import { buildWalletCoachNudges } from '../../lib/trading-terminal/engines/wallet-coach'
 import { getDemoOpportunityInputs } from '../../lib/trading-terminal/engines/demo-opportunity-inputs'
 import { resolveIntelligence } from '../../lib/trading-terminal/engines/resolve-intelligence'
+import { attributeOpportunity } from '../../lib/trading-terminal/engines/causal-attribution'
+import {
+  buildTerminalAlerts,
+  filterAlerts,
+} from '../../lib/trading-terminal/engines/alerts-engine'
 import { resetDemoSeedCache } from '../../lib/trading-terminal/data/demo-seed'
 
 describe('opportunity-engine', () => {
@@ -88,12 +93,16 @@ describe('action-queue + wallet-coach', () => {
     assert.ok(bundle.actions.length >= 2)
     assert.ok(bundle.nudges.length >= 1)
     assert.ok(bundle.nudges.some((n) => n.kind === 'offense' || n.kind === 'defense'))
+    assert.ok(bundle.attribution)
+    assert.equal(bundle.attribution!.method, 'causal-attribution-v1')
+    assert.ok(bundle.alerts.length >= 3)
   })
 
   it('live mode stays honest without opportunity feeds', () => {
     const bundle = resolveIntelligence({ mode: 'live' })
     assert.equal(bundle.opportunities.length, 0)
     assert.equal(bundle.hero, null)
+    assert.equal(bundle.attribution, null)
     assert.ok(bundle.methodNote.toLowerCase().includes('live'))
   })
 
@@ -148,5 +157,109 @@ describe('action-queue + wallet-coach', () => {
       ],
     })
     assert.equal(nudges.length, 0)
+  })
+})
+
+describe('causal-attribution + alerts', () => {
+  it('attributes SOLCAT with up-shares summing to 100', () => {
+    const attr = attributeOpportunity({
+      mint: 'DemoSolCat555555555555555555555555555555',
+      symbol: 'SOLCAT',
+      smartMoneyNetInflowUsd: 182_000,
+      liquidityExpansionPct: 21,
+      holderGrowthPct: 14,
+      insiderClusterActive: false,
+      poolAgeHours: 36,
+      riskScore: 28,
+    })
+    assert.ok(attr)
+    assert.equal(attr!.method, 'causal-attribution-v1')
+    const upSum = attr!.shares
+      .filter((s) => s.direction === 'up')
+      .reduce((a, s) => a + s.sharePct, 0)
+    assert.equal(upSum, 100)
+    assert.ok(attr!.disclaimer.toLowerCase().includes('model'))
+  })
+
+  it('returns null attribution for thin inputs', () => {
+    assert.equal(
+      attributeOpportunity({
+        mint: 'x',
+        symbol: 'X',
+        smartMoneyNetInflowUsd: 100,
+        liquidityExpansionPct: 1,
+        holderGrowthPct: 0,
+        insiderClusterActive: false,
+        poolAgeHours: null,
+        riskScore: null,
+      }),
+      null,
+    )
+  })
+
+  it('buildTerminalAlerts ranks threats above info intel', () => {
+    const alerts = buildTerminalAlerts({
+      intelEvents: [
+        {
+          id: 'i1',
+          kind: 'new_pool',
+          headline: 'Pool created',
+          detail: 'seed',
+          mint: 'a',
+          symbol: 'A',
+          at: new Date(Date.now() - 60_000).toISOString(),
+          ref: 'r1',
+        },
+      ],
+      brain: {
+        health: { score: 40, issues: [] },
+        riskExposure: { categories: [], flags: [], band: 'HIGH' },
+        threats: [
+          {
+            symbol: 'NOODLE',
+            mint: 'DemoNoodle333333333333333333333333333333',
+            reason: 'LP −38%',
+            severity: 'HIGH',
+          },
+        ],
+        actionQueue: [],
+        capitalAllocation: '',
+        portions: { totalUsd: 1, pnlUsd: null, pnlPct: null, legend: [] },
+      },
+      opportunities: [],
+      nudges: [],
+    })
+    assert.ok(alerts.length >= 2)
+    assert.equal(alerts[0]!.severity, 'critical')
+    assert.equal(alerts[0]!.source, 'portfolio-threat')
+  })
+
+  it('filterAlerts respects minSeverity', () => {
+    const all = buildTerminalAlerts({
+      intelEvents: [
+        {
+          id: 'i1',
+          kind: 'new_pool',
+          headline: 'Pool',
+          detail: 'd',
+          mint: 'a',
+          symbol: 'A',
+          at: new Date().toISOString(),
+          ref: 'r',
+        },
+        {
+          id: 'i2',
+          kind: 'smart_money_sell',
+          headline: 'Sell',
+          detail: 'd',
+          mint: 'b',
+          symbol: 'B',
+          at: new Date().toISOString(),
+          ref: 'r2',
+        },
+      ],
+    })
+    const filtered = filterAlerts(all, { minSeverity: 'high', mutedMints: [] })
+    assert.ok(filtered.every((a) => a.severity === 'high' || a.severity === 'critical'))
   })
 })

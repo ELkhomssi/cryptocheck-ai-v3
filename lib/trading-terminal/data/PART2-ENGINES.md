@@ -1,25 +1,28 @@
-# PART II — Intelligence Engines (slice)
+# PART II — Intelligence Engines
 
-Shipped on `cursor/terminal-part2-engines-5f9e`.
-
-## What this slice delivers
+## Shipped
 
 | Prompt | Module | Behavior |
 |--------|--------|----------|
-| 14 Opportunity Engine | `engines/opportunity-engine.ts` | Conviction derived from measured SM / LP / holders / insider / pool age + documented weights. Thin or EXITING → `null`. |
-| 17 Action Queue | `engines/action-queue.ts` | Merges portfolio threats + ranked opportunities; priority = severity + confidence + focus boost. |
-| 21 Wallet Coach | `engines/wallet-coach.ts` | Defense + offense nudges with evidence; silent when offense evidence is thin. |
-| Façade | `engines/resolve-intelligence.ts` | Demo runs engines on DEMO measured inputs; live returns portfolio actions only until SM/LP feeds wire. |
+| 14 Opportunity | `opportunity-engine.ts` | Conviction from measured SM/LP/holders/insider/age + weights. Thin/EXITING → null. |
+| 15 Causal attribution | `causal-attribution.ts` | Model share % of drivers (sum ≈ 100 for up factors). Disclaimer always attached. |
+| 17 Action Queue | `action-queue.ts` | Merges threats + opportunities; priority = severity + confidence + focus. |
+| 21 Wallet Coach | `wallet-coach.ts` | Defense + offense nudges; silent when thin. |
+| 22 Terminal alerts | `alerts-engine.ts` | Ranks intel/threats/opps/nudges; prefs for severity + mute. Live: threats only (no fabricated market intel). |
+| Façade | `resolve-intelligence.ts` | Demo runs full stack; live honest empties for unwired feeds. |
 
 ## Hard rule
 
-Percentages / conviction must be **derived + method-tagged + confidence-scaled**. UI never invents scores in JSX.
+Percentages / conviction / attribution must be **derived + method-tagged + confidence-scaled**. UI never invents scores in JSX.
 
 ## UI wiring
 
-- `AiIntelligenceWorkstation` → hero, queue, coach nudges from `resolveIntelligence`
-- `ConvictionRadar` (bottom strip) → ranked `opportunities`
+- `AiIntelligenceWorkstation` → hero, Why Now % bars, queue, coach, alerts
+- `ConvictionRadar` → ranked opportunities
 
-## Not in this slice
+## Still deferred
 
-- Causal attribution (15), full insider graph (18), alerts engine (22), live SM/LP/holder feeds
+- Live SM/LP/holder feed adapters
+- Full insider graph (18)
+- Toast/drawer prefs UI for alerts (engine + column list shipped)
+- Causal live adapters beyond demo measured inputs

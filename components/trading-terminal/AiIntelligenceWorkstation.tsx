@@ -116,24 +116,56 @@ export function AiIntelligenceWorkstation() {
   const riskScore =
     hero?.measuredInputs.riskScore ?? demo?.recommended?.riskScore ?? card?.riskScore ?? null
 
+  const attribution = intel.attribution
+
   const why = useMemo(() => {
+    if (attribution?.shares?.length) {
+      return attribution.shares.slice(0, 5).map((s) => ({
+        text: `${s.evidence}`,
+        label: s.label,
+        sharePct: s.sharePct,
+        ok: s.direction === 'up',
+      }))
+    }
     if (hero?.reasons?.length) {
       return hero.reasons.slice(0, 4).map((w) => ({
         text: w.text,
+        label: null as string | null,
+        sharePct: null as number | null,
         ok: w.direction === 'up',
       }))
     }
     if (demo?.why?.length) {
-      return demo.why.slice(0, 4).map((w) => ({ text: w.text, ok: w.direction === 'up' }))
+      return demo.why.slice(0, 4).map((w) => ({
+        text: w.text,
+        label: null as string | null,
+        sharePct: null as number | null,
+        ok: w.direction === 'up',
+      }))
     }
     if (card) {
       return [
-        ...card.why.map((w) => ({ text: w.text, ok: true })),
-        ...card.risks.map((w) => ({ text: w.text, ok: false })),
+        ...card.why.map((w) => ({
+          text: w.text,
+          label: null as string | null,
+          sharePct: null as number | null,
+          ok: true,
+        })),
+        ...card.risks.map((w) => ({
+          text: w.text,
+          label: null as string | null,
+          sharePct: null as number | null,
+          ok: false,
+        })),
       ].slice(0, 4)
     }
-    return [] as Array<{ text: string; ok: boolean }>
-  }, [hero, demo, card])
+    return [] as Array<{
+      text: string
+      label: string | null
+      sharePct: number | null
+      ok: boolean
+    }>
+  }, [attribution, hero, demo, card])
 
   const actionQueue = intel.actions.length
     ? intel.actions
@@ -194,8 +226,7 @@ export function AiIntelligenceWorkstation() {
         }
       : null)
 
-  const alerts =
-    dataMode === 'demo' && snap.intel.status === 'ready' ? snap.intel.data.slice(0, 4) : []
+  const alerts = intel.alerts
 
   const nudges = intel.nudges
 
@@ -321,19 +352,53 @@ export function AiIntelligenceWorkstation() {
               {dataMode === 'live' ? 'Insufficient evidence to attribute.' : '—'}
             </p>
           ) : (
-            <ul className="space-y-1">
+            <ul className="space-y-1.5">
               {why.map((w) => (
-                <li key={w.text} className="flex items-start gap-1.5 text-[0.72rem] leading-snug">
-                  <Check
-                    className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${
-                      w.ok ? 'text-[var(--tit-pos)]' : 'text-[var(--tit-warn)]'
-                    }`}
-                  />
-                  <span className="text-[var(--tit-text-0)]">{w.text}</span>
+                <li key={`${w.label ?? ''}:${w.text}`} className="text-[0.72rem] leading-snug">
+                  <div className="flex items-start gap-1.5">
+                    <Check
+                      className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${
+                        w.ok ? 'text-[var(--tit-pos)]' : 'text-[var(--tit-warn)]'
+                      }`}
+                    />
+                    <span className="min-w-0 flex-1 text-[var(--tit-text-0)]">
+                      {w.label ? (
+                        <span className="tit-mono mr-1.5 text-[0.55rem] font-bold text-[var(--tit-text-2)]">
+                          {w.label}
+                        </span>
+                      ) : null}
+                      {w.text}
+                    </span>
+                    {w.sharePct != null ? (
+                      <span
+                        className={`tit-mono shrink-0 text-[0.65rem] font-bold ${
+                          w.ok ? 'text-[var(--tit-pos)]' : 'text-[var(--tit-warn)]'
+                        }`}
+                      >
+                        {w.sharePct}%
+                      </span>
+                    ) : null}
+                  </div>
+                  {w.sharePct != null ? (
+                    <div className="ml-5 mt-0.5 h-0.5 overflow-hidden rounded bg-[var(--tit-bg-3)]">
+                      <div
+                        className="h-full rounded"
+                        style={{
+                          width: `${Math.min(100, w.sharePct)}%`,
+                          background: w.ok ? 'var(--tit-pos)' : 'var(--tit-warn)',
+                        }}
+                      />
+                    </div>
+                  ) : null}
                 </li>
               ))}
             </ul>
           )}
+          {attribution ? (
+            <p className="tit-mono mt-1.5 text-[0.45rem] text-[var(--tit-text-2)]">
+              {attribution.method} · conf {attribution.confidencePct}% · {attribution.disclaimer}
+            </p>
+          ) : null}
         </section>
 
         <section className="border-b border-[var(--tit-border)] px-3 py-3">
@@ -443,22 +508,38 @@ export function AiIntelligenceWorkstation() {
           <p className="tit-label mb-2">Recent Intelligence</p>
           {alerts.length === 0 ? (
             <p className="text-[0.65rem] text-[var(--tit-text-1)]">
-              {dataMode === 'live' ? 'Awaiting on-chain intel.' : '—'}
+              {dataMode === 'live'
+                ? 'No portfolio threats yet — connect wallet or await feeds.'
+                : '—'}
             </p>
           ) : (
             <ul className="space-y-1.5">
-              {alerts.map((a) => (
+              {alerts.slice(0, 5).map((a) => (
                 <li key={a.id}>
                   <button
                     type="button"
                     className="w-full text-left"
                     onClick={() => a.mint && a.symbol && selectMint(a.mint, a.symbol)}
+                    disabled={!a.actionable || !a.mint}
                   >
-                    <span className="block text-[0.65rem] font-medium text-[var(--tit-text-0)]">
-                      {a.headline}
+                    <span className="flex items-center gap-1.5">
+                      <span
+                        className={`tit-mono rounded px-1 py-px text-[0.45rem] font-bold uppercase ${
+                          a.severity === 'critical' || a.severity === 'high'
+                            ? 'bg-[var(--tit-neg)]/15 text-[var(--tit-neg)]'
+                            : a.severity === 'watch'
+                              ? 'bg-[var(--tit-warn)]/15 text-[var(--tit-warn)]'
+                              : 'bg-[var(--tit-bg-3)] text-[var(--tit-text-2)]'
+                        }`}
+                      >
+                        {a.severity}
+                      </span>
+                      <span className="block min-w-0 flex-1 truncate text-[0.65rem] font-medium text-[var(--tit-text-0)]">
+                        {a.headline}
+                      </span>
                     </span>
                     <span className="tit-mono text-[0.5rem] text-[var(--tit-text-2)]">
-                      {relativeTime(a.at)}
+                      {relativeTime(a.at)} · {a.source}
                     </span>
                   </button>
                 </li>

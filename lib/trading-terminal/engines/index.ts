@@ -27,3 +27,24 @@ export {
   type CoachNudge,
   type CoachNudgeKind,
 } from './wallet-coach'
+
+export {
+  attributeOpportunity,
+  type CausalAttribution,
+  type AttributionShare,
+  type AttributionFactor,
+} from './causal-attribution'
+
+export {
+  buildTerminalAlerts,
+  filterAlerts,
+  DEFAULT_ALERT_PREFS,
+  type TerminalAlert,
+  type TerminalAlertSeverity,
+  type AlertPrefs,
+} from './alerts-engine'
+
+export {
+  resolveIntelligence,
+  type IntelligenceBundle,
+} from './resolve-intelligence'
