@@ -11,11 +11,13 @@ import { TerminalFocusProvider, useTerminalFocus } from './TerminalFocusProvider
 import { TerminalStatusBar } from './TerminalStatusBar'
 import { TerminalTopBar } from './TerminalTopBar'
 import { WatchlistPanel } from './WatchlistPanel'
+import { WhaleIntelligenceDesk } from './whale/WhaleIntelligenceDesk'
 import { useTerminalKeyboard } from './useTerminalKeyboard'
 
 /**
  * Institutional Intelligence Terminal —
- * Watchlist · Primary chart (full height) · Coach AI research desk.
+ * Watchlist · Primary chart (full height) · Coach AI research desk
+ * · Whale Intelligence (full desk swap).
  */
 function TerminalWorkspace() {
   const feed = useSignalFeed({ subjectType: 'token' })
@@ -31,6 +33,7 @@ function TerminalWorkspace() {
 
   const chartsRef = useRef<HTMLDivElement>(null)
   const leftRef = useRef<HTMLDivElement>(null)
+  const whaleRef = useRef<HTMLDivElement>(null)
 
   useTerminalKeyboard(allRows, {
     onTabVerdict: () => setPane('coach'),
@@ -43,7 +46,7 @@ function TerminalWorkspace() {
     helpOpen,
   })
 
-  const { hydrated, setSolPriceUsd } = useTerminalFocus()
+  const { hydrated, setSolPriceUsd, dataMode } = useTerminalFocus()
 
   useEffect(() => {
     let cancelled = false
@@ -67,10 +70,16 @@ function TerminalWorkspace() {
     }
   }, [setSolPriceUsd])
 
+  const whaleDesk = pane === 'whale'
+
   const onPane = (p: TerminalPane) => {
     setPane(p)
     if (p === 'help') {
       setHelpOpen(true)
+      return
+    }
+    if (p === 'whale') {
+      whaleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
       return
     }
     if (p === 'charts' || p === 'coach') {
@@ -103,24 +112,32 @@ function TerminalWorkspace() {
   }
 
   return (
-    <div className="tit-shell tit-shell-grid">
+    <div className={`tit-shell tit-shell-grid${whaleDesk ? ' tit-shell-grid-whale' : ''}`}>
       <TerminalTopBar onHelp={() => setHelpOpen(true)} />
       <IconRail active={pane} onSelect={onPane} />
 
-      <div ref={leftRef} className="tit-area-left min-h-0 overflow-hidden">
-        <WatchlistPanel />
-      </div>
+      {whaleDesk ? (
+        <div ref={whaleRef} className="tit-area-whale min-h-0 overflow-hidden">
+          <WhaleIntelligenceDesk mode={dataMode} />
+        </div>
+      ) : (
+        <>
+          <div ref={leftRef} className="tit-area-left min-h-0 overflow-hidden">
+            <WatchlistPanel />
+          </div>
 
-      <div
-        ref={chartsRef}
-        className="tit-area-center flex min-h-0 min-w-0 flex-col overflow-hidden p-1.5"
-      >
-        <PrimaryChart />
-      </div>
+          <div
+            ref={chartsRef}
+            className="tit-area-center flex min-h-0 min-w-0 flex-col overflow-hidden p-1.5"
+          >
+            <PrimaryChart />
+          </div>
 
-      <div className="tit-area-coach min-h-0 overflow-hidden">
-        <AiIntelligenceWorkstation />
-      </div>
+          <div className="tit-area-coach min-h-0 overflow-hidden">
+            <AiIntelligenceWorkstation />
+          </div>
+        </>
+      )}
 
       <TerminalStatusBar />
       <KeyboardHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
