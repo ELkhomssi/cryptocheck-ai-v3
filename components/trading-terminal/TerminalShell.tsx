@@ -4,10 +4,12 @@ import { useMemo, useRef, useState, useEffect } from 'react'
 import type { UnifiedSignal } from '@cryptocheck/signal-contracts'
 import { useSignalFeed } from '@/lib/signals-dashboard/use-signal-feed'
 import { AiIntelligenceWorkstation } from './AiIntelligenceWorkstation'
+import { AlphaDiscoveryDesk } from './alpha/AlphaDiscoveryDesk'
 import { IconRail, type TerminalPane } from './IconRail'
 import { KeyboardHelp } from './KeyboardHelp'
 import { MarketIntelligenceDesk } from './MarketIntelligenceDesk'
 import { PrimaryChart } from './PrimaryChart'
+import { PortfolioIntelligenceDesk } from './portfolio/PortfolioIntelligenceDesk'
 import { TerminalFocusProvider, useTerminalFocus } from './TerminalFocusProvider'
 import { TerminalStatusBar } from './TerminalStatusBar'
 import { TerminalTopBar } from './TerminalTopBar'
@@ -15,17 +17,19 @@ import { WatchlistPanel } from './WatchlistPanel'
 import { WhaleIntelligenceDesk } from './whale/WhaleIntelligenceDesk'
 import { useTerminalKeyboard } from './useTerminalKeyboard'
 
-type FullDesk = 'mi' | 'whale' | null
+type FullDesk = 'mi' | 'whale' | 'alpha' | 'port' | null
 
 function resolveFullDesk(pane: TerminalPane): FullDesk {
   if (pane === 'intel' || pane === 'alerts') return 'mi'
   if (pane === 'whale') return 'whale'
+  if (pane === 'opportunities' || pane === 'discover') return 'alpha'
+  if (pane === 'portfolio') return 'port'
   return null
 }
 
 /**
  * Institutional Intelligence Terminal —
- * Chart desk · Market Intelligence · Whale Intelligence.
+ * Chart · Market · Whale · Alpha · Portfolio desks.
  */
 function TerminalWorkspace() {
   const feed = useSignalFeed({ subjectType: 'token' })
@@ -53,7 +57,22 @@ function TerminalWorkspace() {
     helpOpen,
   })
 
-  const { hydrated, setSolPriceUsd, dataMode } = useTerminalFocus()
+  const {
+    hydrated,
+    setSolPriceUsd,
+    dataMode,
+    selectMint,
+    watchlists,
+    activeWatchlistId,
+    addToWatchlist,
+    removeFromWatchlist,
+  } = useTerminalFocus()
+
+  const watchedMints = useMemo(() => {
+    const active = watchlists.find((l) => l.id === activeWatchlistId) ?? watchlists[0]
+    return new Set((active?.items ?? []).map((i) => i.mint))
+  }, [watchlists, activeWatchlistId])
+
   const fullDesk = resolveFullDesk(pane)
 
   useEffect(() => {
@@ -88,7 +107,7 @@ function TerminalWorkspace() {
     if (p === 'charts' || p === 'coach') {
       chartsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
-    if (p === 'watchlists' || p === 'discover' || p === 'portfolio' || p === 'opportunities') {
+    if (p === 'watchlists') {
       leftRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
   }
@@ -98,7 +117,11 @@ function TerminalWorkspace() {
       ? 'tit-shell tit-shell-grid-mi'
       : fullDesk === 'whale'
         ? 'tit-shell tit-shell-grid tit-shell-grid-whale'
-        : 'tit-shell tit-shell-grid'
+        : fullDesk === 'alpha'
+          ? 'tit-shell tit-shell-grid tit-shell-grid-alpha'
+          : fullDesk === 'port'
+            ? 'tit-shell tit-shell-grid tit-shell-grid-port'
+            : 'tit-shell tit-shell-grid'
 
   if (!hydrated) {
     return (
@@ -117,7 +140,10 @@ function TerminalWorkspace() {
   return (
     <div className={shellClass}>
       <TerminalTopBar onHelp={() => setHelpOpen(true)} />
-      <IconRail active={pane} onSelect={onPane} />
+      <IconRail
+        active={pane === 'discover' ? 'opportunities' : pane}
+        onSelect={onPane}
+      />
 
       {fullDesk === 'mi' ? (
         <div className="tit-area-mi-main min-h-0 overflow-hidden">
@@ -126,6 +152,32 @@ function TerminalWorkspace() {
       ) : fullDesk === 'whale' ? (
         <div className="tit-area-whale min-h-0 overflow-hidden">
           <WhaleIntelligenceDesk mode={dataMode} />
+        </div>
+      ) : fullDesk === 'alpha' ? (
+        <div className="tit-area-alpha min-h-0 overflow-hidden">
+          <AlphaDiscoveryDesk
+            mode={dataMode}
+            onFocusMint={(mint, symbol) => selectMint(mint, symbol)}
+          />
+        </div>
+      ) : fullDesk === 'port' ? (
+        <div className="tit-area-port min-h-0 overflow-hidden">
+          <PortfolioIntelligenceDesk
+            mode={dataMode}
+            watchedMints={watchedMints}
+            onFocusMint={(mint, symbol) => selectMint(mint, symbol)}
+            onToggleWatchlist={(holding, currentlyWatched) => {
+              if (currentlyWatched) removeFromWatchlist(holding.mint)
+              else {
+                addToWatchlist({
+                  mint: holding.mint,
+                  symbol: holding.symbol,
+                  lastVerdict: holding.verdict ?? undefined,
+                  lastRiskScore: holding.riskScore,
+                })
+              }
+            }}
+          />
         </div>
       ) : (
         <>
