@@ -2,6 +2,8 @@
 
 const ROWS: Array<{ keys: string; action: string }> = [
   { keys: '⌘K / /', action: 'Focus mint search' },
+  { keys: 'Intel rail', action: 'Market Intelligence center' },
+  { keys: 'Charts rail', action: 'Primary chart desk' },
   { keys: 'B / S', action: 'Buy / Sell ticket' },
   { keys: 'O', action: 'Override soft coach interrupt' },
   { keys: 'W', action: 'Cycle watchlist' },

@@ -4,18 +4,51 @@ import { useMemo, useRef, useState, useEffect } from 'react'
 import type { UnifiedSignal } from '@cryptocheck/signal-contracts'
 import { useSignalFeed } from '@/lib/signals-dashboard/use-signal-feed'
 import { AiIntelligenceWorkstation } from './AiIntelligenceWorkstation'
+import { AlphaDiscoveryDesk } from './alpha/AlphaDiscoveryDesk'
+import { AiCopilotDesk } from './copilot/AiCopilotDesk'
 import { IconRail, type TerminalPane } from './IconRail'
 import { KeyboardHelp } from './KeyboardHelp'
+import { MarketIntelligenceDesk } from './MarketIntelligenceDesk'
 import { PrimaryChart } from './PrimaryChart'
+import { PortfolioIntelligenceDesk } from './portfolio/PortfolioIntelligenceDesk'
 import { TerminalFocusProvider, useTerminalFocus } from './TerminalFocusProvider'
 import { TerminalStatusBar } from './TerminalStatusBar'
 import { TerminalTopBar } from './TerminalTopBar'
 import { WatchlistPanel } from './WatchlistPanel'
+import { WhaleIntelligenceDesk } from './whale/WhaleIntelligenceDesk'
 import { useTerminalKeyboard } from './useTerminalKeyboard'
+
+type FullDesk = 'mi' | 'whale' | 'alpha' | 'port' | 'copilot' | null
+
+function resolveFullDesk(pane: TerminalPane): FullDesk {
+  if (pane === 'copilot') return 'copilot'
+  if (pane === 'intel' || pane === 'alerts') return 'mi'
+  if (pane === 'whale') return 'whale'
+  if (pane === 'opportunities' || pane === 'discover') return 'alpha'
+  if (pane === 'portfolio') return 'port'
+  return null
+}
+
+function shellClassFor(desk: FullDesk): string {
+  switch (desk) {
+    case 'mi':
+      return 'tit-shell tit-shell-grid-mi'
+    case 'whale':
+      return 'tit-shell tit-shell-grid tit-shell-grid-whale'
+    case 'alpha':
+      return 'tit-shell tit-shell-grid tit-shell-grid-alpha'
+    case 'port':
+      return 'tit-shell tit-shell-grid tit-shell-grid-port'
+    case 'copilot':
+      return 'tit-shell tit-shell-grid tit-shell-grid-copilot'
+    default:
+      return 'tit-shell tit-shell-grid'
+  }
+}
 
 /**
  * Institutional Intelligence Terminal —
- * Watchlist · Primary chart (full height) · Coach AI research desk.
+ * Chart · AI Copilot · Market · Whale · Alpha · Portfolio.
  */
 function TerminalWorkspace() {
   const feed = useSignalFeed({ subjectType: 'token' })
@@ -43,7 +76,23 @@ function TerminalWorkspace() {
     helpOpen,
   })
 
-  const { hydrated, setSolPriceUsd } = useTerminalFocus()
+  const {
+    hydrated,
+    setSolPriceUsd,
+    dataMode,
+    selectMint,
+    watchlists,
+    activeWatchlistId,
+    addToWatchlist,
+    removeFromWatchlist,
+  } = useTerminalFocus()
+
+  const watchedMints = useMemo(() => {
+    const active = watchlists.find((l) => l.id === activeWatchlistId) ?? watchlists[0]
+    return new Set((active?.items ?? []).map((i) => i.mint))
+  }, [watchlists, activeWatchlistId])
+
+  const fullDesk = resolveFullDesk(pane)
 
   useEffect(() => {
     let cancelled = false
@@ -73,17 +122,11 @@ function TerminalWorkspace() {
       setHelpOpen(true)
       return
     }
+    if (resolveFullDesk(p)) return
     if (p === 'charts' || p === 'coach') {
       chartsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
-    if (
-      p === 'watchlists' ||
-      p === 'discover' ||
-      p === 'opportunities' ||
-      p === 'portfolio' ||
-      p === 'intel' ||
-      p === 'alerts'
-    ) {
+    if (p === 'watchlists') {
       leftRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
   }
@@ -103,24 +146,69 @@ function TerminalWorkspace() {
   }
 
   return (
-    <div className="tit-shell tit-shell-grid">
+    <div className={shellClassFor(fullDesk)}>
       <TerminalTopBar onHelp={() => setHelpOpen(true)} />
-      <IconRail active={pane} onSelect={onPane} />
+      <IconRail
+        active={pane === 'discover' ? 'opportunities' : pane}
+        onSelect={onPane}
+      />
 
-      <div ref={leftRef} className="tit-area-left min-h-0 overflow-hidden">
-        <WatchlistPanel />
-      </div>
+      {fullDesk === 'copilot' ? (
+        <div className="tit-area-copilot min-h-0 overflow-hidden">
+          <AiCopilotDesk mode={dataMode} />
+        </div>
+      ) : fullDesk === 'mi' ? (
+        <div className="tit-area-mi-main min-h-0 overflow-hidden">
+          <MarketIntelligenceDesk />
+        </div>
+      ) : fullDesk === 'whale' ? (
+        <div className="tit-area-whale min-h-0 overflow-hidden">
+          <WhaleIntelligenceDesk mode={dataMode} />
+        </div>
+      ) : fullDesk === 'alpha' ? (
+        <div className="tit-area-alpha min-h-0 overflow-hidden">
+          <AlphaDiscoveryDesk
+            mode={dataMode}
+            onFocusMint={(mint, symbol) => selectMint(mint, symbol)}
+          />
+        </div>
+      ) : fullDesk === 'port' ? (
+        <div className="tit-area-port min-h-0 overflow-hidden">
+          <PortfolioIntelligenceDesk
+            mode={dataMode}
+            watchedMints={watchedMints}
+            onFocusMint={(mint, symbol) => selectMint(mint, symbol)}
+            onToggleWatchlist={(holding, currentlyWatched) => {
+              if (currentlyWatched) removeFromWatchlist(holding.mint)
+              else {
+                addToWatchlist({
+                  mint: holding.mint,
+                  symbol: holding.symbol,
+                  lastVerdict: holding.verdict ?? undefined,
+                  lastRiskScore: holding.riskScore,
+                })
+              }
+            }}
+          />
+        </div>
+      ) : (
+        <>
+          <div ref={leftRef} className="tit-area-left min-h-0 overflow-hidden">
+            <WatchlistPanel />
+          </div>
 
-      <div
-        ref={chartsRef}
-        className="tit-area-center flex min-h-0 min-w-0 flex-col overflow-hidden p-1.5"
-      >
-        <PrimaryChart />
-      </div>
+          <div
+            ref={chartsRef}
+            className="tit-area-center flex min-h-0 min-w-0 flex-col overflow-hidden p-1.5"
+          >
+            <PrimaryChart />
+          </div>
 
-      <div className="tit-area-coach min-h-0 overflow-hidden">
-        <AiIntelligenceWorkstation />
-      </div>
+          <div className="tit-area-coach min-h-0 overflow-hidden">
+            <AiIntelligenceWorkstation />
+          </div>
+        </>
+      )}
 
       <TerminalStatusBar />
       <KeyboardHelp open={helpOpen} onClose={() => setHelpOpen(false)} />

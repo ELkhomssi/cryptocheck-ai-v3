@@ -3,7 +3,9 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   Bell,
+  Bot,
   Brain,
+  Fish,
   HelpCircle,
   History,
   LayoutGrid,
@@ -16,9 +18,11 @@ import {
 
 export type TerminalPane =
   | 'coach'
+  | 'copilot'
   | 'opportunities'
   | 'portfolio'
   | 'intel'
+  | 'whale'
   | 'watchlists'
   | 'history'
   | 'alerts'
@@ -30,14 +34,16 @@ export type TerminalPane =
   | 'sniper'
 
 const MAIN: { id: TerminalPane; icon: LucideIcon; label: string; badge?: number }[] = [
-  { id: 'coach', icon: Brain, label: 'Coach' },
-  { id: 'opportunities', icon: Sparkles, label: 'Ops' },
-  { id: 'portfolio', icon: Wallet, label: 'Book' },
+  { id: 'copilot', icon: Bot, label: 'AI' },
   { id: 'intel', icon: Radar, label: 'Intel' },
+  { id: 'whale', icon: Fish, label: 'Whale' },
+  { id: 'opportunities', icon: Sparkles, label: 'Alpha' },
+  { id: 'portfolio', icon: Wallet, label: 'Port' },
+  { id: 'charts', icon: LineChart, label: 'Charts' },
+  { id: 'coach', icon: Brain, label: 'Coach' },
   { id: 'watchlists', icon: LayoutGrid, label: 'Watch' },
   { id: 'history', icon: History, label: 'Hist' },
   { id: 'alerts', icon: Bell, label: 'Alerts' },
-  { id: 'charts', icon: LineChart, label: 'Charts' },
 ]
 
 const FOOT: { id: TerminalPane; icon: LucideIcon; label: string }[] = [
