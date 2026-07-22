@@ -1,5 +1,5 @@
 'use client'
-import { ReactNode, useMemo, useCallback } from 'react'
+import { ReactNode, useMemo, useCallback, type ComponentType } from 'react'
 import { ConnectionProvider, WalletProvider, useWallet } from '@solana/wallet-adapter-react'
 import { WalletModalProvider, useWalletModal } from '@solana/wallet-adapter-react-ui'
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets'
@@ -65,14 +65,22 @@ export function SolanaProvider({ children }: { children: ReactNode }) {
     new PhantomWalletAdapter(),
     new SolflareWalletAdapter(),
   ], [])
+  // wallet-adapter FC typings clash with @types/react ≥18.3 ReactNode; cast keeps runtime identical.
+  const Conn = ConnectionProvider as ComponentType<{ endpoint: string; children?: ReactNode }>
+  const Wallets = WalletProvider as ComponentType<{
+    wallets: unknown[]
+    autoConnect?: boolean
+    children?: ReactNode
+  }>
+  const Modal = WalletModalProvider as ComponentType<{ children?: ReactNode }>
   return (
-    <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>
+    <Conn endpoint={endpoint}>
+      <Wallets wallets={wallets} autoConnect>
+        <Modal>
           <SolanaInner>{children}</SolanaInner>
-        </WalletModalProvider>
-      </WalletProvider>
-    </ConnectionProvider>
+        </Modal>
+      </Wallets>
+    </Conn>
   )
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState, type PointerEvent, type WheelEvent } from "react";
 import type { WhaleFlowEdge, WhaleFlowNode } from "@/lib/trading-terminal/whale-intelligence";
 
 const NODE_W = 108;
@@ -62,14 +62,14 @@ export function WhaleFlowMap({
 
   const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 
-  const onWheel = useCallback((e: React.WheelEvent) => {
+  const onWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.92 : 1.08;
     setView((v) => ({ ...v, k: Math.min(2.4, Math.max(0.4, v.k * delta)) }));
   }, []);
 
   const onPointerDown = useCallback(
-    (e: React.PointerEvent) => {
+    (e: PointerEvent) => {
       if ((e.target as Element).closest("[data-node]")) return;
       drag.current = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y };
       (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
@@ -77,7 +77,7 @@ export function WhaleFlowMap({
     [view.x, view.y],
   );
 
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
+  const onPointerMove = useCallback((e: PointerEvent) => {
     if (!drag.current) return;
     setView((v) => ({
       ...v,
@@ -104,11 +104,11 @@ export function WhaleFlowMap({
           <span data-k="pool">LP</span>
         </div>
         <div className="tit-whale-flow-zoom">
-          <button type="button" onClick={() => setView((v) => ({ ...v, k: Math.min(2.4, v.k * 1.15) })}>
+          <button type="button" onClick={() => setView((v) => ({ ...v, k: Math.min(2.4, v.k * 1.15) }))}>
             +
           </button>
           <button type="button" onClick={() => setView((v) => ({ ...v, k: Math.max(0.4, v.k * 0.87) }))}>
-            −
+            -
           </button>
           <button type="button" onClick={() => setView({ x: 0, y: 0, k: 0.85 })}>
             Reset
