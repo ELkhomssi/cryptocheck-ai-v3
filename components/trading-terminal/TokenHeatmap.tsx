@@ -4,15 +4,15 @@ import { useMemo, useState } from 'react'
 import type { HeatmapCell } from '@/lib/trading-terminal/market-intelligence'
 
 function riskFill(risk: HeatmapCell['risk']): string {
-  if (risk === 'safe') return 'rgba(0,230,118,0.55)'
-  if (risk === 'high') return 'rgba(255,82,82,0.6)'
-  return 'rgba(255,200,87,0.55)'
+  if (risk === 'safe') return 'rgba(34,197,94,0.45)'
+  if (risk === 'high') return 'rgba(239,68,68,0.5)'
+  return 'rgba(245,158,11,0.45)'
 }
 
 function riskBorder(risk: HeatmapCell['risk']): string {
-  if (risk === 'safe') return 'rgba(0,230,118,0.45)'
-  if (risk === 'high') return 'rgba(255,82,82,0.5)'
-  return 'rgba(255,200,87,0.45)'
+  if (risk === 'safe') return 'rgba(34,197,94,0.4)'
+  if (risk === 'high') return 'rgba(239,68,68,0.45)'
+  return 'rgba(245,158,11,0.4)'
 }
 
 function fmtUsd(n: number | null): string {

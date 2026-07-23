@@ -33,10 +33,10 @@ const VERDICT_STYLE: Record<
   TerminalVerdict,
   { color: string; label: string; glow: string }
 > = {
-  SAFE: { color: 'var(--tit-safe)', label: 'SAFE', glow: 'rgba(34,197,94,0.35)' },
-  CAUTION: { color: 'var(--tit-caution)', label: 'CAUTION', glow: 'rgba(234,179,8,0.35)' },
-  HIGH_RISK: { color: 'var(--tit-danger)', label: 'DANGER', glow: 'rgba(240,68,56,0.4)' },
-  BLOCKED: { color: 'var(--tit-blocked)', label: 'BLOCKED', glow: 'rgba(239,68,68,0.45)' },
+  SAFE: { color: 'var(--tit-safe)', label: 'SAFE', glow: 'transparent' },
+  CAUTION: { color: 'var(--tit-caution)', label: 'CAUTION', glow: 'transparent' },
+  HIGH_RISK: { color: 'var(--tit-danger)', label: 'DANGER', glow: 'transparent' },
+  BLOCKED: { color: 'var(--tit-blocked)', label: 'BLOCKED', glow: 'transparent' },
   INSUFFICIENT_DATA: {
     color: 'var(--tit-text-2)',
     label: 'INSUFFICIENT',

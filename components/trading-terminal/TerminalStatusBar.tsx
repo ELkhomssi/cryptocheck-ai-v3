@@ -119,19 +119,19 @@ export function TerminalStatusBar() {
 
   return (
     <footer
-      className="tit-area-status flex items-center gap-3 overflow-x-auto border-t border-[var(--tit-border)] bg-[rgba(5,7,10,0.92)] px-3 backdrop-blur-md tit-mono text-[0.62rem] text-[var(--tit-text-2)]"
+      className="tit-area-status flex items-center gap-4 overflow-x-auto border-t border-[var(--tit-border)] bg-[var(--tit-bg-0)] px-4 tit-mono text-[0.6875rem] text-[var(--tit-text-2)]"
       style={{ height: 'var(--tit-footer)' }}
     >
-      <span className="flex shrink-0 items-center gap-1.5">
+      <span className="flex shrink-0 items-center gap-2">
         <StatusDot ok={(isConnected || dataMode === 'demo') && status === 'ok'} />
         <span className="text-[var(--tit-text-1)]">
-          {dataMode === 'demo' || isConnected ? 'WALLET LINKED' : 'WALLET OFF'}
+          {dataMode === 'demo' || isConnected ? 'Wallet linked' : 'Wallet off'}
         </span>
       </span>
 
       <span className="hidden h-3 w-px bg-[var(--tit-border)] sm:block" aria-hidden />
 
-      <span className="flex shrink-0 items-center gap-1.5">
+      <span className="flex shrink-0 items-center gap-2">
         <StatusDot ok={status === 'ok'} />
         <span className="text-[var(--tit-text-1)]">Solana</span>
         <span className={latency != null && latency < 120 ? 'text-[var(--tit-pos)]' : 'text-[var(--tit-warn)]'}>
@@ -148,17 +148,17 @@ export function TerminalStatusBar() {
 
       <span className="hidden h-3 w-px bg-[var(--tit-border)] lg:block" aria-hidden />
 
-      <span className="flex shrink-0 items-center gap-1.5">
+      <span className="flex shrink-0 items-center gap-2">
         <StatusDot ok={status === 'ok'} />
         <span className={status === 'ok' ? 'text-[var(--tit-pos)]' : 'text-[var(--tit-warn)]'}>
           Market {status === 'ok' ? 'OPEN' : 'DEGRADED'}
         </span>
       </span>
 
-      <span className="flex shrink-0 items-center gap-1.5">
+      <span className="flex shrink-0 items-center gap-2">
         <span className="tit-pulse-accent" aria-hidden />
-        <span className="text-[var(--tit-accent-bright)]">AI Engine</span>
-        <span className="text-[var(--tit-text-1)]">LIVE</span>
+        <span className="text-[var(--tit-text-1)]">AI Engine</span>
+        <span className="text-[var(--tit-text-0)]">LIVE</span>
       </span>
 
       {whaleAlert ? (

@@ -21,7 +21,7 @@ import { useTerminalFocus } from './TerminalFocusProvider'
 /** Per-slot default TFs — denser multi-pane look (reference terminal). */
 const SLOT_DEFAULT_TF: ChartTimeframe[] = ['5m', '5m', '15m', '1H', '5m', '15m']
 
-const LINK_COLORS = ['#00D4FF', '#29B6F6', '#FF8A3D', '#00E676', '#FFC857', '#FF5252'] as const
+const LINK_COLORS = ['#3B82F6', '#60A5FA', '#F59E0B', '#22C55E', '#F59E0B', '#EF4444'] as const
 
 function gridClass(mode: ChartMode): string {
   if (mode === 1) return 'grid-cols-1 grid-rows-1'
@@ -182,20 +182,20 @@ function ChartSlot({
         e.dataTransfer.setData(TIT_DND_MIME, JSON.stringify({ mint, symbol }))
         e.dataTransfer.effectAllowed = 'move'
       }}
-      className={`relative flex min-h-0 flex-col overflow-hidden rounded-[10px] border bg-[rgba(11,17,24,0.65)] transition-all duration-[var(--tit-motion)] ${
+      className={`relative flex min-h-0 flex-col overflow-hidden rounded-[8px] border bg-[var(--tit-bg-1)] transition-all duration-[var(--tit-motion)] ${
         active
-          ? 'border-[var(--tit-accent)]/55 shadow-[0_0_0_1px_rgba(0,212,255,0.12),0_8px_28px_rgba(0,0,0,0.35)]'
+          ? 'border-[var(--tit-border-strong)] shadow-[0_8px_28px_rgba(0,0,0,0.28)]'
           : 'border-[var(--tit-border)] hover:border-[var(--tit-border-strong)]'
       } ${dragOver ? '!border-[var(--tit-accent)]' : ''} ${
         maximized === index ? 'col-span-full row-span-full' : ''
       }`}
     >
       <div
-        className="flex shrink-0 items-center gap-1.5 border-b border-[var(--tit-border)] bg-[rgba(5,7,10,0.45)] px-2"
+        className="flex shrink-0 items-center gap-1.5 border-b border-[var(--tit-border)] bg-[var(--tit-bg-0)] px-2"
         style={{ height: 'var(--tit-chart-header-h)' }}
       >
         <span
-          className="h-2 w-2 shrink-0 rounded-full shadow-[0_0_8px_currentColor]"
+          className="h-2 w-2 shrink-0 rounded-full"
           style={{ background: LINK_COLORS[linkGroup % LINK_COLORS.length], color: LINK_COLORS[linkGroup % LINK_COLORS.length] }}
           title="Link group"
           aria-hidden
@@ -339,7 +339,7 @@ export function ChartGrid() {
               }}
               className={`tit-mono h-5 w-5 rounded-md text-[0.58rem] font-bold transition-colors ${
                 chartMode === m
-                  ? 'bg-[var(--tit-accent)] text-[#041016] shadow-[0_0_12px_rgba(0,212,255,0.35)]'
+                  ? 'bg-[var(--tit-accent)] text-white'
                   : 'text-[var(--tit-text-2)] hover:bg-white/[0.04] hover:text-[var(--tit-text-0)]'
               }`}
             >
@@ -369,7 +369,7 @@ export function ChartGrid() {
           onClick={() => setLinkGroup((g) => (g + 1) % LINK_COLORS.length)}
         >
           <span
-            className="inline-block h-2 w-2 rounded-full shadow-[0_0_8px_currentColor]"
+            className="inline-block h-2 w-2 rounded-full"
             style={{ background: LINK_COLORS[linkGroup], color: LINK_COLORS[linkGroup] }}
           />
         </button>

@@ -75,42 +75,43 @@ export function CandlestickChart({
 
     const chart = createChart(el, {
       layout: {
-        background: { type: ColorType.Solid, color: '#05070A' },
-        textColor: '#6B7585',
-        fontSize: 12,
-        fontFamily: "var(--font-mono-terminal), 'JetBrains Mono', monospace",
+        background: { type: ColorType.Solid, color: '#05070B' },
+        textColor: '#7C8796',
+        fontSize: 11,
+        fontFamily:
+          "var(--font-mono-terminal), 'IBM Plex Mono', 'JetBrains Mono', ui-monospace, monospace",
       },
       grid: {
-        vertLines: { color: 'rgba(255,255,255,0.028)', style: LineStyle.Solid },
-        horzLines: { color: 'rgba(255,255,255,0.028)', style: LineStyle.Solid },
+        vertLines: { color: 'rgba(255,255,255,0.035)', style: LineStyle.Solid },
+        horzLines: { color: 'rgba(255,255,255,0.035)', style: LineStyle.Solid },
       },
       crosshair: {
         mode: CrosshairMode.Normal,
         vertLine: {
-          color: 'rgba(0,212,255,0.55)',
+          color: 'rgba(59,130,246,0.42)',
           width: 1,
           style: LineStyle.Dashed,
-          labelBackgroundColor: '#111927',
+          labelBackgroundColor: '#111823',
         },
         horzLine: {
-          color: 'rgba(0,212,255,0.55)',
+          color: 'rgba(59,130,246,0.42)',
           width: 1,
           style: LineStyle.Dashed,
-          labelBackgroundColor: '#111927',
+          labelBackgroundColor: '#111823',
         },
       },
       rightPriceScale: {
         borderVisible: false,
-        scaleMargins: { top: 0.05, bottom: 0.18 },
+        scaleMargins: { top: 0.06, bottom: 0.18 },
         entireTextOnly: true,
       },
       timeScale: {
         borderVisible: false,
         timeVisible: true,
         secondsVisible: false,
-        rightOffset: 10,
-        barSpacing: 16,
-        minBarSpacing: 7,
+        rightOffset: 12,
+        barSpacing: 14,
+        minBarSpacing: 6,
         fixLeftEdge: false,
         fixRightEdge: false,
       },
@@ -134,17 +135,17 @@ export function CandlestickChart({
     })
 
     const candleSeries = chart.addCandlestickSeries({
-      upColor: '#00E676',
-      downColor: '#FF5252',
-      borderUpColor: '#1AFF8C',
-      borderDownColor: '#FF6B6B',
-      wickUpColor: '#00C853',
-      wickDownColor: '#E53935',
+      upColor: '#22C55E',
+      downColor: '#EF4444',
+      borderUpColor: '#22C55E',
+      borderDownColor: '#EF4444',
+      wickUpColor: '#16A34A',
+      wickDownColor: '#DC2626',
       borderVisible: true,
       priceLineVisible: true,
       lastValueVisible: true,
       priceLineWidth: 1,
-      priceLineColor: 'rgba(0,212,255,0.45)',
+      priceLineColor: 'rgba(59,130,246,0.4)',
       priceLineStyle: LineStyle.SparseDotted,
     })
 
@@ -234,7 +235,7 @@ export function CandlestickChart({
       vs.push({
         time: t as HistogramData['time'],
         value: c.volume,
-        color: up ? 'rgba(0,230,118,0.42)' : 'rgba(255,82,82,0.42)',
+        color: up ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)',
       })
     }
 
@@ -273,7 +274,7 @@ export function CandlestickChart({
         markers.push({
           time: nearest(Math.floor(m.time)) as Time,
           position: buy ? 'belowBar' : 'aboveBar',
-          color: buy ? '#00E676' : '#FF5252',
+          color: buy ? '#22C55E' : '#EF4444',
           shape: buy ? 'arrowUp' : 'arrowDown',
           text: m.label ?? (buy ? 'B' : 'S'),
         })

@@ -143,9 +143,9 @@ export function ExecutionTicket() {
         <button
           type="button"
           onClick={() => setTicketSide('buy')}
-          className={`flex-1 rounded-[8px] py-2 text-xs font-bold tracking-wide transition-all ${
+          className={`flex-1 rounded-[8px] py-2 text-xs font-semibold tracking-wide transition-all duration-[var(--tit-motion)] ${
             buy
-              ? 'bg-[var(--tit-pos)] text-[#041016] shadow-[0_0_18px_rgba(0,230,118,0.35)]'
+              ? 'bg-[var(--tit-pos)] text-white'
               : 'bg-[var(--tit-bg-2)] text-[var(--tit-text-2)] hover:text-[var(--tit-text-0)]'
           }`}
         >
@@ -154,9 +154,9 @@ export function ExecutionTicket() {
         <button
           type="button"
           onClick={() => setTicketSide('sell')}
-          className={`flex-1 rounded-[8px] py-2 text-xs font-bold tracking-wide transition-all ${
+          className={`flex-1 rounded-[8px] py-2 text-xs font-semibold tracking-wide transition-all duration-[var(--tit-motion)] ${
             !buy
-              ? 'bg-[var(--tit-neg)] text-white shadow-[0_0_18px_rgba(255,82,82,0.3)]'
+              ? 'bg-[var(--tit-neg)] text-white'
               : 'bg-[var(--tit-bg-2)] text-[var(--tit-text-2)] hover:text-[var(--tit-text-0)]'
           }`}
         >
