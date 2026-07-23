@@ -44,10 +44,10 @@ function toneIcon(tone: AlertItem['tone']) {
 }
 
 function toneClass(tone: AlertItem['tone']) {
-  if (tone === 'pos') return 'bg-[rgba(30,154,99,0.12)] text-[var(--tit-pos)]'
-  if (tone === 'warn') return 'bg-[rgba(169,120,46,0.12)] text-[var(--tit-accent-bright)]'
-  if (tone === 'neg') return 'bg-[rgba(209,74,56,0.12)] text-[var(--tit-neg)]'
-  return 'bg-[rgba(110,95,224,0.12)] text-[var(--tit-chain)]'
+  if (tone === 'pos') return 'tit-al-pos'
+  if (tone === 'warn') return 'tit-al-warn'
+  if (tone === 'neg') return 'tit-al-neg'
+  return 'tit-al-info'
 }
 
 function relativeAge(iso?: string | null): string {
@@ -60,6 +60,28 @@ function relativeAge(iso?: string | null): string {
   const h = Math.floor(m / 60)
   if (h < 24) return `${h}h ago`
   return `${Math.floor(h / 24)}d ago`
+}
+
+function polishTitle(s: UnifiedSignal): string {
+  const type = String(s.type ?? '').toLowerCase()
+  const verdict = String(s.verdict ?? '').toUpperCase()
+  if (verdict.includes('DANGER') || verdict.includes('HIGH')) return 'High Risk Detected'
+  if (type.includes('whale')) return 'Whale Activity'
+  if (type.includes('liq')) return 'Liquidity Increased'
+  if (type.includes('dev')) return 'Dev Wallet Activity'
+  if (type.includes('buy') || type.includes('accum')) return 'Smart Money Accumulating'
+  const sym = s.tokenSymbol || s.label
+  if (sym) return `${sym} signal`
+  return 'Market signal'
+}
+
+function polishDetail(s: UnifiedSignal): string {
+  const parts = [
+    s.type,
+    s.sourceTag,
+    s.scoreValue != null ? `score ${Math.round(s.scoreValue)}` : null,
+  ].filter(Boolean)
+  return parts.join(' · ')
 }
 
 function buildAlerts(
@@ -79,8 +101,8 @@ function buildAlerts(
             : 'info'
     return {
       id: s.id,
-      title: s.tokenSymbol || s.label || 'Signal',
-      detail: `${s.type} · ${s.sourceTag}${s.scoreValue != null ? ` · score ${Math.round(s.scoreValue)}` : ''}`,
+      title: polishTitle(s),
+      detail: polishDetail(s),
       tone,
       age: relativeAge(s.msgTimestamp || s.ingestTimestamp),
       mint: s.contractAddress ?? undefined,
@@ -99,8 +121,8 @@ function buildAlerts(
     symbol: f.symbol ?? undefined,
   }))
 
-  const merged = [...fromSignals, ...fromFindings]
-  if (merged.length) return merged.slice(0, 10)
+  const merged = [...fromFindings, ...fromSignals]
+  if (merged.length) return merged.slice(0, 8)
 
   if (holdings.length) {
     return [
@@ -118,35 +140,12 @@ function buildAlerts(
     {
       id: 'empty',
       title: 'No live alerts yet',
-      detail: 'Connect a wallet and wait for signal / risk events. Nothing is fabricated.',
+      detail: 'Connect a wallet and wait for signal / risk events.',
       tone: 'info',
       age: 'now',
     },
   ]
 }
-
-const QUICK = [
-  {
-    label: 'Analyze top holding',
-    sub: 'Get AI insights and risk analysis',
-    icon: Sparkles,
-  },
-  {
-    label: "What's trending today?",
-    sub: 'See top narratives and tokens',
-    icon: TrendingUp,
-  },
-  {
-    label: 'Review my portfolio',
-    sub: 'AI-powered portfolio review',
-    icon: Wallet,
-  },
-  {
-    label: 'Market outlook',
-    sub: 'Get AI market predictions',
-    icon: Newspaper,
-  },
-] as const
 
 function greetHour(): string {
   const h = new Date().getHours()
@@ -186,6 +185,37 @@ export function PortfolioSidePanel({
   const top = holdings[0]
   const name = isConnected && shortAddr ? shortAddr : 'trader'
 
+  const quick = [
+    {
+      label: top ? `Analyze ${top.symbol}` : 'Analyze top holding',
+      sub: 'Get AI insights and risk analysis',
+      icon: Sparkles,
+      prompt: top ? `Analyze ${top.symbol}` : 'Analyze my top holding',
+      runAnalyze: Boolean(top),
+    },
+    {
+      label: "What's trending today?",
+      sub: 'See top narratives and tokens',
+      icon: TrendingUp,
+      prompt: "What's trending today?",
+      runAnalyze: false,
+    },
+    {
+      label: 'Review my portfolio',
+      sub: 'AI-powered portfolio review',
+      icon: Wallet,
+      prompt: 'Review my portfolio',
+      runAnalyze: false,
+    },
+    {
+      label: 'Market outlook',
+      sub: 'Get AI market predictions',
+      icon: Newspaper,
+      prompt: 'Market outlook',
+      runAnalyze: false,
+    },
+  ] as const
+
   const run = (prompt: string) => {
     const text = prompt.trim()
     if (!text) return
@@ -213,14 +243,14 @@ export function PortfolioSidePanel({
 
   return (
     <aside className="tit-port-side flex h-full min-h-0 flex-col overflow-y-auto">
-      <div className="tit-port-panel-head" style={{ padding: '0 4px 14px', border: 'none' }}>
+      <div className="tit-port-aside-head">
         <h2>AI Alerts</h2>
-        <span className="tit-port-panel-link">
-          {signals.length ? `${signals.length} feed` : 'View all'}
-        </span>
+        <button type="button" className="tit-port-panel-link">
+          View all
+        </button>
       </div>
 
-      <div className="mb-2">
+      <div className="tit-port-alerts">
         {alerts.map((a) => {
           const Icon = toneIcon(a.tone)
           return (
@@ -246,8 +276,8 @@ export function PortfolioSidePanel({
         })}
       </div>
 
-      <div className="mt-4">
-        <div className="tit-port-panel-head" style={{ padding: '0 4px 0', border: 'none' }}>
+      <div className="tit-coach">
+        <div className="tit-port-aside-head">
           <h2>AI Coach</h2>
           <span className="tit-coach-status">
             <span className="dot" />
@@ -259,16 +289,8 @@ export function PortfolioSidePanel({
         </div>
         <div className="tit-coach-sub">How can I help you today?</div>
 
-        {QUICK.map((q) => {
+        {quick.map((q) => {
           const Icon = q.icon
-          const title =
-            q.label === 'Analyze top holding' && top ? `Analyze ${top.symbol}` : q.label
-          const prompt =
-            q.label === 'Analyze top holding' && top
-              ? `Analyze ${top.symbol}`
-              : q.label === 'Review my portfolio'
-                ? 'Review my portfolio'
-                : q.label
           return (
             <button
               key={q.label}
@@ -276,17 +298,15 @@ export function PortfolioSidePanel({
               disabled={pending}
               className="tit-coach-action"
               onClick={() => {
-                if (q.label === 'Analyze top holding' && top) {
-                  onAnalyzeSymbol?.(top.symbol, top.mint)
-                }
-                run(prompt)
+                if (q.runAnalyze && top) onAnalyzeSymbol?.(top.symbol, top.mint)
+                run(q.prompt)
               }}
             >
               <div className="tit-ca-icon">
                 <Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
               </div>
               <div>
-                <div className="tit-ca-title">{title}</div>
+                <div className="tit-ca-title">{q.label}</div>
                 <div className="tit-ca-sub">{q.sub}</div>
               </div>
             </button>
@@ -294,20 +314,16 @@ export function PortfolioSidePanel({
         })}
 
         {lastAi ? (
-          <div className="mt-3 rounded-[6px] border border-[var(--tit-border)] bg-[var(--tit-bg-3)] p-3">
-            <p className="text-[12.5px] font-medium leading-relaxed text-[var(--tit-text-0)]">
-              {lastAi.summary}
-            </p>
+          <div className="tit-coach-reply">
+            <p>{lastAi.summary}</p>
             {lastAi.insufficientData ? (
-              <p className="mt-1 text-[11px] font-semibold text-[var(--tit-warn)]">
+              <p className="tit-coach-warn">
                 Insufficient live data — answer withheld rather than invented.
               </p>
             ) : null}
           </div>
         ) : insights.suggestedActions[0] ? (
-          <p className="mt-2 px-1 text-[11.5px] text-[var(--tit-text-2)]">
-            {insights.suggestedActions[0]}
-          </p>
+          <p className="tit-coach-hint">{insights.suggestedActions[0]}</p>
         ) : null}
 
         <form

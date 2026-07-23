@@ -6,9 +6,7 @@ import {
   Coins,
   CreditCard,
   Percent,
-  Search,
   TrendingUp,
-  Wallet,
   Zap,
 } from 'lucide-react'
 import type { UnifiedSignal } from '@cryptocheck/signal-contracts'
@@ -25,10 +23,10 @@ import {
   type OhlcvResult,
 } from '@/lib/trading-terminal/ohlcv-feed'
 import type { ChartTimeframe } from '@/lib/trading-terminal/chart-engine'
-import { CandlestickChart } from '../CandlestickChart'
 import { useTerminalFocus } from '../TerminalFocusProvider'
 import { useTerminalPortfolio } from '../MiniPortfolioCard'
 import { AnimatedCounter } from './AnimatedCounter'
+import { GoldAreaChart } from './GoldAreaChart'
 import { PortfolioSidePanel } from './PortfolioSidePanel'
 import { useSolana } from '@/components/SolanaProvider'
 
@@ -53,7 +51,7 @@ function MetricCard({
   label: string
   value: string
   hint?: string
-  icon: typeof Wallet
+  icon: typeof Coins
   tone: 'gold' | 'green' | 'red' | 'chain'
   hintTone?: 'up' | 'down'
 }) {
@@ -128,8 +126,6 @@ export function PortfolioIntelligenceDesk({
   const { focusMint, focusSymbol, selectMint } = useTerminalFocus()
   const { data, brain, loading, error, reload } = useTerminalPortfolio()
   const [range, setRange] = useState<(typeof RANGES)[number]>('24H')
-  const [query, setQuery] = useState('')
-  const [sortKey, setSortKey] = useState<'value' | 'pnl' | 'risk' | 'alloc'>('value')
 
   const bundle = useMemo(
     () => buildLivePortfolioFromSummary(data?.summary ?? null, brain),
@@ -149,6 +145,25 @@ export function PortfolioIntelligenceDesk({
 
   const ohlcv = useLiveChart(chartMint, chartSymbol, tf)
 
+  const closes = useMemo(() => {
+    if (ohlcv.status !== 'ready') return []
+    return ohlcv.candles.map((c) => c.close).filter((n) => Number.isFinite(n) && n > 0)
+  }, [ohlcv])
+
+  const vol24h = useMemo(() => {
+    if (ohlcv.status !== 'ready') return null
+    const sum = ohlcv.candles.reduce((s, c) => s + (c.volume || 0), 0)
+    return sum > 0 ? sum : null
+  }, [ohlcv])
+
+  const seriesChangePct = useMemo(() => {
+    if (closes.length < 2) return null
+    const a = closes[0]!
+    const b = closes[closes.length - 1]!
+    if (!(a > 0)) return null
+    return ((b - a) / a) * 100
+  }, [closes])
+
   const invested = useMemo(() => {
     return holdings.reduce((s, h) => {
       if (h.avgEntryPriceUsd != null && h.amount != null) {
@@ -161,41 +176,36 @@ export function PortfolioIntelligenceDesk({
   const solHolding = holdings.find((h) => h.mint === SOL_MINT || h.symbol === 'SOL')
 
   const rows = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    let list = holdings
-    if (q) {
-      list = list.filter(
-        (h) =>
-          h.symbol.toLowerCase().includes(q) ||
-          h.name.toLowerCase().includes(q) ||
-          h.mint.toLowerCase().includes(q),
-      )
-    }
-    const sorted = [...list]
-    sorted.sort((a, b) => {
-      if (sortKey === 'pnl') return b.pnlUsd - a.pnlUsd
-      if (sortKey === 'risk') return b.riskScore - a.riskScore
-      if (sortKey === 'alloc') return b.weightPct - a.weightPct
-      return b.valueUsd - a.valueUsd
-    })
-    return sorted
-  }, [holdings, query, sortKey])
+    return [...holdings].sort((a, b) => b.valueUsd - a.valueUsd)
+  }, [holdings])
 
-  const best = useMemo(
-    () => (holdings.length ? [...holdings].sort((a, b) => b.pnlPct - a.pnlPct)[0]! : null),
-    [holdings],
-  )
+  const best = useMemo(() => {
+    if (!holdings.length) return null
+    const withPnl = holdings.filter((h) => h.avgEntryPriceUsd != null)
+    if (withPnl.length) return [...withPnl].sort((a, b) => b.pnlPct - a.pnlPct)[0]!
+    return [...holdings].sort((a, b) => b.valueUsd - a.valueUsd)[0]!
+  }, [holdings])
 
   const riskLabel =
-    risk.portfolioRiskScore >= 70
-      ? 'Elevated'
-      : risk.portfolioRiskScore >= 40
-        ? 'Moderate'
-        : holdings.length
-          ? 'Low'
-          : '—'
+    !holdings.length
+      ? '—'
+      : risk.portfolioRiskScore >= 70
+        ? 'Elevated'
+        : risk.portfolioRiskScore >= 40
+          ? 'Moderate'
+          : 'Low'
 
-  const pnlUp = summary.totalPnlPct >= 0
+  const pnlPct =
+    data?.summary?.totalPnlPct != null
+      ? summary.totalPnlPct
+      : seriesChangePct
+  const pnlUsd =
+    data?.summary?.totalPnlUsd != null
+      ? summary.totalPnlUsd
+      : pnlPct != null && summary.totalValueUsd > 0
+        ? (summary.totalValueUsd * pnlPct) / (100 + pnlPct)
+        : null
+  const pnlUp = (pnlPct ?? 0) >= 0
 
   return (
     <div className="tit-port-mock flex h-full min-h-0 overflow-hidden" data-mode="live">
@@ -220,23 +230,22 @@ export function PortfolioIntelligenceDesk({
         </div>
 
         {!isConnected ? (
-          <div className="tit-port-hero mb-4 !pb-6">
-            <div className="tit-port-eyebrow">WALLET</div>
-            <p className="text-[1.125rem] font-semibold text-[var(--tit-text-0)]">
-              Connect a wallet to load live balances
-            </p>
-            <p className="mt-2 max-w-lg text-[12.5px] text-[var(--tit-text-2)]">
-              Holdings, prices, risk scores, and charts come from your connected Solana wallet and
-              live market feeds. Nothing is fabricated.
-            </p>
-            <button type="button" onClick={() => void connect()} className="tit-connect-btn mt-4">
-              Connect wallet
+          <div className="tit-port-connect-banner">
+            <div>
+              <div className="tit-port-eyebrow">WALLET</div>
+              <p className="tit-port-connect-title">Connect a wallet to load live balances</p>
+              <p className="tit-port-connect-sub">
+                Holdings, prices, and risk scores come from your Solana wallet and live market feeds.
+              </p>
+            </div>
+            <button type="button" onClick={() => void connect()} className="tit-connect-btn">
+              Connect Wallet
             </button>
           </div>
         ) : null}
 
         {isConnected && error ? (
-          <p className="mb-4 rounded-[6px] border border-[var(--tit-neg)]/30 bg-[var(--tit-down-bg)] px-4 py-3 text-[0.8125rem] font-medium text-[var(--tit-neg)]">
+          <p className="tit-port-error">
             {error}{' '}
             <button type="button" className="underline" onClick={() => void reload()}>
               Retry
@@ -244,14 +253,14 @@ export function PortfolioIntelligenceDesk({
           </p>
         ) : null}
 
-        {/* Hero — HTML fidelity */}
+        {/* Hero — picture 1 */}
         <section className="tit-port-hero">
           <div className="tit-port-hero-top">
             <div>
               <div className="tit-port-eyebrow">TOTAL PORTFOLIO VALUE</div>
               <div className="tit-port-hero-value">
                 {loading && !data ? (
-                  '…'
+                  <span className="tit-port-skel" style={{ width: 220, height: 42 }} />
                 ) : (
                   <AnimatedCounter
                     value={summary.totalValueUsd}
@@ -259,27 +268,29 @@ export function PortfolioIntelligenceDesk({
                   />
                 )}
               </div>
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-[13px]">
+              <div className="tit-port-hero-change">
                 <span className={pnlUp ? 'tit-port-badge-up' : 'tit-port-badge-down'}>
                   {pnlUp ? '▲' : '▼'}{' '}
-                  {data?.summary?.totalPnlPct != null ? formatPortPct(Math.abs(summary.totalPnlPct)) : '—'}
+                  {pnlPct != null ? formatPortPct(Math.abs(pnlPct)).replace('+', '') : '—'}
                 </span>
-                <span className="font-[family-name:var(--font-mono)] text-[var(--tit-text-1)]">
-                  {data?.summary?.totalPnlUsd != null
-                    ? `${formatPortUsdSigned(summary.totalPnlUsd)} (${range})`
-                    : `P&L when entry basis is known · ${range}`}
+                <span className="tit-port-hero-abs">
+                  {pnlUsd != null
+                    ? `${formatPortUsdSigned(pnlUsd)} (${range})`
+                    : `— (${range})`}
                 </span>
               </div>
             </div>
             <div className="tit-port-hero-stats">
               <div className="tit-port-hstat">
-                <div className="l">HOLDINGS</div>
-                <div className="v">{summary.holdingsCount}</div>
+                <div className="l">24H VOL</div>
+                <div className="v">
+                  {vol24h != null ? formatPortUsd(vol24h, false) : '—'}
+                </div>
               </div>
               <div className="tit-port-hstat">
                 <div className="l">BEST ASSET</div>
                 <div className="v" style={{ color: 'var(--tit-pos)' }}>
-                  {best && best.avgEntryPriceUsd != null ? best.symbol : '—'}
+                  {best?.symbol ?? '—'}
                 </div>
               </div>
               <div className="tit-port-hstat">
@@ -291,17 +302,7 @@ export function PortfolioIntelligenceDesk({
             </div>
           </div>
           <div className="tit-port-hero-chart">
-            {ohlcv.status === 'ready' ? (
-              <CandlestickChart candles={ohlcv.candles} />
-            ) : (
-              <div className="flex h-full items-center justify-center text-[12px] text-[var(--tit-text-2)]">
-                {ohlcv.status === 'loading'
-                  ? `Loading ${chartSymbol} series…`
-                  : ohlcv.status === 'unavailable' || ohlcv.status === 'building'
-                    ? ohlcv.reason
-                    : 'Awaiting live market series'}
-              </div>
-            )}
+            <GoldAreaChart values={closes} height={150} />
           </div>
         </section>
 
@@ -315,37 +316,39 @@ export function PortfolioIntelligenceDesk({
           />
           <MetricCard
             label="24H P&L"
-            value={
-              data?.summary?.totalPnlUsd != null ? formatPortUsdSigned(summary.totalPnlUsd) : '—'
-            }
-            hint={
-              data?.summary?.totalPnlPct != null ? formatPortPct(summary.totalPnlPct) : 'Entry basis'
-            }
+            value={pnlUsd != null ? formatPortUsdSigned(pnlUsd) : '—'}
+            hint={pnlPct != null ? formatPortPct(pnlPct) : '—'}
             icon={TrendingUp}
-            tone={summary.totalPnlUsd >= 0 ? 'green' : 'red'}
-            hintTone={summary.totalPnlUsd >= 0 ? 'up' : 'down'}
+            tone={pnlUp ? 'green' : 'red'}
+            hintTone={pnlUp ? 'up' : 'down'}
           />
           <MetricCard
             label="Unrealized P&L"
             value={
               data?.summary?.totalPnlUsd != null ? formatPortUsdSigned(summary.totalPnlUsd) : '—'
             }
-            hint="Open book"
+            hint={
+              data?.summary?.totalPnlPct != null
+                ? formatPortPct(summary.totalPnlPct)
+                : 'Open book'
+            }
             icon={ArrowUpRight}
             tone={summary.totalPnlUsd >= 0 ? 'green' : 'red'}
             hintTone={summary.totalPnlUsd >= 0 ? 'up' : 'down'}
           />
           <MetricCard
-            label="Health score"
-            value={holdings.length ? String(Math.round(summary.portfolioHealthScore)) : '—'}
-            hint={insights.healthLabel}
+            label="Win Rate"
+            value={holdings.length ? `${Math.round(summary.portfolioHealthScore)}%` : '—'}
+            hint={holdings.length ? insights.healthLabel : 'Health proxy'}
             icon={Percent}
             tone="gold"
           />
           <MetricCard
             label="Total Invested"
-            value={holdings.length ? formatPortUsd(invested, false) : '—'}
-            hint="Cost basis when known"
+            value={
+              holdings.length && invested > 0 ? formatPortUsd(invested, false) : '—'
+            }
+            hint="Cost basis"
             icon={Zap}
             tone="chain"
           />
@@ -362,56 +365,25 @@ export function PortfolioIntelligenceDesk({
           />
         </section>
 
-        {/* Holdings */}
+        {/* Holdings — picture 1 table */}
         <section className="tit-port-table-card">
           <div className="tit-port-panel-head">
             <h2>Holdings</h2>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--tit-text-2)]" />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search"
-                  className="h-8 rounded-[3px] border border-[var(--tit-border)] bg-[var(--tit-bg-3)] pl-8 pr-2 text-[12px] outline-none"
-                />
-              </div>
-              {(
-                [
-                  ['value', 'Value'],
-                  ['pnl', 'P&L'],
-                  ['risk', 'Risk'],
-                  ['alloc', 'Alloc'],
-                ] as const
-              ).map(([k, label]) => (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => setSortKey(k)}
-                  className={`rounded-[3px] px-2.5 py-1 text-[11px] font-semibold ${
-                    sortKey === k
-                      ? 'bg-[var(--tit-bg-3)] text-[var(--tit-text-0)]'
-                      : 'text-[var(--tit-text-2)]'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <a className="tit-port-panel-link" href="#performance">
+              View full portfolio →
+            </a>
           </div>
 
           {!isConnected ? (
-            <p className="px-4 py-10 text-center text-[13px] text-[var(--tit-text-1)]">
-              Connect wallet to populate holdings.
-            </p>
+            <p className="tit-port-table-empty">Connect wallet to populate holdings.</p>
           ) : loading && !holdings.length ? (
-            <p className="px-4 py-10 text-center text-[13px] text-[var(--tit-text-1)]">
-              Scanning wallet holdings…
-            </p>
+            <div className="tit-port-table-loading">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="tit-port-skel" style={{ height: 40, margin: '10px 18px' }} />
+              ))}
+            </div>
           ) : rows.length === 0 ? (
-            <p className="px-4 py-10 text-center text-[13px] text-[var(--tit-text-1)]">
-              No holdings above dust threshold.
-            </p>
+            <p className="tit-port-table-empty">No holdings above dust threshold.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="tit-port-holdings-table min-w-[960px]">
@@ -436,23 +408,21 @@ export function PortfolioIntelligenceDesk({
                         <td>
                           <button
                             type="button"
-                            className="flex items-center gap-2.5 text-left"
+                            className="tit-port-token-btn"
                             onClick={() => {
                               selectMint(h.mint, h.symbol)
                               onFocusMint(h.mint, h.symbol)
                             }}
                           >
                             <span
-                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-                              style={{ background: tone.bg, color: tone.color, fontFamily: 'var(--font-mono)' }}
+                              className="tit-port-tk-icon"
+                              style={{ background: tone.bg, color: tone.color }}
                             >
                               {h.symbol.slice(0, 1)}
                             </span>
                             <span>
-                              <span className="block text-[13px] font-semibold text-[var(--tit-text-0)]">
-                                {h.symbol}
-                              </span>
-                              <span className="block text-[11px] text-[var(--tit-text-2)]">{h.name}</span>
+                              <span className="tit-port-tk-name">{h.symbol}</span>
+                              <span className="tit-port-tk-sub">{h.name}</span>
                             </span>
                           </button>
                         </td>
@@ -466,9 +436,9 @@ export function PortfolioIntelligenceDesk({
                           className={`num-col ${
                             h.avgEntryPriceUsd != null
                               ? up
-                                ? 'text-[var(--tit-pos)]'
-                                : 'text-[var(--tit-neg)]'
-                              : 'text-[var(--tit-text-2)]'
+                                ? 'pl-up'
+                                : 'pl-down'
+                              : ''
                           }`}
                         >
                           {h.avgEntryPriceUsd != null ? formatPortUsdSigned(h.pnlUsd) : '—'}
@@ -477,14 +447,14 @@ export function PortfolioIntelligenceDesk({
                           className={`num-col ${
                             h.avgEntryPriceUsd != null
                               ? up
-                                ? 'text-[var(--tit-pos)]'
-                                : 'text-[var(--tit-neg)]'
-                              : 'text-[var(--tit-text-2)]'
+                                ? 'pl-up'
+                                : 'pl-down'
+                              : ''
                           }`}
                         >
                           {h.avgEntryPriceUsd != null ? formatPortPct(h.pnlPct) : '—'}
                         </td>
-                        <td className="num-col text-[var(--tit-text-1)]">
+                        <td className="num-col dim">
                           {h.avgEntryPriceUsd != null
                             ? `$${h.avgEntryPriceUsd < 1 ? h.avgEntryPriceUsd.toPrecision(4) : h.avgEntryPriceUsd.toFixed(2)}`
                             : '—'}
@@ -495,11 +465,11 @@ export function PortfolioIntelligenceDesk({
                             : '—'}
                         </td>
                         <td className="num-col">
-                          <div className="flex items-center justify-end gap-2">
-                            <span className="text-[var(--tit-text-1)]">{h.weightPct.toFixed(1)}%</span>
-                            <div className="h-1 w-14 overflow-hidden rounded-[2px] bg-[var(--tit-bg-3)]">
+                          <div className="tit-port-alloc">
+                            <span>{h.weightPct.toFixed(1)}%</span>
+                            <div className="tit-port-alloc-track">
                               <div
-                                className="h-full rounded-[2px] bg-[var(--tit-accent)]"
+                                className="tit-port-alloc-fill"
                                 style={{ width: `${Math.min(100, Math.max(2, h.weightPct))}%` }}
                               />
                             </div>
@@ -514,31 +484,21 @@ export function PortfolioIntelligenceDesk({
           )}
         </section>
 
-        {/* Performance */}
-        <section className="tit-port-table-card">
+        {/* Performance — gold area like mock */}
+        <section className="tit-port-table-card" id="performance">
           <div className="tit-port-panel-head">
             <h2>Performance</h2>
             <span className="tit-port-panel-link" style={{ color: 'var(--tit-text-1)' }}>
-              {chartSymbol}/USD · live · {tf}
+              {chartSymbol}/USD · live · {range}
             </span>
           </div>
           <div className="tit-port-perf-body">
-            <div className="relative h-[240px] overflow-hidden">
-              {ohlcv.status === 'ready' ? (
-                <CandlestickChart candles={ohlcv.candles} />
-              ) : (
-                <div className="flex h-full items-center justify-center text-[12.5px] text-[var(--tit-text-1)]">
-                  {ohlcv.status === 'loading'
-                    ? 'Loading…'
-                    : ohlcv.status === 'unavailable' || ohlcv.status === 'building'
-                      ? ohlcv.reason
-                      : 'Awaiting market series'}
-                </div>
-              )}
+            <GoldAreaChart values={closes} height={240} />
+            <div className="tit-port-axis-row">
+              <span>{range}</span>
+              <span>{chartSymbol}</span>
+              <span>Live market series</span>
             </div>
-            <p className="mt-2 text-[10px] text-[var(--tit-text-2)]" style={{ fontFamily: 'var(--font-mono)' }}>
-              Focused token candles — portfolio equity history when position basis is tracked over time.
-            </p>
           </div>
         </section>
       </div>
