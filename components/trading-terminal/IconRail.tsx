@@ -7,13 +7,15 @@ import {
   Fish,
   HelpCircle,
   History,
-  Home,
+  LayoutDashboard,
   Radar,
   ScanSearch,
   Settings,
   Sparkles,
+  Star,
   Wallet,
 } from 'lucide-react'
+import { useSolana } from '@/components/SolanaProvider'
 
 export type TerminalPane =
   | 'coach'
@@ -28,20 +30,19 @@ export type TerminalPane =
   | 'charts'
   | 'settings'
   | 'help'
-  /** legacy aliases kept for keyboard helpers */
   | 'discover'
   | 'sniper'
 
 const MAIN: { id: TerminalPane; icon: LucideIcon; label: string }[] = [
-  { id: 'charts', icon: Home, label: 'Home' },
+  { id: 'portfolio', icon: LayoutDashboard, label: 'Portfolio' },
+  { id: 'watchlists', icon: Star, label: 'Watchlist' },
+  { id: 'alerts', icon: Bell, label: 'Alerts' },
   { id: 'copilot', icon: Brain, label: 'AI Coach' },
-  { id: 'coach', icon: ScanSearch, label: 'Scanner' },
+  { id: 'charts', icon: ScanSearch, label: 'Scanner' },
   { id: 'intel', icon: Radar, label: 'Market' },
   { id: 'whale', icon: Fish, label: 'Whales' },
   { id: 'opportunities', icon: Sparkles, label: 'Alpha' },
-  { id: 'portfolio', icon: Wallet, label: 'Portfolio' },
   { id: 'history', icon: History, label: 'History' },
-  { id: 'alerts', icon: Bell, label: 'Alerts' },
 ]
 
 const FOOT: { id: TerminalPane; icon: LucideIcon; label: string }[] = [
@@ -74,51 +75,83 @@ function RailButton({
       aria-label={label}
       aria-current={active ? 'page' : undefined}
       onClick={() => onSelect(id)}
-      className={`tit-rail-btn group relative flex w-full items-center justify-center py-1.5 transition-[color,background] duration-[var(--tit-motion)] ease-[var(--tit-ease)] ${
-        active ? 'text-[var(--tit-accent)]' : 'text-[var(--tit-text-2)] hover:text-[var(--tit-text-0)]'
+      className={`group flex w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left transition-colors duration-[var(--tit-motion)] ease-[var(--tit-ease)] ${
+        active
+          ? 'bg-[rgba(37,99,235,0.1)] text-[var(--tit-accent)]'
+          : 'text-[var(--tit-text-1)] hover:bg-black/[0.03] hover:text-[var(--tit-text-0)]'
       }`}
     >
-      {active ? <span className="tit-rail-indicator" aria-hidden /> : null}
-      <span
-        className={`relative flex h-10 w-10 items-center justify-center rounded-[14px] transition-[background,color,box-shadow] duration-[var(--tit-motion)] ease-[var(--tit-ease)] ${
-          active
-            ? 'bg-[rgba(37,99,235,0.1)] text-[var(--tit-accent)]'
-            : 'hover:bg-black/[0.04]'
-        }`}
-      >
-        <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2 : 1.6} />
-        <span className="pointer-events-none absolute left-[calc(100%+10px)] z-50 whitespace-nowrap rounded-[10px] border border-[var(--tit-border)] bg-white px-2.5 py-1 text-[0.6875rem] font-semibold text-[var(--tit-text-0)] opacity-0 shadow-[var(--tit-shadow-panel)] transition-opacity duration-[var(--tit-motion)] group-hover:opacity-100">
-          {label}
-        </span>
-      </span>
+      <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={active ? 2 : 1.7} />
+      <span className="truncate text-[0.8125rem] font-semibold tracking-[-0.01em]">{label}</span>
     </button>
   )
 }
 
-/** White Edition icon rail — icons only; labels on hover. */
+/** White Edition branded rail — matches institutional mockup. */
 export function IconRail({ active, onSelect }: Props) {
-  const railActive = active === 'discover' ? 'opportunities' : active === 'watchlists' ? 'charts' : active
+  const { isConnected, shortAddr, walletAddress } = useSolana()
+  const railActive =
+    active === 'discover'
+      ? 'opportunities'
+      : active === 'coach'
+        ? 'charts'
+        : active === 'intel'
+          ? 'alerts'
+          : active
 
   return (
     <nav
-      className="tit-area-rail flex flex-col border-r border-[var(--tit-border)] bg-white py-4"
+      className="tit-area-rail flex flex-col border-r border-[var(--tit-border)] bg-white px-3 py-5"
       style={{ width: 'var(--tit-icon-rail)' }}
       aria-label="Terminal panes"
     >
-      <div className="flex flex-1 flex-col gap-1 overflow-y-auto overflow-x-visible px-2">
+      <div className="mb-6 flex items-center gap-2.5 px-2">
+        <span
+          className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-[rgba(37,99,235,0.1)] text-[0.7rem] font-bold text-[var(--tit-accent)]"
+          aria-hidden
+        >
+          CC
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-[0.8125rem] font-bold tracking-tight text-[var(--tit-text-0)]">
+            CRYPTOCHECK AI
+          </p>
+          <p className="truncate text-[0.625rem] font-medium text-[var(--tit-text-2)]">Terminal</p>
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
         {MAIN.map((item) => (
           <RailButton
             key={item.id}
             {...item}
-            active={railActive === item.id}
+            active={railActive === item.id || (item.id === 'alerts' && active === 'intel')}
             onSelect={onSelect}
           />
         ))}
       </div>
-      <div className="mt-auto flex flex-col gap-1 border-t border-[var(--tit-border)] px-2 pt-3">
+
+      <div className="mt-auto flex flex-col gap-0.5 border-t border-[var(--tit-border)] pt-3">
         {FOOT.map((item) => (
           <RailButton key={item.id} {...item} active={active === item.id} onSelect={onSelect} />
         ))}
+
+        <div className="mt-3 flex items-center gap-2.5 rounded-[16px] border border-[var(--tit-border)] bg-[var(--tit-bg-1)] px-3 py-2.5">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(37,99,235,0.12)] text-[0.625rem] font-bold text-[var(--tit-accent)]">
+            {isConnected && (shortAddr || walletAddress)
+              ? (shortAddr || walletAddress).slice(0, 2).toUpperCase()
+              : 'CC'}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[0.75rem] font-semibold text-[var(--tit-text-0)]">
+              {isConnected && shortAddr ? shortAddr : 'Guest'}
+            </p>
+            <p className="flex items-center gap-1 text-[0.625rem] font-semibold text-[var(--tit-accent)]">
+              <Wallet className="h-3 w-3" strokeWidth={2} />
+              Pro Plan
+            </p>
+          </div>
+        </div>
       </div>
     </nav>
   )

@@ -62,7 +62,7 @@
   --tit-motion-slow: 280ms;
   --tit-ease: cubic-bezier(0.215, 0.61, 0.355, 1);
 
-  --tit-icon-rail: 72px;
+  --tit-icon-rail: 220px;
   --tit-left-panel: 300px;
   --tit-right-panel: min(380px, 24vw);
   --tit-footer: 36px;
@@ -117,7 +117,7 @@
   :root {
     --tit-left-panel: 260px;
     --tit-right-panel: min(360px, 28vw);
-    --tit-icon-rail: 56px;
+    --tit-icon-rail: 200px;
     --tit-bottom-strip: 0px;
   }
 }
@@ -129,7 +129,7 @@
     --tit-topbar: 72px;
     --tit-chart-header-h: 56px;
     --tit-bottom-strip: 0px;
-    --tit-icon-rail: 72px;
+    --tit-icon-rail: 240px;
   }
 }
 
@@ -3757,4 +3757,82 @@
 .tit-row-active {
   background: rgba(37, 99, 235, 0.06);
   border-left: 2px solid var(--tit-accent);
+}
+
+/* ═══════════════════════════════════════════
+   Portfolio Overview — mockup fidelity
+   ═══════════════════════════════════════════ */
+
+.tit-port-mock {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  background: var(--tit-bg-1);
+}
+
+.tit-port-main {
+  flex: 1;
+  min-width: 0;
+  padding: 28px 32px 32px;
+}
+
+.tit-port-hero,
+.tit-port-table-card,
+.tit-port-metric-card,
+.tit-port-side-card {
+  background: #ffffff;
+  border: 1px solid var(--tit-border);
+  border-radius: 18px;
+  box-shadow: var(--tit-shadow-panel);
+}
+
+.tit-port-hero {
+  padding: 28px 32px;
+}
+
+.tit-port-metric-card {
+  padding: 18px 18px 16px;
+  transition:
+    border-color var(--tit-motion) var(--tit-ease),
+    transform var(--tit-motion) var(--tit-ease);
+}
+
+.tit-port-metric-card:hover {
+  border-color: var(--tit-border-strong);
+}
+
+.tit-port-table-card {
+  padding: 22px 24px;
+}
+
+.tit-port-side {
+  width: min(360px, 32vw);
+  min-width: 300px;
+  border-left: 1px solid var(--tit-border);
+}
+
+.tit-port-side-card {
+  padding: 16px;
+}
+
+@media (max-width: 1200px) {
+  .tit-port-mock {
+    flex-direction: column;
+    overflow: auto;
+  }
+
+  .tit-port-side {
+    width: 100%;
+    min-width: 0;
+    border-left: 0;
+    border-top: 1px solid var(--tit-border);
+  }
+
+  .tit-port-main {
+    padding: 20px;
+  }
+}
+
+.tit-area-port {
+  background: var(--tit-bg-1);
 }
