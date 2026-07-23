@@ -45,33 +45,24 @@ function MetricCard({
   value,
   hint,
   icon: Icon,
-  tone,
   hintTone,
 }: {
   label: string
   value: string
   hint?: string
   icon: typeof Coins
-  tone: 'gold' | 'green' | 'red' | 'chain'
   hintTone?: 'up' | 'down'
 }) {
-  const iconCls =
-    tone === 'green'
-      ? 'tit-port-i-green'
-      : tone === 'red'
-        ? 'tit-port-i-red'
-        : tone === 'chain'
-          ? 'tit-port-i-chain'
-          : 'tit-port-i-gold'
-
   return (
     <article className="tit-port-metric-card">
-      <div className={`mi ${iconCls}`}>
+      <div className="mi tit-port-i-gold">
         <Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
       </div>
       <div className="ml">{label}</div>
-      <div className="mv">{value}</div>
-      {hint ? <div className={`ms${hintTone ? ` ${hintTone}` : ''}`}>{hint}</div> : null}
+      <div className="mv tit-num">{value}</div>
+      {hint ? (
+        <div className={`ms tit-num${hintTone ? ` ${hintTone}` : ''}`}>{hint}</div>
+      ) : null}
     </article>
   )
 }
@@ -131,7 +122,7 @@ export function PortfolioIntelligenceDesk({
     () => buildLivePortfolioFromSummary(data?.summary ?? null, brain),
     [data?.summary, brain],
   )
-  const { summary, holdings, risk, insights, hiddenRisks } = bundle
+  const { summary, holdings, risk, hiddenRisks } = bundle
   const tf = rangeToTf(range)
 
   const chartMint =
@@ -258,7 +249,7 @@ export function PortfolioIntelligenceDesk({
           <div className="tit-port-hero-top">
             <div>
               <div className="tit-port-eyebrow">TOTAL PORTFOLIO VALUE</div>
-              <div className="tit-port-hero-value">
+              <div className="tit-port-hero-value tit-num">
                 {loading && !data ? (
                   <span className="tit-port-skel" style={{ width: 220, height: 42 }} />
                 ) : (
@@ -269,11 +260,11 @@ export function PortfolioIntelligenceDesk({
                 )}
               </div>
               <div className="tit-port-hero-change">
-                <span className={pnlUp ? 'tit-port-badge-up' : 'tit-port-badge-down'}>
+                <span className={`tit-num ${pnlUp ? 'tit-port-badge-up' : 'tit-port-badge-down'}`}>
                   {pnlUp ? '▲' : '▼'}{' '}
                   {pnlPct != null ? formatPortPct(Math.abs(pnlPct)).replace('+', '') : '—'}
                 </span>
-                <span className="tit-port-hero-abs">
+                <span className="tit-port-hero-abs tit-num">
                   {pnlUsd != null
                     ? `${formatPortUsdSigned(pnlUsd)} (${range})`
                     : `— (${range})`}
@@ -283,19 +274,19 @@ export function PortfolioIntelligenceDesk({
             <div className="tit-port-hero-stats">
               <div className="tit-port-hstat">
                 <div className="l">24H VOL</div>
-                <div className="v">
+                <div className="v tit-num">
                   {vol24h != null ? formatPortUsd(vol24h, false) : '—'}
                 </div>
               </div>
               <div className="tit-port-hstat">
                 <div className="l">BEST ASSET</div>
-                <div className="v" style={{ color: 'var(--tit-pos)' }}>
+                <div className="v tit-num" style={{ color: 'var(--tit-pos)' }}>
                   {best?.symbol ?? '—'}
                 </div>
               </div>
               <div className="tit-port-hstat">
                 <div className="l">RISK SCORE</div>
-                <div className="v" style={{ color: 'var(--tit-accent-bright)' }}>
+                <div className="v tit-num" style={{ color: 'var(--tit-accent-bright)' }}>
                   {riskLabel}
                 </div>
               </div>
@@ -312,14 +303,12 @@ export function PortfolioIntelligenceDesk({
             value={String(summary.holdingsCount)}
             hint="Tokens"
             icon={Coins}
-            tone="gold"
           />
           <MetricCard
             label="24H P&L"
             value={pnlUsd != null ? formatPortUsdSigned(pnlUsd) : '—'}
             hint={pnlPct != null ? formatPortPct(pnlPct) : '—'}
             icon={TrendingUp}
-            tone={pnlUp ? 'green' : 'red'}
             hintTone={pnlUp ? 'up' : 'down'}
           />
           <MetricCard
@@ -333,24 +322,15 @@ export function PortfolioIntelligenceDesk({
                 : 'Open book'
             }
             icon={ArrowUpRight}
-            tone={summary.totalPnlUsd >= 0 ? 'green' : 'red'}
             hintTone={summary.totalPnlUsd >= 0 ? 'up' : 'down'}
           />
-          <MetricCard
-            label="Win Rate"
-            value={holdings.length ? `${Math.round(summary.portfolioHealthScore)}%` : '—'}
-            hint={holdings.length ? insights.healthLabel : 'Health proxy'}
-            icon={Percent}
-            tone="gold"
-          />
+          <MetricCard label="Win Rate" value="—" hint="Last 30 trades" icon={Percent} />
           <MetricCard
             label="Total Invested"
             value={
               holdings.length && invested > 0 ? formatPortUsd(invested, false) : '—'
             }
-            hint="Cost basis"
             icon={Zap}
-            tone="chain"
           />
           <MetricCard
             label="Available Balance"
@@ -359,9 +339,8 @@ export function PortfolioIntelligenceDesk({
                 ? `${solHolding.amount.toLocaleString(undefined, { maximumFractionDigits: 3 })} SOL`
                 : '—'
             }
-            hint={solHolding ? formatPortUsd(solHolding.valueUsd, false) : 'SOL in wallet'}
+            hint={solHolding ? formatPortUsd(solHolding.valueUsd, false) : undefined}
             icon={CreditCard}
-            tone="chain"
           />
         </section>
 
@@ -426,14 +405,14 @@ export function PortfolioIntelligenceDesk({
                             </span>
                           </button>
                         </td>
-                        <td className="num-col">
+                        <td className="num-col tit-num">
                           {h.amount != null
                             ? h.amount.toLocaleString(undefined, { maximumFractionDigits: 4 })
                             : '—'}
                         </td>
-                        <td className="num-col">{formatPortUsd(h.valueUsd, false)}</td>
+                        <td className="num-col tit-num">{formatPortUsd(h.valueUsd, false)}</td>
                         <td
-                          className={`num-col ${
+                          className={`num-col tit-num ${
                             h.avgEntryPriceUsd != null
                               ? up
                                 ? 'pl-up'
@@ -444,7 +423,7 @@ export function PortfolioIntelligenceDesk({
                           {h.avgEntryPriceUsd != null ? formatPortUsdSigned(h.pnlUsd) : '—'}
                         </td>
                         <td
-                          className={`num-col ${
+                          className={`num-col tit-num ${
                             h.avgEntryPriceUsd != null
                               ? up
                                 ? 'pl-up'
@@ -454,19 +433,19 @@ export function PortfolioIntelligenceDesk({
                         >
                           {h.avgEntryPriceUsd != null ? formatPortPct(h.pnlPct) : '—'}
                         </td>
-                        <td className="num-col dim">
+                        <td className="num-col tit-num dim">
                           {h.avgEntryPriceUsd != null
                             ? `$${h.avgEntryPriceUsd < 1 ? h.avgEntryPriceUsd.toPrecision(4) : h.avgEntryPriceUsd.toFixed(2)}`
                             : '—'}
                         </td>
-                        <td className="num-col">
+                        <td className="num-col tit-num">
                           {h.currentPriceUsd != null
                             ? `$${h.currentPriceUsd < 1 ? h.currentPriceUsd.toPrecision(4) : h.currentPriceUsd.toFixed(2)}`
                             : '—'}
                         </td>
-                        <td className="num-col">
+                        <td className="num-col tit-num">
                           <div className="tit-port-alloc">
-                            <span>{h.weightPct.toFixed(1)}%</span>
+                            <span className="tit-num">{h.weightPct.toFixed(1)}%</span>
                             <div className="tit-port-alloc-track">
                               <div
                                 className="tit-port-alloc-fill"
@@ -506,7 +485,7 @@ export function PortfolioIntelligenceDesk({
       <PortfolioSidePanel
         mode="live"
         findings={hiddenRisks}
-        insights={insights}
+        insights={bundle.insights}
         holdings={holdings}
         signals={signals}
         onAnalyzeSymbol={(symbol, mint) => {
