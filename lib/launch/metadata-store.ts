@@ -1,15 +1,24 @@
 import 'server-only'
 
-type MetaPayload = {
+export type LaunchMetaPayload = {
   mint: string
   name: string
   symbol: string
   description: string
   image: string
+  external_url?: string
+  website?: string
+  twitter?: string
+  telegram?: string
+  discord?: string
+  /** Prefer IPFS URI when Pinata succeeded. */
+  metadataUri?: string
+  checksumSha256?: string
 }
 
-const memory = new Map<string, MetaPayload>()
-const TTL_SEC = 60 * 60 * 24 // 24h
+const memory = new Map<string, LaunchMetaPayload>()
+/** 30 days — covers bonding curve + early post-migrate discovery. */
+const TTL_SEC = 60 * 60 * 24 * 30
 
 function redisEnabled(): boolean {
   return Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN)
@@ -35,7 +44,7 @@ function metaKey(mint: string): string {
   return `ccai:launch:meta:${mint}`
 }
 
-export async function stashLaunchMetadata(meta: MetaPayload): Promise<void> {
+export async function stashLaunchMetadata(meta: LaunchMetaPayload): Promise<void> {
   memory.set(meta.mint, meta)
   try {
     await upstashCommand(['SET', metaKey(meta.mint), JSON.stringify(meta), 'EX', TTL_SEC])
@@ -44,10 +53,10 @@ export async function stashLaunchMetadata(meta: MetaPayload): Promise<void> {
   }
 }
 
-export async function readLaunchMetadata(mint: string): Promise<MetaPayload | null> {
+export async function readLaunchMetadata(mint: string): Promise<LaunchMetaPayload | null> {
   try {
     const raw = await upstashCommand<string | null>(['GET', metaKey(mint)])
-    if (raw) return JSON.parse(raw) as MetaPayload
+    if (raw) return JSON.parse(raw) as LaunchMetaPayload
   } catch {
     /* fall through */
   }

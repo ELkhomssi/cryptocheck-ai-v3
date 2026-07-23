@@ -5,6 +5,41 @@ export { LAUNCH_COMPLIANCE } from './constants'
 /** Curve presets exposed in the Action Panel Launch form. */
 export type LaunchCurvePreset = 'justsendit' | 'custom'
 
+export type LaunchSocialLinks = {
+  website?: string
+  twitter?: string
+  telegram?: string
+  discord?: string
+}
+
+/** Client-safe fee breakdown shape (keep in sync with lib/launch/estimate-fees.ts). */
+export type LaunchFeeBreakdown = {
+  cluster: 'mainnet' | 'devnet'
+  decimals: number
+  platformCreateFeeSol: number
+  networkFeeSol: number
+  rentSol: number
+  metadataCostSol: number
+  totalSol: number
+  lines: Array<{
+    id: 'platform_create' | 'network' | 'rent' | 'metadata' | 'total'
+    label: string
+    sol: number
+    note?: string
+  }>
+  curveFees: {
+    platformFeeBpsApprox: number
+    creatorFeeBpsApprox: number
+    platformFeeRate: number
+    creatorFeeRate: number
+    denominator: number
+    note: string
+  }
+  walletBalanceSol: number | null
+  sufficientBalance: boolean | null
+  estimatedAt: string
+}
+
 export type LaunchPrepareInput = {
   name: string
   ticker: string
@@ -20,6 +55,10 @@ export type LaunchPrepareInput = {
   totalLockedAmount?: number
   cliffPeriodSec?: number
   unlockPeriodSec?: number
+  website?: string
+  twitter?: string
+  telegram?: string
+  discord?: string
 }
 
 export type LaunchPrepareBlocked = {
@@ -45,6 +84,10 @@ export type LaunchPrepareOk = {
     solTarget: number
   }
   compliance: string
+  /** Present when prepare included a live fee quote. */
+  feeEstimate?: LaunchFeeBreakdown
+  trackingId: string
+  metadataUri: string
 }
 
 export type LaunchRecord = {

@@ -156,16 +156,36 @@ export async function confirmLaunch(input: ConfirmLaunchInput): Promise<LaunchRe
   return mapRow(data as Record<string, unknown>)
 }
 
-export async function listLaunches(limit = 20): Promise<LaunchRecord[]> {
+export async function listLaunches(
+  limit = 20,
+  opts?: { creator?: string },
+): Promise<LaunchRecord[]> {
   const sb = getSupabaseAdmin()
-  const { data, error } = await sb
+  let q = sb
     .from('token_launches')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(Math.min(Math.max(1, limit), 100))
 
+  const creator = opts?.creator?.trim()
+  if (creator) q = q.eq('creator', creator)
+
+  const { data, error } = await q
+
   if (error) throw new Error(error.message)
   return (data ?? []).map((r) => mapRow(r as Record<string, unknown>))
+}
+
+export async function getLaunchByMint(mint: string): Promise<LaunchRecord | null> {
+  const sb = getSupabaseAdmin()
+  const { data, error } = await sb
+    .from('token_launches')
+    .select('*')
+    .eq('mint', mint.trim())
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  if (!data) return null
+  return mapRow(data as Record<string, unknown>)
 }
 
 function mapRow(r: Record<string, unknown>): LaunchRecord {

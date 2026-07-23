@@ -11,8 +11,9 @@ export async function GET(req: Request) {
   const url = new URL(req.url)
   const limit = Number(url.searchParams.get('limit') ?? 20)
   const enrich = url.searchParams.get('enrich') !== '0'
+  const creator = url.searchParams.get('creator')?.trim() || undefined
   try {
-    const launches = await listLaunches(limit)
+    const launches = await listLaunches(limit, creator ? { creator } : undefined)
     if (enrich) {
       await Promise.all(
         launches.map(async (l) => {

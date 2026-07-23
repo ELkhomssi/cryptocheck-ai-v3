@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server'
 import { Connection, PublicKey } from '@solana/web3.js'
 import { buildLaunchTransactions } from '@/lib/launch/build-launch'
-import { getRpcUrl } from '@/lib/launch/config'
+import { getPlatformId, getRpcUrl } from '@/lib/launch/config'
 import { isLaunchModePaused } from '@/lib/launch/control'
 import { resolveCurveParams } from '@/lib/launch/curve-params'
 import { assessCreatorReputation } from '@/lib/launch/creator-reputation'
+import { estimateLaunchFees } from '@/lib/launch/estimate-fees'
+import { classifyLaunchError, launchErrorResponse, newTrackingId } from '@/lib/launch/errors'
 import { isLaunchModeEnabled } from '@/lib/launch/feature-flag'
 import { assertPlatformConfigValid } from '@/lib/launch/guards'
+import { isPinataConfigured } from '@/lib/launch/metadata-pinata'
 import { recordPrepareAttempt } from '@/lib/launch/ops-monitor'
 import { screenLaunchMetadata } from '@/lib/launch/screen-metadata'
 import { LAUNCH_COMPLIANCE, type LaunchPrepareInput } from '@/lib/launch/types'
@@ -22,20 +25,33 @@ export const runtime = 'nodejs'
  * Non-custodial: returns unsigned/mint-partially-signed txs only — user wallet co-signs.
  */
 export async function POST(req: Request) {
-  await assertPlatformConfigValid(new Connection(getRpcUrl(), 'confirmed'))
+  const trackingId = newTrackingId()
 
-  // Kill-switch first — pause new creations without taking Scan/Swap/Sniper down.
+  try {
+    await assertPlatformConfigValid(new Connection(getRpcUrl(), 'confirmed'))
+  } catch (e) {
+    const { body, status } = launchErrorResponse('CONFIG_INVALID', {
+      trackingId,
+      detail: e instanceof Error ? e.message : String(e),
+      compliance: LAUNCH_COMPLIANCE,
+    })
+    return NextResponse.json({ ...body, blocked: true, reasons: [body.error] }, { status })
+  }
+
   if (await isLaunchModePaused()) {
+    const { body, status } = launchErrorResponse('LAUNCH_PAUSED', {
+      trackingId,
+      compliance: LAUNCH_COMPLIANCE,
+    })
     return NextResponse.json(
       {
-        error: 'Launch mode is paused',
+        ...body,
         blocked: true,
         reasons: [
           'LAUNCH_MODE_PAUSED is active — new token creates are rejected. Scan/Swap/Sniper are unaffected.',
         ],
-        compliance: LAUNCH_COMPLIANCE,
       },
-      { status: 503 },
+      { status },
     )
   }
 
@@ -48,6 +64,7 @@ export async function POST(req: Request) {
           'Token create is disabled until Launch mode is explicitly enabled for this cluster.',
         ],
         compliance: LAUNCH_COMPLIANCE,
+        trackingId,
       },
       { status: 503 },
     )
@@ -56,20 +73,22 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as Partial<LaunchPrepareInput>
   const creatorWallet = String(body.creatorWallet ?? '').trim()
 
-  // Rate-limit prepare by creator wallet (or IP fallback).
   const rlKey = creatorWallet || req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'anon'
   let rl: Awaited<ReturnType<typeof enforceRateLimit>>
   try {
     rl = await enforceRateLimit(`launch:prepare:${rlKey}`, 'free')
   } catch {
-    // Local Upstash REST shim down — fail open for prepare (still gated by scanner + platformPda).
     rl = { ok: true, limit: 0, remaining: 0, reset: 0 }
   }
   if (!rl.ok) {
+    const { body: err, status } = launchErrorResponse('RATE_LIMITED', {
+      trackingId,
+      compliance: LAUNCH_COMPLIANCE,
+    })
     return NextResponse.json(
-      { error: 'Rate limit exceeded', blocked: true, reasons: ['Too many launch prepare attempts'] },
+      { ...err, blocked: true, reasons: ['Too many launch prepare attempts'] },
       {
-        status: 429,
+        status,
         headers: {
           'X-RateLimit-Limit': String(rl.limit),
           'X-RateLimit-Remaining': String(rl.remaining),
@@ -94,9 +113,7 @@ export async function POST(req: Request) {
   const description = String(body.description ?? '').trim()
   const imageUrl = String(body.imageUrl ?? '').trim()
 
-  reasons.push(
-    ...screenLaunchMetadata({ name, ticker, description, imageUrl }),
-  )
+  reasons.push(...screenLaunchMetadata({ name, ticker, description, imageUrl }))
 
   if (creatorWallet) {
     try {
@@ -122,21 +139,26 @@ export async function POST(req: Request) {
 
   if (reasons.length > 0) {
     return NextResponse.json(
-      { blocked: true, reasons, compliance: LAUNCH_COMPLIANCE },
+      { blocked: true, reasons, compliance: LAUNCH_COMPLIANCE, trackingId },
       { status: 403 },
     )
   }
 
   if (curve.ok !== true) {
     return NextResponse.json(
-      { blocked: true, reasons: ['Invalid curve parameters'], compliance: LAUNCH_COMPLIANCE },
+      {
+        blocked: true,
+        reasons: ['Invalid curve parameters'],
+        compliance: LAUNCH_COMPLIANCE,
+        trackingId,
+      },
       { status: 403 },
     )
   }
 
-  const curveParams = curve.params
-
-  if (!process.env.LAUNCHLAB_PLATFORM_ID?.trim()) {
+  try {
+    getPlatformId()
+  } catch {
     return NextResponse.json(
       {
         blocked: true,
@@ -144,6 +166,7 @@ export async function POST(req: Request) {
           'LAUNCHLAB_PLATFORM_ID not configured — operator must run scripts/create-platform.ts first',
         ],
         compliance: LAUNCH_COMPLIANCE,
+        trackingId,
       },
       { status: 503 },
     )
@@ -156,25 +179,38 @@ export async function POST(req: Request) {
       description,
       imageUrl,
       creatorWallet,
-      curve: curveParams,
+      curve: curve.params,
+      website: body.website,
+      twitter: body.twitter,
+      telegram: body.telegram,
+      discord: body.discord,
+    })
+
+    const feeEstimate = await estimateLaunchFees({
+      creatorWallet,
+      metadataProvider: isPinataConfigured() ? 'ipfs' : 'self-hosted',
     })
 
     return NextResponse.json(
       {
         blocked: false,
         ...built,
+        feeEstimate,
+        trackingId,
         compliance: LAUNCH_COMPLIANCE,
       },
       { headers: { 'cache-control': 'no-store' } },
     )
   } catch (e) {
-    return NextResponse.json(
+    const code = classifyLaunchError(e)
+    const { body: err, status } = launchErrorResponse(
+      code === 'UNKNOWN' ? 'UNKNOWN' : code,
       {
-        error: 'Failed to build launch transaction',
+        trackingId,
         detail: e instanceof Error ? e.message : String(e),
         compliance: LAUNCH_COMPLIANCE,
       },
-      { status: 502 },
     )
+    return NextResponse.json(err, { status })
   }
 }

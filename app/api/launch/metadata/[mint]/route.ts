@@ -20,16 +20,26 @@ export async function GET(
     return NextResponse.json({ error: 'metadata not found' }, { status: 404 })
   }
 
+  const extensions: Record<string, string> = {
+    platform: 'CryptoCheck',
+    mint: meta.mint,
+  }
+  if (meta.website) extensions.website = meta.website
+  if (meta.twitter) extensions.twitter = meta.twitter
+  if (meta.telegram) extensions.telegram = meta.telegram
+  if (meta.discord) extensions.discord = meta.discord
+  if (meta.checksumSha256) extensions.checksumSha256 = meta.checksumSha256
+
   return NextResponse.json(
     {
       name: meta.name,
       symbol: meta.symbol,
       description: meta.description,
       image: meta.image,
-      extensions: {
-        platform: 'CryptoCheck',
-        mint: meta.mint,
-      },
+      ...(meta.external_url || meta.website
+        ? { external_url: meta.external_url || meta.website }
+        : {}),
+      extensions,
     },
     {
       headers: {

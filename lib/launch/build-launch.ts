@@ -18,6 +18,11 @@ import { getPlatformId, getRpcUrl, launchCluster, launchProgramId, siteBaseUrl }
 import type { ResolvedCurveParams } from './curve-params'
 import { initSdk } from './raydium-sdk'
 import { stashLaunchMetadata } from './metadata-store'
+import {
+  isPinataConfigured,
+  pinLaunchImageIfDataUrl,
+  pinLaunchMetadataJson,
+} from './metadata-pinata'
 
 function serializeTx(tx: VersionedTransaction | Transaction): string {
   if (tx instanceof VersionedTransaction) {
@@ -28,11 +33,41 @@ function serializeTx(tx: VersionedTransaction | Transaction): string {
   ).toString('base64')
 }
 
+function sanitizeSocialUrl(raw: string | undefined, kinds: 'http' | 'twitter' | 'telegram' | 'discord'): string | undefined {
+  const v = (raw ?? '').trim()
+  if (!v) return undefined
+  try {
+    if (kinds === 'twitter') {
+      if (/^@?[A-Za-z0-9_]{1,15}$/.test(v)) return `https://twitter.com/${v.replace(/^@/, '')}`
+      const u = new URL(v.startsWith('http') ? v : `https://${v}`)
+      if (!/twitter\.com|x\.com$/i.test(u.hostname.replace(/^www\./, ''))) return undefined
+      return u.toString()
+    }
+    if (kinds === 'telegram') {
+      if (/^@?[A-Za-z0-9_]{5,32}$/.test(v)) return `https://t.me/${v.replace(/^@/, '')}`
+      const u = new URL(v.startsWith('http') ? v : `https://${v}`)
+      if (!/t\.me$/i.test(u.hostname.replace(/^www\./, ''))) return undefined
+      return u.toString()
+    }
+    if (kinds === 'discord') {
+      const u = new URL(v.startsWith('http') ? v : `https://${v}`)
+      if (!/discord\.gg|discord\.com$/i.test(u.hostname.replace(/^www\./, ''))) return undefined
+      return u.toString()
+    }
+    const u = new URL(v.startsWith('http') ? v : `https://${v}`)
+    if (u.protocol !== 'https:') return undefined
+    return u.toString()
+  } catch {
+    return undefined
+  }
+}
+
 export type BuildLaunchResult = {
   mint: string
   poolId: string
   platformId: string
   transactions: string[]
+  metadataUri: string
   params: {
     name: string
     ticker: string
@@ -57,22 +92,73 @@ export async function buildLaunchTransactions(input: {
   imageUrl: string
   creatorWallet: string
   curve: ResolvedCurveParams
+  website?: string
+  twitter?: string
+  telegram?: string
+  discord?: string
 }): Promise<BuildLaunchResult> {
   const platformId = getPlatformId()
   const programId = launchProgramId()
   const creator = new PublicKey(input.creatorWallet)
   const mintPair = Keypair.generate()
   const mintA = mintPair.publicKey
+  const mintStr = mintA.toBase58()
+
+  const website = sanitizeSocialUrl(input.website, 'http')
+  const twitter = sanitizeSocialUrl(input.twitter, 'twitter')
+  const telegram = sanitizeSocialUrl(input.telegram, 'telegram')
+  const discord = sanitizeSocialUrl(input.discord, 'discord')
+
+  let image = input.imageUrl
+  let metadataUri = `${siteBaseUrl()}/api/launch/metadata/${mintStr}`
+  let checksumSha256: string | undefined
+
+  if (isPinataConfigured()) {
+    try {
+      image = await pinLaunchImageIfDataUrl(input.imageUrl)
+      const pinned = await pinLaunchMetadataJson({
+        name: input.name,
+        symbol: input.ticker,
+        description: input.description,
+        image,
+        external_url: website,
+        extensions: {
+          platform: 'CryptoCheck',
+          mint: mintStr,
+          ...(twitter ? { twitter } : {}),
+          ...(telegram ? { telegram } : {}),
+          ...(discord ? { discord } : {}),
+          ...(website ? { website } : {}),
+        },
+      })
+      metadataUri = pinned.uri
+      checksumSha256 = pinned.checksumSha256
+    } catch (e) {
+      console.warn(
+        '[build-launch] Pinata upload failed — falling back to self-hosted URI:',
+        e instanceof Error ? e.message : e,
+      )
+    }
+  }
 
   await stashLaunchMetadata({
-    mint: mintA.toBase58(),
+    mint: mintStr,
     name: input.name,
     symbol: input.ticker,
     description: input.description,
-    image: input.imageUrl,
+    image,
+    external_url: website,
+    website,
+    twitter,
+    telegram,
+    discord,
+    metadataUri,
+    checksumSha256,
   })
 
-  const uri = `${siteBaseUrl()}/api/launch/metadata/${mintA.toBase58()}`
+  const uri = metadataUri.startsWith('ipfs://')
+    ? metadataUri
+    : `${siteBaseUrl()}/api/launch/metadata/${mintStr}`
   const configId = getPdaLaunchpadConfigId(programId, NATIVE_MINT, 0, 0).publicKey
 
   const raydium = await initSdk({
@@ -134,10 +220,11 @@ export async function buildLaunchTransactions(input: {
   const solTarget = input.curve.totalFundRaisingB.toNumber() / 1e9
 
   return {
-    mint: mintA.toBase58(),
+    mint: mintStr,
     poolId,
     platformId: platformId.toBase58(),
     transactions: serialized,
+    metadataUri: uri,
     params: {
       name: input.name,
       ticker: input.ticker,
