@@ -262,12 +262,21 @@
   display: flex;
   min-height: 0;
   min-width: 0;
+  background: #ffffff;
 }
 .tit-area-center {
   grid-area: center;
+  background: var(--tit-bg-1);
+  padding: 16px;
+  min-width: 0;
+  min-height: 0;
 }
 .tit-area-coach {
   grid-area: coach;
+  background: #ffffff;
+  border-left: 1px solid var(--tit-border);
+  min-width: 0;
+  min-height: 0;
 }
 .tit-area-bottom {
   display: none;
