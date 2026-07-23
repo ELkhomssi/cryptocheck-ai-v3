@@ -125,12 +125,26 @@
 
 @media (min-width: 2560px) {
   :root {
-    --tit-left-panel: 320px;
-    --tit-right-panel: min(440px, 24vw);
-    --tit-topbar: 52px;
+    --tit-left-panel: 340px;
+    --tit-right-panel: min(400px, 22vw);
+    --tit-topbar: 56px;
+    --tit-ticker: 32px;
     --tit-chart-header-h: 56px;
     --tit-bottom-strip: 0px;
-    --tit-icon-rail: 220px;
+    --tit-icon-rail: 240px;
+    --tit-row-h: 52px;
+  }
+}
+
+/* Ultra-wide / 4K desks */
+@media (min-width: 3840px) {
+  :root {
+    --tit-icon-rail: 260px;
+    --tit-right-panel: min(420px, 18vw);
+    --tit-topbar: 60px;
+    --tit-ticker: 34px;
+    --tit-sp-3: 20px;
+    --tit-sp-4: 28px;
   }
 }
 
@@ -4694,5 +4708,158 @@
 @media (prefers-reduced-motion: reduce) {
   .tit-ticker-track {
     animation: none;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   4K / retina quality pass
+   ═══════════════════════════════════════════ */
+
+.tit-shell {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'ss01' 0, 'tnum' 1;
+  backface-visibility: hidden;
+}
+
+.tit-shell img,
+.tit-shell svg,
+.tit-shell canvas {
+  image-rendering: -webkit-optimize-contrast;
+  shape-rendering: geometricPrecision;
+}
+
+/* Hairline borders on retina — reads sharper than 1px at 2x DPR */
+@media (min-resolution: 2dppx) {
+  .tit-rail,
+  .tit-topbar,
+  .tit-ticker,
+  .tit-port-hero,
+  .tit-port-table-card,
+  .tit-port-metric-card,
+  .tit-port-side {
+    border-color: color-mix(in srgb, var(--tit-border) 85%, transparent);
+  }
+
+  .tit-rail-item.is-active {
+    border-left-width: 2.5px;
+  }
+}
+
+.tit-rail-name {
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.tit-rail-sub {
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+}
+
+.tit-rail-item {
+  font-size: 13.5px;
+  letter-spacing: -0.005em;
+}
+
+.tit-port-hero-value {
+  font-size: clamp(36px, 2.4vw, 48px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-rendering: geometricPrecision;
+}
+
+.tit-port-holdings-table thead th {
+  font-size: 11px;
+  letter-spacing: 0.07em;
+}
+
+.tit-port-holdings-table tbody td {
+  font-size: 13.5px;
+}
+
+.tit-tick {
+  font-size: 12px;
+}
+
+@media (min-width: 2560px) {
+  .tit-shell {
+    font-size: 15px;
+  }
+
+  .tit-port-main {
+    padding: 32px 36px 48px;
+  }
+
+  .tit-port-page-head h1 {
+    font-size: 26px;
+  }
+
+  .tit-port-hero {
+    padding: 28px 28px 0;
+  }
+
+  .tit-port-hero-chart {
+    height: 180px;
+  }
+
+  .tit-port-metrics {
+    gap: 14px;
+  }
+
+  .tit-port-metric-card .mv {
+    font-size: 19px;
+  }
+
+  .tit-port-side {
+    width: 360px;
+    padding: 24px 20px 36px;
+  }
+
+  .tit-port-perf-body {
+    padding: 22px;
+  }
+
+  .tit-port-perf-body > .relative,
+  .tit-port-perf-body > div[style*='240px'] {
+    min-height: 280px;
+  }
+}
+
+@media (min-width: 3840px) {
+  .tit-shell {
+    font-size: 16px;
+  }
+
+  .tit-port-main {
+    padding: 40px 48px 56px;
+    max-width: 2200px;
+  }
+
+  .tit-port-page-head h1 {
+    font-size: 30px;
+  }
+
+  .tit-port-hero-value {
+    font-size: 56px;
+  }
+
+  .tit-port-hero-chart {
+    height: 220px;
+  }
+
+  .tit-port-metrics {
+    gap: 16px;
+  }
+
+  .tit-port-holdings-table thead th,
+  .tit-port-holdings-table tbody td {
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  .tit-port-side {
+    width: 400px;
   }
 }

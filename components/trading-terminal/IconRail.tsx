@@ -4,14 +4,10 @@ import type { LucideIcon } from 'lucide-react'
 import {
   Bell,
   Brain,
-  Fish,
   HelpCircle,
   History,
   LayoutDashboard,
-  Radar,
-  ScanSearch,
   Settings,
-  Sparkles,
   Star,
 } from 'lucide-react'
 import { useSolana } from '@/components/SolanaProvider'
@@ -40,10 +36,6 @@ const PRIMARY: { id: TerminalPane; icon: LucideIcon; label: string }[] = [
 ]
 
 const SYSTEM: { id: TerminalPane; icon: LucideIcon; label: string }[] = [
-  { id: 'charts', icon: ScanSearch, label: 'Scanner' },
-  { id: 'intel', icon: Radar, label: 'Market' },
-  { id: 'whale', icon: Fish, label: 'Whales' },
-  { id: 'opportunities', icon: Sparkles, label: 'Alpha' },
   { id: 'settings', icon: Settings, label: 'Settings' },
   { id: 'history', icon: History, label: 'History' },
   { id: 'help', icon: HelpCircle, label: 'Help' },
@@ -76,7 +68,7 @@ function RailButton({
       onClick={() => onSelect(id)}
       className={`tit-rail-item${active ? ' is-active' : ''}`}
     >
-      <Icon className="h-4 w-4 shrink-0" strokeWidth={active ? 1.8 : 1.6} />
+      <Icon className="h-4 w-4 shrink-0" strokeWidth={active ? 1.85 : 1.55} />
       <span>{label}</span>
     </button>
   )
@@ -85,12 +77,7 @@ function RailButton({
 /** Branded sidebar — CRYPTOCHECK AI gold HTML spec. */
 export function IconRail({ active, onSelect }: Props) {
   const { isConnected, shortAddr, walletAddress } = useSolana()
-  const railActive =
-    active === 'discover'
-      ? 'opportunities'
-      : active === 'coach'
-        ? 'charts'
-        : active
+  const railActive = active === 'discover' ? 'opportunities' : active
 
   const initials =
     isConnected && (shortAddr || walletAddress)
@@ -114,11 +101,7 @@ export function IconRail({ active, onSelect }: Props) {
           <RailButton
             key={item.id}
             {...item}
-            active={
-              railActive === item.id ||
-              (item.id === 'alerts' && active === 'intel') ||
-              (item.id === 'charts' && active === 'coach')
-            }
+            active={railActive === item.id}
             onSelect={onSelect}
           />
         ))}
@@ -129,11 +112,7 @@ export function IconRail({ active, onSelect }: Props) {
           <RailButton
             key={item.id}
             {...item}
-            active={
-              railActive === item.id ||
-              (item.id === 'alerts' && active === 'intel') ||
-              (item.id === 'charts' && active === 'coach')
-            }
+            active={railActive === item.id}
             onSelect={onSelect}
           />
         ))}
