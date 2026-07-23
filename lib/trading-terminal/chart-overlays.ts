@@ -71,7 +71,7 @@ function intelToMark(e: IntelEvent, times: number[]): ChartEventMark | null {
         time: t,
         kind: 'smart_money_buy',
         label: 'SM',
-        color: '#00D4FF',
+        color: '#3B82F6',
         position: 'belowBar',
         shape: 'arrowUp',
       }
@@ -80,7 +80,7 @@ function intelToMark(e: IntelEvent, times: number[]): ChartEventMark | null {
         time: t,
         kind: 'smart_money_sell',
         label: 'SM',
-        color: '#FF8A3D',
+        color: '#F59E0B',
         position: 'aboveBar',
         shape: 'arrowDown',
       }
@@ -89,7 +89,7 @@ function intelToMark(e: IntelEvent, times: number[]): ChartEventMark | null {
         time: t,
         kind: 'whale',
         label: 'WHALE',
-        color: '#29B6F6',
+        color: '#60A5FA',
         position: 'belowBar',
         shape: 'circle',
       }
@@ -98,7 +98,7 @@ function intelToMark(e: IntelEvent, times: number[]): ChartEventMark | null {
         time: t,
         kind: 'large_buy',
         label: 'BUY',
-        color: '#00E676',
+        color: '#22C55E',
         position: 'belowBar',
         shape: 'arrowUp',
       }
@@ -107,7 +107,7 @@ function intelToMark(e: IntelEvent, times: number[]): ChartEventMark | null {
         time: t,
         kind: 'large_sell',
         label: 'SELL',
-        color: '#FF5252',
+        color: '#EF4444',
         position: 'aboveBar',
         shape: 'arrowDown',
       }
@@ -116,7 +116,7 @@ function intelToMark(e: IntelEvent, times: number[]): ChartEventMark | null {
         time: t,
         kind: 'risk',
         label: 'RISK',
-        color: '#FFC857',
+        color: '#F59E0B',
         position: 'aboveBar',
         shape: 'square',
       }
@@ -132,7 +132,7 @@ function structureToMark(l: StructureLabel): ChartEventMark {
     time: l.time,
     kind: 'structure',
     label: l.text,
-    color: bosLike ? (bull ? '#00E676' : '#FF5252') : '#9AA4B2',
+    color: bosLike ? (bull ? '#22C55E' : '#EF4444') : '#7C8796',
     position: bull || l.kind === 'HH' || l.kind === 'LH' ? 'aboveBar' : 'belowBar',
     shape: bosLike ? (bull ? 'arrowUp' : 'arrowDown') : 'circle',
   }
@@ -154,7 +154,7 @@ function buildZones(args: {
       id: 'liq-high',
       price: structure.lastSwingHigh.price,
       title: 'Liquidity · high',
-      color: 'rgba(41,182,246,0.85)',
+      color: 'rgba(59,130,246,0.75)',
       lineStyle: 'dashed',
       lineWidth: 1,
     })
@@ -164,7 +164,7 @@ function buildZones(args: {
       id: 'liq-low',
       price: structure.lastSwingLow.price,
       title: 'Liquidity · low',
-      color: 'rgba(41,182,246,0.85)',
+      color: 'rgba(59,130,246,0.75)',
       lineStyle: 'dashed',
       lineWidth: 1,
     })
@@ -188,7 +188,7 @@ function buildZones(args: {
         id: 'conviction',
         price: last.close,
         title: `AI conviction ${conviction}`,
-        color: 'rgba(0,212,255,0.9)',
+        color: 'rgba(59,130,246,0.85)',
         lineStyle: 'solid',
         lineWidth: 2,
       })
@@ -196,7 +196,7 @@ function buildZones(args: {
         id: 'conviction-band',
         price: last.close - pad,
         title: 'Conviction zone',
-        color: 'rgba(0,230,118,0.45)',
+        color: 'rgba(34,197,94,0.4)',
         lineStyle: 'dotted',
         lineWidth: 1,
         axisLabelVisible: false,
@@ -212,7 +212,7 @@ function buildZones(args: {
         id: 'risk',
         price: structure.lastSwingLow?.price ?? last.low * 0.98,
         title: `Risk ${riskScore}`,
-        color: 'rgba(255,82,82,0.85)',
+        color: 'rgba(239,68,68,0.8)',
         lineStyle: 'dashed',
         lineWidth: 2,
       })
@@ -221,7 +221,7 @@ function buildZones(args: {
         id: 'risk-struct',
         price: structure.lastSwingHigh.price,
         title: 'Risk · structure',
-        color: 'rgba(255,200,87,0.75)',
+        color: 'rgba(245,158,11,0.7)',
         lineStyle: 'dotted',
         lineWidth: 1,
       })
@@ -231,7 +231,7 @@ function buildZones(args: {
       id: 'risk-struct',
       price: structure.lastSwingHigh.price,
       title: 'Risk · structure',
-      color: 'rgba(255,200,87,0.75)',
+      color: 'rgba(245,158,11,0.7)',
       lineStyle: 'dotted',
       lineWidth: 1,
     })
@@ -271,7 +271,7 @@ export function buildChartOverlays(input: {
       time: nearestTime(times, Math.floor(t.time)),
       kind: t.side === 'buy' ? 'trade_buy' : 'trade_sell',
       label: t.label ?? (t.side === 'buy' ? 'B' : 'S'),
-      color: t.side === 'buy' ? '#00E676' : '#FF5252',
+      color: t.side === 'buy' ? '#22C55E' : '#EF4444',
       position: t.side === 'buy' ? 'belowBar' : 'aboveBar',
       shape: t.side === 'buy' ? 'arrowUp' : 'arrowDown',
     })

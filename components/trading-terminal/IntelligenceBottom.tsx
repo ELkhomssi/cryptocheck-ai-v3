@@ -62,7 +62,7 @@ export function ConvictionRadar() {
                 onClick={() => onCard(o.mint, o.symbol)}
                 className={`tit-intel-card flex min-h-0 flex-col justify-center px-3 py-2 text-left ${
                   active
-                    ? '!border-[var(--tit-accent)]/50 !bg-[var(--tit-accent)]/8 shadow-[0_0_20px_rgba(0,212,255,0.12)]'
+                    ? '!border-[var(--tit-border-strong)] !bg-[var(--tit-bg-3)]'
                     : ''
                 }`}
               >

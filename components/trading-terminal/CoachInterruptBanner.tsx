@@ -30,8 +30,8 @@ export function CoachInterruptBanner({
     <div
       className={`mx-4 mt-3 rounded-[10px] border px-3 py-2.5 ${
         isHard
-          ? 'border-[var(--tit-neg)]/45 bg-[var(--tit-neg)]/10 shadow-[0_0_20px_rgba(255,82,82,0.12)]'
-          : 'border-[var(--tit-warn)]/40 bg-[var(--tit-warn)]/8 shadow-[0_0_20px_rgba(255,200,87,0.1)]'
+          ? 'border-[var(--tit-neg)]/45 bg-[var(--tit-neg)]/10'
+          : 'border-[var(--tit-warn)]/40 bg-[var(--tit-warn)]/8'
       }`}
       role="alertdialog"
       aria-label="Coach pre-trade interrupt"

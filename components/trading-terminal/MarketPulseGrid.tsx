@@ -22,11 +22,7 @@ function toneClass(tone: MarketPulseCard['tone']): string {
   return 'text-[var(--tit-text-1)]'
 }
 
-function toneGlow(tone: MarketPulseCard['tone']): string {
-  if (tone === 'pos') return 'shadow-[0_0_24px_rgba(0,230,118,0.08)]'
-  if (tone === 'neg') return 'shadow-[0_0_24px_rgba(255,82,82,0.08)]'
-  if (tone === 'warn') return 'shadow-[0_0_24px_rgba(255,200,87,0.08)]'
-  if (tone === 'info') return 'shadow-[0_0_24px_rgba(41,182,246,0.08)]'
+function toneGlow(_tone: MarketPulseCard['tone']): string {
   return ''
 }
 

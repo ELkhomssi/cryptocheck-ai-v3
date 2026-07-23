@@ -170,44 +170,44 @@ export function PrimaryChart() {
   const barUp = ohlc ? ohlc.close >= ohlc.open : null
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[12px] border border-[var(--tit-border)] bg-[rgba(5,7,10,0.72)] shadow-[0_8px_40px_rgba(0,0,0,0.35)]">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--tit-bg-0)]">
       {/* Chart header */}
-      <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-[var(--tit-border)] bg-[rgba(11,17,24,0.65)] px-3 py-2.5">
+      <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-[var(--tit-border)] bg-[var(--tit-bg-1)] px-5 py-3">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="tit-display truncate text-[1.1rem] font-semibold tracking-tight text-[var(--tit-text-0)]">
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="tit-display truncate text-[1.25rem] font-semibold tracking-tight text-[var(--tit-text-0)]">
               {symbol ? `${symbol}/SOL` : 'Select symbol'}
             </h2>
             {symbol ? (
-              <span className="tit-mono text-[0.55rem] uppercase tracking-[0.12em] text-[var(--tit-text-2)]">
+              <span className="tit-mono text-[0.625rem] uppercase tracking-[0.12em] text-[var(--tit-text-2)]">
                 Primary
               </span>
             ) : null}
             {bias !== 'neutral' ? (
               <span
-                className={`tit-mono rounded-md border px-1.5 py-0.5 text-[0.55rem] font-bold uppercase tracking-wide ${
+                className={`tit-mono rounded-[6px] px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide ${
                   bias === 'bullish'
-                    ? 'border-[var(--tit-pos)]/35 bg-[var(--tit-pos)]/10 text-[var(--tit-pos)]'
-                    : 'border-[var(--tit-neg)]/35 bg-[var(--tit-neg)]/10 text-[var(--tit-neg)]'
+                    ? 'bg-[var(--tit-pos)]/10 text-[var(--tit-pos)]'
+                    : 'bg-[var(--tit-neg)]/10 text-[var(--tit-neg)]'
                 }`}
               >
                 {bias === 'bullish' ? 'Bullish structure' : 'Bearish structure'}
               </span>
             ) : null}
           </div>
-          <p className="tit-mono mt-0.5 text-[0.55rem] text-[var(--tit-text-2)]">
+          <p className="tit-mono mt-1 text-[0.625rem] text-[var(--tit-text-2)]">
             {overlays?.methodNote ?? 'Awaiting series'}
           </p>
         </div>
 
         {lastPrice != null ? (
           <div className="ml-1">
-            <p className="tit-mono text-[1.25rem] font-bold leading-none text-[var(--tit-text-0)]">
+            <p className="tit-mono text-[1.5rem] font-semibold leading-none text-[var(--tit-text-0)]">
               ${fmtPx(lastPrice)}
             </p>
             {changePct != null ? (
               <p
-                className={`tit-mono mt-0.5 text-[0.72rem] font-semibold ${
+                className={`tit-mono mt-1 text-[0.8125rem] font-semibold ${
                   changePct >= 0 ? 'text-[var(--tit-pos)]' : 'text-[var(--tit-neg)]'
                 }`}
               >
@@ -221,10 +221,8 @@ export function PrimaryChart() {
         {/* Crosshair OHLC HUD */}
         {ohlc ? (
           <div
-            className={`tit-mono hidden items-center gap-3 rounded-md border px-2.5 py-1.5 text-[0.62rem] lg:flex ${
-              barUp
-                ? 'border-[var(--tit-pos)]/25 bg-[var(--tit-pos)]/8'
-                : 'border-[var(--tit-neg)]/25 bg-[var(--tit-neg)]/8'
+            className={`tit-mono hidden items-center gap-3 rounded-[6px] bg-[var(--tit-bg-2)] px-3 py-2 text-[0.6875rem] lg:flex ${
+              barUp ? 'text-[var(--tit-pos)]' : 'text-[var(--tit-neg)]'
             }`}
           >
             <span>
@@ -260,9 +258,9 @@ export function PrimaryChart() {
               key={t}
               type="button"
               onClick={() => setTf(t)}
-              className={`tit-mono rounded-md px-2 py-1 text-[0.62rem] font-semibold transition-colors ${
+              className={`tit-mono rounded-[6px] px-2.5 py-1.5 text-[0.6875rem] font-semibold transition-colors duration-[var(--tit-motion)] ${
                 tf === t
-                  ? 'bg-[var(--tit-accent)]/15 text-[var(--tit-accent-bright)] ring-1 ring-[var(--tit-accent)]/35'
+                  ? 'bg-[var(--tit-bg-3)] text-[var(--tit-text-0)]'
                   : 'text-[var(--tit-text-2)] hover:bg-white/[0.04] hover:text-[var(--tit-text-0)]'
               }`}
             >
@@ -273,7 +271,7 @@ export function PrimaryChart() {
 
         <button
           type="button"
-          className="rounded-md p-1.5 text-[var(--tit-text-2)] transition-colors hover:bg-white/[0.04] hover:text-[var(--tit-accent)] disabled:opacity-40"
+          className="rounded-[6px] p-2 text-[var(--tit-text-2)] transition-colors duration-[var(--tit-motion)] hover:bg-white/[0.04] hover:text-[var(--tit-text-0)] disabled:opacity-40"
           aria-label="Add to watchlist"
           disabled={!mint}
           onClick={() => {
@@ -282,7 +280,7 @@ export function PrimaryChart() {
           }}
         >
           <Star
-            className="h-3.5 w-3.5"
+            className="h-4 w-4"
             fill={onList ? 'var(--tit-accent)' : 'none'}
             stroke={onList ? 'var(--tit-accent)' : 'currentColor'}
           />
@@ -290,8 +288,8 @@ export function PrimaryChart() {
       </div>
 
       {/* Overlay legend / toggles */}
-      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--tit-border-subtle)] px-3 py-1.5">
-        <span className="tit-section-title !mr-1">Overlays</span>
+      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--tit-border-subtle)] bg-[var(--tit-bg-0)] px-5 py-2">
+        <span className="tit-section-title !mr-2">Overlays</span>
         {(
           [
             ['structure', 'BOS / CHoCH'],
@@ -303,16 +301,16 @@ export function PrimaryChart() {
             key={key}
             type="button"
             onClick={() => setOverlayToggles((t) => ({ ...t, [key]: !t[key] }))}
-            className={`tit-mono rounded-full border px-2 py-0.5 text-[0.55rem] font-semibold transition-colors ${
+            className={`tit-mono rounded-[6px] px-2.5 py-1 text-[0.625rem] font-semibold transition-colors duration-[var(--tit-motion)] ${
               overlayToggles[key]
-                ? 'border-[var(--tit-accent)]/35 bg-[var(--tit-accent)]/10 text-[var(--tit-accent-bright)]'
-                : 'border-[var(--tit-border)] text-[var(--tit-text-2)]'
+                ? 'bg-[var(--tit-bg-2)] text-[var(--tit-text-0)]'
+                : 'text-[var(--tit-text-2)] hover:text-[var(--tit-text-1)]'
             }`}
           >
             {label}
           </button>
         ))}
-        <span className="tit-mono ml-auto hidden text-[0.5rem] text-[var(--tit-text-2)] sm:inline">
+        <span className="tit-mono ml-auto hidden text-[0.625rem] text-[var(--tit-text-2)] sm:inline">
           Scroll · drag · pinch
         </span>
       </div>
