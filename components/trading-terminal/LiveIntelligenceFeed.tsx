@@ -28,7 +28,7 @@ export function LiveIntelligenceFeed({ events, onSelectToken, methodNote }: Prop
 
   return (
     <aside
-      className="flex h-full min-h-0 flex-col overflow-hidden border-l border-[var(--tit-border)] bg-[rgba(5,7,10,0.55)] backdrop-blur-xl"
+      className="flex h-full min-h-0 flex-col overflow-hidden border-l border-[var(--tit-border)] bg-[var(--tit-bg-1)] backdrop-blur-xl"
       aria-label="Live intelligence feed"
     >
       <div className="flex shrink-0 items-center justify-between border-b border-[var(--tit-border)] px-4 py-3">

@@ -10,7 +10,7 @@ type Props = {
 
 export function MarketIntelStatusBar({ metrics, methodNote }: Props) {
   return (
-    <div className="mi-status-bar flex shrink-0 items-stretch gap-0 overflow-x-auto border-b border-[var(--tit-border)] bg-[rgba(11,17,24,0.85)] backdrop-blur-md">
+    <div className="mi-status-bar flex shrink-0 items-stretch gap-0 overflow-x-auto border-b border-[var(--tit-border)] bg-[rgba(11,17,24,0.85)] ">
       {metrics.map((m) => (
         <div
           key={m.id}

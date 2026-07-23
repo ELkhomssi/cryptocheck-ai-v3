@@ -37,7 +37,7 @@ export function ConvictionRadar() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[rgba(11,17,24,0.55)] px-2 py-1.5 backdrop-blur-sm">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[rgba(11,17,24,0.55)] px-2 py-1.5 ">
       <div className="mb-1.5 flex shrink-0 items-center justify-between px-1">
         <div className="flex items-center gap-2">
           <p className="tit-section-title">Opportunity Radar</p>

@@ -42,18 +42,16 @@ export function PortfolioIntelligenceDesk({
       <header className="tit-port-desk-banner">
         <div>
           <p className="tit-eyebrow">Institutional module</p>
-          <h1 className="tit-port-desk-title">Portfolio Intelligence</h1>
+          <h1 className="tit-port-desk-title">Portfolio Overview</h1>
         </div>
         <p className="tit-port-desk-sub">
-          Risk · exposure · liquidity · whale alignment · health
+          Today&apos;s P&amp;L · exposure · risk · holdings
         </p>
         {bundle.sample ? (
           <span className="tit-sample-tag" title="Demo portfolio intelligence desk">
             sample
           </span>
-        ) : (
-          <span className="tit-port-live-badge">live · awaiting wallet</span>
-        )}
+        ) : null}
         <span className="tit-mono tit-port-method">{bundle.methodNote}</span>
       </header>
 

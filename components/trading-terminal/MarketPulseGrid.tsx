@@ -44,7 +44,7 @@ export function MarketPulseGrid({ cards }: Props) {
             <div className="mb-2 flex items-start justify-between gap-2">
               <p className="tit-section-title !normal-case !tracking-[0.06em]">{c.label}</p>
               <span
-                className={`flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.03] ring-1 ring-white/[0.06] ${toneClass(c.tone)}`}
+                className={`flex h-7 w-7 items-center justify-center rounded-lg bg-black/[0.025] ring-1 ring-black/[0.08] ${toneClass(c.tone)}`}
               >
                 <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
               </span>

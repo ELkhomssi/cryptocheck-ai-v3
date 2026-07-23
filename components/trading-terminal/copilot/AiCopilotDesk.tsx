@@ -68,18 +68,16 @@ export function AiCopilotDesk({ mode }: { mode: TerminalDataMode }) {
       <header className="tit-copilot-desk-banner">
         <div>
           <p className="tit-eyebrow">Institutional module</p>
-          <h1 className="tit-copilot-desk-title">AI Copilot</h1>
+          <h1 className="tit-copilot-desk-title">AI Coach</h1>
         </div>
         <p className="tit-copilot-desk-sub">
-          Central intelligence · scanner · whale · alpha · portfolio · market
+          Ask anything · analyze tokens · review portfolio · market outlook
         </p>
         {seed.sample ? (
           <span className="tit-sample-tag" title="Demo copilot desk">
             sample
           </span>
-        ) : (
-          <span className="tit-copilot-live-badge">live · awaiting engines</span>
-        )}
+        ) : null}
         <span className="tit-mono tit-copilot-method">{seed.methodNote}</span>
       </header>
 

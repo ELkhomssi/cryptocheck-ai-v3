@@ -223,7 +223,7 @@ function ChartSlot({
         ) : null}
         <button
           type="button"
-          className="ml-auto rounded-md p-1 text-[var(--tit-text-2)] transition-colors hover:bg-white/[0.04] hover:text-[var(--tit-accent)]"
+          className="ml-auto rounded-md p-1 text-[var(--tit-text-2)] transition-colors hover:bg-black/[0.03] hover:text-[var(--tit-accent)]"
           aria-label="Add to watchlist"
           disabled={!mint}
           onClick={(e) => {
@@ -236,7 +236,7 @@ function ChartSlot({
         </button>
         <button
           type="button"
-          className="rounded-md p-1 text-[var(--tit-text-2)] transition-colors hover:bg-white/[0.04] hover:text-[var(--tit-text-0)]"
+          className="rounded-md p-1 text-[var(--tit-text-2)] transition-colors hover:bg-black/[0.03] hover:text-[var(--tit-text-0)]"
           aria-label={maximized === index ? 'Restore' : 'Maximize'}
           onClick={(e) => {
             e.stopPropagation()
@@ -251,7 +251,7 @@ function ChartSlot({
         </button>
         <button
           type="button"
-          className="rounded-md p-1 text-[var(--tit-text-2)] transition-colors hover:bg-white/[0.04] hover:text-[var(--tit-text-0)]"
+          className="rounded-md p-1 text-[var(--tit-text-2)] transition-colors hover:bg-black/[0.03] hover:text-[var(--tit-text-0)]"
           aria-label={locked ? 'Unlock chart' : 'Lock chart'}
           onClick={(e) => {
             e.stopPropagation()
@@ -327,7 +327,7 @@ export function ChartGrid() {
         ))}
       </div>
 
-      <div className="mt-1 flex h-7 shrink-0 items-center gap-1.5 rounded-[8px] border border-[var(--tit-border)] bg-[rgba(11,17,24,0.7)] px-1.5 backdrop-blur-sm">
+      <div className="mt-1 flex h-7 shrink-0 items-center gap-1.5 rounded-[8px] border border-[var(--tit-border)] bg-white px-1.5 ">
         <div className="flex items-center gap-0.5" role="group" aria-label="Chart layout">
           {CHART_MODES.map((m) => (
             <button
@@ -340,7 +340,7 @@ export function ChartGrid() {
               className={`tit-mono h-5 w-5 rounded-md text-[0.58rem] font-bold transition-colors ${
                 chartMode === m
                   ? 'bg-[var(--tit-accent)] text-white'
-                  : 'text-[var(--tit-text-2)] hover:bg-white/[0.04] hover:text-[var(--tit-text-0)]'
+                  : 'text-[var(--tit-text-2)] hover:bg-black/[0.03] hover:text-[var(--tit-text-0)]'
               }`}
             >
               {m}
@@ -374,11 +374,11 @@ export function ChartGrid() {
           />
         </button>
         <span className="tit-mono text-[0.52rem] uppercase tracking-wide text-[var(--tit-text-2)]">
-          {dataMode === 'demo' ? 'demo' : 'live'}
+          {dataMode === 'demo' ? 'Series' : 'Live'}
         </span>
         <button
           type="button"
-          className="rounded-md p-1 text-[var(--tit-text-2)] hover:bg-white/[0.04] hover:text-[var(--tit-text-0)]"
+          className="rounded-md p-1 text-[var(--tit-text-2)] hover:bg-black/[0.03] hover:text-[var(--tit-text-0)]"
           aria-label="Maximize chart"
           onClick={() => setMaximized((m) => (m == null ? 0 : null))}
         >

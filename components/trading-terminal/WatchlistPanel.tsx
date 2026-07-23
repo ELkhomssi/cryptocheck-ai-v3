@@ -60,14 +60,14 @@ export function WatchlistPanel() {
 
   return (
     <aside
-      className="flex h-full min-h-0 w-full flex-col overflow-hidden border-r border-[var(--tit-border)] bg-[var(--tit-bg-1)]"
+      className="flex h-full min-h-0 w-full flex-col overflow-hidden border-r border-[var(--tit-border)] bg-white"
       aria-label="Watchlist"
     >
-      <div className="flex shrink-0 items-center gap-2 border-b border-[var(--tit-border)] px-4 py-3.5">
+      <div className="flex shrink-0 items-center gap-2 border-b border-[var(--tit-border)] px-5 py-4">
         <div className="min-w-0 flex-1">
-          <p className="tit-display text-[0.9375rem] font-semibold tracking-tight">Watchlist</p>
-          <p className="tit-mono mt-0.5 text-[0.625rem] uppercase tracking-[0.1em] text-[var(--tit-text-2)]">
-            Desk universe
+          <p className="text-[1rem] font-semibold tracking-tight text-[var(--tit-text-0)]">Watchlist</p>
+          <p className="mt-1 text-[0.75rem] font-medium text-[var(--tit-text-1)]">
+            Markets &amp; starred book
           </p>
         </div>
         <button
@@ -124,7 +124,7 @@ export function WatchlistPanel() {
             className={`tit-mono shrink-0 rounded-[6px] px-2.5 py-1.5 text-[0.6875rem] font-semibold transition-colors duration-[var(--tit-motion)] ${
               l.id === activeWatchlistId
                 ? 'bg-[var(--tit-bg-3)] text-[var(--tit-text-0)]'
-                : 'text-[var(--tit-text-2)] hover:bg-white/[0.04] hover:text-[var(--tit-text-0)]'
+                : 'text-[var(--tit-text-2)] hover:bg-black/[0.03] hover:text-[var(--tit-text-0)]'
             }`}
           >
             {l.name}
@@ -159,7 +159,7 @@ export function WatchlistPanel() {
                       className={`group flex w-full items-center gap-2 rounded-[6px] px-2 py-2.5 transition-colors duration-[var(--tit-motion)] ${
                         activeRow
                           ? 'bg-[var(--tit-bg-3)]'
-                          : 'hover:bg-white/[0.03]'
+                          : 'hover:bg-black/[0.025]'
                       }`}
                     >
                       <button
@@ -208,7 +208,7 @@ export function WatchlistPanel() {
                     className={`flex w-full items-center gap-2 rounded-[6px] px-2 py-2.5 text-left transition-colors duration-[var(--tit-motion)] ${
                       o.mint === focusMint
                         ? 'bg-[var(--tit-bg-3)]'
-                        : 'hover:bg-white/[0.03]'
+                        : 'hover:bg-black/[0.025]'
                     }`}
                   >
                     <span className="tit-mono text-[0.8125rem] font-semibold text-[var(--tit-text-0)]">
@@ -240,7 +240,7 @@ export function WatchlistPanel() {
                     className={`flex w-full items-center gap-2 rounded-[6px] px-2 py-2.5 text-left transition-colors duration-[var(--tit-motion)] ${
                       m.mint === focusMint
                         ? 'bg-[var(--tit-bg-3)]'
-                        : 'hover:bg-white/[0.03]'
+                        : 'hover:bg-black/[0.025]'
                     }`}
                   >
                     <span className="min-w-0 flex-1">
