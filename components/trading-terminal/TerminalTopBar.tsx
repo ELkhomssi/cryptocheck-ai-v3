@@ -67,8 +67,8 @@ export function TerminalTopBar({ onHelp }: { onHelp?: () => void }) {
 
         {isConnected && chipLabel ? (
           <button type="button" className="tit-id-chip" aria-label="Connected wallet">
-            <div className="avatar">{chipLabel.slice(0, 2)}</div>
-            <span>{chipLabel}</span>
+            <div className="avatar tit-num">{chipLabel.slice(0, 2)}</div>
+            <span className="tit-num">{chipLabel}</span>
           </button>
         ) : (
           <button type="button" className="tit-connect-btn" onClick={() => void connect()}>

@@ -270,7 +270,7 @@ export function PortfolioSidePanel({
                 <div className="tit-al-title">{a.title}</div>
                 <div className="tit-al-desc">{a.detail}</div>
               </div>
-              <div className="tit-al-time">{a.age}</div>
+              <div className="tit-al-time tit-num">{a.age}</div>
             </button>
           )
         })}

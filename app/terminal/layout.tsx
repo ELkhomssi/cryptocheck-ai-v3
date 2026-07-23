@@ -18,13 +18,17 @@ const ibmPlexMono = IBM_Plex_Mono({
 export default function TerminalRootLayout({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className={`${inter.variable} ${ibmPlexMono.variable} ${inter.className} antialiased`}
-      style={{
-        fontFamily: 'var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, sans-serif',
-        background: '#F5F6F8',
-        color: '#161A22',
-        minHeight: '100vh',
-      }}
+      className={`${inter.variable} ${ibmPlexMono.variable} ${inter.className} tit-root antialiased`}
+      style={
+        {
+          // Ensure mono variable resolves for all descendants (numbers/prices/%)
+          ['--font-mono' as string]: `${ibmPlexMono.style.fontFamily}, 'IBM Plex Mono', ui-monospace, monospace`,
+          fontFamily: 'var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+          background: '#F5F6F8',
+          color: '#161A22',
+          minHeight: '100vh',
+        } as React.CSSProperties
+      }
     >
       {children}
     </div>

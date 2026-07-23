@@ -107,9 +107,9 @@ export function TerminalTickerTape() {
         className="tit-tick"
         onClick={() => selectMint(m.mint, m.symbol)}
       >
-        <span className="sym">{m.symbol}</span>
-        <span className="pr">${formatPrice(m.priceUsd)}</span>
-        <span className={`chg ${up ? 'up' : 'down'}`}>
+        <span className="sym tit-num">{m.symbol}</span>
+        <span className="pr tit-num">${formatPrice(m.priceUsd)}</span>
+        <span className={`chg tit-num ${up ? 'up' : 'down'}`}>
           {up ? '▲' : '▼'} {Math.abs(m.changePct).toFixed(2)}%
         </span>
       </button>

@@ -102,9 +102,11 @@
   --safe: var(--tit-safe);
   --accent: var(--tit-accent);
   --accent-2: var(--tit-accent-2);
-  --font-mono: var(--font-mono-terminal), 'IBM Plex Mono', ui-monospace, monospace;
+  /* Prefer next/font var when present; always fall back to IBM Plex Mono by name */
+  --font-mono: var(--font-mono-terminal), 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-sans: var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, sans-serif;
   --tit-font-display: var(--font-inter), Inter, -apple-system, sans-serif;
+  --tit-accent-html: #A9782E;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -4164,7 +4166,7 @@
   gap: 8px;
   padding: 5px 10px 5px 5px;
   border: 1px solid var(--tit-border);
-  border-radius: 20px;
+  border-radius: 6px;
   background: var(--tit-bg-3);
   cursor: pointer;
   font: inherit;
@@ -4326,7 +4328,7 @@
 .tit-port-badge-up,
 .tit-port-badge-down {
   padding: 3px 8px;
-  border-radius: 20px;
+  border-radius: 6px;
   font-weight: 600;
   font-family: var(--font-mono);
   font-size: 12px;
@@ -4529,7 +4531,7 @@
 .tit-al-icon {
   width: 30px;
   height: 30px;
-  border-radius: 7px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -5093,4 +5095,171 @@
   padding: 0 4px;
   font-size: 11.5px;
   color: var(--tit-text-2);
+}
+
+/* ═══════════════════════════════════════════
+   SPEC LOCK — mock HTML fidelity (light desk)
+   Typography · brass · 3–6px radius · alerts
+   ═══════════════════════════════════════════ */
+
+.tit-root,
+.tit-shell {
+  --tit-accent: #A9782E;
+  --tit-accent-bright: #8F6423;
+  --tit-accent-soft: rgba(201, 160, 90, 0.10);
+  --tit-accent-soft-2: rgba(201, 160, 90, 0.18);
+  --tit-radius: 3px;
+  --tit-radius-sm: 2px;
+  --tit-radius-lg: 6px;
+}
+
+/* Every price / % / balance — IBM Plex Mono + tabular nums */
+.tit-num,
+.tit-mono,
+.tit-port-hero-value,
+.tit-port-hero-abs,
+.tit-port-badge-up,
+.tit-port-badge-down,
+.tit-port-hstat .v,
+.tit-port-hstat .l,
+.tit-port-metric-card .mv,
+.tit-port-metric-card .ms,
+.tit-port-holdings-table td.num-col,
+.tit-port-holdings-table thead th,
+.tit-port-tab,
+.tit-port-eyebrow,
+.tit-port-alloc span,
+.tit-al-time,
+.tit-tick,
+.tit-tick .sym,
+.tit-tick .pr,
+.tit-tick .chg,
+.tit-kbd,
+.tit-id-chip span,
+.tit-id-chip .avatar,
+.tit-rail-sub,
+.tit-rail-label,
+.tit-rail-avatar,
+.tit-port-axis-row {
+  font-family: var(--font-mono), 'IBM Plex Mono', ui-monospace, monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  letter-spacing: -0.01em;
+}
+
+/* Brass chrome — never black fills for active controls */
+.tit-port-tab.is-active {
+  background: #A9782E !important;
+  color: #12100A !important;
+}
+
+.tit-rail-item.is-active {
+  color: #8F6423 !important;
+  background: rgba(201, 160, 90, 0.10) !important;
+  border-left-color: #A9782E !important;
+}
+
+.tit-connect-btn,
+.tit-ask-send,
+.tit-btn-accent {
+  background: #A9782E !important;
+  color: #12100A !important;
+  border-radius: 3px !important;
+}
+
+.tit-connect-btn:hover,
+.tit-ask-send:hover,
+.tit-btn-accent:hover {
+  background: #8F6423 !important;
+  color: #12100A !important;
+}
+
+.tit-port-i-gold,
+.tit-port-metric-card .mi,
+.tit-ca-icon {
+  background: rgba(201, 160, 90, 0.10) !important;
+  color: #8F6423 !important;
+  border-radius: 6px !important;
+}
+
+.tit-port-alloc-fill {
+  background: #A9782E !important;
+}
+
+/* Radius ceiling 6px (except true circles) */
+.tit-port-hero,
+.tit-port-table-card,
+.tit-port-metric-card,
+.tit-port-connect-banner,
+.tit-coach-action,
+.tit-ask-box,
+.tit-coach-reply,
+.tit-topbar-search,
+.tit-chip,
+.tit-icon-btn,
+.tit-rail-item,
+.tit-port-tabs {
+  border-radius: 6px !important;
+}
+
+.tit-port-tab,
+.tit-kbd,
+.tit-connect-btn,
+.tit-ask-send {
+  border-radius: 3px !important;
+}
+
+.tit-al-icon,
+.tit-port-metric-card .mi,
+.tit-ca-icon {
+  border-radius: 6px !important;
+}
+
+/* AI Alerts — icon | title+desc | timestamp (mock row) */
+.tit-alert-item {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  gap: 10px !important;
+  padding: 11px 4px !important;
+  border-bottom: 1px solid var(--tit-border-subtle) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tit-alert-item .tit-al-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.tit-alert-item .tit-al-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--tit-text-0);
+}
+
+.tit-alert-item .tit-al-desc {
+  font-size: 11.5px;
+  color: var(--tit-text-2);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.tit-alert-item .tit-al-time {
+  margin-left: auto;
+  padding-left: 8px;
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--tit-text-2);
+}
+
+/* Kill leftover SaaS rounding inside the desk */
+.tit-port-mock .rounded-full,
+.tit-port-mock .rounded-xl,
+.tit-port-mock .rounded-2xl,
+.tit-port-mock .rounded-\[14px\],
+.tit-port-mock .rounded-\[18px\],
+.tit-shell .rounded-full:not(.tit-rail-avatar):not(.tit-port-tk-icon):not(.avatar):not(.dot):not(.ping) {
+  border-radius: 6px !important;
 }
