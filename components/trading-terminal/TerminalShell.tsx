@@ -177,6 +177,7 @@ function TerminalWorkspace() {
           <PortfolioIntelligenceDesk
             mode={dataMode}
             watchedMints={watchedMints}
+            signals={allRows}
             onFocusMint={(mint, symbol) => selectMint(mint, symbol)}
             onToggleWatchlist={(holding, currentlyWatched) => {
               if (currentlyWatched) removeFromWatchlist(holding.mint)

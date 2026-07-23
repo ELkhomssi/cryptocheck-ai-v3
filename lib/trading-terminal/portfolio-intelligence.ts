@@ -1,10 +1,13 @@
 /**
  * Portfolio Intelligence Center — personal portfolio intelligence contracts + builders.
- * Demo: labeled SAMPLE desk from DEMO_SEED. Live: empty awaiting wallet — never fabricate.
+ * Demo: labeled SAMPLE desk from DEMO_SEED (tests / explicit env only).
+ * Live: mapped from real `/api/revenue/portfolio` summary — never fabricate.
  */
 
+import type { RevenuePortfolioSummary } from '@/lib/revenue-dashboard/portfolio-mapper'
 import type { TerminalDataMode } from './data/types'
 import { getDemoSeed } from './data/demo-seed'
+import type { LivePortfolioBrain } from './live-portfolio-brain'
 
 export type PortfolioSectorId =
   | 'AI'
@@ -35,6 +38,12 @@ export type PortfolioHolding = {
   liquidityScore: number
   verdict: 'SAFE' | 'CAUTION' | 'DANGER' | null
   sample: boolean
+  /** Live wallet fields when known */
+  amount?: number
+  avgEntryPriceUsd?: number | null
+  currentPriceUsd?: number | null
+  chain?: string
+  estimated?: boolean
 }
 
 export type PortfolioSummary = {
@@ -544,4 +553,142 @@ function buildLiveEmpty(): PortfolioIntelligenceBundle {
 export function buildPortfolioIntelligence(mode: TerminalDataMode): PortfolioIntelligenceBundle {
   if (mode === 'demo') return buildDemoBundle()
   return buildLiveEmpty()
+}
+
+/**
+ * Map live `/api/revenue/portfolio` + brain into the desk bundle.
+ * Only uses measured wallet / scan-gateway fields — never invents prices or PnL.
+ */
+export function buildLivePortfolioFromSummary(
+  summary: RevenuePortfolioSummary | null | undefined,
+  brain: LivePortfolioBrain | null | undefined,
+): PortfolioIntelligenceBundle {
+  if (!summary) return buildLiveEmpty()
+
+  const total = summary.totalValueUsd
+  const holdings: PortfolioHolding[] = summary.positions.map((p) => {
+    const band = riskBand(p.riskScore)
+    return {
+      id: `live-${p.mint}`,
+      mint: p.mint,
+      symbol: p.symbol,
+      name: p.name || p.symbol,
+      valueUsd: p.valueUsd,
+      pnlUsd: p.pnlUsd ?? 0,
+      pnlPct: p.pnlPct ?? 0,
+      weightPct: p.concentrationPct,
+      riskScore: p.riskScore,
+      riskBand: band,
+      sector: sectorForSymbol(p.symbol),
+      liquidityScore: p.verdict === 'DANGER' ? 28 : p.verdict === 'CAUTION' ? 52 : 78,
+      verdict: p.verdict,
+      sample: false,
+      amount: p.balance,
+      avgEntryPriceUsd: p.avgEntryPriceUsd ?? null,
+      currentPriceUsd: p.currentPriceUsd ?? null,
+      chain: 'Solana',
+      estimated: p.estimated,
+    }
+  })
+
+  const high = holdings.filter((h) => h.riskBand === 'high').length
+  const medium = holdings.filter((h) => h.riskBand === 'medium').length
+  const low = holdings.filter((h) => h.riskBand === 'low').length
+  const portfolioRiskScore = clamp(
+    Math.round(
+      holdings.length
+        ? holdings.reduce((s, h) => s + h.riskScore * (h.weightPct / 100), 0)
+        : 0,
+    ),
+    0,
+    100,
+  )
+
+  const healthScore = brain?.health.score ?? clamp(100 - portfolioRiskScore, 0, 100)
+  const healthLabel: PortfolioAiInsights['healthLabel'] =
+    healthScore >= 80
+      ? 'Excellent'
+      : healthScore >= 65
+        ? 'Good'
+        : healthScore >= 45
+          ? 'Fair'
+          : healthScore >= 25
+            ? 'Poor'
+            : holdings.length
+              ? 'Critical'
+              : 'Unavailable'
+
+  const hiddenRisks: HiddenRiskFinding[] = (brain?.threats ?? []).map((t, i) => ({
+    id: `threat-${t.mint}-${i}`,
+    severity: t.severity === 'HIGH' ? 'CRITICAL' : t.severity === 'MED' ? 'WARNING' : 'INFO',
+    title: `${t.symbol} risk`,
+    detail: t.reason,
+    symbol: t.symbol,
+    mint: t.mint,
+    sample: false,
+  }))
+
+  const insights: PortfolioAiInsights = {
+    healthLabel,
+    strengths: (brain?.health.issues ?? []).filter((x) => x.startsWith('No structural')).slice(0, 3),
+    risks: [
+      ...(brain?.riskExposure.flags ?? []),
+      ...(brain?.threats ?? []).slice(0, 3).map((t) => `${t.symbol}: ${t.reason}`),
+    ].slice(0, 6),
+    suggestedActions: (brain?.actionQueue ?? []).slice(0, 5).map((a) => `${a.type} ${a.symbol} — ${a.reason}`),
+    sample: false,
+  }
+  if (!insights.strengths.length && holdings.length) {
+    insights.strengths.push(`${holdings.length} scanned holdings from connected wallet`)
+  }
+  if (!insights.suggestedActions.length) {
+    insights.suggestedActions.push(
+      holdings.length ? 'Review high-risk holdings in the table' : 'Connect wallet to load balances',
+    )
+  }
+
+  const top = holdings[0]
+  return {
+    mode: 'live',
+    summary: {
+      totalValueUsd: total,
+      totalPnlUsd: summary.totalPnlUsd ?? holdings.reduce((s, h) => s + h.pnlUsd, 0),
+      totalPnlPct: summary.totalPnlPct ?? 0,
+      portfolioRiskScore,
+      holdingsCount: summary.holdingCount,
+      smartMoneyAlignment: 0,
+      portfolioHealthScore: healthScore,
+      sample: false,
+    },
+    holdings,
+    allocations: buildAllocations(holdings),
+    risk: {
+      highRiskHoldings: high,
+      mediumRiskHoldings: medium,
+      lowRiskHoldings: low,
+      rugExposure: high > 0 ? clamp(high * 12, 0, 100) : 0,
+      concentrationRisk: top ? Math.round(top.weightPct) : 0,
+      liquidityRisk: Math.round(
+        holdings.length
+          ? holdings.reduce((s, h) => s + (100 - h.liquidityScore) * (h.weightPct / 100), 0)
+          : 0,
+      ),
+      portfolioRiskScore,
+      note: `Live book · ${summary.walletAddress.slice(0, 4)}…${summary.walletAddress.slice(-4)} · scanned via gateway`,
+      sample: false,
+    },
+    alignment: {
+      alignmentScore: 0,
+      sharedHoldings: [],
+      sharedNarratives: [],
+      whaleOverlap: 0,
+      note: 'Smart-money overlap feed not connected — alignment withheld.',
+      sample: false,
+    },
+    hiddenRisks,
+    insights,
+    methodNote: 'portfolio-intelligence-v1 · live wallet + assessRiskByMint',
+    sample: false,
+    liveNote: null,
+  }
 }
