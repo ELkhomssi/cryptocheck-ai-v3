@@ -13,6 +13,7 @@ import { PrimaryChart } from './PrimaryChart'
 import { PortfolioIntelligenceDesk } from './portfolio/PortfolioIntelligenceDesk'
 import { TerminalFocusProvider, useTerminalFocus } from './TerminalFocusProvider'
 import { TerminalStatusBar } from './TerminalStatusBar'
+import { TerminalTickerTape } from './TerminalTickerTape'
 import { TerminalTopBar } from './TerminalTopBar'
 import { WatchlistPanel } from './WatchlistPanel'
 import { WhaleIntelligenceDesk } from './whale/WhaleIntelligenceDesk'
@@ -148,6 +149,7 @@ function TerminalWorkspace() {
   return (
     <div className={shellClassFor(fullDesk)}>
       <TerminalTopBar onHelp={() => setHelpOpen(true)} />
+      <TerminalTickerTape />
       <IconRail
         active={pane === 'discover' ? 'opportunities' : pane}
         onSelect={onPane}

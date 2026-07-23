@@ -12,6 +12,7 @@ import {
   Wallet,
 } from 'lucide-react'
 import type { UnifiedSignal } from '@cryptocheck/signal-contracts'
+import { useSolana } from '@/components/SolanaProvider'
 import {
   appendToSession,
   buildCopilotDesk,
@@ -43,10 +44,10 @@ function toneIcon(tone: AlertItem['tone']) {
 }
 
 function toneClass(tone: AlertItem['tone']) {
-  if (tone === 'pos') return 'bg-[rgba(22,163,74,0.1)] text-[var(--tit-pos)]'
-  if (tone === 'warn') return 'bg-[rgba(217,119,6,0.1)] text-[var(--tit-warn)]'
-  if (tone === 'neg') return 'bg-[rgba(220,38,38,0.1)] text-[var(--tit-neg)]'
-  return 'bg-[rgba(37,99,235,0.1)] text-[var(--tit-accent)]'
+  if (tone === 'pos') return 'bg-[rgba(30,154,99,0.12)] text-[var(--tit-pos)]'
+  if (tone === 'warn') return 'bg-[rgba(169,120,46,0.12)] text-[var(--tit-accent-bright)]'
+  if (tone === 'neg') return 'bg-[rgba(209,74,56,0.12)] text-[var(--tit-neg)]'
+  return 'bg-[rgba(110,95,224,0.12)] text-[var(--tit-chain)]'
 }
 
 function relativeAge(iso?: string | null): string {
@@ -125,11 +126,34 @@ function buildAlerts(
 }
 
 const QUICK = [
-  { label: 'Analyze top holding', icon: Sparkles },
-  { label: 'Review my portfolio', icon: Wallet },
-  { label: "What's trending today?", icon: TrendingUp },
-  { label: 'Market outlook', icon: Newspaper },
+  {
+    label: 'Analyze top holding',
+    sub: 'Get AI insights and risk analysis',
+    icon: Sparkles,
+  },
+  {
+    label: "What's trending today?",
+    sub: 'See top narratives and tokens',
+    icon: TrendingUp,
+  },
+  {
+    label: 'Review my portfolio',
+    sub: 'AI-powered portfolio review',
+    icon: Wallet,
+  },
+  {
+    label: 'Market outlook',
+    sub: 'Get AI market predictions',
+    icon: Newspaper,
+  },
 ] as const
+
+function greetHour(): string {
+  const h = new Date().getHours()
+  if (h < 12) return 'Good morning'
+  if (h < 18) return 'Good afternoon'
+  return 'Good evening'
+}
 
 export function PortfolioSidePanel({
   mode = 'live',
@@ -146,6 +170,7 @@ export function PortfolioSidePanel({
   signals?: UnifiedSignal[]
   onAnalyzeSymbol?: (symbol: string, mint: string) => void
 }) {
+  const { shortAddr, isConnected } = useSolana()
   const alerts = useMemo(
     () => buildAlerts(findings, signals, holdings),
     [findings, signals, holdings],
@@ -159,6 +184,7 @@ export function PortfolioSidePanel({
   const active = sessions.find((s) => s.id === activeId) ?? sessions[0] ?? null
   const lastAi = active?.responses.at(-1)
   const top = holdings[0]
+  const name = isConnected && shortAddr ? shortAddr : 'trader'
 
   const run = (prompt: string) => {
     const text = prompt.trim()
@@ -186,124 +212,106 @@ export function PortfolioSidePanel({
   }
 
   return (
-    <aside className="tit-port-side flex h-full min-h-0 flex-col gap-4 overflow-hidden bg-[var(--tit-bg-1)] p-4">
-      <section className="tit-port-side-card flex min-h-0 flex-1 flex-col overflow-hidden">
-        <header className="mb-3 flex items-center justify-between">
-          <h2 className="text-[0.9375rem] font-semibold text-[var(--tit-text-0)]">AI Alerts</h2>
-          <span className="text-[0.6875rem] font-medium text-[var(--tit-text-2)]">
-            {signals.length ? `${signals.length} feed` : 'Live'}
+    <aside className="tit-port-side flex h-full min-h-0 flex-col overflow-y-auto">
+      <div className="tit-port-panel-head" style={{ padding: '0 4px 14px', border: 'none' }}>
+        <h2>AI Alerts</h2>
+        <span className="tit-port-panel-link">
+          {signals.length ? `${signals.length} feed` : 'View all'}
+        </span>
+      </div>
+
+      <div className="mb-2">
+        {alerts.map((a) => {
+          const Icon = toneIcon(a.tone)
+          return (
+            <button
+              key={a.id}
+              type="button"
+              className="tit-alert-item"
+              disabled={!a.mint}
+              onClick={() => {
+                if (a.mint && a.symbol) onAnalyzeSymbol?.(a.symbol, a.mint)
+              }}
+            >
+              <div className={`tit-al-icon ${toneClass(a.tone)}`}>
+                <Icon className="h-3.5 w-3.5" strokeWidth={1.7} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="tit-al-title">{a.title}</div>
+                <div className="tit-al-desc">{a.detail}</div>
+              </div>
+              <div className="tit-al-time">{a.age}</div>
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="mt-4">
+        <div className="tit-port-panel-head" style={{ padding: '0 4px 0', border: 'none' }}>
+          <h2>AI Coach</h2>
+          <span className="tit-coach-status">
+            <span className="dot" />
+            Online
           </span>
-        </header>
-        <ul className="tit-scroll min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
-          {alerts.map((a) => {
-            const Icon = toneIcon(a.tone)
-            return (
-              <li key={a.id}>
-                <button
-                  type="button"
-                  disabled={!a.mint}
-                  onClick={() => {
-                    if (a.mint && a.symbol) onAnalyzeSymbol?.(a.symbol, a.mint)
-                  }}
-                  className="flex w-full gap-3 rounded-[14px] border border-[var(--tit-border)] bg-white p-3 text-left transition-colors hover:border-[var(--tit-border-strong)] disabled:cursor-default"
-                >
-                  <span
-                    className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] ${toneClass(a.tone)}`}
-                  >
-                    <Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-[0.8125rem] font-semibold text-[var(--tit-text-0)]">
-                        {a.title}
-                      </p>
-                      <span className="shrink-0 text-[0.625rem] font-medium text-[var(--tit-text-2)]">
-                        {a.age}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 line-clamp-2 text-[0.75rem] font-medium leading-snug text-[var(--tit-text-1)]">
-                      {a.detail}
-                    </p>
-                  </div>
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      </section>
-
-      <section className="tit-port-side-card flex min-h-[320px] flex-[1.15] flex-col overflow-hidden">
-        <header className="mb-3">
-          <div className="flex items-center gap-2">
-            <h2 className="text-[0.9375rem] font-semibold text-[var(--tit-text-0)]">AI Coach</h2>
-            <span className="flex items-center gap-1 text-[0.6875rem] font-semibold text-[var(--tit-pos)]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[var(--tit-pos)]" />
-              Online
-            </span>
-          </div>
-          <p className="mt-1 text-[0.8125rem] font-medium text-[var(--tit-text-1)]">
-            Ask about risk, holdings, or markets — live engines only.
-          </p>
-        </header>
-
-        <div className="grid grid-cols-2 gap-2">
-          {QUICK.map((q) => {
-            const Icon = q.icon
-            const prompt =
-              q.label === 'Analyze top holding' && top
-                ? `Analyze ${top.symbol}`
-                : q.label === 'Review my portfolio'
-                  ? 'Review my portfolio'
-                  : q.label
-            return (
-              <button
-                key={q.label}
-                type="button"
-                disabled={pending}
-                onClick={() => {
-                  if (q.label === 'Analyze top holding' && top) {
-                    onAnalyzeSymbol?.(top.symbol, top.mint)
-                  }
-                  run(prompt)
-                }}
-                className="flex items-center gap-2 rounded-[14px] border border-[var(--tit-border)] bg-white px-3 py-2.5 text-left transition-colors hover:border-[var(--tit-border-strong)] hover:bg-[var(--tit-bg-1)] disabled:opacity-50"
-              >
-                <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--tit-accent)]" strokeWidth={1.8} />
-                <span className="text-[0.6875rem] font-semibold leading-tight text-[var(--tit-text-0)]">
-                  {top && q.label === 'Analyze top holding' ? `Analyze ${top.symbol}` : q.label}
-                </span>
-              </button>
-            )
-          })}
         </div>
+        <div className="tit-coach-greet">
+          {greetHour()}, {name}
+        </div>
+        <div className="tit-coach-sub">How can I help you today?</div>
 
-        <div className="tit-scroll mt-3 min-h-0 flex-1 overflow-y-auto rounded-[14px] bg-[var(--tit-bg-1)] p-3">
-          {lastAi ? (
-            <div className="space-y-2">
-              <p className="text-[0.8125rem] font-medium leading-relaxed text-[var(--tit-text-0)]">
-                {lastAi.summary}
-              </p>
-              {lastAi.insufficientData ? (
-                <p className="text-[0.75rem] font-semibold text-[var(--tit-warn)]">
-                  Insufficient live data — answer withheld rather than invented.
-                </p>
-              ) : null}
-              {lastAi.keyFindings[0] ? (
-                <p className="text-[0.75rem] font-medium text-[var(--tit-text-1)]">
-                  {lastAi.keyFindings[0]}
-                </p>
-              ) : null}
-            </div>
-          ) : (
-            <p className="text-[0.8125rem] font-medium leading-relaxed text-[var(--tit-text-1)]">
-              {insights.suggestedActions[0] ??
-                'Ask about risk, holdings, or market conditions. Answers use live desk engines only.'}
+        {QUICK.map((q) => {
+          const Icon = q.icon
+          const title =
+            q.label === 'Analyze top holding' && top ? `Analyze ${top.symbol}` : q.label
+          const prompt =
+            q.label === 'Analyze top holding' && top
+              ? `Analyze ${top.symbol}`
+              : q.label === 'Review my portfolio'
+                ? 'Review my portfolio'
+                : q.label
+          return (
+            <button
+              key={q.label}
+              type="button"
+              disabled={pending}
+              className="tit-coach-action"
+              onClick={() => {
+                if (q.label === 'Analyze top holding' && top) {
+                  onAnalyzeSymbol?.(top.symbol, top.mint)
+                }
+                run(prompt)
+              }}
+            >
+              <div className="tit-ca-icon">
+                <Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
+              </div>
+              <div>
+                <div className="tit-ca-title">{title}</div>
+                <div className="tit-ca-sub">{q.sub}</div>
+              </div>
+            </button>
+          )
+        })}
+
+        {lastAi ? (
+          <div className="mt-3 rounded-[6px] border border-[var(--tit-border)] bg-[var(--tit-bg-3)] p-3">
+            <p className="text-[12.5px] font-medium leading-relaxed text-[var(--tit-text-0)]">
+              {lastAi.summary}
             </p>
-          )}
-        </div>
+            {lastAi.insufficientData ? (
+              <p className="mt-1 text-[11px] font-semibold text-[var(--tit-warn)]">
+                Insufficient live data — answer withheld rather than invented.
+              </p>
+            ) : null}
+          </div>
+        ) : insights.suggestedActions[0] ? (
+          <p className="mt-2 px-1 text-[11.5px] text-[var(--tit-text-2)]">
+            {insights.suggestedActions[0]}
+          </p>
+        ) : null}
 
         <form
-          className="mt-3 flex items-center gap-2"
+          className="tit-ask-box"
           onSubmit={(e) => {
             e.preventDefault()
             run(draft)
@@ -312,23 +320,20 @@ export function PortfolioSidePanel({
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="Ask me anything..."
-            className="h-11 flex-1 rounded-full border border-[var(--tit-border)] bg-white px-4 text-[0.8125rem] font-medium outline-none placeholder:text-[var(--tit-text-2)] focus:border-[rgba(37,99,235,0.35)]"
+            placeholder="Ask me anything…"
             aria-label="Ask AI Coach"
           />
           <button
             type="submit"
             disabled={pending || !draft.trim()}
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--tit-accent)] text-white transition-colors hover:bg-[var(--tit-accent-bright)] disabled:opacity-40"
+            className="tit-ask-send"
             aria-label="Send"
           >
-            <Send className="h-4 w-4" strokeWidth={2} />
+            <Send className="h-3.5 w-3.5" strokeWidth={2.4} />
           </button>
         </form>
-        <p className="mt-2 text-center text-[0.625rem] font-medium text-[var(--tit-text-2)]">
-          AI responses are not financial advice.
-        </p>
-      </section>
+        <div className="tit-ask-note">AI responses are not financial advice.</div>
+      </div>
     </aside>
   )
 }
