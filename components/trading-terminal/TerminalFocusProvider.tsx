@@ -128,8 +128,16 @@ export function TerminalFocusProvider({ children }: { children: ReactNode }) {
   const restoredFocus = useRef<string | null>(null)
 
   useEffect(() => {
-    const stored = readStoredDataMode()
-    if (stored) setDataModeState(stored)
+    // Institutional White Terminal: live-only unless explicitly opted into demo via env.
+    const envMode =
+      typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_TERMINAL_DATA_MODE : undefined
+    if (envMode === 'demo') {
+      const stored = readStoredDataMode()
+      setDataModeState(stored ?? 'demo')
+    } else {
+      setDataModeState('live')
+      persistDataMode('live')
+    }
     const ws = loadWorkspace()
     const wl = loadWatchlists()
     setWatchlists(wl.lists)

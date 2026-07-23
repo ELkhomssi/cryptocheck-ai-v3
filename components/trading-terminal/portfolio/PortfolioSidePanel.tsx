@@ -5,11 +5,13 @@ import {
   AlertTriangle,
   Droplets,
   Fish,
+  Newspaper,
   Send,
   Sparkles,
   TrendingUp,
   Wallet,
 } from 'lucide-react'
+import type { UnifiedSignal } from '@cryptocheck/signal-contracts'
 import {
   appendToSession,
   buildCopilotDesk,
@@ -17,7 +19,6 @@ import {
   runCopilotPrompt,
   type CopilotSession,
 } from '@/lib/trading-terminal/ai-copilot'
-import type { TerminalDataMode } from '@/lib/trading-terminal/data/types'
 import type {
   HiddenRiskFinding,
   PortfolioAiInsights,
@@ -30,6 +31,8 @@ type AlertItem = {
   detail: string
   tone: 'info' | 'pos' | 'warn' | 'neg'
   age: string
+  mint?: string
+  symbol?: string
 }
 
 function toneIcon(tone: AlertItem['tone']) {
@@ -46,91 +49,106 @@ function toneClass(tone: AlertItem['tone']) {
   return 'bg-[rgba(37,99,235,0.1)] text-[var(--tit-accent)]'
 }
 
+function relativeAge(iso?: string | null): string {
+  if (!iso) return 'now'
+  const ms = Date.now() - Date.parse(iso)
+  if (!Number.isFinite(ms) || ms < 0) return 'now'
+  const m = Math.floor(ms / 60_000)
+  if (m < 1) return 'now'
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  return `${Math.floor(h / 24)}d ago`
+}
+
 function buildAlerts(
   findings: HiddenRiskFinding[],
-  insights: PortfolioAiInsights,
+  signals: UnifiedSignal[],
   holdings: PortfolioHolding[],
 ): AlertItem[] {
-  const fromFindings = findings.slice(0, 4).map((f, i) => ({
+  const fromSignals: AlertItem[] = signals.slice(0, 8).map((s) => {
+    const verdict = String(s.verdict ?? '').toUpperCase()
+    const tone: AlertItem['tone'] =
+      verdict.includes('DANGER') || verdict.includes('HIGH') || verdict.includes('BLOCK')
+        ? 'neg'
+        : verdict.includes('CAUTION')
+          ? 'warn'
+          : s.type?.toLowerCase().includes('buy')
+            ? 'pos'
+            : 'info'
+    return {
+      id: s.id,
+      title: s.tokenSymbol || s.label || 'Signal',
+      detail: `${s.type} · ${s.sourceTag}${s.scoreValue != null ? ` · score ${Math.round(s.scoreValue)}` : ''}`,
+      tone,
+      age: relativeAge(s.msgTimestamp || s.ingestTimestamp),
+      mint: s.contractAddress ?? undefined,
+      symbol: s.tokenSymbol || s.label || undefined,
+    }
+  })
+
+  const fromFindings: AlertItem[] = findings.slice(0, 4).map((f) => ({
     id: f.id,
     title: f.title,
     detail: f.detail,
     tone:
-      f.severity === 'CRITICAL'
-        ? ('neg' as const)
-        : f.severity === 'WARNING'
-          ? ('warn' as const)
-          : ('info' as const),
-    age: `${(i + 1) * 2}m ago`,
+      f.severity === 'CRITICAL' ? 'neg' : f.severity === 'WARNING' ? 'warn' : 'info',
+    age: 'live',
+    mint: f.mint ?? undefined,
+    symbol: f.symbol ?? undefined,
   }))
 
-  if (fromFindings.length > 0) return fromFindings
+  const merged = [...fromSignals, ...fromFindings]
+  if (merged.length) return merged.slice(0, 10)
 
-  const best = [...holdings].sort((a, b) => b.pnlPct - a.pnlPct)[0]
-  const worst = [...holdings].sort((a, b) => a.pnlPct - b.pnlPct)[0]
-  const items: AlertItem[] = []
-  if (best) {
-    items.push({
-      id: 'best',
-      title: 'Smart Money Accumulating',
-      detail: `${best.symbol} leads book performance.`,
-      tone: 'pos',
-      age: '2m ago',
-    })
+  if (holdings.length) {
+    return [
+      {
+        id: 'watch',
+        title: 'Monitoring portfolio',
+        detail: `${holdings.length} holdings scanned — waiting for live signal events.`,
+        tone: 'info',
+        age: 'now',
+      },
+    ]
   }
-  if (worst && worst.pnlPct < 0) {
-    items.push({
-      id: 'risk',
-      title: 'High Risk Detected',
-      detail: `${worst.symbol} dragging portfolio risk.`,
-      tone: 'neg',
-      age: '5m ago',
-    })
-  }
-  for (const [i, risk] of insights.risks.slice(0, 2).entries()) {
-    items.push({
-      id: `ins-${i}`,
-      title: 'Liquidity Watch',
-      detail: risk,
-      tone: 'warn',
-      age: `${(i + 3) * 3}m ago`,
-    })
-  }
-  if (items.length === 0) {
-    items.push({
+
+  return [
+    {
       id: 'empty',
-      title: 'Monitoring portfolio',
-      detail: 'Alerts appear when wallet risk signals qualify.',
+      title: 'No live alerts yet',
+      detail: 'Connect a wallet and wait for signal / risk events. Nothing is fabricated.',
       tone: 'info',
       age: 'now',
-    })
-  }
-  return items.slice(0, 5)
+    },
+  ]
 }
 
 const QUICK = [
   { label: 'Analyze top holding', icon: Sparkles },
-  { label: "What's trending today?", icon: TrendingUp },
   { label: 'Review my portfolio', icon: Wallet },
-  { label: 'Market outlook', icon: Fish },
+  { label: "What's trending today?", icon: TrendingUp },
+  { label: 'Market outlook', icon: Newspaper },
 ] as const
 
 export function PortfolioSidePanel({
-  mode,
+  mode = 'live',
   findings,
   insights,
   holdings,
+  signals = [],
   onAnalyzeSymbol,
 }: {
-  mode: TerminalDataMode
+  mode?: 'demo' | 'live'
   findings: HiddenRiskFinding[]
   insights: PortfolioAiInsights
   holdings: PortfolioHolding[]
+  signals?: UnifiedSignal[]
   onAnalyzeSymbol?: (symbol: string, mint: string) => void
 }) {
   const alerts = useMemo(
-    () => buildAlerts(findings, insights, holdings),
-    [findings, insights, holdings],
+    () => buildAlerts(findings, signals, holdings),
+    [findings, signals, holdings],
   )
   const seed = useMemo(() => buildCopilotDesk(mode), [mode])
   const [sessions, setSessions] = useState<CopilotSession[]>(seed.sessions)
@@ -150,12 +168,12 @@ export function PortfolioSidePanel({
         let list = prev
         let sess = list.find((s) => s.id === activeId) ?? list[0]
         if (!sess) {
-          sess = createCopilotSession(mode === 'demo')
+          sess = createCopilotSession(false)
           list = [sess]
         }
         const response = runCopilotPrompt({
           prompt: text,
-          dataMode: mode,
+          dataMode: 'live',
           priorMode: sess.contextMode,
           contextSymbol: sess.contextSymbol ?? top?.symbol,
         })
@@ -172,32 +190,42 @@ export function PortfolioSidePanel({
       <section className="tit-port-side-card flex min-h-0 flex-1 flex-col overflow-hidden">
         <header className="mb-3 flex items-center justify-between">
           <h2 className="text-[0.9375rem] font-semibold text-[var(--tit-text-0)]">AI Alerts</h2>
-          <span className="text-[0.6875rem] font-medium text-[var(--tit-text-2)]">Live</span>
+          <span className="text-[0.6875rem] font-medium text-[var(--tit-text-2)]">
+            {signals.length ? `${signals.length} feed` : 'Live'}
+          </span>
         </header>
         <ul className="tit-scroll min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
           {alerts.map((a) => {
             const Icon = toneIcon(a.tone)
             return (
-              <li
-                key={a.id}
-                className="flex gap-3 rounded-[14px] border border-[var(--tit-border)] bg-white p-3 transition-colors hover:border-[var(--tit-border-strong)]"
-              >
-                <span
-                  className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] ${toneClass(a.tone)}`}
+              <li key={a.id}>
+                <button
+                  type="button"
+                  disabled={!a.mint}
+                  onClick={() => {
+                    if (a.mint && a.symbol) onAnalyzeSymbol?.(a.symbol, a.mint)
+                  }}
+                  className="flex w-full gap-3 rounded-[14px] border border-[var(--tit-border)] bg-white p-3 text-left transition-colors hover:border-[var(--tit-border-strong)] disabled:cursor-default"
                 >
-                  <Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-[0.8125rem] font-semibold text-[var(--tit-text-0)]">{a.title}</p>
-                    <span className="shrink-0 text-[0.625rem] font-medium text-[var(--tit-text-2)]">
-                      {a.age}
-                    </span>
+                  <span
+                    className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] ${toneClass(a.tone)}`}
+                  >
+                    <Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[0.8125rem] font-semibold text-[var(--tit-text-0)]">
+                        {a.title}
+                      </p>
+                      <span className="shrink-0 text-[0.625rem] font-medium text-[var(--tit-text-2)]">
+                        {a.age}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 line-clamp-2 text-[0.75rem] font-medium leading-snug text-[var(--tit-text-1)]">
+                      {a.detail}
+                    </p>
                   </div>
-                  <p className="mt-0.5 line-clamp-2 text-[0.75rem] font-medium leading-snug text-[var(--tit-text-1)]">
-                    {a.detail}
-                  </p>
-                </div>
+                </button>
               </li>
             )
           })}
@@ -214,7 +242,7 @@ export function PortfolioSidePanel({
             </span>
           </div>
           <p className="mt-1 text-[0.8125rem] font-medium text-[var(--tit-text-1)]">
-            How can I help you today?
+            Ask about risk, holdings, or markets — live engines only.
           </p>
         </header>
 
@@ -233,7 +261,9 @@ export function PortfolioSidePanel({
                 type="button"
                 disabled={pending}
                 onClick={() => {
-                  if (q.label === 'Analyze top holding' && top) onAnalyzeSymbol?.(top.symbol, top.mint)
+                  if (q.label === 'Analyze top holding' && top) {
+                    onAnalyzeSymbol?.(top.symbol, top.mint)
+                  }
                   run(prompt)
                 }}
                 className="flex items-center gap-2 rounded-[14px] border border-[var(--tit-border)] bg-white px-3 py-2.5 text-left transition-colors hover:border-[var(--tit-border-strong)] hover:bg-[var(--tit-bg-1)] disabled:opacity-50"
@@ -253,6 +283,11 @@ export function PortfolioSidePanel({
               <p className="text-[0.8125rem] font-medium leading-relaxed text-[var(--tit-text-0)]">
                 {lastAi.summary}
               </p>
+              {lastAi.insufficientData ? (
+                <p className="text-[0.75rem] font-semibold text-[var(--tit-warn)]">
+                  Insufficient live data — answer withheld rather than invented.
+                </p>
+              ) : null}
               {lastAi.keyFindings[0] ? (
                 <p className="text-[0.75rem] font-medium text-[var(--tit-text-1)]">
                   {lastAi.keyFindings[0]}
@@ -262,7 +297,7 @@ export function PortfolioSidePanel({
           ) : (
             <p className="text-[0.8125rem] font-medium leading-relaxed text-[var(--tit-text-1)]">
               {insights.suggestedActions[0] ??
-                'Ask about risk, holdings, or market conditions. Answers use your desk intelligence.'}
+                'Ask about risk, holdings, or market conditions. Answers use live desk engines only.'}
             </p>
           )}
         </div>

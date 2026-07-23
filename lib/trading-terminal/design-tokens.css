@@ -62,7 +62,7 @@
   --tit-motion-slow: 280ms;
   --tit-ease: cubic-bezier(0.215, 0.61, 0.355, 1);
 
-  --tit-icon-rail: 220px;
+  --tit-icon-rail: 260px;
   --tit-left-panel: 300px;
   --tit-right-panel: min(380px, 24vw);
   --tit-footer: 36px;
@@ -117,7 +117,7 @@
   :root {
     --tit-left-panel: 260px;
     --tit-right-panel: min(360px, 28vw);
-    --tit-icon-rail: 200px;
+    --tit-icon-rail: 240px;
     --tit-bottom-strip: 0px;
   }
 }
@@ -129,7 +129,7 @@
     --tit-topbar: 72px;
     --tit-chart-header-h: 56px;
     --tit-bottom-strip: 0px;
-    --tit-icon-rail: 240px;
+    --tit-icon-rail: 280px;
   }
 }
 
