@@ -4863,3 +4863,234 @@
     width: 400px;
   }
 }
+
+/* Picture-1 fidelity helpers */
+.tit-port-connect-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  background: var(--tit-bg-1);
+  border: 1px solid var(--tit-border);
+  border-radius: 6px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  box-shadow: var(--tit-shadow-glow);
+}
+
+.tit-port-connect-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--tit-text-0);
+  margin-top: 4px;
+}
+
+.tit-port-connect-sub {
+  font-size: 12.5px;
+  color: var(--tit-text-2);
+  margin-top: 4px;
+  max-width: 480px;
+}
+
+.tit-port-error {
+  margin-bottom: 16px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--tit-neg) 30%, transparent);
+  background: var(--tit-down-bg);
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tit-neg);
+}
+
+.tit-port-hero-change {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.tit-port-hero-abs {
+  color: var(--tit-text-1);
+  font-family: var(--font-mono);
+}
+
+.tit-port-skel {
+  display: inline-block;
+  background: var(--tit-bg-3);
+  border-radius: 4px;
+  animation: tit-port-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes tit-port-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.tit-port-table-empty {
+  padding: 40px 18px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--tit-text-1);
+}
+
+.tit-port-token-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+}
+
+.tit-port-tk-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+
+.tit-port-tk-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tit-text-0);
+}
+
+.tit-port-tk-sub {
+  display: block;
+  font-size: 11px;
+  color: var(--tit-text-2);
+}
+
+.tit-port-holdings-table td.dim {
+  color: var(--tit-text-1);
+}
+
+.tit-port-holdings-table .pl-up {
+  color: var(--tit-pos);
+}
+.tit-port-holdings-table .pl-down {
+  color: var(--tit-neg);
+}
+
+.tit-port-alloc {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.tit-port-alloc span {
+  color: var(--tit-text-1);
+  font-family: var(--font-mono);
+}
+
+.tit-port-alloc-track {
+  width: 56px;
+  height: 4px;
+  background: var(--tit-bg-3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.tit-port-alloc-fill {
+  height: 100%;
+  background: var(--tit-accent);
+  border-radius: 2px;
+}
+
+.tit-port-axis-row {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--tit-text-2);
+  margin-top: 8px;
+  padding: 0 4px;
+}
+
+.tit-port-hero-chart-svg {
+  display: block;
+  width: 100%;
+}
+
+.tit-port-aside-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px 14px;
+}
+
+.tit-port-aside-head h2 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--tit-text-0);
+}
+
+.tit-port-alerts {
+  margin-bottom: 8px;
+}
+
+.tit-al-pos {
+  background: rgba(30, 154, 99, 0.12);
+  color: var(--tit-pos);
+}
+.tit-al-warn {
+  background: rgba(169, 120, 46, 0.12);
+  color: var(--tit-accent-bright);
+}
+.tit-al-neg {
+  background: rgba(209, 74, 56, 0.12);
+  color: var(--tit-neg);
+}
+.tit-al-info {
+  background: rgba(110, 95, 224, 0.12);
+  color: var(--tit-chain);
+}
+
+.tit-coach {
+  margin-top: 8px;
+}
+
+.tit-coach-reply {
+  margin-top: 10px;
+  border: 1px solid var(--tit-border);
+  border-radius: 6px;
+  background: var(--tit-bg-3);
+  padding: 12px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--tit-text-0);
+}
+
+.tit-coach-warn {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tit-warn);
+}
+
+.tit-coach-hint {
+  margin-top: 8px;
+  padding: 0 4px;
+  font-size: 11.5px;
+  color: var(--tit-text-2);
+}

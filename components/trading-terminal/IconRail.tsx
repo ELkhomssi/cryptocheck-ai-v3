@@ -1,15 +1,7 @@
 'use client'
 
 import type { LucideIcon } from 'lucide-react'
-import {
-  Bell,
-  Brain,
-  HelpCircle,
-  History,
-  LayoutDashboard,
-  Settings,
-  Star,
-} from 'lucide-react'
+import { Bell, Brain, LayoutDashboard, Settings, Star } from 'lucide-react'
 import { useSolana } from '@/components/SolanaProvider'
 
 export type TerminalPane =
@@ -33,12 +25,6 @@ const PRIMARY: { id: TerminalPane; icon: LucideIcon; label: string }[] = [
   { id: 'watchlists', icon: Star, label: 'Watchlist' },
   { id: 'alerts', icon: Bell, label: 'Alerts' },
   { id: 'copilot', icon: Brain, label: 'AI Coach' },
-]
-
-const SYSTEM: { id: TerminalPane; icon: LucideIcon; label: string }[] = [
-  { id: 'settings', icon: Settings, label: 'Settings' },
-  { id: 'history', icon: History, label: 'History' },
-  { id: 'help', icon: HelpCircle, label: 'Help' },
 ]
 
 type Props = {
@@ -74,10 +60,15 @@ function RailButton({
   )
 }
 
-/** Branded sidebar — CRYPTOCHECK AI gold HTML spec. */
+/** Picture-1 sidebar: Portfolio · Watchlist · Alerts · AI Coach · Settings. */
 export function IconRail({ active, onSelect }: Props) {
   const { isConnected, shortAddr, walletAddress } = useSolana()
-  const railActive = active === 'discover' ? 'opportunities' : active
+  const railActive =
+    active === 'coach' || active === 'copilot'
+      ? 'copilot'
+      : active === 'discover'
+        ? 'opportunities'
+        : active
 
   const initials =
     isConnected && (shortAddr || walletAddress)
@@ -107,15 +98,13 @@ export function IconRail({ active, onSelect }: Props) {
         ))}
 
         <div className="tit-rail-label">SYSTEM</div>
-
-        {SYSTEM.map((item) => (
-          <RailButton
-            key={item.id}
-            {...item}
-            active={railActive === item.id}
-            onSelect={onSelect}
-          />
-        ))}
+        <RailButton
+          id="settings"
+          icon={Settings}
+          label="Settings"
+          active={railActive === 'settings'}
+          onSelect={onSelect}
+        />
       </div>
 
       <div className="tit-rail-foot">

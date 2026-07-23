@@ -22,11 +22,19 @@ import { useTerminalKeyboard } from './useTerminalKeyboard'
 type FullDesk = 'mi' | 'whale' | 'alpha' | 'port' | 'copilot' | null
 
 function resolveFullDesk(pane: TerminalPane): FullDesk {
-  if (pane === 'copilot') return 'copilot'
-  if (pane === 'intel' || pane === 'alerts') return 'mi'
+  // Picture-1 mock: Portfolio / Watchlist / Alerts / AI Coach share one desk composition.
+  if (
+    pane === 'portfolio' ||
+    pane === 'watchlists' ||
+    pane === 'alerts' ||
+    pane === 'copilot' ||
+    pane === 'coach'
+  ) {
+    return 'port'
+  }
+  if (pane === 'intel') return 'mi'
   if (pane === 'whale') return 'whale'
   if (pane === 'opportunities' || pane === 'discover') return 'alpha'
-  if (pane === 'portfolio') return 'port'
   return null
 }
 
