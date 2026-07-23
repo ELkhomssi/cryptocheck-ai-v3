@@ -28,7 +28,7 @@ async function fetchLiveQuotes(): Promise<LiveMarketQuotes | null> {
 }
 
 export function MarketIntelligenceDesk() {
-  const { dataMode, selectMint, focusMint, setDataMode } = useTerminalFocus()
+  const { dataMode, selectMint, focusMint } = useTerminalFocus()
   const [live, setLive] = useState<LiveMarketQuotes | null>(null)
   const [loadingLive, setLoadingLive] = useState(true)
 
@@ -56,36 +56,28 @@ export function MarketIntelligenceDesk() {
 
   return (
     <div
-      className="tit-area-mi flex min-h-0 min-w-0 flex-col overflow-hidden"
+      className="tit-area-mi flex min-h-0 min-w-0 flex-col overflow-hidden bg-[var(--tit-bg-1)]"
       aria-label="Market Intelligence Center"
     >
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--tit-border)] bg-[rgba(5,7,10,0.65)] px-4 py-2">
-        <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--tit-border)] bg-white px-6 py-4">
+        <div className="flex items-center gap-4">
           <div>
-            <p className="tit-display text-[0.95rem] font-semibold tracking-tight">
+            <p className="text-[1.15rem] font-semibold tracking-tight text-[var(--tit-text-0)]">
               Market Intelligence
             </p>
-            <p className="tit-mono text-[0.48rem] uppercase tracking-[0.14em] text-[var(--tit-text-2)]">
+            <p className="mt-1 text-[0.75rem] font-medium text-[var(--tit-text-1)]">
               Institutional desk · {bundle.methodNote}
             </p>
           </div>
           {loadingLive ? (
-            <span className="tit-mono text-[0.55rem] text-[var(--tit-text-2)]">Syncing feeds…</span>
+            <span className="text-[0.75rem] font-medium text-[var(--tit-text-2)]">Syncing feeds…</span>
           ) : (
-            <span className="flex items-center gap-1.5">
-              <span className="tit-pulse" />
-              <span className="tit-mono text-[0.55rem] text-[var(--tit-pos)]">Feeds live</span>
+            <span className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--tit-pos)]" />
+              <span className="text-[0.75rem] font-semibold text-[var(--tit-pos)]">Feeds live</span>
             </span>
           )}
-          {bundle.sample ? <span className="tit-sample-tag">Sample desk</span> : null}
         </div>
-        <button
-          type="button"
-          onClick={() => setDataMode(dataMode === 'demo' ? 'live' : 'demo')}
-          className="tit-btn-ghost tit-mono px-2.5 py-1 text-[0.55rem] uppercase"
-        >
-          {dataMode === 'demo' ? 'Demo' : 'Live'}
-        </button>
       </div>
 
       <MarketIntelStatusBar metrics={bundle.status} />

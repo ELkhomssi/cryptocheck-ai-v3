@@ -39,7 +39,7 @@ export function TokenHeatmap({ cells, onSelect, focusMint }: Props) {
 
   return (
     <section
-      className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[12px] border border-[var(--tit-border)] bg-[rgba(5,7,10,0.55)]"
+      className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[12px] border border-[var(--tit-border)] bg-[var(--tit-bg-1)]"
       aria-label="Token risk heatmap"
     >
       <div className="flex shrink-0 items-center justify-between border-b border-[var(--tit-border)] px-4 py-2.5">
@@ -126,7 +126,7 @@ export function TokenHeatmap({ cells, onSelect, focusMint }: Props) {
 
         {/* Hover research card */}
         {hover ? (
-          <div className="pointer-events-none absolute bottom-4 left-4 z-10 w-[240px] rounded-[12px] border border-[var(--tit-border)] bg-[rgba(11,17,24,0.92)] p-3 shadow-[0_12px_40px_rgba(0,0,0,0.5)] backdrop-blur-md">
+          <div className="pointer-events-none absolute bottom-4 left-4 z-10 w-[240px] rounded-[12px] border border-[var(--tit-border)] bg-[rgba(11,17,24,0.92)] p-3 shadow-[0_12px_40px_rgba(0,0,0,0.5)] ">
             <p className="tit-display text-[0.95rem] font-semibold text-[var(--tit-text-0)]">
               {hover.symbol}
             </p>

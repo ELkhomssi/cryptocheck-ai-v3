@@ -296,7 +296,7 @@ export function AiIntelligenceWorkstation() {
 
   if (reviewOpen) {
     return (
-      <div className="flex h-full min-h-0 flex-col border-l border-[var(--tit-border)] bg-[rgba(5,7,10,0.55)] backdrop-blur-md">
+      <div className="flex h-full min-h-0 flex-col border-l border-[var(--tit-border)] bg-[var(--tit-bg-1)] ">
         <div className="flex items-center justify-between border-b border-[var(--tit-border)] px-4 py-3">
           <p className="tit-section-title">Review trade</p>
           <button
@@ -320,7 +320,7 @@ export function AiIntelligenceWorkstation() {
 
   return (
     <aside
-      className="flex h-full min-h-0 flex-col overflow-hidden border-l border-[var(--tit-border)] bg-[rgba(5,7,10,0.45)] backdrop-blur-xl"
+      className="flex h-full min-h-0 flex-col overflow-hidden border-l border-[var(--tit-border)] bg-[var(--tit-bg-1)] backdrop-blur-xl"
       aria-label="Coach AI Intelligence Desk"
     >
       {/* Desk header */}
@@ -767,7 +767,7 @@ export function AiIntelligenceWorkstation() {
         </section>
       </div>
 
-      <div className="shrink-0 border-t border-[var(--tit-border)] bg-[rgba(11,17,24,0.75)] p-3 backdrop-blur-md">
+      <div className="shrink-0 border-t border-[var(--tit-border)] bg-[rgba(11,17,24,0.75)] p-3 ">
         <button
           type="button"
           onClick={onReview}

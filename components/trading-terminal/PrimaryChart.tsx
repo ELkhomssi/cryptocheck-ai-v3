@@ -170,9 +170,9 @@ export function PrimaryChart() {
   const barUp = ohlc ? ohlc.close >= ohlc.open : null
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--tit-bg-0)]">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
       {/* Chart header */}
-      <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-[var(--tit-border)] bg-[var(--tit-bg-1)] px-5 py-3">
+      <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-[var(--tit-border)] bg-white px-6 py-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="tit-display truncate text-[1.25rem] font-semibold tracking-tight text-[var(--tit-text-0)]">
@@ -261,7 +261,7 @@ export function PrimaryChart() {
               className={`tit-mono rounded-[6px] px-2.5 py-1.5 text-[0.6875rem] font-semibold transition-colors duration-[var(--tit-motion)] ${
                 tf === t
                   ? 'bg-[var(--tit-bg-3)] text-[var(--tit-text-0)]'
-                  : 'text-[var(--tit-text-2)] hover:bg-white/[0.04] hover:text-[var(--tit-text-0)]'
+                  : 'text-[var(--tit-text-2)] hover:bg-black/[0.03] hover:text-[var(--tit-text-0)]'
               }`}
             >
               {t}
@@ -271,7 +271,7 @@ export function PrimaryChart() {
 
         <button
           type="button"
-          className="rounded-[6px] p-2 text-[var(--tit-text-2)] transition-colors duration-[var(--tit-motion)] hover:bg-white/[0.04] hover:text-[var(--tit-text-0)] disabled:opacity-40"
+          className="rounded-[6px] p-2 text-[var(--tit-text-2)] transition-colors duration-[var(--tit-motion)] hover:bg-black/[0.03] hover:text-[var(--tit-text-0)] disabled:opacity-40"
           aria-label="Add to watchlist"
           disabled={!mint}
           onClick={() => {
@@ -288,7 +288,7 @@ export function PrimaryChart() {
       </div>
 
       {/* Overlay legend / toggles */}
-      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--tit-border-subtle)] bg-[var(--tit-bg-0)] px-5 py-2">
+      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--tit-border-subtle)] bg-[var(--tit-bg-1)] px-6 py-3">
         <span className="tit-section-title !mr-2">Overlays</span>
         {(
           [

@@ -60,7 +60,7 @@ function TerminalWorkspace() {
   }, [feed.orderedIds, feed.signals])
 
   const [helpOpen, setHelpOpen] = useState(false)
-  const [pane, setPane] = useState<TerminalPane>('charts')
+  const [pane, setPane] = useState<TerminalPane>('portfolio')
 
   const chartsRef = useRef<HTMLDivElement>(null)
   const leftRef = useRef<HTMLDivElement>(null)
