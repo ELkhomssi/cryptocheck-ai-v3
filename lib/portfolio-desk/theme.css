@@ -455,16 +455,31 @@
   flex-wrap: wrap;
 }
 
-.pd-page-head h1 {
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+.pd-page-kicker {
+  font-family: var(--font-ibm-plex-mono), 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-bright);
+  margin-bottom: 6px;
 }
 
+.pd-page-title,
+.pd-page-head h1 {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--text);
+  margin: 0;
+}
+
+.pd-page-subtitle,
 .pd-page-head p {
   font-size: 12.5px;
-  color: var(--pd-text-faint);
+  color: var(--text-faint);
   margin-top: 4px;
+  margin-bottom: 0;
 }
 
 .pd-tabs {
