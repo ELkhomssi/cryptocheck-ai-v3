@@ -10,6 +10,15 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 /**
+ * GET /api/portfolio/coach — availability probe (no secrets leaked).
+ */
+export async function GET() {
+  return NextResponse.json({
+    available: Boolean(process.env.ANTHROPIC_API_KEY?.trim()),
+  })
+}
+
+/**
  * POST /api/portfolio/coach — Claude portfolio coach (server-side only).
  * Streams via Vercel AI SDK. Never expose ANTHROPIC_API_KEY to the browser.
  */
@@ -38,7 +47,7 @@ export async function POST(req: NextRequest) {
   if (body.walletAddress && body.walletAddress.length >= 32) {
     try {
       const holdings = await buildHoldingsResponse(body.walletAddress)
-      const alerts = listAlerts(10)
+      const alerts = await listAlerts(10)
       contextBlock = [
         `Wallet: ${holdings.walletAddress}`,
         `Total value USD: ${holdings.totalValueUsd.toFixed(2)}`,

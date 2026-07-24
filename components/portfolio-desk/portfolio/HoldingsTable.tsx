@@ -62,9 +62,30 @@ export function HoldingsTable({
                 const pnlUsd =
                   h.change24hPct != null ? (h.valueUsd * h.change24hPct) / (100 + h.change24hPct) : null
                 return (
-                  <tr key={h.mint}>
+                  <tr key={h.mint} tabIndex={0}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        {h.logoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={h.logoUrl}
+                            alt=""
+                            width={28}
+                            height={28}
+                            style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: '50%',
+                              objectFit: 'cover',
+                              background: 'var(--pd-surface-2)',
+                            }}
+                            onError={(e) => {
+                              ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                              const sib = e.currentTarget.nextElementSibling as HTMLElement | null
+                              if (sib) sib.style.display = 'flex'
+                            }}
+                          />
+                        ) : null}
                         <div
                           style={{
                             width: 28,
@@ -72,7 +93,7 @@ export function HoldingsTable({
                             borderRadius: '50%',
                             background: 'var(--pd-accent-soft)',
                             color: 'var(--pd-accent-bright)',
-                            display: 'flex',
+                            display: h.logoUrl ? 'none' : 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             fontSize: 10,

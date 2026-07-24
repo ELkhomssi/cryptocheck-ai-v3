@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
   for (const ev of events) {
     const alert = normalizeEvent(ev)
     if (!alert) continue
-    pushAlert(alert)
+    await pushAlert(alert)
     stored += 1
   }
 

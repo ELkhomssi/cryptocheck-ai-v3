@@ -1,6 +1,7 @@
 'use client'
 
 import { Component, type ErrorInfo, type ReactNode, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useSolana } from '@/components/SolanaProvider'
 import { AlertsPanel } from './alerts/AlertsPanel'
 import { CoachPanel } from './coach/CoachPanel'
@@ -12,6 +13,7 @@ import { Hero } from './portfolio/Hero'
 import { HoldingsTable } from './portfolio/HoldingsTable'
 import { Metrics } from './portfolio/Metrics'
 import { PerformanceChart, usePerformance } from './portfolio/PerformanceChart'
+import type { PortfolioAlert } from '@/types/portfolio-desk'
 
 const RANGES = ['24H', '7D', '30D', '90D', 'ALL'] as const
 
@@ -52,13 +54,39 @@ export function PortfolioDesk() {
   const { isConnected, connect, walletAddress } = useSolana()
   const [nav, setNav] = useState<DeskNav>('portfolio')
   const [range, setRange] = useState<(typeof RANGES)[number]>('24H')
+  const [mobileNav, setMobileNav] = useState(false)
   const holdingsQ = useHoldings()
   const perfQ = usePerformance(walletAddress, range)
+  const alertsQ = useQuery({
+    queryKey: ['portfolio-alerts-count', walletAddress],
+    queryFn: async () => {
+      const q = walletAddress ? `?wallet=${encodeURIComponent(walletAddress)}` : ''
+      const res = await fetch(`/api/portfolio/alerts${q}`, { cache: 'no-store' })
+      if (!res.ok) return 0
+      const body = (await res.json()) as { alerts?: PortfolioAlert[] }
+      return body.alerts?.length ?? 0
+    },
+    refetchInterval: 20_000,
+    staleTime: 15_000,
+  })
 
   return (
     <div className="pd-shell">
-      <Sidebar active={nav} onSelect={setNav} />
-      <Topbar />
+      {mobileNav ? (
+        <button
+          type="button"
+          className="pd-nav-backdrop"
+          aria-label="Close navigation"
+          onClick={() => setMobileNav(false)}
+        />
+      ) : null}
+      <Sidebar
+        active={nav}
+        onSelect={setNav}
+        mobileOpen={mobileNav}
+        onCloseMobile={() => setMobileNav(false)}
+      />
+      <Topbar alertCount={alertsQ.data ?? 0} onOpenNav={() => setMobileNav(true)} />
       <TickerTape />
 
       <main className="pd-main">
@@ -161,14 +189,20 @@ export function PortfolioDesk() {
 
         {(nav === 'alerts' || nav === 'coach') && isConnected ? (
           <div className="pd-panel" style={{ padding: 16 }}>
-            {nav === 'alerts' ? <AlertsPanel /> : <CoachPanel />}
+            <SectionErrorBoundary title={nav === 'alerts' ? 'Alerts' : 'AI Coach'}>
+              {nav === 'alerts' ? <AlertsPanel /> : <CoachPanel />}
+            </SectionErrorBoundary>
           </div>
         ) : null}
       </main>
 
       <aside className="pd-aside">
-        <AlertsPanel />
-        <CoachPanel />
+        <SectionErrorBoundary title="Alerts">
+          <AlertsPanel />
+        </SectionErrorBoundary>
+        <SectionErrorBoundary title="AI Coach">
+          <CoachPanel />
+        </SectionErrorBoundary>
       </aside>
     </div>
   )
