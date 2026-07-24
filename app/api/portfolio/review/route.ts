@@ -83,6 +83,22 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  const { acquireProviderQuota } = await import('@/lib/providers/quota')
+  const quota = await acquireProviderQuota('anthropic')
+  if (quota.ok === false) {
+    return NextResponse.json(
+      {
+        error: 'AI review temporarily rate-limited. Try again shortly.',
+        reason: quota.reason,
+        retryAfterMs: quota.retryAfterMs,
+      },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(Math.ceil(quota.retryAfterMs / 1000)) },
+      },
+    )
+  }
+
   let body: { walletAddress?: unknown }
   try {
     body = (await req.json()) as { walletAddress?: unknown }

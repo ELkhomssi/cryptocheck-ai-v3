@@ -38,4 +38,19 @@ export { fetchNewPools, fetchPoolByMint } from '@/lib/providers/raydium'
 
 export { fetchTokenPairs, fetchTokenMetricsFromDex } from '@/lib/providers/dexscreener'
 
+export {
+  acquireProviderQuota,
+  pauseProvider,
+  withProviderQuota,
+  mapBatched,
+  chunkArray,
+  getProviderUsage,
+  getAllProviderUsage,
+  getProviderQuotaConfig,
+  ProviderQuotaError,
+} from '@/lib/providers/quota'
+export type { ProviderId, QuotaDecision, QuotaUsage } from '@/lib/providers/quota'
+
+export { providerFetch, providerFetchJson } from '@/lib/providers/http'
+
 export { cachedJson, cacheGetJson, cacheSetJson } from '@/lib/cache/ttl'

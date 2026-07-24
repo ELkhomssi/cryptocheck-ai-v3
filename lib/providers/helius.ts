@@ -43,25 +43,21 @@ async function postRpc(
   method: string,
   params: unknown,
 ): Promise<{ result?: unknown; error?: { message?: string; code?: number } } | null> {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+  const { providerFetch } = await import('@/lib/providers/http')
+  const result = await providerFetch('helius', url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: method, method, params }),
+    timeoutMs: TIMEOUT_MS,
+  })
+  if (!result.ok) return null
   try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: method, method, params }),
-      cache: 'no-store',
-      signal: controller.signal,
-    })
-    if (!res.ok) return null
-    return (await res.json()) as {
+    return (await result.res.json()) as {
       result?: unknown
       error?: { message?: string; code?: number }
     }
   } catch {
     return null
-  } finally {
-    clearTimeout(timer)
   }
 }
 
