@@ -17,6 +17,7 @@ import { AnalyticsPanel } from './portfolio/AnalyticsPanel'
 import { AiReviewPanel } from './portfolio/AiReviewPanel'
 import { PerformanceChart, usePerformance } from './portfolio/PerformanceChart'
 import { ScreenerPanel } from './screener/ScreenerPanel'
+import { TradePanel } from './trade/TradePanel'
 import { WatchlistPanel } from './watchlist/WatchlistPanel'
 import type { PortfolioAlert } from '@/types/portfolio-desk'
 
@@ -102,20 +103,24 @@ export function PortfolioDesk() {
                 ? 'Portfolio Overview'
                 : nav === 'screener'
                   ? 'Token Screener'
-                  : nav === 'alerts'
-                    ? 'Alerts'
-                    : nav === 'coach'
-                      ? 'AI Coach'
-                      : nav === 'watchlist'
-                        ? 'Watchlist'
-                        : 'Settings'}
+                  : nav === 'trade'
+                    ? 'Trade'
+                    : nav === 'alerts'
+                      ? 'Alerts'
+                      : nav === 'coach'
+                        ? 'AI Coach'
+                        : nav === 'watchlist'
+                          ? 'Watchlist'
+                          : 'Settings'}
             </h1>
             <p>
               {nav === 'screener'
                 ? 'Filter and rank live Solana markets by liquidity, risk, and AI score.'
-                : nav === 'watchlist'
-                  ? 'Persist and monitor tokens with live price, risk, and AI scores.'
-                  : 'Track your assets, performance and analytics in real-time.'}
+                : nav === 'trade'
+                  ? 'Risk-gated Jupiter swaps and tracked limit / DCA / TP / SL orders.'
+                  : nav === 'watchlist'
+                    ? 'Persist and monitor tokens with live price, risk, and AI scores.'
+                    : 'Track your assets, performance and analytics in real-time.'}
             </p>
           </div>
           {nav === 'portfolio' ? (
@@ -160,6 +165,12 @@ export function PortfolioDesk() {
             >
               <ScreenerPanel />
             </Suspense>
+          </SectionErrorBoundary>
+        ) : null}
+
+        {nav === 'trade' && isConnected ? (
+          <SectionErrorBoundary title="Trade">
+            <TradePanel />
           </SectionErrorBoundary>
         ) : null}
 

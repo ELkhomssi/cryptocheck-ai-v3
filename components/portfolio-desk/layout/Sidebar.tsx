@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  ArrowLeftRight,
   Bell,
   Brain,
   LayoutDashboard,
@@ -15,6 +16,7 @@ import { usePortfolioTheme } from '@/store/portfolio-theme'
 export type DeskNav =
   | 'portfolio'
   | 'screener'
+  | 'trade'
   | 'watchlist'
   | 'alerts'
   | 'coach'
@@ -23,6 +25,7 @@ export type DeskNav =
 const ITEMS: { id: DeskNav; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'portfolio', label: 'Portfolio', icon: LayoutDashboard },
   { id: 'screener', label: 'Screener', icon: Table2 },
+  { id: 'trade', label: 'Trade', icon: ArrowLeftRight },
   { id: 'watchlist', label: 'Watchlist', icon: Star },
   { id: 'alerts', label: 'Alerts', icon: Bell },
   { id: 'coach', label: 'AI Coach', icon: Brain },
