@@ -1,6 +1,6 @@
 'use client'
 
-import { Component, type ErrorInfo, type ReactNode, useState } from 'react'
+import { Component, Suspense, type ErrorInfo, type ReactNode, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSolana } from '@/components/SolanaProvider'
 import { AlertsPanel } from './alerts/AlertsPanel'
@@ -14,6 +14,7 @@ import { Hero } from './portfolio/Hero'
 import { HoldingsTable } from './portfolio/HoldingsTable'
 import { Metrics } from './portfolio/Metrics'
 import { PerformanceChart, usePerformance } from './portfolio/PerformanceChart'
+import { ScreenerPanel } from './screener/ScreenerPanel'
 import type { PortfolioAlert } from '@/types/portfolio-desk'
 
 const RANGES = ['24H', '7D', '30D', '90D', 'ALL'] as const
@@ -96,15 +97,21 @@ export function PortfolioDesk() {
             <h1>
               {nav === 'portfolio'
                 ? 'Portfolio Overview'
-                : nav === 'alerts'
-                  ? 'Alerts'
-                  : nav === 'coach'
-                    ? 'AI Coach'
-                    : nav === 'watchlist'
-                      ? 'Watchlist'
-                      : 'Settings'}
+                : nav === 'screener'
+                  ? 'Token Screener'
+                  : nav === 'alerts'
+                    ? 'Alerts'
+                    : nav === 'coach'
+                      ? 'AI Coach'
+                      : nav === 'watchlist'
+                        ? 'Watchlist'
+                        : 'Settings'}
             </h1>
-            <p>Track your assets, performance and analytics in real-time.</p>
+            <p>
+              {nav === 'screener'
+                ? 'Filter and rank live Solana markets by liquidity, risk, and AI score.'
+                : 'Track your assets, performance and analytics in real-time.'}
+            </p>
           </div>
           {nav === 'portfolio' ? (
             <div className="pd-tabs">
@@ -122,7 +129,7 @@ export function PortfolioDesk() {
           ) : null}
         </div>
 
-        {!isConnected ? (
+        {!isConnected && nav !== 'screener' ? (
           <div className="pd-empty pd-panel">
             <h3>Connect your wallet to open the desk</h3>
             <p>
@@ -133,6 +140,22 @@ export function PortfolioDesk() {
               Connect Wallet
             </button>
           </div>
+        ) : null}
+
+        {nav === 'screener' ? (
+          <SectionErrorBoundary title="Screener">
+            <Suspense
+              fallback={
+                <div className="pd-panel" style={{ padding: 18 }}>
+                  <div className="pd-skeleton" style={{ height: 36, marginBottom: 10 }} />
+                  <div className="pd-skeleton" style={{ height: 36, marginBottom: 10 }} />
+                  <div className="pd-skeleton" style={{ height: 36 }} />
+                </div>
+              }
+            >
+              <ScreenerPanel />
+            </Suspense>
+          </SectionErrorBoundary>
         ) : null}
 
         {isConnected && holdingsQ.isError ? (
