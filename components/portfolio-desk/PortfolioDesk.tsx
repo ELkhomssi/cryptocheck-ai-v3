@@ -13,6 +13,8 @@ import { MarketFeeds } from './market/MarketFeeds'
 import { Hero } from './portfolio/Hero'
 import { HoldingsTable } from './portfolio/HoldingsTable'
 import { Metrics } from './portfolio/Metrics'
+import { AnalyticsPanel } from './portfolio/AnalyticsPanel'
+import { AiReviewPanel } from './portfolio/AiReviewPanel'
 import { PerformanceChart, usePerformance } from './portfolio/PerformanceChart'
 import { ScreenerPanel } from './screener/ScreenerPanel'
 import { WatchlistPanel } from './watchlist/WatchlistPanel'
@@ -189,6 +191,12 @@ export function PortfolioDesk() {
                 loading={holdingsQ.isLoading}
                 connected={isConnected}
               />
+            </SectionErrorBoundary>
+            <SectionErrorBoundary title="Analytics">
+              <AnalyticsPanel />
+            </SectionErrorBoundary>
+            <SectionErrorBoundary title="AI Review">
+              <AiReviewPanel />
             </SectionErrorBoundary>
             <SectionErrorBoundary title="Performance">
               <PerformanceChart
