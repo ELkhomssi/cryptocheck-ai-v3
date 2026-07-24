@@ -27,21 +27,11 @@ function num(v: unknown, fallback = 0): number {
 }
 
 async function raydiumGet(pathAndQuery: string): Promise<unknown | null> {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
-  try {
-    const res = await fetch(`${BASE}${pathAndQuery}`, {
-      headers: { Accept: 'application/json' },
-      cache: 'no-store',
-      signal: controller.signal,
-    })
-    if (!res.ok) return null
-    return await res.json()
-  } catch {
-    return null
-  } finally {
-    clearTimeout(timer)
-  }
+  const { providerFetchJson } = await import('@/lib/providers/http')
+  return providerFetchJson('raydium', `${BASE}${pathAndQuery}`, {
+    headers: { Accept: 'application/json' },
+    timeoutMs: TIMEOUT_MS,
+  })
 }
 
 function pickNonSolMint(p: RaydiumPool): {

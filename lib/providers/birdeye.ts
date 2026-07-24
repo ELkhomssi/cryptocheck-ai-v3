@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { cachedJson } from '@/lib/cache/ttl'
+import { providerFetchJson } from '@/lib/providers/http'
 import type {
   NewPool,
   OhlcvPoint,
@@ -9,7 +10,6 @@ import type {
 } from '@/lib/providers/types'
 
 const BASE = 'https://public-api.birdeye.so'
-const TIMEOUT_MS = 8_000
 const CHAIN_HEADER = { 'x-chain': 'solana' } as const
 
 const TTL = {
@@ -47,21 +47,10 @@ function num(v: unknown, fallback = 0): number {
 
 async function birdeyeGet(pathAndQuery: string): Promise<unknown | null> {
   if (!apiKey()) return null
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
-  try {
-    const res = await fetch(`${BASE}${pathAndQuery}`, {
-      headers: headers(),
-      cache: 'no-store',
-      signal: controller.signal,
-    })
-    if (!res.ok) return null
-    return await res.json()
-  } catch {
-    return null
-  } finally {
-    clearTimeout(timer)
-  }
+  return providerFetchJson('birdeye', `${BASE}${pathAndQuery}`, {
+    headers: headers(),
+    timeoutMs: 8_000,
+  })
 }
 
 function buySellRatio(buy: unknown, sell: unknown): number {

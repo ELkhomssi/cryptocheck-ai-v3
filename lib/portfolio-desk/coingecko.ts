@@ -2,12 +2,13 @@ import 'server-only'
 
 import { COINGECKO_IDS, RANGE_MS } from './constants'
 import { cached } from './cache'
+import { providerFetchJson } from '@/lib/providers/http'
 
 export type HistoryPoint = { t: number; price: number }
 
 /**
- * CoinGecko market_chart — free tier is rate-limited; cache aggressively.
- * Birdeye can be wired later via BIRDEYE_API_KEY for Solana-only mints.
+ * CoinGecko market_chart — free tier is rate-limited; cache aggressively + quota gate.
+ * Birdeye fallback for Solana-only mints when BIRDEYE_API_KEY is set.
  */
 export async function fetchPriceHistory(
   mint: string,
@@ -15,7 +16,6 @@ export async function fetchPriceHistory(
 ): Promise<HistoryPoint[]> {
   const cgId = COINGECKO_IDS[mint]
   if (!cgId) {
-    // Birdeye fallback when configured
     const bird = process.env.BIRDEYE_API_KEY?.trim()
     if (bird) return fetchBirdeyeHistory(mint, range, bird)
     return []
@@ -29,14 +29,12 @@ export async function fetchPriceHistory(
     const headers: HeadersInit = { Accept: 'application/json' }
     const key = process.env.COINGECKO_API_KEY?.trim()
     if (key) (headers as Record<string, string>)['x-cg-demo-api-key'] = key
-    try {
-      const res = await fetch(url, { headers, next: { revalidate: 60 } })
-      if (!res.ok) return []
-      const body = (await res.json()) as { prices?: [number, number][] }
-      return (body.prices ?? []).map(([t, price]) => ({ t, price }))
-    } catch {
-      return []
-    }
+    const body = await providerFetchJson<{ prices?: [number, number][] }>('coingecko', url, {
+      headers,
+      timeoutMs: 8_000,
+    })
+    if (!body) return []
+    return (body.prices ?? []).map(([t, price]) => ({ t, price }))
   })
 }
 
@@ -50,21 +48,16 @@ async function fetchBirdeyeHistory(
   const type =
     range === '24H' ? '15m' : range === '7D' ? '1H' : range === '30D' ? '4H' : '1D'
   return cached(`birdeye:${mint}:${range}`, 60_000, async () => {
-    try {
-      const url = `https://public-api.birdeye.so/defi/history_price?address=${mint}&address_type=token&type=${type}&time_from=${from}&time_to=${now}`
-      const res = await fetch(url, {
-        headers: { Accept: 'application/json', 'X-API-KEY': apiKey },
-        cache: 'no-store',
-      })
-      if (!res.ok) return []
-      const body = (await res.json()) as {
-        data?: { items?: Array<{ unixTime?: number; value?: number }> }
-      }
-      return (body.data?.items ?? [])
-        .filter((i) => i.unixTime != null && i.value != null)
-        .map((i) => ({ t: (i.unixTime as number) * 1000, price: i.value as number }))
-    } catch {
-      return []
-    }
+    const url = `https://public-api.birdeye.so/defi/history_price?address=${mint}&address_type=token&type=${type}&time_from=${from}&time_to=${now}`
+    const body = await providerFetchJson<{
+      data?: { items?: Array<{ unixTime?: number; value?: number }> }
+    }>('birdeye', url, {
+      headers: { Accept: 'application/json', 'X-API-KEY': apiKey },
+      timeoutMs: 8_000,
+    })
+    if (!body) return []
+    return (body.data?.items ?? [])
+      .filter((i) => i.unixTime != null && i.value != null)
+      .map((i) => ({ t: (i.unixTime as number) * 1000, price: i.value as number }))
   })
 }

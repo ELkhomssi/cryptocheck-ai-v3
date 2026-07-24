@@ -71,22 +71,14 @@ function pairToMetrics(mint: string, pair: DexPair): TokenMarketMetrics {
 export async function fetchTokenPairs(mint: string): Promise<DexPair[]> {
   if (!mint || mint.length < 32) return []
   return cachedJson(`dex:pairs:${mint}`, TTL_SEC, async () => {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
-    try {
-      const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${mint}`, {
-        headers: { Accept: 'application/json' },
-        cache: 'no-store',
-        signal: controller.signal,
-      })
-      if (!res.ok) return []
-      const body = (await res.json()) as { pairs?: DexPair[] | null }
-      return Array.isArray(body.pairs) ? body.pairs : []
-    } catch {
-      return []
-    } finally {
-      clearTimeout(timer)
-    }
+    const { providerFetchJson } = await import('@/lib/providers/http')
+    const body = await providerFetchJson<{ pairs?: DexPair[] | null }>(
+      'dexscreener',
+      `https://api.dexscreener.com/latest/dex/tokens/${mint}`,
+      { headers: { Accept: 'application/json' }, timeoutMs: TIMEOUT_MS },
+    )
+    if (!body) return []
+    return Array.isArray(body.pairs) ? body.pairs : []
   })
 }
 
