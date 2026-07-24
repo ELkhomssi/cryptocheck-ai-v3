@@ -52,6 +52,18 @@ export type PortfolioAlertType =
   | 'dev_wallet'
   | 'smart_money'
   | 'risk'
+  | 'whale_buy'
+  | 'whale_sell'
+  | 'liquidity_added'
+  | 'liquidity_removed'
+  | 'mint_authority'
+  | 'freeze_authority'
+  | 'rug_risk'
+  | 'smart_money_entry'
+  | 'smart_money_exit'
+  | 'new_listing'
+  | 'large_holder_distribution'
+  | 'new_token_launch'
 
 export type PortfolioAlert = {
   id: string
@@ -62,6 +74,11 @@ export type PortfolioAlert = {
   tokenSymbol: string | null
   mint: string | null
   createdAt: string
+}
+
+export type AlertPreference = {
+  alertType: PortfolioAlertType
+  enabled: boolean
 }
 
 export type CoachRequest = {
