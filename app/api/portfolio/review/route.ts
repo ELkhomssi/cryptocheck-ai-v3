@@ -105,7 +105,9 @@ export async function POST(req: NextRequest) {
   }
 
   const trending = await fetchTrending(5).catch(() => [])
-  const known = new Map(analytics.holdings.map((h) => [h.mint, h.symbol]))
+  const known = new Map<string, string>(
+    analytics.holdings.map((h) => [h.mint, h.symbol || h.mint.slice(0, 4)]),
+  )
 
   const context = [
     `Wallet: ${analytics.walletAddress}`,
