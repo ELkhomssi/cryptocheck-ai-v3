@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Newspaper, Send, Sparkles, TrendingUp, Wallet } from 'lucide-react'
+import { Crosshair, Newspaper, Send, Sparkles, TrendingUp, Wallet, Waves } from 'lucide-react'
 import { useSolana } from '@/components/SolanaProvider'
 import { useHoldings } from '../hooks/useHoldings'
 
@@ -9,6 +9,8 @@ type Msg = { role: 'user' | 'assistant'; text: string }
 
 const QUICK = [
   { label: 'Analyze top holding', sub: 'Get AI insights and risk analysis', icon: Sparkles },
+  { label: 'Analyze Token', sub: 'Paste a mint in chat or analyze your top holding', icon: Crosshair },
+  { label: 'Smart Money', sub: 'Where is smart-money flow strongest right now?', icon: Waves },
   { label: "What's trending today?", sub: 'See top narratives and tokens', icon: TrendingUp },
   { label: 'Review my portfolio', sub: 'AI-powered portfolio review', icon: Wallet },
   { label: 'Market outlook', sub: 'Get AI market predictions', icon: Newspaper },
@@ -127,11 +129,21 @@ export function CoachPanel() {
       {QUICK.map((q) => {
         const Icon = q.icon
         const title =
-          q.label === 'Analyze top holding' && top ? `Analyze ${top.symbol}` : q.label
+          q.label === 'Analyze top holding' && top
+            ? `Analyze ${top.symbol}`
+            : q.label === 'Analyze Token' && top
+              ? `Analyze Token · ${top.symbol}`
+              : q.label
         const prompt =
           q.label === 'Analyze top holding' && top
             ? `Analyze ${top.symbol} in my portfolio`
-            : q.label
+            : q.label === 'Analyze Token' && top
+              ? `Analyze token ${top.mint} (${top.symbol}) using live market scores`
+              : q.label === 'Analyze Token'
+                ? 'Analyze a Solana token — ask me for a mint address if needed'
+                : q.label === 'Smart Money'
+                  ? 'Where is smart money flowing among trending Solana tokens right now?'
+                  : q.label
         return (
           <button
             key={q.label}
