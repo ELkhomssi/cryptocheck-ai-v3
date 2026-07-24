@@ -9,6 +9,7 @@ import { useHoldings } from './hooks/useHoldings'
 import { Sidebar, type DeskNav } from './layout/Sidebar'
 import { TickerTape } from './layout/TickerTape'
 import { Topbar } from './layout/Topbar'
+import { MarketFeeds } from './market/MarketFeeds'
 import { Hero } from './portfolio/Hero'
 import { HoldingsTable } from './portfolio/HoldingsTable'
 import { Metrics } from './portfolio/Metrics'
@@ -169,6 +170,20 @@ export function PortfolioDesk() {
                 loading={perfQ.isLoading}
                 note={perfQ.data?.simplification}
               />
+            </SectionErrorBoundary>
+          </>
+        ) : null}
+
+        {nav === 'portfolio' ? (
+          <>
+            <div className="pd-page-head" style={{ marginTop: 8 }}>
+              <div>
+                <h1>Market</h1>
+                <p>Live Solana screener feeds — independently cached, never fabricated.</p>
+              </div>
+            </div>
+            <SectionErrorBoundary title="Market">
+              <MarketFeeds />
             </SectionErrorBoundary>
           </>
         ) : null}

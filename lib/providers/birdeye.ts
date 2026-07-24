@@ -108,7 +108,10 @@ function mapListRowToScreener(row: Record<string, unknown>): ScreenerRow | null 
     isGraduated: Boolean(row.isGraduated ?? row.is_graduated),
     isVerified: Boolean(row.isVerified ?? row.verified),
     isTrending: Boolean(row.isTrending),
-    smartMoneyScore: 0,
+    // Only map real Birdeye smart-money fields — never invent whale wallets / scores
+    smartMoneyScore: num(
+      row.smartMoneyScore ?? row.smart_money_score ?? row.smartMoney ?? row.smart_money,
+    ),
   }
 }
 
