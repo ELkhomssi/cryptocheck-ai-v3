@@ -1,14 +1,29 @@
 /**
  * GET /api/market/intelligence
- * Aggregates public market quotes for the Terminal Market Intelligence desk.
+ * Aggregates public market quotes (BTC/ETH/SOL + Fear&Greed + Solana TPS).
  * ~200–800ms estimated (CoinGecko + F&G + optional RPC).
  */
 
 import { NextResponse } from 'next/server'
-import type { LiveMarketQuotes } from '@/lib/trading-terminal/market-intelligence'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+
+export type LiveMarketQuotes = {
+  solUsd: number | null
+  solChangePct: number | null
+  btcUsd: number | null
+  btcChangePct: number | null
+  ethUsd: number | null
+  ethChangePct: number | null
+  fearGreed: number | null
+  fearGreedLabel: string | null
+  marketCapUsd: number | null
+  marketCapChangePct: number | null
+  tps: number | null
+  activeWallets: number | null
+  source: string
+}
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T | null> {
   try {
@@ -41,13 +56,12 @@ export async function GET() {
   let solUsd = prices?.solana?.usd ?? null
   const solChange = prices?.solana?.usd_24h_change ?? null
   if (solUsd == null) {
-    const jup = await fetchJson<{
-      data?: Record<string, { price?: number }>
-    }>('https://price.jup.ag/v6/price?ids=So11111111111111111111111111111111111111112')
-    solUsd = jup?.data?.So11111111111111111111111111111111111111112?.price ?? null
+    const jup = await fetchJson<Record<string, { usdPrice?: number }>>(
+      'https://api.jup.ag/price/v3?ids=So11111111111111111111111111111111111111112',
+    )
+    solUsd = jup?.So11111111111111111111111111111111111111112?.usdPrice ?? null
   }
 
-  // Solana TPS via public RPC performance samples (best-effort)
   let tps: number | null = null
   try {
     const rpc =

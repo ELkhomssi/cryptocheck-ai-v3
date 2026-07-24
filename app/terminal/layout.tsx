@@ -1,5 +1,6 @@
 import { Inter, IBM_Plex_Mono } from 'next/font/google'
-import '@/lib/trading-terminal/design-tokens.css'
+import { PortfolioProviders } from '@/components/portfolio-desk/Providers'
+import '@/lib/portfolio-desk/theme.css'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -8,29 +9,30 @@ const inter = Inter({
   display: 'swap',
 })
 
-const ibmPlexMono = IBM_Plex_Mono({
+const ibmMono = IBM_Plex_Mono({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
-  variable: '--font-mono-terminal',
+  variable: '--font-ibm-plex-mono',
   display: 'swap',
 })
 
-export default function TerminalRootLayout({ children }: { children: React.ReactNode }) {
+export const metadata = {
+  title: 'Terminal · CryptoCheck AI',
+  description: 'Live Solana trading terminal — holdings, screener, alerts, AI coach.',
+}
+
+export default function TerminalLayout({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className={`${inter.variable} ${ibmPlexMono.variable} ${inter.className} tit-root antialiased`}
-      style={
-        {
-          // Ensure mono variable resolves for all descendants (numbers/prices/%)
-          ['--font-mono' as string]: `${ibmPlexMono.style.fontFamily}, 'IBM Plex Mono', ui-monospace, monospace`,
-          fontFamily: 'var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, sans-serif',
-          background: '#F5F6F8',
-          color: '#161A22',
-          minHeight: '100vh',
-        } as React.CSSProperties
-      }
+      className={`${inter.variable} ${ibmMono.variable} ${inter.className}`}
+      style={{ minHeight: '100vh', background: 'var(--pd-bg, #0A0D12)' }}
     >
-      {children}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `(function(){try{var t=localStorage.getItem('ccai-portfolio-theme');if(t){var p=JSON.parse(t);if(p&&p.state&&p.state.theme){document.documentElement.setAttribute('data-theme',p.state.theme);}}else{document.documentElement.setAttribute('data-theme','dark');}}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`,
+        }}
+      />
+      <PortfolioProviders>{children}</PortfolioProviders>
     </div>
   )
 }

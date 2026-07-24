@@ -1,26 +1,14 @@
-import { redirect } from 'next/navigation'
-import { TerminalShell } from '@/components/trading-terminal/TerminalShell'
+import { PortfolioDesk } from '@/components/portfolio-desk/PortfolioDesk'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Terminal · CryptoCheck AI',
   description:
-    'AI Trading Intelligence Terminal — Discover. Analyze. Trade. Monitor. Improve. One screen.',
+    'CryptoCheck AI trading terminal — live portfolio, screener, alerts, AI coach, and Jupiter execution.',
 }
 
-/**
- * Canonical terminal route: /terminal only.
- * Strip legacy version query (?v=2) so there is a single production desk.
- */
-export default function TerminalPage({
-  searchParams,
-}: {
-  searchParams?: Record<string, string | string[] | undefined>
-}) {
-  if (searchParams?.v != null) {
-    redirect('/terminal')
-  }
-
-  return <TerminalShell />
+/** Canonical production terminal — /terminal (formerly /portfolio desk). */
+export default function TerminalPage() {
+  return <PortfolioDesk />
 }

@@ -27,7 +27,10 @@ export function DashboardShell({
   const pathname = usePathname()
   const isCommandCenterHome = pathname === '/dashboard'
   const isTradingTerminal =
-    pathname === '/dashboard/terminal' || pathname.startsWith('/dashboard/terminal/')
+    pathname === '/terminal' ||
+    pathname.startsWith('/terminal/') ||
+    pathname === '/dashboard/terminal' ||
+    pathname.startsWith('/dashboard/terminal/')
 
   const [health, setHealth] = useState<HealthPayload | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)

@@ -1,20 +1,31 @@
 'use client'
 
 import {
+  ArrowLeftRight,
   Bell,
   Brain,
   LayoutDashboard,
   Settings,
   Star,
   SunMoon,
+  Table2,
 } from 'lucide-react'
 import { useSolana } from '@/components/SolanaProvider'
 import { usePortfolioTheme } from '@/store/portfolio-theme'
 
-export type DeskNav = 'portfolio' | 'watchlist' | 'alerts' | 'coach' | 'settings'
+export type DeskNav =
+  | 'portfolio'
+  | 'screener'
+  | 'trade'
+  | 'watchlist'
+  | 'alerts'
+  | 'coach'
+  | 'settings'
 
 const ITEMS: { id: DeskNav; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'portfolio', label: 'Portfolio', icon: LayoutDashboard },
+  { id: 'screener', label: 'Screener', icon: Table2 },
+  { id: 'trade', label: 'Trade', icon: ArrowLeftRight },
   { id: 'watchlist', label: 'Watchlist', icon: Star },
   { id: 'alerts', label: 'Alerts', icon: Bell },
   { id: 'coach', label: 'AI Coach', icon: Brain },

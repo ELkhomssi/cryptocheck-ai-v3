@@ -52,6 +52,18 @@ export type PortfolioAlertType =
   | 'dev_wallet'
   | 'smart_money'
   | 'risk'
+  | 'whale_buy'
+  | 'whale_sell'
+  | 'liquidity_added'
+  | 'liquidity_removed'
+  | 'mint_authority'
+  | 'freeze_authority'
+  | 'rug_risk'
+  | 'smart_money_entry'
+  | 'smart_money_exit'
+  | 'new_listing'
+  | 'large_holder_distribution'
+  | 'new_token_launch'
 
 export type PortfolioAlert = {
   id: string
@@ -64,7 +76,97 @@ export type PortfolioAlert = {
   createdAt: string
 }
 
+export type AlertPreference = {
+  alertType: PortfolioAlertType
+  enabled: boolean
+}
+
 export type CoachRequest = {
   message: string
   walletAddress?: string
+}
+
+/** Phase 10.5 — portfolio analytics (API response). */
+export type AllocationSlice = {
+  mint: string
+  symbol: string
+  weight: number
+  valueUsd: number
+}
+
+export type HoldingAnalytics = {
+  mint: string
+  symbol: string
+  amount: number
+  valueUsd: number
+  priceUsd: number
+  avgEntryPriceUsd: number | null
+  unrealizedPnlUsd: number | null
+  realizedPnlUsd: number | null
+  allocationPct: number
+  riskScore: number | null
+}
+
+export type PortfolioAnalytics = {
+  walletAddress: string
+  totalValueUsd: number
+  unrealizedPnl: number | null
+  realizedPnl: number | null
+  winRate: number | null
+  allocation: AllocationSlice[]
+  riskExposure: number | null
+  concentration: number
+  diversification: number
+  correlationMatrix: {
+    mints: string[]
+    symbols: string[]
+    matrix: (number | null)[][]
+  }
+  holdings: HoldingAnalytics[]
+  avgEntryByMint: Record<string, number | null>
+  limitations: string | null
+  fetchedAt: string
+}
+
+export type ReviewAction = 'Hold' | 'Buy' | 'Reduce' | 'Exit'
+
+export type HoldingRecommendation = {
+  mint: string
+  symbol: string
+  action: ReviewAction
+  rationale: string
+}
+
+export type PortfolioReviewResponse = {
+  walletAddress: string
+  recommendations: HoldingRecommendation[]
+  summary: string
+  disclaimer: string
+  limitations: string | null
+  fetchedAt: string
+}
+
+export type TerminalOrderType = 'limit' | 'dca' | 'tp' | 'sl'
+
+/** Honest lifecycle: filled only after a real wallet signature. */
+export type TerminalOrderStatus =
+  | 'pending'
+  | 'trigger_hit'
+  | 'filled'
+  | 'cancelled'
+  | 'expired'
+
+export type TerminalOrder = {
+  id: string
+  wallet: string
+  type: TerminalOrderType
+  status: TerminalOrderStatus
+  inputMint: string
+  outputMint: string
+  amount: number
+  triggerPrice: number | null
+  fillSignature: string | null
+  expiresAt: string | null
+  createdAt: string
+  updatedAt: string
 }

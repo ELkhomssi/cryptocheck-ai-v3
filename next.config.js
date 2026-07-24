@@ -16,6 +16,9 @@ const nextConfig = {
       { source: '/company/:path*', destination: '/', permanent: true },
       { source: '/dashboard/terminal', destination: '/terminal', permanent: false },
       { source: '/dashboard/terminal/:path*', destination: '/terminal', permanent: false },
+      // Phase 10 — portfolio desk is now the canonical /terminal
+      { source: '/portfolio', destination: '/terminal', permanent: true },
+      { source: '/portfolio/:path*', destination: '/terminal', permanent: true },
     ]
   },
   async headers() {

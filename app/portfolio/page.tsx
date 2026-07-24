@@ -1,6 +1,6 @@
-import { PortfolioDesk } from '@/components/portfolio-desk/PortfolioDesk'
+import { redirect } from 'next/navigation'
 
-/** Playbook portfolio desk — /portfolio */
-export default function PortfolioPage() {
-  return <PortfolioDesk />
+/** Legacy path — canonical desk is /terminal. */
+export default function PortfolioRedirectPage() {
+  redirect('/terminal')
 }

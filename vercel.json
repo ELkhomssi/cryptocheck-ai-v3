@@ -32,6 +32,14 @@
     {
       "path": "/api/cron/saved-you-grade",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/terminal-orders",
+      "schedule": "*/2 * * * *"
+    },
+    {
+      "path": "/api/cron/terminal-market-alerts",
+      "schedule": "*/5 * * * *"
     }
   ],
   "redirects": [
