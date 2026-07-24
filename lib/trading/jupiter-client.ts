@@ -70,28 +70,32 @@ async function fetchJson(
   init?: RequestInit,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<unknown> {
-  const { providerFetch } = await import('@/lib/providers/http')
-  const result = await providerFetch('jupiter', url, {
-    ...init,
-    headers: jupiterHeaders(init?.headers),
-    timeoutMs,
-  })
-  if (result.ok === false) {
-    if (result.reason === 'quota') {
-      throw new JupiterError('Jupiter quota exhausted — try again later', 429)
-    }
-    throw new JupiterError(
-      result.status ? `Jupiter HTTP ${result.status}` : 'Jupiter network error',
-      result.status,
-    )
-  }
+  // Keep this module client-safe: RiskGatedSwapPanel and other "use client"
+  // panels import getJupiterQuote / buildJupiterSwapTransaction. Provider quota
+  // gating for Jupiter lives in lib/providers/jupiter.ts and server API routes.
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
-    const text = await result.res.text()
+    const res = await fetch(url, {
+      ...init,
+      headers: jupiterHeaders(init?.headers),
+      signal: controller.signal,
+    })
+    const text = await res.text()
     const parsed = text ? JSON.parse(text) : null
+    if (!res.ok) {
+      const msg =
+        parsed && typeof parsed === 'object' && 'error' in parsed
+          ? String((parsed as { error: unknown }).error)
+          : `Jupiter HTTP ${res.status}`
+      throw new JupiterError(msg, res.status)
+    }
     return parsed
   } catch (e) {
     if (e instanceof JupiterError) throw e
     throw new JupiterError(e instanceof Error ? e.message : String(e))
+  } finally {
+    clearTimeout(timer)
   }
 }
 
