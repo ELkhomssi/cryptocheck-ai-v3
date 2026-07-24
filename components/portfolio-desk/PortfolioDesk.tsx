@@ -15,6 +15,7 @@ import { HoldingsTable } from './portfolio/HoldingsTable'
 import { Metrics } from './portfolio/Metrics'
 import { PerformanceChart, usePerformance } from './portfolio/PerformanceChart'
 import { ScreenerPanel } from './screener/ScreenerPanel'
+import { WatchlistPanel } from './watchlist/WatchlistPanel'
 import type { PortfolioAlert } from '@/types/portfolio-desk'
 
 const RANGES = ['24H', '7D', '30D', '90D', 'ALL'] as const
@@ -110,7 +111,9 @@ export function PortfolioDesk() {
             <p>
               {nav === 'screener'
                 ? 'Filter and rank live Solana markets by liquidity, risk, and AI score.'
-                : 'Track your assets, performance and analytics in real-time.'}
+                : nav === 'watchlist'
+                  ? 'Persist and monitor tokens with live price, risk, and AI scores.'
+                  : 'Track your assets, performance and analytics in real-time.'}
             </p>
           </div>
           {nav === 'portfolio' ? (
@@ -129,7 +132,7 @@ export function PortfolioDesk() {
           ) : null}
         </div>
 
-        {!isConnected && nav !== 'screener' ? (
+        {!isConnected && nav !== 'screener' && nav !== 'watchlist' ? (
           <div className="pd-empty pd-panel">
             <h3>Connect your wallet to open the desk</h3>
             <p>
@@ -212,10 +215,9 @@ export function PortfolioDesk() {
         ) : null}
 
         {nav === 'watchlist' ? (
-          <div className="pd-panel pd-empty">
-            <h3>Watchlist</h3>
-            <p>Ticker watchlist is live in the tape. Personal watchlist UI lands next.</p>
-          </div>
+          <SectionErrorBoundary title="Watchlist">
+            <WatchlistPanel />
+          </SectionErrorBoundary>
         ) : null}
 
         {nav === 'settings' ? (

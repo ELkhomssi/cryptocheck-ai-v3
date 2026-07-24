@@ -36,8 +36,12 @@ export async function GET() {
     const [{ data: rows, error }, { count }] = await Promise.all([
       sb
         .from('watchlist')
-        .select('id, mint, symbol, name, last_risk_score, last_verdict, last_scanned_at, created_at')
+        .select(
+          'id, mint, symbol, name, last_risk_score, last_verdict, last_scanned_at, created_at, is_favorite, sort_order',
+        )
         .eq('user_id', userId)
+        .order('is_favorite', { ascending: false })
+        .order('sort_order', { ascending: true })
         .order('created_at', { ascending: false }),
       sb.from('watchlist').select('*', { count: 'exact', head: true }).eq('user_id', userId),
     ])
@@ -115,10 +119,14 @@ export async function POST(req: NextRequest) {
           last_risk_score: lastRiskScore,
           last_verdict: lastVerdict,
           last_scanned_at: lastRiskScore == null ? null : new Date().toISOString(),
+          is_favorite: false,
+          sort_order: 0,
         },
         { onConflict: 'user_id,mint' }
       )
-      .select('id, mint, symbol, name, last_risk_score, last_verdict, last_scanned_at, created_at')
+      .select(
+        'id, mint, symbol, name, last_risk_score, last_verdict, last_scanned_at, created_at, is_favorite, sort_order',
+      )
       .single()
 
     if (error) throw error
