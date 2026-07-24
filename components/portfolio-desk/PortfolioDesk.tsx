@@ -7,6 +7,7 @@ import { AlertsPanel } from './alerts/AlertsPanel'
 import { CoachPanel } from './coach/CoachPanel'
 import { useHoldings } from './hooks/useHoldings'
 import { Sidebar, type DeskNav } from './layout/Sidebar'
+import { PageHeader } from './layout/PageHeader'
 import { TickerTape } from './layout/TickerTape'
 import { Topbar } from './layout/Topbar'
 import { MarketFeeds } from './market/MarketFeeds'
@@ -22,6 +23,44 @@ import { WatchlistPanel } from './watchlist/WatchlistPanel'
 import type { PortfolioAlert } from '@/types/portfolio-desk'
 
 const RANGES = ['24H', '7D', '30D', '90D', 'ALL'] as const
+
+const PAGE_META: Record<DeskNav, { kicker: string; title: string; subtitle: string }> = {
+  portfolio: {
+    kicker: '// PORTFOLIO',
+    title: 'Portfolio Overview',
+    subtitle: 'Track your assets, performance and analytics in real-time.',
+  },
+  screener: {
+    kicker: '// TOKEN SCREENER',
+    title: 'Token Screener',
+    subtitle: 'Filter and rank live Solana markets by liquidity, risk, and AI score.',
+  },
+  trade: {
+    kicker: '// TRADE DESK',
+    title: 'Trade',
+    subtitle: 'Risk-gated Jupiter swaps and tracked limit / DCA / TP / SL orders.',
+  },
+  watchlist: {
+    kicker: '// WATCHLIST',
+    title: 'Watchlist',
+    subtitle: 'Persist and monitor tokens with live price, risk, and AI scores.',
+  },
+  alerts: {
+    kicker: '// ALERTS ENGINE',
+    title: 'Alerts',
+    subtitle: 'Track your assets, performance and analytics in real-time.',
+  },
+  coach: {
+    kicker: '// AI COACH',
+    title: 'AI Coach',
+    subtitle: 'Track your assets, performance and analytics in real-time.',
+  },
+  settings: {
+    kicker: '// SETTINGS',
+    title: 'Settings',
+    subtitle: 'Track your assets, performance and analytics in real-time.',
+  },
+}
 
 class SectionErrorBoundary extends Component<
   { title: string; children: ReactNode },
@@ -96,48 +135,27 @@ export function PortfolioDesk() {
       <TickerTape />
 
       <main className="pd-main">
-        <div className="pd-page-head">
-          <div>
-            <h1>
-              {nav === 'portfolio'
-                ? 'Portfolio Overview'
-                : nav === 'screener'
-                  ? 'Token Screener'
-                  : nav === 'trade'
-                    ? 'Trade'
-                    : nav === 'alerts'
-                      ? 'Alerts'
-                      : nav === 'coach'
-                        ? 'AI Coach'
-                        : nav === 'watchlist'
-                          ? 'Watchlist'
-                          : 'Settings'}
-            </h1>
-            <p>
-              {nav === 'screener'
-                ? 'Filter and rank live Solana markets by liquidity, risk, and AI score.'
-                : nav === 'trade'
-                  ? 'Risk-gated Jupiter swaps and tracked limit / DCA / TP / SL orders.'
-                  : nav === 'watchlist'
-                    ? 'Persist and monitor tokens with live price, risk, and AI scores.'
-                    : 'Track your assets, performance and analytics in real-time.'}
-            </p>
-          </div>
-          {nav === 'portfolio' ? (
-            <div className="pd-tabs">
-              {RANGES.map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  className={`pd-tab${range === r ? ' is-active' : ''}`}
-                  onClick={() => setRange(r)}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
+        <PageHeader
+          kicker={PAGE_META[nav].kicker}
+          title={PAGE_META[nav].title}
+          subtitle={PAGE_META[nav].subtitle}
+          actions={
+            nav === 'portfolio' ? (
+              <div className="pd-tabs">
+                {RANGES.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    className={`pd-tab${range === r ? ' is-active' : ''}`}
+                    onClick={() => setRange(r)}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            ) : null
+          }
+        />
 
         {!isConnected && nav !== 'screener' && nav !== 'watchlist' ? (
           <div className="pd-empty pd-panel">
