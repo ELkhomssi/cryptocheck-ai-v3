@@ -23,16 +23,25 @@ const ITEMS: { id: DeskNav; label: string; icon: typeof LayoutDashboard }[] = [
 export function Sidebar({
   active,
   onSelect,
+  mobileOpen = false,
+  onCloseMobile,
 }: {
   active: DeskNav
   onSelect: (id: DeskNav) => void
+  mobileOpen?: boolean
+  onCloseMobile?: () => void
 }) {
   const { shortAddr, isConnected } = useSolana()
   const toggle = usePortfolioTheme((s) => s.toggle)
   const theme = usePortfolioTheme((s) => s.theme)
 
+  const pick = (id: DeskNav) => {
+    onSelect(id)
+    onCloseMobile?.()
+  }
+
   return (
-    <aside className="pd-sidebar">
+    <aside className={`pd-sidebar${mobileOpen ? ' is-open' : ''}`}>
       <div className="pd-brand">
         <div className="pd-mark" aria-hidden />
         <div>
@@ -51,7 +60,7 @@ export function Sidebar({
               key={item.id}
               type="button"
               className={`pd-nav-item${active === item.id ? ' is-active' : ''}`}
-              onClick={() => onSelect(item.id)}
+              onClick={() => pick(item.id)}
             >
               <Icon className="h-4 w-4" strokeWidth={1.6} />
               {item.label}
@@ -63,7 +72,7 @@ export function Sidebar({
         <button
           type="button"
           className={`pd-nav-item${active === 'settings' ? ' is-active' : ''}`}
-          onClick={() => onSelect('settings')}
+          onClick={() => pick('settings')}
         >
           <Settings className="h-4 w-4" strokeWidth={1.6} />
           Settings
@@ -98,7 +107,9 @@ export function Sidebar({
           <div style={{ fontSize: 12.5, fontWeight: 600 }}>
             {isConnected && shortAddr ? shortAddr : 'Guest'}
           </div>
-          <div style={{ fontSize: 10.5, color: 'var(--pd-accent)' }}>◆ Pro Plan</div>
+          <div style={{ fontSize: 10.5, color: 'var(--pd-text-faint)' }}>
+            {isConnected ? 'Connected' : 'Not connected'}
+          </div>
         </div>
       </div>
     </aside>

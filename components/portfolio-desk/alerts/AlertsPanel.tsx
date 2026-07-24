@@ -57,7 +57,7 @@ export function AlertsPanel() {
       {!alerts.length ? (
         <p style={{ fontSize: 12.5, color: 'var(--pd-text-faint)', padding: '4px 4px 16px' }}>
           No webhook alerts yet. Configure Helius →{' '}
-          <span className="pd-num">/api/webhooks/helius-portfolio</span>. Nothing is fabricated.
+          <span className="pd-num">/api/webhooks/helius</span>. Nothing is fabricated.
         </p>
       ) : (
         alerts.map((a) => {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Newspaper, Send, Sparkles, TrendingUp, Wallet } from 'lucide-react'
 import { useSolana } from '@/components/SolanaProvider'
 import { useHoldings } from '../hooks/useHoldings'
@@ -28,6 +28,22 @@ export function CoachPanel() {
   const [draft, setDraft] = useState('')
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [streaming, setStreaming] = useState(false)
+  const [online, setOnline] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/portfolio/coach', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((body: { available?: boolean }) => {
+        if (!cancelled) setOnline(Boolean(body.available))
+      })
+      .catch(() => {
+        if (!cancelled) setOnline(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const run = async (prompt: string) => {
     const text = prompt.trim()
@@ -43,6 +59,7 @@ export function CoachPanel() {
       })
       if (!res.ok || !res.body) {
         const err = (await res.json().catch(() => ({}))) as { error?: string }
+        if (res.status === 503) setOnline(false)
         setMsgs((m) => {
           const next = [...m]
           next[next.length - 1] = {
@@ -53,6 +70,7 @@ export function CoachPanel() {
         })
         return
       }
+      setOnline(true)
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let acc = ''
@@ -79,22 +97,24 @@ export function CoachPanel() {
   }
 
   const name = isConnected && shortAddr ? shortAddr : 'trader'
+  const statusColor = online === false ? 'var(--pd-text-faint)' : 'var(--pd-positive)'
+  const statusLabel = online === false ? 'Offline' : online === null ? '…' : 'Online'
 
   return (
     <section style={{ marginTop: 16 }}>
       <div className="pd-panel-head" style={{ padding: '0 4px 0', border: 'none' }}>
         <h2>AI Coach</h2>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--pd-positive)' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: statusColor }}>
           <span
             style={{
               width: 6,
               height: 6,
               borderRadius: '50%',
-              background: 'var(--pd-positive)',
-              boxShadow: '0 0 0 3px var(--pd-positive-soft)',
+              background: statusColor,
+              boxShadow: online ? '0 0 0 3px var(--pd-positive-soft)' : undefined,
             }}
           />
-          Online
+          {statusLabel}
         </span>
       </div>
       <div style={{ fontSize: 14, fontWeight: 700, margin: '14px 0 2px' }}>
@@ -117,7 +137,7 @@ export function CoachPanel() {
             key={q.label}
             type="button"
             className="pd-coach-action"
-            disabled={streaming}
+            disabled={streaming || online === false}
             onClick={() => void run(prompt)}
           >
             <div
@@ -154,7 +174,12 @@ export function CoachPanel() {
       ) : null}
 
       {!isConnected ? (
-        <button type="button" className="pd-connect" style={{ width: '100%', marginTop: 12 }} onClick={() => void connect()}>
+        <button
+          type="button"
+          className="pd-connect"
+          style={{ width: '100%', marginTop: 12 }}
+          onClick={() => void connect()}
+        >
           Connect Wallet for portfolio-aware answers
         </button>
       ) : null}
@@ -171,9 +196,14 @@ export function CoachPanel() {
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Ask me anything…"
           aria-label="Ask AI Coach"
-          disabled={streaming}
+          disabled={streaming || online === false}
         />
-        <button type="submit" className="pd-ask-send" disabled={streaming || !draft.trim()} aria-label="Send">
+        <button
+          type="submit"
+          className="pd-ask-send"
+          disabled={streaming || online === false || !draft.trim()}
+          aria-label="Send"
+        >
           <Send className="h-3.5 w-3.5" strokeWidth={2.4} />
         </button>
       </form>

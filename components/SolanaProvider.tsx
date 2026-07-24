@@ -60,6 +60,9 @@ function SolanaInner({ children }: { children: ReactNode }) {
 export function SolanaProvider({ children }: { children: ReactNode }) {
   // Route wallet-adapter through our clean in-origin proxy so no CryptoCheck
   // auth headers or cookies can leak to an external Solana RPC.
+  // Prefer HELIUS_RPC_URL / NEXT_PUBLIC_HELIUS_RPC_URL via getClientSolanaRpcUrl().
+  // Phantom + Solflare are explicit; Backpack (and other Wallet Standard wallets)
+  // auto-register when the extension is installed — no separate adapter package.
   const endpoint = useMemo(() => getClientSolanaRpcUrl(), [])
   const wallets = useMemo(() => [
     new PhantomWalletAdapter(),

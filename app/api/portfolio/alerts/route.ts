@@ -13,15 +13,15 @@ export async function GET(req: NextRequest) {
   const wallet = req.nextUrl.searchParams.get('wallet')?.trim() ?? ''
   try {
     if (!wallet) {
-      return NextResponse.json({ alerts: listAlerts(20) })
+      return NextResponse.json({ alerts: await listAlerts(20) })
     }
     const holdings = await buildHoldingsResponse(wallet)
     const symbols = new Set(holdings.holdings.map((h) => h.symbol.toUpperCase()))
     return NextResponse.json({
-      alerts: alertsForSymbols(symbols, 20),
+      alerts: await alertsForSymbols(symbols, 20),
       fetchedAt: new Date().toISOString(),
     })
   } catch {
-    return NextResponse.json({ alerts: listAlerts(20) })
+    return NextResponse.json({ alerts: await listAlerts(20) })
   }
 }
