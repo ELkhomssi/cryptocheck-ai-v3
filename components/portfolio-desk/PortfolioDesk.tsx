@@ -207,7 +207,15 @@ export function PortfolioDesk() {
         mobileOpen={mobileNav}
         onCloseMobile={() => setMobileNav(false)}
       />
-      <Topbar alertCount={alertsQ.data ?? 0} onOpenNav={() => setMobileNav(true)} />
+      <Topbar
+        alertCount={alertsQ.data ?? 0}
+        onOpenNav={() => setMobileNav(true)}
+        onSelectToken={(row) => {
+          const p = new URLSearchParams(searchParams.toString())
+          p.set('mint', row.mint)
+          router.replace(`?${p.toString()}`, { scroll: false })
+        }}
+      />
       <TickerTape />
 
       <main className="pd-main">
