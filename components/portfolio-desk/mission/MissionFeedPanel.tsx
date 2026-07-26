@@ -3,12 +3,15 @@
 /**
  * Mission Feed — chronological alerts + agent completions.
  * Honest empty state; never fabricates rows.
+ * Phase 16.5 — optional module filter uses the same data source.
  */
 
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSolana } from '@/components/SolanaProvider'
+import { modulesForAgent } from '@/lib/intelligence/modules'
 import type { AgentActivityRow } from '@/types/agents'
+import type { IntelligenceModuleId } from '@/types/intelligence'
 import type { PortfolioAlert } from '@/types/portfolio-desk'
 
 type FeedCat = 'all' | 'market' | 'risk' | 'automation' | 'portfolio'
@@ -16,6 +19,7 @@ type FeedCat = 'all' | 'market' | 'risk' | 'automation' | 'portfolio'
 type FeedItem = {
   id: string
   cat: FeedCat
+  moduleIds: IntelligenceModuleId[]
   title: string
   detail: string
   at: string
@@ -36,7 +40,16 @@ function alertCategory(type: string): FeedCat {
   return 'portfolio'
 }
 
-export function MissionFeedPanel({ limit = 40, condensed = false }: { limit?: number; condensed?: boolean }) {
+export function MissionFeedPanel({
+  limit = 40,
+  condensed = false,
+  moduleFilter = null,
+}: {
+  limit?: number
+  condensed?: boolean
+  /** When set, show only activity rows mapped to this Intelligence Module. */
+  moduleFilter?: IntelligenceModuleId | null
+}) {
   const { walletAddress } = useSolana()
   const [cat, setCat] = useState<FeedCat>('all')
 
@@ -51,6 +64,7 @@ export function MissionFeedPanel({ limit = 40, condensed = false }: { limit?: nu
     },
     refetchInterval: 20_000,
     staleTime: 10_000,
+    enabled: !moduleFilter,
   })
 
   const activityQ = useQuery({
@@ -67,20 +81,25 @@ export function MissionFeedPanel({ limit = 40, condensed = false }: { limit?: nu
 
   const items = useMemo(() => {
     const out: FeedItem[] = []
-    for (const a of alertsQ.data ?? []) {
-      out.push({
-        id: `alert-${a.id}`,
-        cat: alertCategory(a.type),
-        title: a.title || a.type,
-        detail: a.description || '',
-        at: a.createdAt,
-      })
+    if (!moduleFilter) {
+      for (const a of alertsQ.data ?? []) {
+        out.push({
+          id: `alert-${a.id}`,
+          cat: alertCategory(a.type),
+          moduleIds: [],
+          title: a.title || a.type,
+          detail: a.description || '',
+          at: a.createdAt,
+        })
+      }
     }
     for (const row of activityQ.data ?? []) {
       if (row.status === 'running') continue
+      const moduleIds = modulesForAgent(row.agentId)
       out.push({
         id: `act-${row.id}`,
         cat: 'automation',
+        moduleIds,
         title: row.description || `${row.kind} ${row.status}`,
         detail: row.status === 'failed' ? 'Failed' : 'Completed',
         at: row.createdAt,
@@ -88,15 +107,18 @@ export function MissionFeedPanel({ limit = 40, condensed = false }: { limit?: nu
     }
     out.sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
     return out
-  }, [alertsQ.data, activityQ.data])
+  }, [alertsQ.data, activityQ.data, moduleFilter])
 
-  const filtered = items.filter((i) => (cat === 'all' ? true : i.cat === cat))
+  const filtered = items.filter((i) => {
+    if (moduleFilter) return i.moduleIds.includes(moduleFilter)
+    return cat === 'all' ? true : i.cat === cat
+  })
   const shown = condensed ? filtered.slice(0, 8) : filtered
-  const loading = alertsQ.isLoading || activityQ.isLoading
+  const loading = (!moduleFilter && alertsQ.isLoading) || activityQ.isLoading
 
   return (
     <section className={condensed ? undefined : 'pd-panel'} style={{ padding: condensed ? 0 : 16 }}>
-      {!condensed ? (
+      {!condensed && !moduleFilter ? (
         <div className="pd-tabs" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
           {FILTERS.map((f) => (
             <button
@@ -160,7 +182,7 @@ export function MissionFeedPanel({ limit = 40, condensed = false }: { limit?: nu
                   color: 'var(--pd-text-faint)',
                 }}
               >
-                {item.cat}
+                {moduleFilter ? moduleFilter : item.cat}
               </span>
             </li>
           ))}

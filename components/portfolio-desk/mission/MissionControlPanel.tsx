@@ -9,6 +9,7 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSolana } from '@/components/SolanaProvider'
 import { MissionFeedPanel } from '@/components/portfolio-desk/mission/MissionFeedPanel'
+import { IntelligenceModulesGrid } from '@/components/portfolio-desk/mission/IntelligenceModulesGrid'
 import { TokenSearch } from '@/components/portfolio-desk/token/TokenSearch'
 import { MiniSparkline } from '@/components/portfolio-desk/portfolio/PerformanceChart'
 import { useHoldings } from '@/components/portfolio-desk/hooks/useHoldings'
@@ -127,6 +128,8 @@ export function MissionControlPanel({
 
   return (
     <div>
+      <IntelligenceModulesGrid />
+
       <Section
         title="Market Status"
         action={
@@ -270,8 +273,8 @@ export function MissionControlPanel({
 
       <Section title="Command Center">
         <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--pd-text-dim)' }}>
-          Search a token to chart, watch, or swap — or tap a suggestion to jump into Market
-          Intelligence.
+          Search a token to chart, watch, or swap — Intelligence Modules handle routing behind the
+          scenes. Status copy names the module, not individual workers.
         </p>
         <TokenSearch
           showShortcut

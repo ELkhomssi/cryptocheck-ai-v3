@@ -248,6 +248,11 @@ export async function GET(req: NextRequest) {
   const total = rows.length
   const page = needsLocal ? rows.slice(offset, offset + limit) : rows.slice(0, limit)
 
+  // Phase 16 — Market Intelligence "datapoints analyzed" = rows ingested today.
+  void import('@/lib/intelligence/module-stats')
+    .then(({ incrMarketDatapoints }) => incrMarketDatapoints(page.length))
+    .catch(() => {})
+
   return NextResponse.json({
     rows: page,
     total,

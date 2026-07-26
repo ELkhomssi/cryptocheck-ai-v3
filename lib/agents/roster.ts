@@ -1,4 +1,5 @@
 import type { AIEmployee, PerformanceFormula } from '@/types/agents'
+import type { IntelligenceModuleId } from '@/types/intelligence'
 
 const DISCLAIMER =
   'Always end with a one-line disclaimer that this is not financial advice. Cite only numbers present in the provided live context — never invent prices, holdings, or alerts.'
@@ -12,6 +13,8 @@ function formula(
 /**
  * Built-in AI Employee roster (Phase 11 §2).
  * Config only — no UI. Performance formulas require real snapshot rows before a % may render.
+ * Phase 16: each worker maps to Intelligence Module(s) via `modules`.
+ * Developer Assistant / Prompt Engineer are intentionally absent — internal tooling only.
  */
 export const BUILTIN_EMPLOYEES: readonly AIEmployee[] = [
   {
@@ -24,6 +27,7 @@ export const BUILTIN_EMPLOYEES: readonly AIEmployee[] = [
     iconTone: 'gold',
     icon: 'MessageSquare',
     builtin: true,
+    modules: ['trading'] satisfies IntelligenceModuleId[],
     performanceFormula: formula({
       id: 'setup_win_rate',
       description: 'Win rate of flagged setups resolved after the verification window.',
@@ -34,6 +38,7 @@ export const BUILTIN_EMPLOYEES: readonly AIEmployee[] = [
       'You are Trading Coach — a Solana setup scout inside CryptoCheck AI.',
       'Use LIVE CONTEXT (prices, volume, screener rows) only.',
       'Flag concrete setups with entry/invalidation when data supports them; otherwise say data is insufficient.',
+      'Never prefix responses with employee-name phrasing (no "Trading Coach says"). Use impersonal institutional copy.',
       DISCLAIMER,
     ].join(' '),
   },
@@ -47,6 +52,7 @@ export const BUILTIN_EMPLOYEES: readonly AIEmployee[] = [
     iconTone: 'chain',
     icon: 'FileSearch',
     builtin: true,
+    modules: ['research'] satisfies IntelligenceModuleId[],
     performanceFormula: formula({
       id: 'report_completeness',
       description: 'Average data-completeness score across the last N generated reports.',
@@ -58,6 +64,7 @@ export const BUILTIN_EMPLOYEES: readonly AIEmployee[] = [
       'You are Research Analyst. Produce a structured fundamental report from LIVE CONTEXT only.',
       'Cover liquidity, market cap/FDV, holders/tx activity, and any contract flags present in context.',
       'Return JSON with title, summary, sections[{heading,body}], stats[{label,value}], disclaimer.',
+      'Never prefix with employee-name phrasing. Use "Research indicates…" institutional copy.',
       DISCLAIMER,
     ].join(' '),
   },
@@ -71,6 +78,7 @@ export const BUILTIN_EMPLOYEES: readonly AIEmployee[] = [
     iconTone: 'accent',
     icon: 'TrendingUp',
     builtin: true,
+    modules: ['research'] satisfies IntelligenceModuleId[],
     performanceFormula: formula({
       id: 'outlook_directional_accuracy',
       description: 'Accuracy of prior-day directional outlook vs actual 24h market move.',
@@ -81,6 +89,7 @@ export const BUILTIN_EMPLOYEES: readonly AIEmployee[] = [
       'You are Market Strategist. Write a concise market outlook from LIVE CONTEXT screener aggregates.',
       'State a clear directional bias (bullish/bearish/neutral) with supporting stats from context.',
       'Return JSON with title, summary, sections, stats, disclaimer.',
+      'Never prefix with employee-name phrasing.',
       DISCLAIMER,
     ].join(' '),
   },
@@ -94,6 +103,7 @@ export const BUILTIN_EMPLOYEES: readonly AIEmployee[] = [
     iconTone: 'chain',
     icon: 'Fish',
     builtin: true,
+    modules: ['market'] satisfies IntelligenceModuleId[],
     performanceFormula: formula({
       id: 'whale_followthrough',
       description: '% of flagged whale buys followed by a favorable price move in-window.',
@@ -104,6 +114,7 @@ export const BUILTIN_EMPLOYEES: readonly AIEmployee[] = [
       'You are Whale Analyst. Convert LIVE CONTEXT alerts and flows into actionable whale signals.',
       'Return JSON with title, summary, signals[{symbol,mint,note,severity}], disclaimer.',
       'Only reference alerts/tokens present in context.',
+      'Never write "Whale Analyst says" — use impersonal copy like "Whale accumulation detected…".',
       DISCLAIMER,
     ].join(' '),
   },
@@ -117,6 +128,7 @@ export const BUILTIN_EMPLOYEES: readonly AIEmployee[] = [
     iconTone: 'red',
     icon: 'Shield',
     builtin: true,
+    modules: ['portfolio'] satisfies IntelligenceModuleId[],
     performanceFormula: formula({
       id: 'portfolio_coverage',
       description: '% of connected portfolio value under continuous monitoring.',
@@ -128,6 +140,7 @@ export const BUILTIN_EMPLOYEES: readonly AIEmployee[] = [
       'You are Risk Manager. Produce a risk report from LIVE CONTEXT portfolio analytics.',
       'Highlight concentration (HHI), allocation outliers, and missing cost-basis limitations honestly.',
       'Return JSON with title, summary, sections, stats, disclaimer.',
+      'Never prefix with employee-name phrasing.',
       DISCLAIMER,
     ].join(' '),
   },
@@ -141,6 +154,7 @@ export const BUILTIN_EMPLOYEES: readonly AIEmployee[] = [
     iconTone: 'green',
     icon: 'Newspaper',
     builtin: true,
+    modules: ['research'] satisfies IntelligenceModuleId[],
     performanceFormula: formula({
       id: 'news_freshness',
       description: 'Freshness score from time since last successful news scan cycle.',
@@ -152,6 +166,7 @@ export const BUILTIN_EMPLOYEES: readonly AIEmployee[] = [
       'You are News Intelligence. Summarize LIVE CONTEXT news/sentiment only.',
       'If the news provider is unconfigured, say so clearly and do not invent headlines.',
       'Return JSON with title, summary, sections, stats, disclaimer.',
+      'Never prefix with employee-name phrasing.',
       DISCLAIMER,
     ].join(' '),
   },
@@ -165,6 +180,7 @@ export const BUILTIN_EMPLOYEES: readonly AIEmployee[] = [
     iconTone: 'gold',
     icon: 'Rocket',
     builtin: true,
+    modules: ['launch'] satisfies IntelligenceModuleId[],
     performanceFormula: formula({
       id: 'launch_approval_safety',
       description: 'Post-facto safety rate among launches this agent approved.',
@@ -174,6 +190,7 @@ export const BUILTIN_EMPLOYEES: readonly AIEmployee[] = [
     systemPromptTemplate: [
       'You are Launch Advisor. Rank new listings/pools from LIVE CONTEXT with liquidity and risk caveats.',
       'Return JSON with title, summary, signals[{symbol,mint,note,severity}], disclaimer.',
+      'Never prefix with employee-name phrasing.',
       DISCLAIMER,
     ].join(' '),
   },
@@ -187,6 +204,7 @@ export const BUILTIN_EMPLOYEES: readonly AIEmployee[] = [
     iconTone: 'accent',
     icon: 'Scale',
     builtin: true,
+    modules: ['portfolio'] satisfies IntelligenceModuleId[],
     performanceFormula: formula({
       id: 'suggestion_acceptance',
       description: '% of rebalance suggestions the user accepted.',
@@ -198,6 +216,7 @@ export const BUILTIN_EMPLOYEES: readonly AIEmployee[] = [
       'You are Portfolio Manager. Propose concrete rebalancing suggestions from LIVE CONTEXT only.',
       'Return JSON with title, summary, suggestions[{id,title,detail}], stats, disclaimer.',
       'Each suggestion id must be stable kebab-case for Accept/Dismiss logging.',
+      'Never prefix with employee-name phrasing.',
       DISCLAIMER,
     ].join(' '),
   },
@@ -211,6 +230,7 @@ export const BUILTIN_EMPLOYEES: readonly AIEmployee[] = [
     iconTone: 'red',
     icon: 'Search',
     builtin: true,
+    modules: ['security', 'launch'] satisfies IntelligenceModuleId[],
     performanceFormula: formula({
       id: 'scam_detection_accuracy',
       description: 'Detection accuracy vs maintained confirmed scam/legit set.',
@@ -221,6 +241,7 @@ export const BUILTIN_EMPLOYEES: readonly AIEmployee[] = [
       'You are Scam Investigator. Assess contract/token safety strictly from LIVE CONTEXT.',
       'Call out missing fields (mint/freeze authority unknown) instead of guessing.',
       'Return JSON with title, summary, sections, stats, disclaimer.',
+      'Never write "Scam Investigator says" — use "Security flags…" institutional copy.',
       DISCLAIMER,
     ].join(' '),
   },
@@ -240,6 +261,12 @@ export function buildCustomSystemPrompt(role: string, instructions: string): str
     `You are a custom CryptoCheck AI Employee with role: ${role}.`,
     'Ground every claim in the LIVE CONTEXT block. Never invent market data.',
     instructions.trim() || 'Follow the user request carefully using available context.',
+    'Never prefix responses with employee-name phrasing.',
     DISCLAIMER,
   ].join(' ')
+}
+
+/** Workers mapped to a module (may include multi-module contributors). */
+export function listEmployeesForModule(moduleId: IntelligenceModuleId): AIEmployee[] {
+  return listBuiltinEmployees().filter((e) => e.modules.includes(moduleId))
 }
