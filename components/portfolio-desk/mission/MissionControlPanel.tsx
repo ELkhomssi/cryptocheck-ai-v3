@@ -2,7 +2,8 @@
 
 /**
  * Mission Control — OS home.
- * Condensed real-data sections; idle/empty states are honest.
+ * Phase 17: data via MissionEngine (`/api/intelligence-core/mission`).
+ * Visual design of original sections unchanged; Recommendations + Daily Brief added.
  */
 
 import { useMemo } from 'react'
@@ -12,11 +13,9 @@ import { MissionFeedPanel } from '@/components/portfolio-desk/mission/MissionFee
 import { IntelligenceModulesGrid } from '@/components/portfolio-desk/mission/IntelligenceModulesGrid'
 import { TokenSearch } from '@/components/portfolio-desk/token/TokenSearch'
 import { MiniSparkline } from '@/components/portfolio-desk/portfolio/PerformanceChart'
-import { useHoldings } from '@/components/portfolio-desk/hooks/useHoldings'
-import { usePerformance } from '@/components/portfolio-desk/portfolio/PerformanceChart'
 import { formatPct, formatUsd } from '@/lib/portfolio-desk/format'
 import type { ScreenerRow } from '@/lib/providers/types'
-import type { AgentActivityRow } from '@/types/agents'
+import type { MissionViewModel } from '@/types/intelligence-core'
 
 const SUGGESTIONS = [
   'Scan my portfolio risk',
@@ -65,66 +64,24 @@ export function MissionControlPanel({
   onSuggestion: (text: string) => void
 }) {
   const { walletAddress, isConnected } = useSolana()
-  const holdingsQ = useHoldings()
-  const perfQ = usePerformance(walletAddress, '24H')
 
-  const marketQ = useQuery({
-    queryKey: ['mission-market-glance'],
+  const missionQ = useQuery({
+    queryKey: ['intelligence-core-mission', walletAddress],
     queryFn: async () => {
-      const res = await fetch('/api/market/screener?limit=12&sort=volume&order=desc', {
-        cache: 'no-store',
-      })
-      if (!res.ok) return { rows: [] as ScreenerRow[], available: false }
-      return (await res.json()) as { rows?: ScreenerRow[]; available?: boolean }
+      const q = walletAddress ? `?wallet=${encodeURIComponent(walletAddress)}` : ''
+      const res = await fetch(`/api/intelligence-core/mission${q}`, { cache: 'no-store' })
+      if (!res.ok) throw new Error('Mission view unavailable')
+      return (await res.json()) as MissionViewModel
     },
-    refetchInterval: 30_000,
-    staleTime: 15_000,
+    refetchInterval: 20_000,
+    staleTime: 10_000,
   })
 
-  const runningQ = useQuery({
-    queryKey: ['mission-running-intel'],
-    queryFn: async () => {
-      const res = await fetch('/api/agents/activity?limit=40&status=running', {
-        cache: 'no-store',
-      })
-      if (!res.ok) return [] as AgentActivityRow[]
-      const body = (await res.json()) as { activity?: AgentActivityRow[] }
-      return (body.activity ?? []).filter((r) => r.status === 'running')
-    },
-    refetchInterval: 10_000,
-    staleTime: 5_000,
-  })
-
-  const marketStats = useMemo(() => {
-    const rows = marketQ.data?.rows ?? []
-    if (!rows.length) return null
-    const avg =
-      rows.reduce((s, r) => s + (Number.isFinite(r.change24hPct) ? r.change24hPct : 0), 0) /
-      rows.length
-    const top = [...rows].sort((a, b) => Math.abs(b.change24hPct) - Math.abs(a.change24hPct))[0]
-    return { avg, top, spark: rows.slice(0, 8).map((r) => r.change24hPct) }
-  }, [marketQ.data])
-
-  const totalUsd = holdingsQ.data?.totalValueUsd
-  const dayChange = useMemo(() => {
-    const hs = holdingsQ.data?.holdings ?? []
-    const withChg = hs.filter((h) => h.change24hPct != null && h.valueUsd > 0)
-    if (!withChg.length) return null
-    const w = withChg.reduce((s, h) => s + h.valueUsd, 0)
-    if (!(w > 0)) return null
-    return withChg.reduce((s, h) => s + (h.change24hPct as number) * h.valueUsd, 0) / w
-  }, [holdingsQ.data])
-  const topRiskSymbol = useMemo(() => {
-    const hs = holdingsQ.data?.holdings ?? []
-    if (!hs.length) return null
-    const top = [...hs].sort((a, b) => b.valueUsd - a.valueUsd)[0]
-    return top?.symbol ?? null
-  }, [holdingsQ.data])
-
+  const view = missionQ.data
   const marketSpark: { t: number; valueUsd: number }[] = useMemo(() => {
-    if (!marketStats) return []
-    return marketStats.spark.map((v, i) => ({ t: i, valueUsd: v }))
-  }, [marketStats])
+    const spark = view?.market.spark ?? []
+    return spark.map((v, i) => ({ t: i, valueUsd: v }))
+  }, [view?.market.spark])
 
   return (
     <div>
@@ -138,9 +95,9 @@ export function MissionControlPanel({
           </button>
         }
       >
-        {marketQ.isLoading ? (
+        {missionQ.isLoading ? (
           <div className="pd-skeleton" style={{ height: 64 }} />
-        ) : !marketStats ? (
+        ) : !view?.market.available ? (
           <p style={{ margin: 0, fontSize: 13, color: 'var(--pd-text-dim)' }}>
             Market glance unavailable — providers returned no rows.
           </p>
@@ -161,22 +118,22 @@ export function MissionControlPanel({
                   fontSize: 22,
                   fontWeight: 700,
                   color:
-                    marketStats.avg > 0
+                    (view.market.aggregateChange24hPct ?? 0) > 0
                       ? 'var(--pd-positive)'
-                      : marketStats.avg < 0
+                      : (view.market.aggregateChange24hPct ?? 0) < 0
                         ? 'var(--pd-negative)'
                         : undefined,
                 }}
               >
-                {formatPct(marketStats.avg)}
+                {formatPct(view.market.aggregateChange24hPct ?? 0)}
               </div>
             </div>
             <div>
               <div style={{ fontSize: 10, color: 'var(--pd-text-faint)' }}>TOP MOVER</div>
               <div style={{ fontSize: 15, fontWeight: 600 }}>
-                {marketStats.top?.symbol || '—'}{' '}
+                {view.market.topMoverSymbol || '—'}{' '}
                 <span className="pd-num" style={{ fontSize: 13 }}>
-                  {formatPct(marketStats.top?.change24hPct ?? 0)}
+                  {formatPct(view.market.topMoverChange24hPct ?? 0)}
                 </span>
               </div>
             </div>
@@ -192,9 +149,9 @@ export function MissionControlPanel({
           <p style={{ margin: 0, fontSize: 13, color: 'var(--pd-text-dim)' }}>
             Connect a wallet to load live portfolio health.
           </p>
-        ) : holdingsQ.isLoading ? (
+        ) : missionQ.isLoading ? (
           <div className="pd-skeleton" style={{ height: 64 }} />
-        ) : holdingsQ.isError ? (
+        ) : view?.portfolio.error ? (
           <p style={{ margin: 0, fontSize: 13, color: 'var(--pd-negative)' }}>
             Portfolio fetch failed — retry from Portfolio Intelligence.
           </p>
@@ -209,36 +166,40 @@ export function MissionControlPanel({
             <div>
               <div style={{ fontSize: 10, color: 'var(--pd-text-faint)' }}>VALUE</div>
               <div className="pd-num" style={{ fontSize: 18, fontWeight: 700 }}>
-                {formatUsd(totalUsd ?? 0)}
+                {formatUsd(view?.portfolio.totalValueUsd ?? 0)}
               </div>
             </div>
             <div>
               <div style={{ fontSize: 10, color: 'var(--pd-text-faint)' }}>24H</div>
               <div className="pd-num" style={{ fontSize: 18, fontWeight: 700 }}>
-                {dayChange != null ? formatPct(dayChange) : '—'}
+                {view?.portfolio.dayChangePct != null
+                  ? formatPct(view.portfolio.dayChangePct)
+                  : '—'}
               </div>
             </div>
             <div>
               <div style={{ fontSize: 10, color: 'var(--pd-text-faint)' }}>TOP WEIGHT</div>
-              <div style={{ fontSize: 18, fontWeight: 700 }}>{topRiskSymbol || '—'}</div>
+              <div style={{ fontSize: 18, fontWeight: 700 }}>
+                {view?.portfolio.topWeightSymbol || '—'}
+              </div>
             </div>
             <div style={{ height: 40 }}>
-              <MiniSparkline series={perfQ.data?.series ?? []} />
+              <MiniSparkline series={marketSpark} />
             </div>
           </div>
         )}
       </Section>
 
       <Section title="Running Intelligence">
-        {runningQ.isLoading ? (
+        {missionQ.isLoading ? (
           <div className="pd-skeleton" style={{ height: 40 }} />
-        ) : (runningQ.data ?? []).length === 0 ? (
+        ) : (view?.running ?? []).length === 0 ? (
           <p style={{ margin: 0, fontSize: 13, color: 'var(--pd-text-dim)' }}>
             Idle — no automated jobs running right now.
           </p>
         ) : (
           <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-            {(runningQ.data ?? []).map((row) => (
+            {(view?.running ?? []).map((row) => (
               <li
                 key={row.id}
                 style={{
@@ -257,6 +218,63 @@ export function MissionControlPanel({
               </li>
             ))}
           </ul>
+        )}
+      </Section>
+
+      <Section title="Recommendations">
+        {missionQ.isLoading ? (
+          <div className="pd-skeleton" style={{ height: 40 }} />
+        ) : (view?.recommendations ?? []).length === 0 ? (
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--pd-text-dim)' }}>
+            No grounded recommendations yet — explanations appear only when real metric diffs
+            exist.
+          </p>
+        ) : (
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            {(view?.recommendations ?? []).map((r, i) => (
+              <li
+                key={r.predictionId || `${r.title}-${i}`}
+                style={{
+                  padding: '8px 0',
+                  borderBottom: '1px solid var(--pd-border-soft)',
+                }}
+              >
+                <strong style={{ fontSize: 13 }}>{r.title}</strong>
+                <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--pd-text-dim)' }}>
+                  {r.explanation}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
+
+      <Section title="Daily Brief">
+        {missionQ.isLoading ? (
+          <div className="pd-skeleton" style={{ height: 40 }} />
+        ) : view?.dailyBrief.pending ? (
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--pd-accent)' }}>
+            {view.dailyBrief.body}
+          </p>
+        ) : (
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
+              {view?.dailyBrief.title || 'Morning Brief'}
+            </div>
+            <p
+              style={{
+                margin: 0,
+                fontSize: 13,
+                color: view?.dailyBrief.insufficientActivity
+                  ? 'var(--pd-text-dim)'
+                  : 'var(--pd-text)',
+                whiteSpace: 'pre-wrap',
+                fontStyle: view?.dailyBrief.insufficientActivity ? 'italic' : undefined,
+              }}
+            >
+              {view?.dailyBrief.body}
+            </p>
+          </div>
         )}
       </Section>
 

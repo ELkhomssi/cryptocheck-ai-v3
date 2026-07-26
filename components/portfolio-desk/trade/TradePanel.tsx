@@ -10,6 +10,7 @@ import { TokenSearch } from '@/components/portfolio-desk/token/TokenSearch'
 import type { SwapQuote } from '@/lib/revenue-dashboard/types'
 import { buildJupiterSwapTransaction } from '@/lib/trading/jupiter-client'
 import type { SwapDecision } from '@/lib/trading/risk-gated-swap'
+import type { TradingContext } from '@/types/intelligence-core'
 import type { TerminalOrder, TerminalOrderType } from '@/types/portfolio-desk'
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112'
@@ -76,6 +77,35 @@ export function TradePanel({ initialMint = '' }: { initialMint?: string }) {
     refetchInterval: 15_000,
     staleTime: 10_000,
   })
+
+  // Phase 17.3 — Trading context via ContextEngine (not ad-hoc holdings calls here).
+  const tradingCtxQ = useQuery({
+    queryKey: ['intelligence-core-trading-context', walletAddress],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/intelligence-core/context?kind=trading&wallet=${encodeURIComponent(walletAddress!)}`,
+        { cache: 'no-store' },
+      )
+      if (!res.ok) return null
+      return (await res.json()) as TradingContext
+    },
+    enabled: Boolean(walletAddress && walletAddress.length >= 32),
+    staleTime: 30_000,
+  })
+
+  useEffect(() => {
+    if (!walletAddress || riskMint.length < 32) return
+    void fetch('/api/intelligence-core/memory', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: walletAddress,
+        actionType: 'token_scanned',
+        subjectType: 'token',
+        subjectId: riskMint,
+      }),
+    }).catch(() => {})
+  }, [walletAddress, riskMint])
 
   const runAssess = useCallback(async () => {
     if (riskMint.length < 32) {
@@ -285,6 +315,18 @@ export function TradePanel({ initialMint = '' }: { initialMint?: string }) {
             Non-custodial · risk-gated
           </span>
         </div>
+
+        {tradingCtxQ.data ? (
+          <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--pd-text-dim)' }}>
+            {tradingCtxQ.data.riskExposure.note}
+            {tradingCtxQ.data.watchlist.length
+              ? ` · ${tradingCtxQ.data.watchlist.length} watched`
+              : ''}
+            {tradingCtxQ.data.recentScans.length
+              ? ` · ${tradingCtxQ.data.recentScans.length} recent scans`
+              : ''}
+          </p>
+        ) : null}
 
         <div className="pd-tabs" style={{ marginBottom: 14 }}>
           <button

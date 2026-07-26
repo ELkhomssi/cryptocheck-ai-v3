@@ -2,8 +2,10 @@ import { createOpenAI } from '@ai-sdk/openai'
 import { streamText } from 'ai'
 import { NextRequest, NextResponse } from 'next/server'
 import { AGENT_OPENAI_MODEL, getOpenAiApiKey, isOpenAiConfigured } from '@/lib/agents/llm'
-import { listAlerts } from '@/lib/portfolio-desk/alerts-store'
-import { buildHoldingsResponse } from '@/lib/portfolio-desk/holdings-service'
+import {
+  formatCoachContextForPrompt,
+  getCoachContext,
+} from '@/lib/intelligence-core/context-engine'
 import { fetchTokenMarket, fetchTrending } from '@/lib/providers/birdeye'
 import {
   computeAiScore,
@@ -131,19 +133,9 @@ export async function POST(req: NextRequest) {
   let contextBlock = 'No wallet connected — answer generally and ask the user to connect.'
   if (body.walletAddress && body.walletAddress.length >= 32) {
     try {
-      const holdings = await buildHoldingsResponse(body.walletAddress)
-      const alerts = await listAlerts(10)
-      contextBlock = [
-        `Wallet: ${holdings.walletAddress}`,
-        `Total value USD: ${holdings.totalValueUsd.toFixed(2)}`,
-        `Holdings (${holdings.holdings.length}):`,
-        ...holdings.holdings.slice(0, 15).map(
-          (h) =>
-            `- ${h.symbol} (${h.name}): amount=${h.amount} valueUsd=${h.valueUsd.toFixed(2)} price=${h.priceUsd} alloc=${h.allocationPct.toFixed(1)}%`,
-        ),
-        `Recent alerts (${alerts.length}):`,
-        ...alerts.slice(0, 8).map((a) => `- [${a.type}] ${a.title}: ${a.description}`),
-      ].join('\n')
+      // Phase 17.3 — assemble via ContextEngine (same underlying holdings/alerts/memory/timeline).
+      const coachCtx = await getCoachContext(body.walletAddress)
+      contextBlock = formatCoachContextForPrompt(coachCtx)
     } catch {
       contextBlock = 'Wallet provided but holdings fetch failed — say so honestly.'
     }

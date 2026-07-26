@@ -1,29 +1,16 @@
 'use client'
 
 /**
- * Mission Feed — chronological alerts + agent completions.
- * Honest empty state; never fabricates rows.
- * Phase 16.5 — optional module filter uses the same data source.
+ * Mission Feed — chronological timeline.
+ * Phase 17.2: reads timeline_events (DB-trigger populated). Source writers unchanged.
  */
 
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useSolana } from '@/components/SolanaProvider'
-import { modulesForAgent } from '@/lib/intelligence/modules'
-import type { AgentActivityRow } from '@/types/agents'
 import type { IntelligenceModuleId } from '@/types/intelligence'
-import type { PortfolioAlert } from '@/types/portfolio-desk'
+import type { TimelineEvent } from '@/types/intelligence-core'
 
-type FeedCat = 'all' | 'market' | 'risk' | 'automation' | 'portfolio'
-
-type FeedItem = {
-  id: string
-  cat: FeedCat
-  moduleIds: IntelligenceModuleId[]
-  title: string
-  detail: string
-  at: string
-}
+type FeedCat = 'all' | 'market' | 'risk' | 'automation' | 'portfolio' | 'trading' | 'security' | 'launch' | 'research'
 
 const FILTERS: { id: FeedCat; label: string }[] = [
   { id: 'all', label: 'All' },
@@ -33,11 +20,14 @@ const FILTERS: { id: FeedCat; label: string }[] = [
   { id: 'portfolio', label: 'Portfolio' },
 ]
 
-function alertCategory(type: string): FeedCat {
-  if (type.includes('rug') || type.includes('authority') || type === 'risk') return 'risk'
-  if (type.includes('whale') || type.includes('smart') || type.includes('liquidity') || type.includes('listing'))
-    return 'market'
-  return 'portfolio'
+function catFor(ev: TimelineEvent): FeedCat {
+  if (ev.module === 'security') return 'risk'
+  if (ev.module === 'market') return 'market'
+  if (ev.module === 'portfolio') return 'portfolio'
+  if (ev.module === 'trading') return 'trading'
+  if (ev.sourceTable === 'agent_activity') return 'automation'
+  if (ev.eventType.startsWith('alert:risk') || ev.eventType.includes('rug')) return 'risk'
+  return (ev.module as FeedCat) || 'automation'
 }
 
 export function MissionFeedPanel({
@@ -47,74 +37,40 @@ export function MissionFeedPanel({
 }: {
   limit?: number
   condensed?: boolean
-  /** When set, show only activity rows mapped to this Intelligence Module. */
   moduleFilter?: IntelligenceModuleId | null
 }) {
-  const { walletAddress } = useSolana()
   const [cat, setCat] = useState<FeedCat>('all')
 
-  const alertsQ = useQuery({
-    queryKey: ['mission-feed-alerts', walletAddress],
+  const timelineQ = useQuery({
+    queryKey: ['intelligence-core-timeline', limit, moduleFilter],
     queryFn: async () => {
-      const q = walletAddress ? `?wallet=${encodeURIComponent(walletAddress)}` : ''
-      const res = await fetch(`/api/portfolio/alerts${q}`, { cache: 'no-store' })
-      if (!res.ok) return [] as PortfolioAlert[]
-      const body = (await res.json()) as { alerts?: PortfolioAlert[] }
-      return body.alerts ?? []
-    },
-    refetchInterval: 20_000,
-    staleTime: 10_000,
-    enabled: !moduleFilter,
-  })
-
-  const activityQ = useQuery({
-    queryKey: ['mission-feed-activity', limit],
-    queryFn: async () => {
-      const res = await fetch(`/api/agents/activity?limit=${limit}`, { cache: 'no-store' })
-      if (!res.ok) return [] as AgentActivityRow[]
-      const body = (await res.json()) as { activity?: AgentActivityRow[] }
-      return body.activity ?? []
+      const params = new URLSearchParams({ limit: String(limit) })
+      if (moduleFilter) params.set('module', moduleFilter)
+      const res = await fetch(`/api/intelligence-core/timeline?${params}`, { cache: 'no-store' })
+      if (!res.ok) return [] as TimelineEvent[]
+      const body = (await res.json()) as { events?: TimelineEvent[] }
+      return body.events ?? []
     },
     refetchInterval: 15_000,
     staleTime: 8_000,
   })
 
   const items = useMemo(() => {
-    const out: FeedItem[] = []
-    if (!moduleFilter) {
-      for (const a of alertsQ.data ?? []) {
-        out.push({
-          id: `alert-${a.id}`,
-          cat: alertCategory(a.type),
-          moduleIds: [],
-          title: a.title || a.type,
-          detail: a.description || '',
-          at: a.createdAt,
-        })
-      }
-    }
-    for (const row of activityQ.data ?? []) {
-      if (row.status === 'running') continue
-      const moduleIds = modulesForAgent(row.agentId)
-      out.push({
-        id: `act-${row.id}`,
-        cat: 'automation',
-        moduleIds,
-        title: row.description || `${row.kind} ${row.status}`,
-        detail: row.status === 'failed' ? 'Failed' : 'Completed',
-        at: row.createdAt,
-      })
-    }
-    out.sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
-    return out
-  }, [alertsQ.data, activityQ.data, moduleFilter])
+    return (timelineQ.data ?? []).map((ev) => ({
+      id: ev.id,
+      cat: catFor(ev),
+      title: ev.summary || ev.eventType,
+      detail: `${ev.sourceTable} · ${ev.eventType}`,
+      at: ev.createdAt,
+    }))
+  }, [timelineQ.data])
 
   const filtered = items.filter((i) => {
-    if (moduleFilter) return i.moduleIds.includes(moduleFilter)
-    return cat === 'all' ? true : i.cat === cat
+    if (moduleFilter) return true // server already filtered
+    return cat === 'all' ? true : i.cat === cat || (cat === 'risk' && i.cat === 'security')
   })
   const shown = condensed ? filtered.slice(0, 8) : filtered
-  const loading = (!moduleFilter && alertsQ.isLoading) || activityQ.isLoading
+  const loading = timelineQ.isLoading
 
   return (
     <section className={condensed ? undefined : 'pd-panel'} style={{ padding: condensed ? 0 : 16 }}>
@@ -145,8 +101,8 @@ export function MissionFeedPanel({
         <div className="pd-empty" style={{ padding: condensed ? 18 : 28 }}>
           <h3>No mission events yet</h3>
           <p>
-            The feed stays empty until real alerts or automation completions arrive. Nothing is
-            fabricated.
+            The unified timeline stays empty until real alerts, agent activity, or order updates
+            arrive (via database triggers). Nothing is fabricated.
           </p>
         </div>
       ) : null}
