@@ -1,8 +1,8 @@
 'use client'
 
 /**
- * Mission Control — conversation with the OS.
- * Not a dashboard. Speaks first from real MissionEngine data, then listens.
+ * Mission Control — the OS speaks. Conversation first.
+ * Evidence, metrics, and timeline live below the fold.
  */
 
 import { useMemo, useState } from 'react'
@@ -51,40 +51,39 @@ export function MissionControlPanel({
     [isConnected, shortAddr, missionQ.data, missionQ.isLoading],
   )
 
+  const hasBelow =
+    conversation.evidence.length > 0 ||
+    conversation.metrics.length > 0 ||
+    true /* timeline always available below */
+
   return (
     <div className="mc-talk">
-      <div className="mc-talk-thread" aria-live="polite">
-        {conversation.turns.map((turn) => {
-          if (turn.kind === 'ask') {
+      <div className="mc-talk-stage">
+        <div className="mc-talk-thread" aria-live="polite">
+          {conversation.turns.map((turn) => {
+            if (turn.kind === 'ask') {
+              return (
+                <p key={turn.id} className="mc-talk-ask">
+                  {turn.text}
+                </p>
+              )
+            }
+            if (turn.kind === 'live') {
+              return (
+                <div key={turn.id} className="mc-talk-live" aria-label="Living intelligence">
+                  {turn.text.split('\n').map((line) => (
+                    <div key={line}>{line}</div>
+                  ))}
+                </div>
+              )
+            }
             return (
-              <p key={turn.id} className="mc-talk-ask">
+              <p key={turn.id} className="mc-talk-speech">
                 {turn.text}
               </p>
             )
-          }
-          if (turn.kind === 'live') {
-            return (
-              <div key={turn.id} className="mc-talk-live">
-                {turn.text.split('\n').map((line) => (
-                  <div key={line}>{line}</div>
-                ))}
-              </div>
-            )
-          }
-          if (turn.kind === 'aside') {
-            return (
-              <p key={turn.id} className="mc-talk-aside">
-                {turn.text}
-              </p>
-            )
-          }
-          return (
-            <p key={turn.id} className="mc-talk-speech">
-              {turn.text}
-            </p>
-          )
-        })}
-        <p className="mc-talk-meta">~{conversation.readingSeconds}s · live feeds only</p>
+          })}
+        </div>
       </div>
 
       <MissionCommandCenter
@@ -94,15 +93,44 @@ export function MissionControlPanel({
         onPickSuggestion={(s) => setSeed(s)}
       />
 
-      <div className="mc-talk-timeline">
-        <div className="mc-talk-timeline-head">
-          <span>What just happened</span>
-          <button type="button" className="pd-tab" onClick={onOpenFeed}>
-            Full timeline
-          </button>
+      {hasBelow ? (
+        <div className="mc-talk-below">
+          {conversation.evidence.length > 0 ? (
+            <section className="mc-talk-section">
+              <h3 className="mc-talk-section-label">Why this matters</h3>
+              {conversation.evidence.map((line) => (
+                <p key={line} className="mc-talk-evidence">
+                  {line}
+                </p>
+              ))}
+            </section>
+          ) : null}
+
+          {conversation.metrics.length > 0 ? (
+            <section className="mc-talk-section">
+              <h3 className="mc-talk-section-label">Supporting numbers</h3>
+              <dl className="mc-talk-metrics">
+                {conversation.metrics.map((m) => (
+                  <div key={m.label}>
+                    <dt>{m.label}</dt>
+                    <dd className="pd-num">{m.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ) : null}
+
+          <section className="mc-talk-section">
+            <div className="mc-talk-section-row">
+              <h3 className="mc-talk-section-label">Memory</h3>
+              <button type="button" className="mc-talk-quiet-link" onClick={onOpenFeed}>
+                Open full memory
+              </button>
+            </div>
+            <MissionFeedPanel condensed limit={8} />
+          </section>
         </div>
-        <MissionFeedPanel condensed limit={8} />
-      </div>
+      ) : null}
     </div>
   )
 }

@@ -5,8 +5,9 @@ import {
   buildMissionConversation,
   buildPortfolioNarrative,
   runningIntelligenceLabel,
+  timelineHeadline,
 } from '../../lib/portfolio-desk/mission-narrative'
-import type { MissionViewModel } from '../../types/intelligence-core'
+import type { MissionViewModel, TimelineEvent } from '../../types/intelligence-core'
 
 const emptyView = (): MissionViewModel => ({
   market: {
@@ -43,8 +44,9 @@ describe('Mission Control conversation', () => {
       loading: false,
     })
     const blob = conv.turns.map((t) => t.text).join(' ')
-    assert.match(blob, /don’t have enough market activity/i)
+    assert.match(blob, /don’t have enough information/i)
     assert.doesNotMatch(blob, /whale accumulation increased/i)
+    assert.doesNotMatch(blob, /BTC\s*\+/i)
     assert.ok(conv.turns.some((t) => t.kind === 'ask'))
   })
 
@@ -58,6 +60,29 @@ describe('Mission Control conversation', () => {
     assert.equal(ask?.text, 'What would you like me to do?')
   })
 
+  it('keeps numbers out of speech — evidence holds metrics', () => {
+    const v = emptyView()
+    v.market.available = true
+    v.market.aggregateChange24hPct = 3.25
+    v.market.topMoverSymbol = 'WIF'
+    v.market.topMoverChange24hPct = 12
+    v.portfolio.connected = true
+    v.portfolio.totalValueUsd = 50000
+    v.portfolio.dayChangePct = 0.5
+    v.portfolio.topWeightSymbol = 'BONK'
+    const conv = buildMissionConversation({ displayName: null, view: v, loading: false })
+    const speech = conv.turns
+      .filter((t) => t.kind === 'speech')
+      .map((t) => t.text)
+      .join(' ')
+    assert.match(speech, /aggressive|buying pressure/i)
+    assert.match(speech, /concentration in BONK/i)
+    assert.doesNotMatch(speech, /\+3\.25%/)
+    assert.doesNotMatch(speech, /\$50/)
+    assert.ok(conv.evidence.length > 0)
+    assert.ok(conv.metrics.some((m) => m.label === 'Sample 24h'))
+  })
+
   it('suggestions change with portfolio concentration', () => {
     const v = emptyView()
     v.portfolio.connected = true
@@ -67,7 +92,7 @@ describe('Mission Control conversation', () => {
     v.market.aggregateChange24hPct = 3
     const s = buildDynamicSuggestions(v)
     assert.ok(s.some((x) => /BONK/i.test(x)))
-    assert.ok(s.length <= 5)
+    assert.ok(s.length <= 4)
   })
 
   it('portfolio narrative does not lead with balances', () => {
@@ -77,14 +102,35 @@ describe('Mission Control conversation', () => {
     v.portfolio.dayChangePct = 1
     v.portfolio.topWeightSymbol = 'WIF'
     const n = buildPortfolioNarrative(v)
-    assert.match(n.healthLine, /safely|operable|pressure|risk/i)
+    assert.match(n.healthLine, /healthy|operable|pressure|risk/i)
     assert.ok(n.weakness)
   })
 
-  it('maps running copy without employee names', () => {
+  it('maps running copy to living intelligence without inventing counts', () => {
     assert.equal(
       runningIntelligenceLabel('Market Intelligence is running your query', 'analysis'),
       'Scanning…',
     )
+    assert.equal(
+      runningIntelligenceLabel('Watching 214 whales across tracked wallets', 'watch'),
+      'Watching 214 whales…',
+    )
+    assert.doesNotMatch(
+      runningIntelligenceLabel('liquidity check in progress', 'scan'),
+      /\d{2,}/,
+    )
+  })
+
+  it('timeline headlines read like memory', () => {
+    const ev = {
+      id: '1',
+      sourceTable: 'portfolio_alerts',
+      sourceId: 'a',
+      eventType: 'alert:risk',
+      summary: 'Alert: risk score improved',
+      module: 'security',
+      createdAt: new Date().toISOString(),
+    } satisfies TimelineEvent
+    assert.match(timelineHeadline(ev), /risk improved|Risk updated/i)
   })
 })

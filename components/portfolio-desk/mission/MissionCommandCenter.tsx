@@ -143,9 +143,9 @@ export function MissionCommandCenter({
           className="mc-listen-input"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Ask me anything…"
+          placeholder="Message Mission Control…"
           disabled={streaming || online === false}
-          aria-label="Command Center"
+          aria-label="Talk to Mission Control"
         />
         <button
           type="submit"

@@ -22,9 +22,7 @@ import { LaunchLabPanel } from './launchlab/LaunchLabPanel'
 import { MarketFeeds } from './market/MarketFeeds'
 import { MarketIntelligencePanel } from './market/MarketIntelligencePanel'
 import { MissionControlPanel } from './mission/MissionControlPanel'
-import { useMissionObservations } from './mission/useMissionObservations'
 import { MissionFeedPanel } from './mission/MissionFeedPanel'
-import { MissionObservations } from './mission/MissionObservations'
 import { Hero } from './portfolio/Hero'
 import { HoldingsTable } from './portfolio/HoldingsTable'
 import { Metrics } from './portfolio/Metrics'
@@ -146,10 +144,10 @@ export function PortfolioDesk() {
 
   const meta = PAGE_META[nav]
   const needsWallet = !PUBLIC_NAV.has(nav)
-  const missionObs = useMissionObservations()
+  const isMission = nav === 'mission'
 
   return (
-    <div className="pd-shell">
+    <div className={`pd-shell${isMission ? ' is-mission' : ''}`}>
       {mobileNav ? (
         <button
           type="button"
@@ -174,9 +172,9 @@ export function PortfolioDesk() {
           router.replace(`?${p.toString()}`, { scroll: false })
         }}
       />
-      <TickerTape />
+      {isMission ? null : <TickerTape />}
 
-      <main className="pd-main">
+      <main className={`pd-main${isMission ? ' is-mission-main' : ''}`}>
         {nav === 'mission' ? null : (
           <PageHeader
             kicker={meta.kicker}
@@ -359,15 +357,8 @@ export function PortfolioDesk() {
         ) : null}
       </main>
 
-      <aside className="pd-aside">
-        {nav === 'mission' ? (
-          <SectionErrorBoundary title="Observations">
-            <MissionObservations
-              observations={missionObs.observations}
-              loading={missionObs.loading}
-            />
-          </SectionErrorBoundary>
-        ) : (
+      {isMission ? null : (
+        <aside className="pd-aside">
           <SectionErrorBoundary title="Mission Feed">
             <div style={{ padding: '0 0 12px' }}>
               <div className="pd-panel-head" style={{ padding: '0 0 10px' }}>
@@ -379,26 +370,11 @@ export function PortfolioDesk() {
               <MissionFeedPanel condensed limit={16} />
             </div>
           </SectionErrorBoundary>
-        )}
-        {nav === 'mission' ? null : (
           <SectionErrorBoundary title="AI Coach">
             <CoachPanel />
           </SectionErrorBoundary>
-        )}
-        {nav === 'mission' ? (
-          <SectionErrorBoundary title="Timeline">
-            <div style={{ paddingTop: 8 }}>
-              <div className="pd-panel-head" style={{ padding: '0 0 10px' }}>
-                <h2 style={{ fontSize: 13 }}>Timeline</h2>
-                <button type="button" className="pd-tab" onClick={() => setDeskNav('feed')}>
-                  Expand
-                </button>
-              </div>
-              <MissionFeedPanel condensed limit={12} />
-            </div>
-          </SectionErrorBoundary>
-        ) : null}
-      </aside>
+        </aside>
+      )}
     </div>
   )
 }

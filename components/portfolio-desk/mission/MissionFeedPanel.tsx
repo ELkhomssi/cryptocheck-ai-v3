@@ -93,8 +93,8 @@ export function MissionFeedPanel({
           </div>
         ) : null}
         {!loading && shown.length === 0 ? (
-          <p style={{ margin: 0, fontSize: 12, color: 'var(--pd-text-dim)' }}>
-            Timeline empty until real activity arrives.
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--pd-text-dim)', lineHeight: 1.5 }}>
+            I don’t have enough memory yet. Events appear here as they happen.
           </p>
         ) : null}
         {!loading && shown.length > 0 ? (

@@ -1,11 +1,20 @@
-# Mission Control — conversation rebuild
+# Mission Control — conversation OS
 
 Presentation-only. No providers, APIs, DB, or engines changed.
 
-Mission Control is a **conversation**:
-1. OS speaks a briefing assembled from `MissionViewModel`
-2. Asks “What would you like me to do?”
-3. Command Center listens (existing `/api/portfolio/coach`)
-4. Timeline stays chronological under the fold
+## First screen
 
-If data is missing, it says so — never invents whale/liquidity/opportunity stats.
+Only the conversation. Judgement from live `MissionViewModel`.
+
+Hierarchy below the fold:
+1. Conversation
+2. Recommended actions (Command Center)
+3. Supporting evidence
+4. Metrics
+5. Memory timeline
+
+## Honesty
+
+If data is missing: “I don’t have enough information yet.”
+Never invent whale counts, liquidity events, or opportunities.
+Counts in living-intelligence lines appear only when present in engine copy.
