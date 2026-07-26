@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { Bell, ChevronDown, Menu } from 'lucide-react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useSolana } from '@/components/SolanaProvider'
 import { TokenSearch } from '@/components/portfolio-desk/token/TokenSearch'
 import { truncateWallet } from '@/lib/portfolio-desk/format'
@@ -11,12 +11,14 @@ import type { ScreenerRow } from '@/lib/providers/types'
 export function Topbar({
   alertCount = 0,
   onOpenNav,
+  onSelectToken,
 }: {
   alertCount?: number
   onOpenNav?: () => void
+  /** Optional override — default navigates to /terminal?mint=… */
+  onSelectToken?: (row: ScreenerRow) => void
 }) {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const { walletAddress, isConnected, connect, disconnect, shortAddr } = useSolana()
   const searchRef = useRef<HTMLInputElement>(null)
 
@@ -37,10 +39,11 @@ export function Topbar({
       : null
 
   const openToken = (row: ScreenerRow) => {
-    const p = new URLSearchParams(searchParams.toString())
-    p.set('mint', row.mint)
-    // Keep current nav; TokenInspect shows above content for chart + swap/watch.
-    router.replace(`?${p.toString()}`, { scroll: false })
+    if (onSelectToken) {
+      onSelectToken(row)
+      return
+    }
+    router.push(`/terminal?nav=screener&mint=${encodeURIComponent(row.mint)}`)
   }
 
   return (
