@@ -1,38 +1,15 @@
 'use client'
 
-import {
-  ArrowLeftRight,
-  Bell,
-  Brain,
-  LayoutDashboard,
-  Settings,
-  Star,
-  SunMoon,
-  Table2,
-  Users,
-} from 'lucide-react'
+import { SunMoon } from 'lucide-react'
 import { useSolana } from '@/components/SolanaProvider'
+import {
+  PRIMARY_NAV,
+  SYSTEM_NAV,
+  type DeskNav,
+} from '@/lib/portfolio-desk/nav'
 import { usePortfolioTheme } from '@/store/portfolio-theme'
 
-export type DeskNav =
-  | 'portfolio'
-  | 'screener'
-  | 'trade'
-  | 'watchlist'
-  | 'alerts'
-  | 'coach'
-  | 'employees'
-  | 'settings'
-
-const ITEMS: { id: DeskNav; label: string; icon: typeof LayoutDashboard }[] = [
-  { id: 'portfolio', label: 'Portfolio', icon: LayoutDashboard },
-  { id: 'screener', label: 'Screener', icon: Table2 },
-  { id: 'trade', label: 'Trade', icon: ArrowLeftRight },
-  { id: 'watchlist', label: 'Watchlist', icon: Star },
-  { id: 'alerts', label: 'Alerts', icon: Bell },
-  { id: 'coach', label: 'AI Coach', icon: Brain },
-  { id: 'employees', label: 'AI Employees', icon: Users },
-]
+export type { DeskNav }
 
 export function Sidebar({
   active,
@@ -54,6 +31,15 @@ export function Sidebar({
     onCloseMobile?.()
   }
 
+  const isPrimaryActive = (id: DeskNav) => {
+    if (active === id) return true
+    // Highlight Market when legacy screener/watchlist deep-links land
+    if (id === 'market' && (active === 'screener' || active === 'watchlist')) return true
+    if (id === 'feed' && active === 'alerts') return true
+    if (id === 'settings' && active === 'intelligence') return true
+    return false
+  }
+
   return (
     <aside className={`pd-sidebar${mobileOpen ? ' is-open' : ''}`}>
       <div className="pd-brand">
@@ -62,18 +48,18 @@ export function Sidebar({
           <div className="pd-brand-name">
             CRYPTO<em>CHECK</em> AI
           </div>
-          <div className="pd-brand-sub">TRADING TERMINAL</div>
+          <div className="pd-brand-sub">OPERATING SYSTEM</div>
         </div>
       </div>
 
-      <nav className="pd-nav" aria-label="Portfolio desk">
-        {ITEMS.map((item) => {
+      <nav className="pd-nav" aria-label="Operating system workspaces">
+        {PRIMARY_NAV.map((item) => {
           const Icon = item.icon
           return (
             <button
               key={item.id}
               type="button"
-              className={`pd-nav-item${active === item.id ? ' is-active' : ''}`}
+              className={`pd-nav-item${isPrimaryActive(item.id) ? ' is-active' : ''}`}
               onClick={() => pick(item.id)}
             >
               <Icon className="h-4 w-4" strokeWidth={1.6} />
@@ -83,14 +69,20 @@ export function Sidebar({
         })}
 
         <div className="pd-nav-label">SYSTEM</div>
-        <button
-          type="button"
-          className={`pd-nav-item${active === 'settings' ? ' is-active' : ''}`}
-          onClick={() => pick('settings')}
-        >
-          <Settings className="h-4 w-4" strokeWidth={1.6} />
-          Settings
-        </button>
+        {SYSTEM_NAV.map((item) => {
+          const Icon = item.icon
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className={`pd-nav-item${isPrimaryActive(item.id) ? ' is-active' : ''}`}
+              onClick={() => pick(item.id)}
+            >
+              <Icon className="h-4 w-4" strokeWidth={1.6} />
+              {item.label}
+            </button>
+          )
+        })}
         <button type="button" className="pd-nav-item" onClick={() => toggle()}>
           <SunMoon className="h-4 w-4" strokeWidth={1.6} />
           Theme · {theme === 'dark' ? 'Dark' : 'Light'}
@@ -111,8 +103,8 @@ export function Sidebar({
             fontFamily: 'var(--font-ibm-plex-mono), monospace',
             fontSize: 11,
             fontWeight: 700,
-          color: 'var(--pd-bg)',
-          flexShrink: 0,
+            color: 'var(--pd-bg)',
+            flexShrink: 0,
           }}
         >
           {isConnected && shortAddr ? shortAddr.slice(0, 2) : 'CC'}

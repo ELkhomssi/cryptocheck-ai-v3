@@ -1,75 +1,46 @@
 'use client'
 
+/**
+ * Portfolio Desk shell — Phase 15 OS IA.
+ * Reorganize/reframe only: existing panels remain reachable via new or legacy nav.
+ */
+
 import { Component, Suspense, type ErrorInfo, type ReactNode, useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSolana } from '@/components/SolanaProvider'
 import { AlertsPanel } from './alerts/AlertsPanel'
 import { AiEmployeesPanel } from './agents/AiEmployeesPanel'
+import { AutomationPanel } from './automation/AutomationPanel'
 import { CoachPanel } from './coach/CoachPanel'
 import { useHoldings } from './hooks/useHoldings'
 import { Sidebar, type DeskNav } from './layout/Sidebar'
 import { PageHeader } from './layout/PageHeader'
 import { TickerTape } from './layout/TickerTape'
 import { Topbar } from './layout/Topbar'
+import { LaunchLabPanel } from './launchlab/LaunchLabPanel'
 import { MarketFeeds } from './market/MarketFeeds'
+import { MarketIntelligencePanel } from './market/MarketIntelligencePanel'
+import { MissionControlPanel } from './mission/MissionControlPanel'
+import { MissionFeedPanel } from './mission/MissionFeedPanel'
 import { Hero } from './portfolio/Hero'
 import { HoldingsTable } from './portfolio/HoldingsTable'
 import { Metrics } from './portfolio/Metrics'
 import { AnalyticsPanel } from './portfolio/AnalyticsPanel'
 import { AiReviewPanel } from './portfolio/AiReviewPanel'
 import { PerformanceChart, usePerformance } from './portfolio/PerformanceChart'
-import { ScreenerPanel } from './screener/ScreenerPanel'
 import { TokenInspectPanel } from './token/TokenInspectPanel'
 import { TradePanel } from './trade/TradePanel'
-import { WatchlistPanel } from './watchlist/WatchlistPanel'
 import { SettingsPanel } from './settings/SettingsPanel'
+import {
+  marketTabFromLegacy,
+  normalizeDeskNav,
+  PAGE_META,
+  PUBLIC_NAV,
+} from '@/lib/portfolio-desk/nav'
 import type { PortfolioAlert } from '@/types/portfolio-desk'
 
 const RANGES = ['24H', '7D', '30D', '90D', 'ALL'] as const
-
-const PAGE_META: Record<DeskNav, { kicker: string; title: string; subtitle: string }> = {
-  portfolio: {
-    kicker: '// PORTFOLIO',
-    title: 'Portfolio Overview',
-    subtitle: 'Track your assets, performance and analytics in real-time.',
-  },
-  screener: {
-    kicker: '// TOKEN SCREENER',
-    title: 'Token Screener',
-    subtitle: 'Filter and rank live Solana markets by liquidity, risk, and AI score.',
-  },
-  trade: {
-    kicker: '// TRADE DESK',
-    title: 'Trade',
-    subtitle: 'Risk-gated Jupiter swaps and tracked limit / DCA / TP / SL orders.',
-  },
-  watchlist: {
-    kicker: '// WATCHLIST',
-    title: 'Watchlist',
-    subtitle: 'Persist and monitor tokens with live price, risk, and AI scores.',
-  },
-  alerts: {
-    kicker: '// ALERTS ENGINE',
-    title: 'Alerts',
-    subtitle: 'Track your assets, performance and analytics in real-time.',
-  },
-  coach: {
-    kicker: '// AI COACH',
-    title: 'AI Coach',
-    subtitle: 'Track your assets, performance and analytics in real-time.',
-  },
-  employees: {
-    kicker: '// AI EMPLOYEES',
-    title: 'AI Employees',
-    subtitle: 'Specialized trading agents with live status and real performance scores.',
-  },
-  settings: {
-    kicker: '// SETTINGS',
-    title: 'Settings',
-    subtitle: 'Account, appearance, notifications, provider health, and data controls.',
-  },
-}
 
 class SectionErrorBoundary extends Component<
   { title: string; children: ReactNode },
@@ -108,29 +79,22 @@ export function PortfolioDesk() {
   const router = useRouter()
   const { isConnected, connect, walletAddress } = useSolana()
   const searchParams = useSearchParams()
-  const initialNav = (searchParams.get('nav') as DeskNav | null) || 'portfolio'
+  const rawNav = searchParams.get('nav')
+  const initialNav = normalizeDeskNav(rawNav)
   const focusMint = (searchParams.get('mint') || '').trim()
-  const [nav, setNav] = useState<DeskNav>(
-    [
-      'portfolio',
-      'screener',
-      'trade',
-      'watchlist',
-      'alerts',
-      'coach',
-      'employees',
-      'settings',
-    ].includes(initialNav)
-      ? initialNav
-      : 'portfolio',
-  )
+  const marketTab =
+    searchParams.get('tab') || marketTabFromLegacy(rawNav) || 'discovery'
+  const [nav, setNav] = useState<DeskNav>(initialNav)
   const [range, setRange] = useState<(typeof RANGES)[number]>('24H')
   const [mobileNav, setMobileNav] = useState(false)
 
   const setDeskNav = (id: DeskNav) => {
-    setNav(id)
+    const next = normalizeDeskNav(id)
+    setNav(next)
     const p = new URLSearchParams(searchParams.toString())
-    p.set('nav', id)
+    p.set('nav', next)
+    if (next !== 'market') p.delete('tab')
+    if (id === 'watchlist') p.set('tab', 'tracked')
     router.replace(`?${p.toString()}`, { scroll: false })
   }
 
@@ -151,31 +115,18 @@ export function PortfolioDesk() {
 
   const goWatch = (mint: string, symbol?: string) => {
     const p = new URLSearchParams(searchParams.toString())
-    p.set('nav', 'watchlist')
+    p.set('nav', 'market')
+    p.set('tab', 'tracked')
     p.set('mint', mint)
     if (symbol) p.set('symbol', symbol)
-    setNav('watchlist')
+    setNav('market')
     router.replace(`?${p.toString()}`, { scroll: false })
   }
 
   useEffect(() => {
-    const q = searchParams.get('nav') as DeskNav | null
-    if (
-      q &&
-      [
-        'portfolio',
-        'screener',
-        'trade',
-        'watchlist',
-        'alerts',
-        'coach',
-        'employees',
-        'settings',
-      ].includes(q)
-    ) {
-      setNav(q)
-    }
+    setNav(normalizeDeskNav(searchParams.get('nav')))
   }, [searchParams])
+
   const holdingsQ = useHoldings()
   const perfQ = usePerformance(walletAddress, range)
   const alertsQ = useQuery({
@@ -190,6 +141,9 @@ export function PortfolioDesk() {
     refetchInterval: 20_000,
     staleTime: 15_000,
   })
+
+  const meta = PAGE_META[nav]
+  const needsWallet = !PUBLIC_NAV.has(nav)
 
   return (
     <div className="pd-shell">
@@ -210,6 +164,7 @@ export function PortfolioDesk() {
       <Topbar
         alertCount={alertsQ.data ?? 0}
         onOpenNav={() => setMobileNav(true)}
+        onOpenFeed={() => setDeskNav('feed')}
         onSelectToken={(row) => {
           const p = new URLSearchParams(searchParams.toString())
           p.set('mint', row.mint)
@@ -220,9 +175,9 @@ export function PortfolioDesk() {
 
       <main className="pd-main">
         <PageHeader
-          kicker={PAGE_META[nav].kicker}
-          title={PAGE_META[nav].title}
-          subtitle={PAGE_META[nav].subtitle}
+          kicker={meta.kicker}
+          title={meta.title}
+          subtitle={meta.subtitle}
           actions={
             nav === 'portfolio' ? (
               <div className="pd-tabs">
@@ -252,12 +207,12 @@ export function PortfolioDesk() {
           </SectionErrorBoundary>
         ) : null}
 
-        {!isConnected && nav !== 'screener' && nav !== 'watchlist' && nav !== 'employees' ? (
+        {!isConnected && needsWallet ? (
           <div className="pd-empty pd-panel">
-            <h3>Connect your wallet to open the desk</h3>
+            <h3>Connect your wallet to open this workspace</h3>
             <p>
-              Live balances, Jupiter prices, performance history, alerts, and AI Coach all require a
-              connected Solana wallet. Nothing is fabricated.
+              Live balances, execution, and personalized portfolio intelligence require a connected
+              Solana wallet. Nothing is fabricated.
             </p>
             <button type="button" className="pd-connect" onClick={() => void connect()}>
               Connect Wallet
@@ -265,36 +220,44 @@ export function PortfolioDesk() {
           </div>
         ) : null}
 
-        {nav === 'screener' ? (
-          <SectionErrorBoundary title="Screener">
-            <Suspense
-              fallback={
-                <div className="pd-panel" style={{ padding: 18 }}>
-                  <div className="pd-skeleton" style={{ height: 36, marginBottom: 10 }} />
-                  <div className="pd-skeleton" style={{ height: 36, marginBottom: 10 }} />
-                  <div className="pd-skeleton" style={{ height: 36 }} />
-                </div>
+        {nav === 'mission' ? (
+          <SectionErrorBoundary title="Mission Control">
+            <MissionControlPanel
+              onOpenFeed={() => setDeskNav('feed')}
+              onOpenMarket={() => setDeskNav('market')}
+              onSelectToken={(row) => {
+                const p = new URLSearchParams(searchParams.toString())
+                p.set('mint', row.mint)
+                router.replace(`?${p.toString()}`, { scroll: false })
+              }}
+              onSuggestion={() => setDeskNav('market')}
+            />
+          </SectionErrorBoundary>
+        ) : null}
+
+        {nav === 'market' || nav === 'screener' || nav === 'watchlist' ? (
+          <SectionErrorBoundary title="Market Intelligence">
+            <MarketIntelligencePanel
+              initialTab={
+                nav === 'watchlist' ? 'tracked' : marketTab === 'tracked' ? 'tracked' : 'discovery'
               }
-            >
-              <ScreenerPanel
-                onSelectMint={(mint) => {
-                  const p = new URLSearchParams(searchParams.toString())
-                  p.set('mint', mint)
-                  p.set('nav', 'screener')
-                  router.replace(`?${p.toString()}`, { scroll: false })
-                }}
-              />
-            </Suspense>
+              onSelectMint={(mint) => {
+                const p = new URLSearchParams(searchParams.toString())
+                p.set('mint', mint)
+                p.set('nav', 'market')
+                router.replace(`?${p.toString()}`, { scroll: false })
+              }}
+            />
           </SectionErrorBoundary>
         ) : null}
 
         {nav === 'trade' && isConnected ? (
-          <SectionErrorBoundary title="Trade">
+          <SectionErrorBoundary title="Trading">
             <TradePanel initialMint={focusMint.length >= 32 ? focusMint : ''} />
           </SectionErrorBoundary>
         ) : null}
 
-        {isConnected && holdingsQ.isError ? (
+        {isConnected && holdingsQ.isError && nav === 'portfolio' ? (
           <div className="pd-panel" style={{ padding: 16, marginBottom: 16, color: 'var(--pd-negative)' }}>
             {(holdingsQ.error as Error)?.message || 'Holdings failed'}{' '}
             <button type="button" className="pd-connect" style={{ marginLeft: 8 }} onClick={() => void holdingsQ.refetch()}>
@@ -305,7 +268,7 @@ export function PortfolioDesk() {
 
         {nav === 'portfolio' && isConnected ? (
           <>
-            <SectionErrorBoundary title="Hero">
+            <SectionErrorBoundary title="Portfolio Health">
               <Hero
                 data={holdingsQ.data}
                 loading={holdingsQ.isLoading}
@@ -313,20 +276,13 @@ export function PortfolioDesk() {
                 range={range}
               />
             </SectionErrorBoundary>
-            <SectionErrorBoundary title="Metrics">
+            <SectionErrorBoundary title="Risk & Allocation">
               <Metrics data={holdingsQ.data} loading={holdingsQ.isLoading} />
-            </SectionErrorBoundary>
-            <SectionErrorBoundary title="Holdings">
-              <HoldingsTable
-                holdings={holdingsQ.data?.holdings ?? []}
-                loading={holdingsQ.isLoading}
-                connected={isConnected}
-              />
             </SectionErrorBoundary>
             <SectionErrorBoundary title="Analytics">
               <AnalyticsPanel />
             </SectionErrorBoundary>
-            <SectionErrorBoundary title="AI Review">
+            <SectionErrorBoundary title="AI Recommendations">
               <AiReviewPanel />
             </SectionErrorBoundary>
             <SectionErrorBoundary title="Performance">
@@ -336,15 +292,23 @@ export function PortfolioDesk() {
                 note={perfQ.data?.simplification}
               />
             </SectionErrorBoundary>
-          </>
-        ) : null}
-
-        {nav === 'portfolio' ? (
-          <>
             <div className="pd-page-head" style={{ marginTop: 8 }}>
               <div>
-                <h1>Market</h1>
-                <p>Live Solana screener feeds — independently cached, never fabricated.</p>
+                <h1>Holdings detail</h1>
+                <p>Supporting inventory — health and risk metrics above take priority.</p>
+              </div>
+            </div>
+            <SectionErrorBoundary title="Holdings">
+              <HoldingsTable
+                holdings={holdingsQ.data?.holdings ?? []}
+                loading={holdingsQ.isLoading}
+                connected={isConnected}
+              />
+            </SectionErrorBoundary>
+            <div className="pd-page-head" style={{ marginTop: 8 }}>
+              <div>
+                <h1>Market context</h1>
+                <p>Live feeds — independently cached, never fabricated.</p>
               </div>
             </div>
             <SectionErrorBoundary title="Market">
@@ -353,34 +317,54 @@ export function PortfolioDesk() {
           </>
         ) : null}
 
-        {nav === 'employees' ? (
-          <SectionErrorBoundary title="AI Employees">
-            <AiEmployeesPanel />
+        {nav === 'automation' ? (
+          <SectionErrorBoundary title="Automation">
+            <AutomationPanel walletAddress={walletAddress} />
           </SectionErrorBoundary>
         ) : null}
 
-        {nav === 'watchlist' ? (
-          <SectionErrorBoundary title="Watchlist">
-            <WatchlistPanel />
+        {nav === 'launchlab' ? (
+          <SectionErrorBoundary title="LaunchLab">
+            <LaunchLabPanel />
+          </SectionErrorBoundary>
+        ) : null}
+
+        {nav === 'feed' || nav === 'alerts' ? (
+          <SectionErrorBoundary title="Mission Feed">
+            <MissionFeedPanel />
+          </SectionErrorBoundary>
+        ) : null}
+
+        {nav === 'intelligence' || nav === 'employees' ? (
+          <SectionErrorBoundary title="Intelligence Engine">
+            <AiEmployeesPanel />
           </SectionErrorBoundary>
         ) : null}
 
         {nav === 'settings' ? (
           <SectionErrorBoundary title="Settings">
-            <SettingsPanel />
+            <SettingsPanel onOpenIntelligence={() => setDeskNav('intelligence')} />
           </SectionErrorBoundary>
         ) : null}
 
-        {(nav === 'alerts' || nav === 'coach') && isConnected ? (
-          <SectionErrorBoundary title={nav === 'alerts' ? 'Alerts' : 'AI Coach'}>
-            {nav === 'alerts' ? <AlertsPanel /> : <CoachPanel />}
+        {nav === 'coach' && isConnected ? (
+          <SectionErrorBoundary title="AI Coach">
+            <CoachPanel />
           </SectionErrorBoundary>
         ) : null}
       </main>
 
       <aside className="pd-aside">
-        <SectionErrorBoundary title="Alerts">
-          <AlertsPanel />
+        <SectionErrorBoundary title="Mission Feed">
+          <div style={{ padding: '0 0 12px' }}>
+            <div className="pd-panel-head" style={{ padding: '0 0 10px' }}>
+              <h2 style={{ fontSize: 13 }}>Mission Feed</h2>
+              <button type="button" className="pd-tab" onClick={() => setDeskNav('feed')}>
+                Expand
+              </button>
+            </div>
+            <MissionFeedPanel condensed limit={16} />
+          </div>
         </SectionErrorBoundary>
         <SectionErrorBoundary title="AI Coach">
           <CoachPanel />

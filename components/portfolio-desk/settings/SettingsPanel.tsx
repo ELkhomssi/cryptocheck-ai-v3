@@ -52,7 +52,11 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-export function SettingsPanel() {
+export function SettingsPanel({
+  onOpenIntelligence,
+}: {
+  onOpenIntelligence?: () => void
+} = {}) {
   const { walletAddress, shortAddr, isConnected, connect, disconnect } = useSolana()
   const theme = usePortfolioTheme((s) => s.theme)
   const setTheme = usePortfolioTheme((s) => s.setTheme)
@@ -61,6 +65,7 @@ export function SettingsPanel() {
     null,
   )
   const [dangerMsg, setDangerMsg] = useState<string | null>(null)
+  const [advancedOpen, setAdvancedOpen] = useState(false)
 
   const prefsQ = useQuery({
     queryKey: ['portfolio-alert-prefs', walletAddress],
@@ -284,6 +289,41 @@ export function SettingsPanel() {
             Refresh
           </button>
         </div>
+      </Section>
+
+      <Section title="Advanced · Intelligence Engine">
+        <p style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 12 }}>
+          Employee roster, orchestrator runs, and performance calibration. Relocated from primary
+          nav — full Phase 11 functionality intact.
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <button
+            type="button"
+            className="pd-tab"
+            onClick={() => setAdvancedOpen((v) => !v)}
+          >
+            {advancedOpen ? 'Hide path' : 'Show advanced path'}
+          </button>
+          <button
+            type="button"
+            className="pd-connect"
+            onClick={() => {
+              if (onOpenIntelligence) onOpenIntelligence()
+              else window.location.assign('/settings/intelligence-engine')
+            }}
+          >
+            Open Intelligence Engine
+          </button>
+          <a href="/ai-employees" className="pd-tab" style={{ display: 'inline-flex', alignItems: 'center' }}>
+            Legacy /ai-employees
+          </a>
+        </div>
+        {advancedOpen ? (
+          <p style={{ marginTop: 10, fontSize: 12, color: 'var(--text-faint)' }}>
+            Deep links: <span className="pd-num">/terminal?nav=intelligence</span> ·{' '}
+            <span className="pd-num">/settings/intelligence-engine</span>
+          </p>
+        ) : null}
       </Section>
 
       <Section title="Danger zone">

@@ -280,8 +280,10 @@ export function TradePanel({ initialMint = '' }: { initialMint?: string }) {
     <div style={{ display: 'grid', gap: 16 }}>
       <section className="pd-panel" style={{ padding: 18 }}>
         <div className="pd-panel-head" style={{ padding: '0 0 14px', border: 'none' }}>
-          <h2>Spot · Jupiter</h2>
-          <span style={{ fontSize: 11, color: 'var(--pd-text-faint)' }}>Non-custodial</span>
+          <h2>Institutional execution · Jupiter</h2>
+          <span style={{ fontSize: 11, color: 'var(--pd-text-faint)' }}>
+            Non-custodial · risk-gated
+          </span>
         </div>
 
         <div className="pd-tabs" style={{ marginBottom: 14 }}>

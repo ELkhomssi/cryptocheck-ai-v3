@@ -4,12 +4,12 @@ import { PortfolioDesk } from '@/components/portfolio-desk/PortfolioDesk'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Terminal · CryptoCheck AI',
+  title: 'Terminal · CryptoCheck AI OS',
   description:
-    'CryptoCheck AI trading terminal — live portfolio, screener, alerts, AI coach, and Jupiter execution.',
+    'CryptoCheck AI Operating System — Mission Control, market intelligence, and institutional execution.',
 }
 
-/** Canonical production terminal — /terminal (formerly /portfolio desk). */
+/** Canonical production terminal — /terminal (OS 2.0 shell). Default nav = mission. */
 export default function TerminalPage() {
   return (
     <Suspense

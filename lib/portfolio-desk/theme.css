@@ -673,6 +673,8 @@
 }
 
 .pd-skeleton {
+  /* Phase 15.2 — only render this class while a real request is pending.
+     Animation is disabled under prefers-reduced-motion (below). */
   background: var(--pd-surface-2);
   border-radius: var(--pd-radius);
   animation: pd-pulse 1.4s ease-in-out infinite;
