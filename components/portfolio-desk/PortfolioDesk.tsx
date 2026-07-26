@@ -312,11 +312,9 @@ export function PortfolioDesk() {
         ) : null}
 
         {(nav === 'alerts' || nav === 'coach') && isConnected ? (
-          <div className="pd-panel" style={{ padding: 16 }}>
-            <SectionErrorBoundary title={nav === 'alerts' ? 'Alerts' : 'AI Coach'}>
-              {nav === 'alerts' ? <AlertsPanel /> : <CoachPanel />}
-            </SectionErrorBoundary>
-          </div>
+          <SectionErrorBoundary title={nav === 'alerts' ? 'Alerts' : 'AI Coach'}>
+            {nav === 'alerts' ? <AlertsPanel /> : <CoachPanel />}
+          </SectionErrorBoundary>
         ) : null}
       </main>
 

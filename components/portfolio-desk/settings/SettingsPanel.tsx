@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSolana } from '@/components/SolanaProvider'
+import { FilterChip } from '@/components/portfolio-desk/ui/FilterChip'
 import { usePortfolioTheme } from '@/store/portfolio-theme'
 import type { AlertPreference, PortfolioAlertType } from '@/types/portfolio-desk'
 
@@ -185,16 +186,11 @@ export function SettingsPanel() {
       </Section>
 
       <Section title="Appearance">
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="pd-chip-row">
           {(['dark', 'light'] as const).map((t) => (
-            <button
-              key={t}
-              type="button"
-              className={`pd-tab${theme === t ? ' is-active' : ''}`}
-              onClick={() => setTheme(t)}
-            >
+            <FilterChip key={t} selected={theme === t} onClick={() => setTheme(t)}>
               {t === 'dark' ? 'Dark' : 'Light'}
-            </button>
+            </FilterChip>
           ))}
         </div>
         <p style={{ fontSize: 11.5, color: 'var(--text-faint)', marginTop: 10 }}>

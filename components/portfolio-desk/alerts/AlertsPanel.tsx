@@ -1,9 +1,9 @@
 'use client'
 
 /**
- * AI Alerts feed — rebuilt from scratch (Phase 12.3).
- * Row structure: icon badge · title/desc · relative timestamp.
- * Colors: --accent / --positive / --negative / --chain only.
+ * AI Alerts feed — Phase 13 layout + chip hierarchy.
+ * Three breathable sections (header / filters / preferences), no enclosing dark card.
+ * Chips use FilterChip (soft selected) — never solid accent fill.
  */
 
 import { useEffect, useMemo, useState } from 'react'
@@ -18,6 +18,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useSolana } from '@/components/SolanaProvider'
+import { FilterChip } from '@/components/portfolio-desk/ui/FilterChip'
 import { relativeAge } from '@/lib/portfolio-desk/format'
 import type { AlertPreference, PortfolioAlert, PortfolioAlertType } from '@/types/portfolio-desk'
 
@@ -80,7 +81,6 @@ function iconFor(type: PortfolioAlert['type']): LucideIcon {
   return Fish
 }
 
-/** Phase 10 §3.6 / Phase 12.3 — badge tones from design tokens only. */
 function toneFor(type: PortfolioAlert['type']): Tone {
   if (type === 'liquidity' || type === 'liquidity_added') {
     return { bg: 'var(--positive-soft)', fg: 'var(--positive)' }
@@ -105,17 +105,10 @@ function toneFor(type: PortfolioAlert['type']): Tone {
   ) {
     return { bg: 'var(--negative-soft)', fg: 'var(--negative)' }
   }
-  // whale_buy / whale / default → chain
   return { bg: 'var(--chain-soft)', fg: 'var(--chain)' }
 }
 
-function AlertRow({
-  alert,
-  now,
-}: {
-  alert: PortfolioAlert
-  now: number
-}) {
+function AlertRow({ alert, now }: { alert: PortfolioAlert; now: number }) {
   const Icon = iconFor(alert.type)
   const tone = toneFor(alert.type)
   return (
@@ -197,54 +190,44 @@ export function AlertsPanel() {
 
   return (
     <section className="pd-alerts">
-      <div className="pd-panel-head" style={{ padding: '0 4px 14px', border: 'none' }}>
-        <h2>AI Alerts</h2>
-        <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>
-          {filtered.length ? `${filtered.length}` : 'Live'}
-        </span>
+      {/* 1. Header — same panel-head pattern as AI Coach */}
+      <div className="pd-alerts-section" style={{ paddingTop: 0 }}>
+        <div className="pd-panel-head" style={{ padding: '0 0 0', border: 'none' }}>
+          <h2>AI Alerts</h2>
+          <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>
+            {filtered.length ? `${filtered.length}` : 'Live'}
+          </span>
+        </div>
       </div>
 
-      <div
-        className="pd-tabs"
-        style={{ flexWrap: 'wrap', marginBottom: 10, gap: 4 }}
-        role="tablist"
-        aria-label="Alert type filter"
-      >
-        {CHIP_TYPES.map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            role="tab"
-            aria-selected={chip === c.id}
-            className={`pd-tab${chip === c.id ? ' is-active' : ''}`}
-            onClick={() => setChip(c.id)}
-          >
-            {c.label}
-          </button>
-        ))}
+      {/* 2. Filter chips */}
+      <div className="pd-alerts-section" role="tablist" aria-label="Alert type filter">
+        <div className="pd-chip-row">
+          {CHIP_TYPES.map((c) => (
+            <FilterChip
+              key={c.id}
+              selected={chip === c.id}
+              role="tab"
+              aria-selected={chip === c.id}
+              onClick={() => setChip(c.id)}
+            >
+              {c.label}
+            </FilterChip>
+          ))}
+        </div>
       </div>
 
+      {/* 3. Preferences */}
       {walletAddress && prefs.length ? (
-        <div style={{ marginBottom: 12, padding: '0 4px' }}>
-          <div
-            style={{
-              fontSize: 10.5,
-              letterSpacing: '0.06em',
-              color: 'var(--text-faint)',
-              fontWeight: 600,
-              marginBottom: 6,
-            }}
-          >
-            PREFERENCES
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        <div className="pd-alerts-section">
+          <div className="pd-alerts-label">Preferences</div>
+          <div className="pd-chip-row">
             {CHIP_TYPES.filter((c) => c.id !== 'all').map((c) => {
               const on = prefMap.get(c.id as PortfolioAlertType) !== false
               return (
-                <button
+                <FilterChip
                   key={`pref-${c.id}`}
-                  type="button"
-                  className={`pd-tab${on ? ' is-active' : ''}`}
+                  selected={on}
                   disabled={toggleMut.isPending}
                   title={on ? `Disable ${c.label}` : `Enable ${c.label}`}
                   onClick={() =>
@@ -254,27 +237,29 @@ export function AlertsPanel() {
                     })
                   }
                 >
-                  {on ? '✓ ' : ''}
                   {c.label}
-                </button>
+                </FilterChip>
               )
             })}
           </div>
         </div>
       ) : null}
 
-      {!filtered.length ? (
-        <p style={{ fontSize: 12.5, color: 'var(--text-faint)', padding: '4px 4px 16px' }}>
-          No webhook alerts yet. Configure Helius →{' '}
-          <span className="pd-num">/api/webhooks/helius</span>. Nothing is fabricated.
-        </p>
-      ) : (
-        <ul className="pd-alert-list">
-          {filtered.map((a) => (
-            <AlertRow key={a.id} alert={a} now={now} />
-          ))}
-        </ul>
-      )}
+      {/* Feed */}
+      <div className="pd-alerts-section" style={{ paddingBottom: 0 }}>
+        {!filtered.length ? (
+          <p style={{ fontSize: 12.5, color: 'var(--text-faint)', margin: 0 }}>
+            No webhook alerts yet. Configure Helius →{' '}
+            <span className="pd-num">/api/webhooks/helius</span>. Nothing is fabricated.
+          </p>
+        ) : (
+          <ul className="pd-alert-list">
+            {filtered.map((a) => (
+              <AlertRow key={a.id} alert={a} now={now} />
+            ))}
+          </ul>
+        )}
+      </div>
     </section>
   )
 }

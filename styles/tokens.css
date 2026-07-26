@@ -27,8 +27,8 @@
   --chain: #9c8cff;
   --chain-soft: color-mix(in srgb, var(--chain) 14%, transparent);
 
-  /* Ink on accent fills (equals dark --bg; not a new hue) */
-  --on-accent: #0a0d12;
+  /* Ink on accent fills — high-contrast for primary CTAs only */
+  --on-accent: #12100a;
 
   /* Layout radii / chrome (non-color) */
   --radius: 3px;
@@ -58,7 +58,8 @@
   --chain: #6e5fe0;
   --chain-soft: color-mix(in srgb, var(--chain) 14%, transparent);
 
-  --on-accent: #0a0d12;
+  /* White ink on deeper light-theme accent (Phase 13.4 contrast) */
+  --on-accent: #ffffff;
 
   --shadow: 0 1px 3px color-mix(in srgb, #101828 5%, transparent);
 
