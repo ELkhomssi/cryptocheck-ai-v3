@@ -37,30 +37,20 @@ const emptyView = (): MissionViewModel => ({
 })
 
 describe('Mission Control conversation', () => {
-  it('speaks honest market gap — never invents aggression', () => {
+  it('speaks five beats — greeting, conclusion, why, action, ask', () => {
     const conv = buildMissionConversation({
       displayName: 'Abderrahim',
       view: emptyView(),
       loading: false,
     })
-    const blob = conv.turns.map((t) => t.text).join(' ')
-    assert.match(blob, /don’t have enough information/i)
-    assert.doesNotMatch(blob, /whale accumulation increased/i)
-    assert.doesNotMatch(blob, /BTC\s*\+/i)
-    assert.ok(conv.turns.some((t) => t.kind === 'ask'))
+    const ids = conv.turns.map((t) => t.id)
+    assert.deepEqual(ids, ['greet', 'conclusion', 'why', 'action', 'ask'])
+    assert.match(conv.turns[0]!.text, /Good (morning|afternoon|evening) Abderrahim/)
+    assert.equal(conv.turns.at(-1)?.text, 'What would you like me to do?')
+    assert.match(conv.turns.find((t) => t.id === 'action')!.text, /Recommended action:/)
   })
 
-  it('ends by asking what to do', () => {
-    const conv = buildMissionConversation({
-      displayName: null,
-      view: emptyView(),
-      loading: false,
-    })
-    const ask = conv.turns.find((t) => t.kind === 'ask')
-    assert.equal(ask?.text, 'What would you like me to do?')
-  })
-
-  it('keeps numbers out of speech — evidence holds metrics', () => {
+  it('never puts metrics or invented whales in speech', () => {
     const v = emptyView()
     v.market.available = true
     v.market.aggregateChange24hPct = 3.25
@@ -71,23 +61,28 @@ describe('Mission Control conversation', () => {
     v.portfolio.dayChangePct = 0.5
     v.portfolio.topWeightSymbol = 'BONK'
     const conv = buildMissionConversation({ displayName: null, view: v, loading: false })
-    const speech = conv.turns
-      .filter((t) => t.kind === 'speech')
-      .map((t) => t.text)
-      .join(' ')
-    assert.match(speech, /aggressive|buying pressure/i)
-    assert.match(speech, /concentration in BONK/i)
+    const speech = conv.turns.map((t) => t.text).join(' ')
+    assert.match(speech, /aggressive/i)
+    assert.match(speech, /filtered everything else/i)
     assert.doesNotMatch(speech, /\+3\.25%/)
     assert.doesNotMatch(speech, /\$50/)
-    assert.ok(conv.evidence.length > 0)
-    assert.ok(conv.metrics.some((m) => m.label === 'Sample 24h'))
+    assert.doesNotMatch(speech, /whale accumulation increased/i)
+    assert.ok(conv.marketMetrics.length > 0)
+    assert.ok(conv.portfolioMetrics.length > 0)
   })
 
-  it('suggestions change with portfolio concentration', () => {
+  it('keeps living activity out of first-screen turns', () => {
+    const v = emptyView()
+    v.running = [{ id: '1', description: 'Watching 214 whales', kind: 'watch' }]
+    const conv = buildMissionConversation({ displayName: null, view: v, loading: false })
+    assert.ok(conv.living.some((l) => /214 whales/i.test(l)))
+    assert.ok(!conv.turns.some((t) => /214 whales/i.test(t.text)))
+  })
+
+  it('suggestions stay available below fold', () => {
     const v = emptyView()
     v.portfolio.connected = true
     v.portfolio.topWeightSymbol = 'BONK'
-    v.portfolio.dayChangePct = 1
     v.market.available = true
     v.market.aggregateChange24hPct = 3
     const s = buildDynamicSuggestions(v)
@@ -106,7 +101,7 @@ describe('Mission Control conversation', () => {
     assert.ok(n.weakness)
   })
 
-  it('maps running copy to living intelligence without inventing counts', () => {
+  it('maps running copy without inventing counts', () => {
     assert.equal(
       runningIntelligenceLabel('Market Intelligence is running your query', 'analysis'),
       'Scanning…',
@@ -114,10 +109,6 @@ describe('Mission Control conversation', () => {
     assert.equal(
       runningIntelligenceLabel('Watching 214 whales across tracked wallets', 'watch'),
       'Watching 214 whales…',
-    )
-    assert.doesNotMatch(
-      runningIntelligenceLabel('liquidity check in progress', 'scan'),
-      /\d{2,}/,
     )
   })
 

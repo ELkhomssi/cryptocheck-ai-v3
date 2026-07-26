@@ -961,100 +961,75 @@
   }
 }
 
-/* ─── Mission mode — strip software chrome; conversation owns the stage ─── */
+/* ─── Mission mode — erase app chrome; only speech remains ─── */
 .pd-shell.is-mission {
   --pd-aside: 0px;
   --pd-ticker: 0px;
-  --pd-sidebar: 56px;
-  grid-template-columns: var(--pd-sidebar) minmax(0, 1fr);
+  --pd-sidebar: 0px;
+  --pd-topbar: 44px;
+  grid-template-columns: 1fr;
   grid-template-rows: var(--pd-topbar) minmax(0, 1fr);
   grid-template-areas:
-    'sidebar topbar'
-    'sidebar main';
+    'topbar'
+    'main';
 }
 
 .pd-shell.is-mission .pd-sidebar {
-  border-right-color: transparent;
-  background: transparent;
-}
-
-.pd-shell.is-mission .pd-brand-name,
-.pd-shell.is-mission .pd-brand-sub,
-.pd-shell.is-mission .pd-nav-item span,
-.pd-shell.is-mission .pd-nav-label,
-.pd-shell.is-mission .pd-sidebar-foot,
-.pd-shell.is-mission .pd-nav-item {
-  font-size: 0;
-  letter-spacing: 0;
-}
-
-.pd-shell.is-mission .pd-nav-item {
-  justify-content: center;
-  padding: 12px 0;
-  gap: 0;
-  color: var(--pd-text-faint);
-}
-
-.pd-shell.is-mission .pd-nav-item.is-active {
-  color: var(--pd-text);
-  background: transparent;
-}
-
-.pd-shell.is-mission .pd-nav-item svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-
-.pd-shell.is-mission .pd-brand {
-  justify-content: center;
-  padding: 16px 0 8px;
-}
-
-.pd-shell.is-mission .pd-brand > div:last-child {
   display: none;
 }
 
-.pd-shell.is-mission .pd-mark {
-  margin: 0 auto;
+.pd-shell.is-mission .pd-sidebar.is-open {
+  display: flex;
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: min(280px, 86vw);
+  z-index: 40;
+  background: var(--pd-bg-elevated);
+  border-right: 1px solid var(--pd-border-soft);
+  box-shadow: var(--pd-shadow);
+}
+
+.pd-shell.is-mission .pd-nav-toggle {
+  display: inline-flex;
 }
 
 .pd-shell.is-mission .pd-topbar {
-  border-bottom-color: transparent;
+  border-bottom: 0;
   background: transparent;
-  justify-content: flex-end;
-  gap: 8px;
+  justify-content: space-between;
+  padding-inline: 12px 16px;
+  min-height: var(--pd-topbar);
 }
 
-.pd-shell.is-mission .pd-topbar > :not(.pd-nav-toggle):not(:last-child) {
-  opacity: 0.28;
-  transition: opacity 0.2s ease;
-}
-
-.pd-shell.is-mission .pd-topbar > :not(.pd-nav-toggle):not(:last-child):focus-within,
-.pd-shell.is-mission .pd-topbar > :not(.pd-nav-toggle):not(:last-child):hover {
-  opacity: 1;
-}
-
-.pd-shell.is-mission .pd-topbar .pd-chip {
+.pd-shell.is-mission .pd-topbar .pd-search,
+.pd-shell.is-mission .pd-topbar .pd-chip,
+.pd-shell.is-mission .pd-topbar .pd-icon-btn:not(.pd-nav-toggle) {
   display: none;
+}
+
+.pd-shell.is-mission .pd-topbar .pd-connect,
+.pd-shell.is-mission .pd-topbar .pd-id-chip {
+  opacity: 0.45;
+}
+
+.pd-shell.is-mission .pd-topbar .pd-connect:hover,
+.pd-shell.is-mission .pd-topbar .pd-id-chip:hover {
+  opacity: 1;
 }
 
 .pd-main.is-mission-main {
   padding: 0;
   display: flex;
   flex-direction: column;
-  background:
-    radial-gradient(ellipse 80% 50% at 50% -10%, color-mix(in srgb, var(--pd-accent) 8%, transparent), transparent 70%),
-    var(--pd-bg);
+  background: var(--pd-bg);
 }
 
 @media (max-width: 1100px) {
   .pd-shell.is-mission {
-    grid-template-columns: var(--pd-sidebar) minmax(0, 1fr);
+    grid-template-columns: 1fr;
     grid-template-areas:
-      'sidebar topbar'
-      'sidebar main';
+      'topbar'
+      'main';
     grid-template-rows: var(--pd-topbar) minmax(0, 1fr);
     height: 100dvh;
     min-height: 100dvh;
@@ -1069,67 +1044,50 @@
       'topbar'
       'main';
   }
-
-  .pd-shell.is-mission .pd-sidebar.is-open {
-    --pd-sidebar: min(280px, 86vw);
-    width: min(280px, 86vw);
-    background: var(--pd-bg-elevated);
-    border-right: 1px solid var(--pd-border-soft);
-  }
-
-  .pd-shell.is-mission .pd-sidebar.is-open .pd-brand > div:last-child,
-  .pd-shell.is-mission .pd-sidebar.is-open .pd-nav-label,
-  .pd-shell.is-mission .pd-sidebar.is-open .pd-sidebar-foot {
-    display: revert;
-  }
-
-  .pd-shell.is-mission .pd-sidebar.is-open .pd-nav-item {
-    font-size: 13px;
-    justify-content: flex-start;
-    padding: 10px 14px;
-    gap: 10px;
-  }
 }
 
 /* ─── Mission Control — person, not page ─── */
 .mc-talk {
-  width: min(680px, 100%);
+  width: min(640px, 100%);
   margin: 0 auto;
-  min-height: 100%;
-  padding: 0 20px 40px;
+  padding: 0 22px;
   display: flex;
   flex-direction: column;
 }
 
-.mc-talk-stage {
-  min-height: calc(100dvh - var(--pd-topbar) - 140px);
+/* Entire first viewport = conversation + reply. Nothing else. */
+.mc-talk-screen {
+  min-height: calc(100dvh - var(--pd-topbar));
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 48px 0 32px;
+  padding: 40px 0 28px;
+  gap: 36px;
 }
 
 .mc-talk-thread {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 20px;
+  flex: 1;
+  justify-content: center;
 }
 
 .mc-talk-speech {
   margin: 0;
-  font-size: clamp(19px, 2.5vw, 24px);
-  font-weight: 450;
+  font-size: clamp(18px, 2.3vw, 22px);
+  font-weight: 440;
   letter-spacing: -0.028em;
-  line-height: 1.42;
+  line-height: 1.45;
   color: var(--pd-text);
-  max-width: 34ch;
+  max-width: 36ch;
 }
 
 .mc-talk-speech:first-child {
-  font-size: clamp(28px, 4vw, 40px);
+  font-size: clamp(30px, 4.2vw, 42px);
   font-weight: 560;
-  letter-spacing: -0.04em;
-  line-height: 1.15;
+  letter-spacing: -0.042em;
+  line-height: 1.12;
   max-width: none;
 }
 
@@ -1141,7 +1099,7 @@
 }
 
 .mc-talk-ask {
-  margin: 12px 0 0;
+  margin: 8px 0 0;
   font-size: clamp(22px, 2.8vw, 28px);
   font-weight: 560;
   letter-spacing: -0.032em;
@@ -1151,12 +1109,9 @@
 .mc-listen {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  position: sticky;
-  bottom: 0;
-  padding: 16px 0 20px;
-  background: linear-gradient(to top, var(--pd-bg) 70%, transparent);
-  z-index: 2;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 8px;
 }
 
 .mc-listen-stream {
@@ -1276,13 +1231,13 @@
 }
 
 .mc-talk-below {
-  margin-top: 56px;
-  padding-top: 32px;
+  margin-top: 8px;
+  padding-top: 64px;
   border-top: 1px solid var(--pd-border-soft);
   display: flex;
   flex-direction: column;
-  gap: 36px;
-  padding-bottom: 48px;
+  gap: 40px;
+  padding-bottom: 80px;
 }
 
 .mc-talk-section-label {
