@@ -44,7 +44,12 @@ describe('Mission Control conversation', () => {
       loading: false,
     })
     assert.match(conv.turns[0]!.text, /Good (morning|afternoon|evening) Abderrahim/)
+    assert.equal(
+      conv.turns.find((t) => t.id === 'presence')?.text,
+      'I have already been working for you.',
+    )
     assert.ok(conv.turns.some((t) => t.id === 'away'))
+    assert.ok(conv.turns.some((t) => t.id === 'ready'))
     const propose = conv.turns.find((t) => t.kind === 'propose')
     assert.equal(propose?.text, 'I already have several actions prepared. Choose one…')
     assert.doesNotMatch(conv.turns.map((t) => t.text).join(' '), /What would you like me to do/i)

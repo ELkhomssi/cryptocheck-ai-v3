@@ -1091,6 +1091,40 @@
   max-width: none;
 }
 
+.mc-talk-presence {
+  font-size: clamp(22px, 3vw, 30px) !important;
+  font-weight: 520 !important;
+  letter-spacing: -0.034em;
+  max-width: 22ch !important;
+  color: var(--pd-text);
+}
+
+.mc-talk-line {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: mcSpeakIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--mc-delay, 0s);
+}
+
+@keyframes mcSpeakIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-talk-line {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+}
+
 .mc-talk-live {
   font-size: 14px;
   line-height: 1.85;

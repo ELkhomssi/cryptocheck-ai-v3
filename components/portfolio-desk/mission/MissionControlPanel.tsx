@@ -56,25 +56,35 @@ export function MissionControlPanel({
       {/* Speech → prepared actions → reply */}
       <div className="mc-talk-screen">
         <div className="mc-talk-thread" aria-live="polite">
-          {conversation.turns.map((turn) =>
-            turn.kind === 'propose' ? (
-              <p key={turn.id} className="mc-talk-propose">
+          {conversation.turns.map((turn, i) => {
+            const delay = { ['--mc-delay' as string]: `${Math.min(i * 0.42, 4.2)}s` }
+            if (turn.kind === 'propose') {
+              return (
+                <p key={turn.id} className="mc-talk-propose mc-talk-line" style={delay}>
+                  {turn.text}
+                </p>
+              )
+            }
+            const cls =
+              turn.id === 'presence'
+                ? 'mc-talk-speech mc-talk-presence mc-talk-line'
+                : turn.id === 'away'
+                  ? 'mc-talk-speech mc-talk-away mc-talk-line'
+                  : 'mc-talk-speech mc-talk-line'
+            return (
+              <p key={turn.id} className={cls} style={delay}>
                 {turn.text}
               </p>
-            ) : (
-              <p
-                key={turn.id}
-                className={
-                  turn.id === 'away' ? 'mc-talk-speech mc-talk-away' : 'mc-talk-speech'
-                }
-              >
-                {turn.text}
-              </p>
-            ),
-          )}
+            )
+          })}
         </div>
 
-        <ul className="mc-prepared">
+        <ul
+          className="mc-prepared mc-talk-line"
+          style={{
+            ['--mc-delay' as string]: `${Math.min(conversation.turns.length * 0.42 + 0.2, 4.8)}s`,
+          }}
+        >
           {conversation.preparedActions.map((action) => (
             <li key={action}>
               <button type="button" className="mc-prepared-item" onClick={() => setSeed(action)}>

@@ -131,7 +131,17 @@ export function buildMissionConversation(params: {
         {
           id: 'load',
           kind: 'speech',
-          text: `${timeOfDayGreeting()}. I’ve already begun assembling your briefing from live feeds.`,
+          text: `${timeOfDayGreeting()}.`,
+        },
+        {
+          id: 'presence',
+          kind: 'speech',
+          text: 'I have already been working for you.',
+        },
+        {
+          id: 'load-2',
+          kind: 'speech',
+          text: 'I’m finishing your briefing from the live engines now — stay with me.',
         },
         {
           id: 'propose',
@@ -147,7 +157,7 @@ export function buildMissionConversation(params: {
       marketMetrics: [],
       portfolioMetrics: [],
       living: [],
-      readingSeconds: 8,
+      readingSeconds: 10,
     }
   }
 
@@ -171,25 +181,30 @@ export function buildMissionConversation(params: {
     grounded.length === 0 &&
     v.dailyBrief.insufficientActivity
 
-  // 1) Greeting
+  // 1) Greeting — then presence. The OS owns the room.
   turns.push({
     id: 'greet',
     kind: 'speech',
     text: name ? `${timeOfDayGreeting()} ${name}.` : `${timeOfDayGreeting()}.`,
+  })
+  turns.push({
+    id: 'presence',
+    kind: 'speech',
+    text: 'I have already been working for you.',
   })
 
   // 2) While you were away…
   turns.push({
     id: 'away',
     kind: 'speech',
-    text: 'While you were away…',
+    text: 'While you were away, I kept watch.',
   })
 
   if (quiet) {
     turns.push({
       id: 'quiet',
       kind: 'speech',
-      text: 'Today has been relatively quiet. Nothing currently requires immediate action. I will continue monitoring the market.',
+      text: 'Today has been relatively quiet. Nothing currently requires immediate action. I filtered the noise so you don’t have to. I will continue monitoring the market.',
     })
   } else {
     // Market judgement
@@ -205,19 +220,19 @@ export function buildMissionConversation(params: {
         turns.push({
           id: 'mkt',
           kind: 'speech',
-          text: 'The market continues strengthening. Momentum remains healthy across the live sample.',
+          text: 'I already read the tape. The market continues strengthening — momentum remains healthy.',
         })
       } else if (chg < -2) {
         turns.push({
           id: 'mkt',
           kind: 'speech',
-          text: 'The market turned more defensive. Momentum cooled across the live sample.',
+          text: 'I already read the tape. The market turned more defensive — momentum cooled.',
         })
       } else {
         turns.push({
           id: 'mkt',
           kind: 'speech',
-          text: 'The market remains orderly. Neither side is forcing a clear regime shift.',
+          text: 'I already read the tape. The market remains orderly — no regime shift forced yet.',
         })
       }
       marketMetrics.push({ label: 'Sample 24h', value: fmtSignedPct(chg) })
@@ -339,11 +354,17 @@ export function buildMissionConversation(params: {
     turns.push({
       id: 'living-idle',
       kind: 'speech',
-      text: 'I will continue monitoring the market.',
+      text: 'I’m still watching the market for you — you don’t need to search.',
     })
   }
 
-  // Propose — never end with an open question alone
+  turns.push({
+    id: 'ready',
+    kind: 'speech',
+    text: 'You don’t need to dig. I’ve already done the work. Now you only decide what we open next.',
+  })
+
+  // Propose — the OS arrives with options ready
   turns.push({
     id: 'propose',
     kind: 'propose',
