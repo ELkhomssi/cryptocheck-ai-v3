@@ -1,69 +1,44 @@
 'use client'
 
 /**
- * Mission Control — OS home.
- * Phase 17: data via MissionEngine (`/api/intelligence-core/mission`).
- * Visual design of original sections unchanged; Recommendations + Daily Brief added.
+ * Phase 17.1 — Mission Control OS.
+ * Answers: "What should I do right now?"
+ * Presentation over existing MissionEngine + Coach + Timeline APIs only.
  */
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSolana } from '@/components/SolanaProvider'
+import { MissionCommandCenter } from '@/components/portfolio-desk/mission/MissionCommandCenter'
 import { MissionFeedPanel } from '@/components/portfolio-desk/mission/MissionFeedPanel'
 import { IntelligenceModulesGrid } from '@/components/portfolio-desk/mission/IntelligenceModulesGrid'
-import { TokenSearch } from '@/components/portfolio-desk/token/TokenSearch'
-import { MiniSparkline } from '@/components/portfolio-desk/portfolio/PerformanceChart'
 import { formatPct, formatUsd } from '@/lib/portfolio-desk/format'
-import type { ScreenerRow } from '@/lib/providers/types'
+import {
+  buildExecutiveBrief,
+  buildMarketNarrative,
+  buildMissionPriorities,
+  buildPortfolioNarrative,
+  buildObservations,
+  runningIntelligenceLabel,
+} from '@/lib/portfolio-desk/mission-narrative'
+import type { ModuleCardView } from '@/types/intelligence'
 import type { MissionViewModel } from '@/types/intelligence-core'
-
-const SUGGESTIONS = [
-  'Scan my portfolio risk',
-  'Show top movers today',
-  'Find new Solana launches',
-  'Audit liquidity on a mint',
-]
-
-function Section({
-  title,
-  action,
-  children,
-}: {
-  title: string
-  action?: React.ReactNode
-  children: React.ReactNode
-}) {
-  return (
-    <section className="pd-panel" style={{ padding: 16, marginBottom: 14 }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          marginBottom: 12,
-        }}
-      >
-        <h2 style={{ margin: 0, fontSize: 14, letterSpacing: '0.04em' }}>{title}</h2>
-        {action}
-      </div>
-      {children}
-    </section>
-  )
-}
+import type { ScreenerRow } from '@/lib/providers/types'
 
 export function MissionControlPanel({
   onOpenFeed,
-  onOpenMarket,
-  onSelectToken,
-  onSuggestion,
+  onOpenMarket: _onOpenMarket,
+  onSelectToken: _onSelectToken,
+  onSuggestion: _onSuggestion,
+  showObservationsInline = false,
 }: {
   onOpenFeed: () => void
   onOpenMarket: () => void
   onSelectToken: (row: ScreenerRow) => void
   onSuggestion: (text: string) => void
+  showObservationsInline?: boolean
 }) {
-  const { walletAddress, isConnected } = useSolana()
+  const { walletAddress, shortAddr, isConnected } = useSolana()
 
   const missionQ = useQuery({
     queryKey: ['intelligence-core-mission', walletAddress],
@@ -77,120 +52,115 @@ export function MissionControlPanel({
     staleTime: 10_000,
   })
 
-  const view = missionQ.data
-  const marketSpark: { t: number; valueUsd: number }[] = useMemo(() => {
-    const spark = view?.market.spark ?? []
-    return spark.map((v, i) => ({ t: i, valueUsd: v }))
-  }, [view?.market.spark])
+  const modulesQ = useQuery({
+    queryKey: ['intelligence-modules'],
+    queryFn: async () => {
+      const res = await fetch('/api/intelligence/modules', { cache: 'no-store' })
+      if (!res.ok) return [] as ModuleCardView[]
+      const body = (await res.json()) as { modules?: ModuleCardView[] }
+      return body.modules ?? []
+    },
+    staleTime: 20_000,
+    refetchInterval: 30_000,
+  })
+
+  const view = missionQ.data ?? null
+  const brief = useMemo(
+    () =>
+      buildExecutiveBrief({
+        displayName: isConnected && shortAddr ? shortAddr : null,
+        view,
+        loading: missionQ.isLoading,
+      }),
+    [isConnected, shortAddr, view, missionQ.isLoading],
+  )
+  const marketN = useMemo(() => buildMarketNarrative(view), [view])
+  const portfolioN = useMemo(() => buildPortfolioNarrative(view), [view])
+  const priorities = useMemo(() => buildMissionPriorities(view), [view])
+  const observations = useMemo(
+    () => buildObservations({ view, modules: modulesQ.data ?? [] }),
+    [view, modulesQ.data],
+  )
 
   return (
-    <div>
-      <IntelligenceModulesGrid />
-
-      <Section
-        title="Market Status"
-        action={
-          <button type="button" className="pd-tab" onClick={onOpenMarket}>
-            Open Market Intelligence
-          </button>
-        }
-      >
-        {missionQ.isLoading ? (
-          <div className="pd-skeleton" style={{ height: 64 }} />
-        ) : !view?.market.available ? (
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--pd-text-dim)' }}>
-            Market glance unavailable — providers returned no rows.
+    <div className="mc-os">
+      <header className="mc-brief">
+        <div className="mc-kicker">Executive Brief</div>
+        <h1 className="mc-brief-greet">{brief.greetingLine}</h1>
+        {brief.paragraphs.map((p) => (
+          <p key={p.slice(0, 48)} className="mc-brief-body">
+            {p}
           </p>
-        ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-              gap: 12,
-              alignItems: 'center',
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 10, color: 'var(--pd-text-faint)' }}>AGGREGATE 24H</div>
-              <div
-                className="pd-num"
-                style={{
-                  fontSize: 22,
-                  fontWeight: 700,
-                  color:
-                    (view.market.aggregateChange24hPct ?? 0) > 0
-                      ? 'var(--pd-positive)'
-                      : (view.market.aggregateChange24hPct ?? 0) < 0
-                        ? 'var(--pd-negative)'
-                        : undefined,
-                }}
-              >
-                {formatPct(view.market.aggregateChange24hPct ?? 0)}
-              </div>
-            </div>
-            <div>
-              <div style={{ fontSize: 10, color: 'var(--pd-text-faint)' }}>TOP MOVER</div>
-              <div style={{ fontSize: 15, fontWeight: 600 }}>
-                {view.market.topMoverSymbol || '—'}{' '}
-                <span className="pd-num" style={{ fontSize: 13 }}>
-                  {formatPct(view.market.topMoverChange24hPct ?? 0)}
-                </span>
-              </div>
-            </div>
-            <div style={{ height: 48 }}>
-              <MiniSparkline series={marketSpark} />
-            </div>
-          </div>
-        )}
-      </Section>
-
-      <Section title="Portfolio Status">
-        {!isConnected ? (
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--pd-text-dim)' }}>
-            Connect a wallet to load live portfolio health.
+        ))}
+        {brief.dataGaps.map((g) => (
+          <p key={g} className="mc-brief-gap">
+            {g}
           </p>
-        ) : missionQ.isLoading ? (
-          <div className="pd-skeleton" style={{ height: 64 }} />
-        ) : view?.portfolio.error ? (
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--pd-negative)' }}>
-            Portfolio fetch failed — retry from Portfolio Intelligence.
-          </p>
-        ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-              gap: 12,
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 10, color: 'var(--pd-text-faint)' }}>VALUE</div>
-              <div className="pd-num" style={{ fontSize: 18, fontWeight: 700 }}>
-                {formatUsd(view?.portfolio.totalValueUsd ?? 0)}
-              </div>
-            </div>
-            <div>
-              <div style={{ fontSize: 10, color: 'var(--pd-text-faint)' }}>24H</div>
-              <div className="pd-num" style={{ fontSize: 18, fontWeight: 700 }}>
-                {view?.portfolio.dayChangePct != null
-                  ? formatPct(view.portfolio.dayChangePct)
-                  : '—'}
-              </div>
-            </div>
-            <div>
-              <div style={{ fontSize: 10, color: 'var(--pd-text-faint)' }}>TOP WEIGHT</div>
-              <div style={{ fontSize: 18, fontWeight: 700 }}>
-                {view?.portfolio.topWeightSymbol || '—'}
-              </div>
-            </div>
-            <div style={{ height: 40 }}>
-              <MiniSparkline series={marketSpark} />
-            </div>
-          </div>
-        )}
-      </Section>
+        ))}
+        <div className="mc-brief-meta">Estimated reading time · {brief.readingSeconds}s</div>
+      </header>
 
-      <Section title="Running Intelligence">
+      <MissionCommandCenter />
+
+      <div className="mc-grid-2">
+        <article className="mc-prose-card">
+          <div className="mc-kicker">Market</div>
+          <h3>{marketN.title}</h3>
+          {marketN.unavailableReason ? (
+            <p>{marketN.unavailableReason}</p>
+          ) : (
+            marketN.paragraphs.map((p) => <p key={p.slice(0, 40)}>{p}</p>)
+          )}
+          <p className="mc-prose-meta">{marketN.sourcesNote}</p>
+        </article>
+
+        <article className="mc-prose-card">
+          <div className="mc-kicker">Portfolio</div>
+          <h3>{portfolioN.title}</h3>
+          {portfolioN.unavailableReason ? (
+            <p>{portfolioN.unavailableReason}</p>
+          ) : (
+            <>
+              <p>{portfolioN.healthLine}</p>
+              <p>
+                Overall risk: <strong>{portfolioN.riskLabel}</strong>
+              </p>
+              {portfolioN.weakness ? <p>Biggest weakness: {portfolioN.weakness}</p> : null}
+              {portfolioN.suggestedAction ? (
+                <p>Suggested action: {portfolioN.suggestedAction}</p>
+              ) : null}
+              {portfolioN.confidenceLabel ? <p>Confidence: {portfolioN.confidenceLabel}</p> : null}
+              <div className="mc-stat-row">
+                <div className="mc-stat">
+                  <div className="mc-stat-label">Value</div>
+                  <div className="mc-stat-value">
+                    {portfolioN.numbers.totalValueUsd != null
+                      ? formatUsd(portfolioN.numbers.totalValueUsd)
+                      : '—'}
+                  </div>
+                </div>
+                <div className="mc-stat">
+                  <div className="mc-stat-label">24H</div>
+                  <div className="mc-stat-value">
+                    {portfolioN.numbers.dayChangePct != null
+                      ? formatPct(portfolioN.numbers.dayChangePct)
+                      : '—'}
+                  </div>
+                </div>
+                <div className="mc-stat">
+                  <div className="mc-stat-label">Top weight</div>
+                  <div className="mc-stat-value">
+                    {portfolioN.numbers.topWeightSymbol || '—'}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </article>
+      </div>
+
+      <section>
+        <h3 className="mc-section-title">Running Intelligence</h3>
         {missionQ.isLoading ? (
           <div className="pd-skeleton" style={{ height: 40 }} />
         ) : (view?.running ?? []).length === 0 ? (
@@ -198,115 +168,120 @@ export function MissionControlPanel({
             Idle — no automated jobs running right now.
           </p>
         ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+          <div className="mc-running">
             {(view?.running ?? []).map((row) => (
-              <li
-                key={row.id}
-                style={{
-                  padding: '8px 0',
-                  borderBottom: '1px solid var(--pd-border-soft)',
-                  fontSize: 13,
-                }}
-              >
-                {row.description || `Running ${row.kind}`}
-                <span
-                  className="pd-num"
-                  style={{ marginLeft: 8, fontSize: 10, color: 'var(--pd-accent)' }}
-                >
-                  live
-                </span>
-              </li>
+              <div key={row.id} className="mc-running-item">
+                {runningIntelligenceLabel(row.description, row.kind)}
+                <span>live</span>
+              </div>
             ))}
-          </ul>
-        )}
-      </Section>
-
-      <Section title="Recommendations">
-        {missionQ.isLoading ? (
-          <div className="pd-skeleton" style={{ height: 40 }} />
-        ) : (view?.recommendations ?? []).length === 0 ? (
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--pd-text-dim)' }}>
-            No grounded recommendations yet — explanations appear only when real metric diffs
-            exist.
-          </p>
-        ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-            {(view?.recommendations ?? []).map((r, i) => (
-              <li
-                key={r.predictionId || `${r.title}-${i}`}
-                style={{
-                  padding: '8px 0',
-                  borderBottom: '1px solid var(--pd-border-soft)',
-                }}
-              >
-                <strong style={{ fontSize: 13 }}>{r.title}</strong>
-                <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--pd-text-dim)' }}>
-                  {r.explanation}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
-
-      <Section title="Daily Brief">
-        {missionQ.isLoading ? (
-          <div className="pd-skeleton" style={{ height: 40 }} />
-        ) : view?.dailyBrief.pending ? (
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--pd-accent)' }}>
-            {view.dailyBrief.body}
-          </p>
-        ) : (
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
-              {view?.dailyBrief.title || 'Morning Brief'}
-            </div>
-            <p
-              style={{
-                margin: 0,
-                fontSize: 13,
-                color: view?.dailyBrief.insufficientActivity
-                  ? 'var(--pd-text-dim)'
-                  : 'var(--pd-text)',
-                whiteSpace: 'pre-wrap',
-                fontStyle: view?.dailyBrief.insufficientActivity ? 'italic' : undefined,
-              }}
-            >
-              {view?.dailyBrief.body}
-            </p>
           </div>
         )}
-      </Section>
+      </section>
 
-      <Section
-        title="Mission Feed"
-        action={
+      <section>
+        <h3 className="mc-section-title">What deserves your attention today</h3>
+        {priorities.length === 0 ? (
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--pd-text-dim)' }}>
+            No prioritized items yet — priorities appear from grounded recommendations, live jobs,
+            or a stored daily brief.
+          </p>
+        ) : (
+          <div className="mc-priorities">
+            {priorities.map((p) => (
+              <div key={p.id} className="mc-priority">
+                <div
+                  className={`mc-priority-level${
+                    p.level === 'High' ? ' is-high' : p.level === 'Medium' ? ' is-medium' : ''
+                  }`}
+                >
+                  {p.level}
+                </div>
+                <div>
+                  <h4>{p.title}</h4>
+                  <p>{p.detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'baseline',
+            marginBottom: 8,
+          }}
+        >
+          <h3 className="mc-section-title" style={{ margin: 0 }}>
+            Mission Feed
+          </h3>
           <button type="button" className="pd-tab" onClick={onOpenFeed}>
-            Full feed
+            Full timeline
           </button>
-        }
-      >
-        <MissionFeedPanel condensed limit={24} />
-      </Section>
-
-      <Section title="Command Center">
-        <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--pd-text-dim)' }}>
-          Search a token to chart, watch, or swap — Intelligence Modules handle routing behind the
-          scenes. Status copy names the module, not individual workers.
-        </p>
-        <TokenSearch
-          showShortcut
-          placeholder="Command Center — search tokens…"
-          onSelect={onSelectToken}
-        />
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-          {SUGGESTIONS.map((s) => (
-            <button key={s} type="button" className="pd-tab" onClick={() => onSuggestion(s)}>
-              {s}
-            </button>
-          ))}
         </div>
-      </Section>
+        <MissionFeedPanel condensed limit={10} />
+      </section>
+
+      {showObservationsInline ? (
+        <section className="mc-prose-card">
+          <div className="mc-kicker">Observations</div>
+          <ul className="mc-obs-list">
+            {observations.map((o) => (
+              <li key={o.id}>{o.text}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      <details className="mc-modules-foot">
+        <summary
+          style={{
+            cursor: 'pointer',
+            fontSize: 12,
+            color: 'var(--pd-text-faint)',
+            marginBottom: 10,
+          }}
+        >
+          Intelligence modules (detail)
+        </summary>
+        <IntelligenceModulesGrid />
+      </details>
     </div>
   )
+}
+
+export function useMissionObservations() {
+  const { walletAddress } = useSolana()
+  const missionQ = useQuery({
+    queryKey: ['intelligence-core-mission', walletAddress],
+    queryFn: async () => {
+      const q = walletAddress ? `?wallet=${encodeURIComponent(walletAddress)}` : ''
+      const res = await fetch(`/api/intelligence-core/mission${q}`, { cache: 'no-store' })
+      if (!res.ok) throw new Error('Mission view unavailable')
+      return (await res.json()) as MissionViewModel
+    },
+    refetchInterval: 20_000,
+    staleTime: 10_000,
+  })
+  const modulesQ = useQuery({
+    queryKey: ['intelligence-modules'],
+    queryFn: async () => {
+      const res = await fetch('/api/intelligence/modules', { cache: 'no-store' })
+      if (!res.ok) return [] as ModuleCardView[]
+      const body = (await res.json()) as { modules?: ModuleCardView[] }
+      return body.modules ?? []
+    },
+    staleTime: 20_000,
+  })
+  return {
+    observations: buildObservations({
+      view: missionQ.data ?? null,
+      modules: modulesQ.data ?? [],
+    }),
+    loading: missionQ.isLoading,
+  }
 }

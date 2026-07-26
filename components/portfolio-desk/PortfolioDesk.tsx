@@ -21,8 +21,9 @@ import { Topbar } from './layout/Topbar'
 import { LaunchLabPanel } from './launchlab/LaunchLabPanel'
 import { MarketFeeds } from './market/MarketFeeds'
 import { MarketIntelligencePanel } from './market/MarketIntelligencePanel'
-import { MissionControlPanel } from './mission/MissionControlPanel'
+import { MissionControlPanel, useMissionObservations } from './mission/MissionControlPanel'
 import { MissionFeedPanel } from './mission/MissionFeedPanel'
+import { MissionObservations } from './mission/MissionObservations'
 import { Hero } from './portfolio/Hero'
 import { HoldingsTable } from './portfolio/HoldingsTable'
 import { Metrics } from './portfolio/Metrics'
@@ -144,6 +145,7 @@ export function PortfolioDesk() {
 
   const meta = PAGE_META[nav]
   const needsWallet = !PUBLIC_NAV.has(nav)
+  const missionObs = useMissionObservations()
 
   return (
     <div className="pd-shell">
@@ -174,27 +176,29 @@ export function PortfolioDesk() {
       <TickerTape />
 
       <main className="pd-main">
-        <PageHeader
-          kicker={meta.kicker}
-          title={meta.title}
-          subtitle={meta.subtitle}
-          actions={
-            nav === 'portfolio' ? (
-              <div className="pd-tabs">
-                {RANGES.map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    className={`pd-tab${range === r ? ' is-active' : ''}`}
-                    onClick={() => setRange(r)}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-            ) : null
-          }
-        />
+        {nav === 'mission' ? null : (
+          <PageHeader
+            kicker={meta.kicker}
+            title={meta.title}
+            subtitle={meta.subtitle}
+            actions={
+              nav === 'portfolio' ? (
+                <div className="pd-tabs">
+                  {RANGES.map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      className={`pd-tab${range === r ? ' is-active' : ''}`}
+                      onClick={() => setRange(r)}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              ) : null
+            }
+          />
+        )}
 
         {focusMint.length >= 32 ? (
           <SectionErrorBoundary title="Token">
@@ -355,20 +359,44 @@ export function PortfolioDesk() {
       </main>
 
       <aside className="pd-aside">
-        <SectionErrorBoundary title="Mission Feed">
-          <div style={{ padding: '0 0 12px' }}>
-            <div className="pd-panel-head" style={{ padding: '0 0 10px' }}>
-              <h2 style={{ fontSize: 13 }}>Mission Feed</h2>
-              <button type="button" className="pd-tab" onClick={() => setDeskNav('feed')}>
-                Expand
-              </button>
+        {nav === 'mission' ? (
+          <SectionErrorBoundary title="Observations">
+            <MissionObservations
+              observations={missionObs.observations}
+              loading={missionObs.loading}
+            />
+          </SectionErrorBoundary>
+        ) : (
+          <SectionErrorBoundary title="Mission Feed">
+            <div style={{ padding: '0 0 12px' }}>
+              <div className="pd-panel-head" style={{ padding: '0 0 10px' }}>
+                <h2 style={{ fontSize: 13 }}>Mission Feed</h2>
+                <button type="button" className="pd-tab" onClick={() => setDeskNav('feed')}>
+                  Expand
+                </button>
+              </div>
+              <MissionFeedPanel condensed limit={16} />
             </div>
-            <MissionFeedPanel condensed limit={16} />
-          </div>
-        </SectionErrorBoundary>
-        <SectionErrorBoundary title="AI Coach">
-          <CoachPanel />
-        </SectionErrorBoundary>
+          </SectionErrorBoundary>
+        )}
+        {nav === 'mission' ? null : (
+          <SectionErrorBoundary title="AI Coach">
+            <CoachPanel />
+          </SectionErrorBoundary>
+        )}
+        {nav === 'mission' ? (
+          <SectionErrorBoundary title="Timeline">
+            <div style={{ paddingTop: 8 }}>
+              <div className="pd-panel-head" style={{ padding: '0 0 10px' }}>
+                <h2 style={{ fontSize: 13 }}>Timeline</h2>
+                <button type="button" className="pd-tab" onClick={() => setDeskNav('feed')}>
+                  Expand
+                </button>
+              </div>
+              <MissionFeedPanel condensed limit={12} />
+            </div>
+          </SectionErrorBoundary>
+        ) : null}
       </aside>
     </div>
   )

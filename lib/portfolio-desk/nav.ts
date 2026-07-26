@@ -97,7 +97,7 @@ export const PAGE_META: Record<
   mission: {
     kicker: '// MISSION CONTROL',
     title: 'Mission Control',
-    subtitle: 'Live market, portfolio, running intelligence, and command — real data only.',
+    subtitle: 'What should you do right now — interpreted from live market and portfolio feeds.',
   },
   market: {
     kicker: '// MARKET INTELLIGENCE',

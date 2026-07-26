@@ -2,15 +2,26 @@
 
 /**
  * Mission Feed — chronological timeline.
- * Phase 17.2: reads timeline_events (DB-trigger populated). Source writers unchanged.
+ * Phase 17.2: reads timeline_events (DB-trigger populated).
+ * Phase 17.1: condensed view uses clock + minimal headlines.
  */
 
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { formatTimelineClock, timelineHeadline } from '@/lib/portfolio-desk/mission-narrative'
 import type { IntelligenceModuleId } from '@/types/intelligence'
 import type { TimelineEvent } from '@/types/intelligence-core'
 
-type FeedCat = 'all' | 'market' | 'risk' | 'automation' | 'portfolio' | 'trading' | 'security' | 'launch' | 'research'
+type FeedCat =
+  | 'all'
+  | 'market'
+  | 'risk'
+  | 'automation'
+  | 'portfolio'
+  | 'trading'
+  | 'security'
+  | 'launch'
+  | 'research'
 
 const FILTERS: { id: FeedCat; label: string }[] = [
   { id: 'all', label: 'All' },
@@ -59,22 +70,50 @@ export function MissionFeedPanel({
     return (timelineQ.data ?? []).map((ev) => ({
       id: ev.id,
       cat: catFor(ev),
-      title: ev.summary || ev.eventType,
-      detail: `${ev.sourceTable} · ${ev.eventType}`,
+      title: timelineHeadline(ev),
       at: ev.createdAt,
     }))
   }, [timelineQ.data])
 
   const filtered = items.filter((i) => {
-    if (moduleFilter) return true // server already filtered
+    if (moduleFilter) return true
     return cat === 'all' ? true : i.cat === cat || (cat === 'risk' && i.cat === 'security')
   })
   const shown = condensed ? filtered.slice(0, 8) : filtered
   const loading = timelineQ.isLoading
 
+  if (condensed) {
+    return (
+      <div>
+        {loading ? (
+          <div>
+            <div className="pd-skeleton" style={{ height: 22, marginBottom: 8 }} />
+            <div className="pd-skeleton" style={{ height: 22, marginBottom: 8 }} />
+            <div className="pd-skeleton" style={{ height: 22 }} />
+          </div>
+        ) : null}
+        {!loading && shown.length === 0 ? (
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--pd-text-dim)' }}>
+            Timeline empty until real activity arrives.
+          </p>
+        ) : null}
+        {!loading && shown.length > 0 ? (
+          <ul className="mc-timeline">
+            {shown.map((item) => (
+              <li key={item.id}>
+                <time dateTime={item.at}>{formatTimelineClock(item.at)}</time>
+                <strong>{item.title}</strong>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+    )
+  }
+
   return (
-    <section className={condensed ? undefined : 'pd-panel'} style={{ padding: condensed ? 0 : 16 }}>
-      {!condensed && !moduleFilter ? (
+    <section className="pd-panel" style={{ padding: 16 }}>
+      {!moduleFilter ? (
         <div className="pd-tabs" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
           {FILTERS.map((f) => (
             <button
@@ -90,7 +129,7 @@ export function MissionFeedPanel({
       ) : null}
 
       {loading ? (
-        <div style={{ padding: condensed ? 0 : 8 }}>
+        <div style={{ padding: 8 }}>
           <div className="pd-skeleton" style={{ height: 28, marginBottom: 8 }} />
           <div className="pd-skeleton" style={{ height: 28, marginBottom: 8 }} />
           <div className="pd-skeleton" style={{ height: 28 }} />
@@ -98,48 +137,23 @@ export function MissionFeedPanel({
       ) : null}
 
       {!loading && shown.length === 0 ? (
-        <div className="pd-empty" style={{ padding: condensed ? 18 : 28 }}>
+        <div className="pd-empty" style={{ padding: 28 }}>
           <h3>No mission events yet</h3>
           <p>
             The unified timeline stays empty until real alerts, agent activity, or order updates
-            arrive (via database triggers). Nothing is fabricated.
+            arrive. Nothing is fabricated.
           </p>
         </div>
       ) : null}
 
       {!loading && shown.length > 0 ? (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        <ul className="mc-timeline">
           {shown.map((item) => (
-            <li
-              key={item.id}
-              style={{
-                padding: '10px 0',
-                borderBottom: '1px solid var(--pd-border-soft)',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                <strong style={{ fontSize: 13 }}>{item.title}</strong>
-                <span className="pd-num" style={{ fontSize: 10, color: 'var(--pd-text-faint)' }}>
-                  {new Date(item.at).toLocaleString()}
-                </span>
+            <li key={item.id}>
+              <time dateTime={item.at}>{formatTimelineClock(item.at)}</time>
+              <div>
+                <strong>{item.title}</strong>
               </div>
-              {item.detail ? (
-                <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--pd-text-dim)' }}>
-                  {item.detail}
-                </p>
-              ) : null}
-              <span
-                style={{
-                  display: 'inline-block',
-                  marginTop: 6,
-                  fontSize: 10,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  color: 'var(--pd-text-faint)',
-                }}
-              >
-                {moduleFilter ? moduleFilter : item.cat}
-              </span>
             </li>
           ))}
         </ul>
