@@ -16,9 +16,11 @@ const ROOT = path.resolve(__dirname, '..')
 const SCAN_DIRS = [
   'components/portfolio-desk',
   'lib/intelligence',
+  'lib/intelligence-core',
   'lib/agents',
   'app/api/agents',
   'app/api/intelligence',
+  'app/api/intelligence-core',
 ]
 
 const EXT = new Set(['.ts', '.tsx', '.js', '.jsx', '.mdx'])
