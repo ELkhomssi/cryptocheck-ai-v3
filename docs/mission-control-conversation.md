@@ -1,20 +1,24 @@
-# Mission Control — conversation OS
+# Mission Control — conversation only
 
 Presentation-only. No providers, APIs, DB, or engines changed.
 
-## First screen
+## First screen (must stand alone)
 
-Only the conversation. Judgement from live `MissionViewModel`.
+Only five spoken beats:
 
-Hierarchy below the fold:
-1. Conversation
-2. Recommended actions (Command Center)
-3. Supporting evidence
-4. Metrics
-5. Memory timeline
+1. Greeting  
+2. Executive conclusion  
+3. Why it matters  
+4. One recommended action  
+5. “What would you like me to do?”
+
+Plus the reply field. No chips, timeline, metrics, or panels.
+
+## After the conversation (scroll)
+
+Supporting evidence → market metrics → portfolio metrics → still watching → optional prompts → timeline / Mission Feed.
 
 ## Honesty
 
-If data is missing: “I don’t have enough information yet.”
-Never invent whale counts, liquidity events, or opportunities.
-Counts in living-intelligence lines appear only when present in engine copy.
+Missing data → “I don’t have enough information yet.”  
+Never invent whale/liquidity/opportunity stats.
