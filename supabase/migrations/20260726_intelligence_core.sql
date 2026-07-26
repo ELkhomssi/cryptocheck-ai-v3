@@ -1,7 +1,36 @@
 -- Phase 17 — Intelligence Core
 -- New tables ONLY: timeline_events, user_memory, reports.
--- Do NOT duplicate agent_activity / portfolio_alerts / agent_predictions /
--- intelligence_score_snapshots / watchlist / terminal_orders.
+-- Source writers (agent_activity / portfolio_alerts / terminal_orders) are reused.
+-- Triggers attach only when those tables exist (safe on partial DBs).
+
+-- Ensure terminal_orders exists (Phase 10.8) so trading timeline triggers can attach.
+CREATE TABLE IF NOT EXISTS public.terminal_orders (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  wallet text NOT NULL,
+  type text NOT NULL
+    CHECK (type IN ('limit', 'dca', 'tp', 'sl')),
+  status text NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'trigger_hit', 'filled', 'cancelled', 'expired')),
+  input_mint text NOT NULL,
+  output_mint text NOT NULL,
+  amount double precision NOT NULL,
+  trigger_price double precision,
+  fill_signature text,
+  expires_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS terminal_orders_wallet_created_idx
+  ON public.terminal_orders (wallet, created_at DESC);
+CREATE INDEX IF NOT EXISTS terminal_orders_status_idx
+  ON public.terminal_orders (status)
+  WHERE status IN ('pending', 'trigger_hit');
+
+ALTER TABLE public.terminal_orders ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS terminal_orders_select ON public.terminal_orders;
+CREATE POLICY terminal_orders_select ON public.terminal_orders
+  FOR SELECT USING (true);
 
 -- ─── timeline_events (populated via triggers — zero app double-writes) ───
 CREATE TABLE IF NOT EXISTS public.timeline_events (
@@ -54,11 +83,16 @@ BEGIN
 END;
 $$;
 
-DROP TRIGGER IF EXISTS trg_timeline_agent_activity ON public.agent_activity;
-CREATE TRIGGER trg_timeline_agent_activity
-  AFTER INSERT ON public.agent_activity
-  FOR EACH ROW
-  EXECUTE FUNCTION public.intel_core_timeline_from_agent_activity();
+DO $$
+BEGIN
+  IF to_regclass('public.agent_activity') IS NOT NULL THEN
+    DROP TRIGGER IF EXISTS trg_timeline_agent_activity ON public.agent_activity;
+    CREATE TRIGGER trg_timeline_agent_activity
+      AFTER INSERT ON public.agent_activity
+      FOR EACH ROW
+      EXECUTE FUNCTION public.intel_core_timeline_from_agent_activity();
+  END IF;
+END $$;
 
 -- portfolio_alerts → timeline
 CREATE OR REPLACE FUNCTION public.intel_core_timeline_from_portfolio_alerts()
@@ -85,11 +119,16 @@ BEGIN
 END;
 $$;
 
-DROP TRIGGER IF EXISTS trg_timeline_portfolio_alerts ON public.portfolio_alerts;
-CREATE TRIGGER trg_timeline_portfolio_alerts
-  AFTER INSERT ON public.portfolio_alerts
-  FOR EACH ROW
-  EXECUTE FUNCTION public.intel_core_timeline_from_portfolio_alerts();
+DO $$
+BEGIN
+  IF to_regclass('public.portfolio_alerts') IS NOT NULL THEN
+    DROP TRIGGER IF EXISTS trg_timeline_portfolio_alerts ON public.portfolio_alerts;
+    CREATE TRIGGER trg_timeline_portfolio_alerts
+      AFTER INSERT ON public.portfolio_alerts
+      FOR EACH ROW
+      EXECUTE FUNCTION public.intel_core_timeline_from_portfolio_alerts();
+  END IF;
+END $$;
 
 -- terminal_orders status changes → timeline (INSERT + UPDATE of status)
 CREATE OR REPLACE FUNCTION public.intel_core_timeline_from_terminal_orders()
@@ -122,17 +161,22 @@ BEGIN
 END;
 $$;
 
-DROP TRIGGER IF EXISTS trg_timeline_terminal_orders_ins ON public.terminal_orders;
-CREATE TRIGGER trg_timeline_terminal_orders_ins
-  AFTER INSERT ON public.terminal_orders
-  FOR EACH ROW
-  EXECUTE FUNCTION public.intel_core_timeline_from_terminal_orders();
+DO $$
+BEGIN
+  IF to_regclass('public.terminal_orders') IS NOT NULL THEN
+    DROP TRIGGER IF EXISTS trg_timeline_terminal_orders_ins ON public.terminal_orders;
+    CREATE TRIGGER trg_timeline_terminal_orders_ins
+      AFTER INSERT ON public.terminal_orders
+      FOR EACH ROW
+      EXECUTE FUNCTION public.intel_core_timeline_from_terminal_orders();
 
-DROP TRIGGER IF EXISTS trg_timeline_terminal_orders_upd ON public.terminal_orders;
-CREATE TRIGGER trg_timeline_terminal_orders_upd
-  AFTER UPDATE ON public.terminal_orders
-  FOR EACH ROW
-  EXECUTE FUNCTION public.intel_core_timeline_from_terminal_orders();
+    DROP TRIGGER IF EXISTS trg_timeline_terminal_orders_upd ON public.terminal_orders;
+    CREATE TRIGGER trg_timeline_terminal_orders_upd
+      AFTER UPDATE ON public.terminal_orders
+      FOR EACH ROW
+      EXECUTE FUNCTION public.intel_core_timeline_from_terminal_orders();
+  END IF;
+END $$;
 
 -- ─── user_memory (interaction history — not a data warehouse) ───
 CREATE TABLE IF NOT EXISTS public.user_memory (
