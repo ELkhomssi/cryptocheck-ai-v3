@@ -108,7 +108,7 @@ async function countWhaleAlertsToday(): Promise<number> {
     const { count, error } = await admin
       .from('portfolio_alerts')
       .select('id', { count: 'exact', head: true })
-      .in('type', ['whale', 'whale_buy', 'whale_sell'])
+      .eq('type', 'whale')
       .gte('created_at', startOfUtcDayIso())
     if (error) {
       // Fallback: agent_activity signals from whale-analyst
