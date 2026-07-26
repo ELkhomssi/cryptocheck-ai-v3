@@ -1049,6 +1049,48 @@
     var(--pd-bg);
 }
 
+@media (max-width: 1100px) {
+  .pd-shell.is-mission {
+    grid-template-columns: var(--pd-sidebar) minmax(0, 1fr);
+    grid-template-areas:
+      'sidebar topbar'
+      'sidebar main';
+    grid-template-rows: var(--pd-topbar) minmax(0, 1fr);
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 720px) {
+  .pd-shell.is-mission {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'topbar'
+      'main';
+  }
+
+  .pd-shell.is-mission .pd-sidebar.is-open {
+    --pd-sidebar: min(280px, 86vw);
+    width: min(280px, 86vw);
+    background: var(--pd-bg-elevated);
+    border-right: 1px solid var(--pd-border-soft);
+  }
+
+  .pd-shell.is-mission .pd-sidebar.is-open .pd-brand > div:last-child,
+  .pd-shell.is-mission .pd-sidebar.is-open .pd-nav-label,
+  .pd-shell.is-mission .pd-sidebar.is-open .pd-sidebar-foot {
+    display: revert;
+  }
+
+  .pd-shell.is-mission .pd-sidebar.is-open .pd-nav-item {
+    font-size: 13px;
+    justify-content: flex-start;
+    padding: 10px 14px;
+    gap: 10px;
+  }
+}
+
 /* ─── Mission Control — person, not page ─── */
 .mc-talk {
   width: min(680px, 100%);

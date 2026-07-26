@@ -97,7 +97,7 @@ export const PAGE_META: Record<
   mission: {
     kicker: '// MISSION CONTROL',
     title: 'Mission Control',
-    subtitle: 'Talk to the operating system — not a dashboard.',
+    subtitle: 'The OS speaks first. Conversation only.',
   },
   market: {
     kicker: '// MARKET INTELLIGENCE',
