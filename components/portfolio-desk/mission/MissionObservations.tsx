@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Phase 17.1 — right-rail observations (explanation, not raw numbers).
+ * Right-rail observations — quiet notes, not a second dashboard.
  */
 
 import type { Observation } from '@/lib/portfolio-desk/mission-narrative'
@@ -15,10 +15,10 @@ export function MissionObservations({
 }) {
   return (
     <section className="mc-observations">
-      <div className="mc-kicker">Observations</div>
-      <h2 className="mc-aside-title">What the system sees</h2>
+      <div className="mc-kicker">Listening</div>
+      <h2 className="mc-aside-title">What I see</h2>
       {loading ? (
-        <div className="pd-skeleton" style={{ height: 120, marginTop: 12 }} />
+        <div className="pd-skeleton" style={{ height: 100, marginTop: 12 }} />
       ) : (
         <ul className="mc-obs-list">
           {observations.map((o) => (
@@ -26,9 +26,7 @@ export function MissionObservations({
           ))}
         </ul>
       )}
-      <p className="mc-aside-footnote">
-        Observations are derived from live mission, module, and portfolio feeds — never decorative.
-      </p>
+      <p className="mc-aside-footnote">From live mission feeds — never decorative.</p>
     </section>
   )
 }

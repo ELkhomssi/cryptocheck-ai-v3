@@ -1,9 +1,8 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import {
-  buildExecutiveBrief,
-  buildMarketNarrative,
-  buildMissionPriorities,
+  buildDynamicSuggestions,
+  buildMissionConversation,
   buildPortfolioNarrative,
   runningIntelligenceLabel,
 } from '../../lib/portfolio-desk/mission-narrative'
@@ -28,7 +27,7 @@ const emptyView = (): MissionViewModel => ({
   recommendations: [],
   dailyBrief: {
     title: 'Morning Brief',
-    body: 'Not enough activity yet to generate a morning brief.',
+    body: 'Not enough activity yet.',
     insufficientActivity: true,
     pending: false,
     reportId: null,
@@ -36,28 +35,50 @@ const emptyView = (): MissionViewModel => ({
   fetchedAt: new Date().toISOString(),
 })
 
-describe('Phase 17.1 mission narratives', () => {
-  it('explains market unavailability instead of inventing moves', () => {
-    const n = buildMarketNarrative(emptyView())
-    assert.ok(n.unavailableReason)
-    assert.equal(n.paragraphs.length, 0)
-    assert.match(n.unavailableReason!, /unavailable|empty|no rows/i)
+describe('Mission Control conversation', () => {
+  it('speaks honest market gap — never invents aggression', () => {
+    const conv = buildMissionConversation({
+      displayName: 'Abderrahim',
+      view: emptyView(),
+      loading: false,
+    })
+    const blob = conv.turns.map((t) => t.text).join(' ')
+    assert.match(blob, /don’t have enough market activity/i)
+    assert.doesNotMatch(blob, /whale accumulation increased/i)
+    assert.ok(conv.turns.some((t) => t.kind === 'ask'))
   })
 
-  it('does not invent portfolio risk without a wallet', () => {
-    const n = buildPortfolioNarrative(emptyView())
-    assert.equal(n.riskLabel, 'Unknown')
-    assert.ok(n.unavailableReason)
-  })
-
-  it('executive brief stays honest when market glance is empty', () => {
-    const brief = buildExecutiveBrief({
+  it('ends by asking what to do', () => {
+    const conv = buildMissionConversation({
       displayName: null,
       view: emptyView(),
       loading: false,
     })
-    assert.ok(brief.paragraphs.some((p) => /unavailable/i.test(p)))
-    assert.ok(brief.dataGaps.length >= 1)
+    const ask = conv.turns.find((t) => t.kind === 'ask')
+    assert.equal(ask?.text, 'What would you like me to do?')
+  })
+
+  it('suggestions change with portfolio concentration', () => {
+    const v = emptyView()
+    v.portfolio.connected = true
+    v.portfolio.topWeightSymbol = 'BONK'
+    v.portfolio.dayChangePct = 1
+    v.market.available = true
+    v.market.aggregateChange24hPct = 3
+    const s = buildDynamicSuggestions(v)
+    assert.ok(s.some((x) => /BONK/i.test(x)))
+    assert.ok(s.length <= 5)
+  })
+
+  it('portfolio narrative does not lead with balances', () => {
+    const v = emptyView()
+    v.portfolio.connected = true
+    v.portfolio.totalValueUsd = 99999
+    v.portfolio.dayChangePct = 1
+    v.portfolio.topWeightSymbol = 'WIF'
+    const n = buildPortfolioNarrative(v)
+    assert.match(n.healthLine, /safely|operable|pressure|risk/i)
+    assert.ok(n.weakness)
   })
 
   it('maps running copy without employee names', () => {
@@ -65,37 +86,5 @@ describe('Phase 17.1 mission narratives', () => {
       runningIntelligenceLabel('Market Intelligence is running your query', 'analysis'),
       'Scanning…',
     )
-    assert.match(
-      runningIntelligenceLabel('Checking liquidity on mint', 'signals'),
-      /liquidity/i,
-    )
-  })
-
-  it('caps priorities at 3', () => {
-    const v = emptyView()
-    v.recommendations = [
-      {
-        title: 'A',
-        explanation: 'x',
-        grounded: true,
-        predictionId: '1',
-      },
-      {
-        title: 'B',
-        explanation: 'y',
-        grounded: true,
-        predictionId: '2',
-      },
-      {
-        title: 'C',
-        explanation: 'z',
-        grounded: true,
-        predictionId: '3',
-      },
-    ]
-    v.running = [{ id: 'r1', description: 'Scanning…', kind: 'report' }]
-    v.dailyBrief.insufficientActivity = false
-    v.dailyBrief.body = 'Ready'
-    assert.equal(buildMissionPriorities(v).length, 3)
   })
 })

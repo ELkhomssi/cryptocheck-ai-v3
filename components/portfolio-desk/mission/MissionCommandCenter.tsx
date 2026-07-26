@@ -1,30 +1,25 @@
 'use client'
 
 /**
- * Phase 17.1 — Command Center (mission OS).
- * Streams via existing POST /api/portfolio/coach — no new APIs.
+ * Command Center — heart of Mission Control.
+ * Streams via existing POST /api/portfolio/coach. Suggestions are dynamic.
  */
 
 import { useEffect, useRef, useState } from 'react'
 import { useSolana } from '@/components/SolanaProvider'
-
-const EXAMPLES = [
-  'Find the safest launch today',
-  'Why did my risk increase?',
-  'Audit this token',
-  'Track this wallet forever',
-  'Compare BONK vs WIF',
-  'Show hidden whale accumulation',
-]
 
 type Msg = { role: 'user' | 'assistant'; text: string }
 
 export function MissionCommandCenter({
   seedPrompt,
   onSeedConsumed,
+  suggestions = [],
+  onPickSuggestion,
 }: {
   seedPrompt?: string | null
   onSeedConsumed?: () => void
+  suggestions?: string[]
+  onPickSuggestion?: (text: string) => void
 }) {
   const { walletAddress } = useSolana()
   const [draft, setDraft] = useState('')
@@ -67,7 +62,7 @@ export function MissionCommandCenter({
     setMsgs((m) => [...m, { role: 'user', text }, { role: 'assistant', text: '' }])
     setDraft('')
     setStreaming(true)
-    setThinking('Interpreting your request…')
+    setThinking('Thinking…')
     try {
       const res = await fetch('/api/portfolio/coach', {
         method: 'POST',
@@ -82,14 +77,14 @@ export function MissionCommandCenter({
           const next = [...m]
           next[next.length - 1] = {
             role: 'assistant',
-            text: err.error || 'Command Center unavailable. OPENAI_API_KEY may be missing on the server.',
+            text: err.error || 'I’m offline — OPENAI_API_KEY may be missing on the server.',
           }
           return next
         })
         return
       }
       setOnline(true)
-      setThinking('Building a grounded reply…')
+      setThinking('Writing…')
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let acc = ''
@@ -110,7 +105,7 @@ export function MissionCommandCenter({
         const next = [...m]
         next[next.length - 1] = {
           role: 'assistant',
-          text: 'Network error talking to Command Center.',
+          text: 'Network error — I couldn’t reach the coach.',
         }
         return next
       })
@@ -121,84 +116,68 @@ export function MissionCommandCenter({
   }
 
   return (
-    <section className="mc-command">
-      <div className="mc-command-head">
-        <div>
-          <div className="mc-kicker">Command Center</div>
-          <h2 className="mc-command-title">What should we do next?</h2>
+    <section className="mc-listen">
+      {msgs.length > 0 ? (
+        <div className="mc-listen-stream">
+          {msgs.map((m, i) => (
+            <div
+              key={`${m.role}-${i}`}
+              className={m.role === 'user' ? 'mc-listen-user' : 'mc-listen-ai'}
+            >
+              {m.text || (streaming && i === msgs.length - 1 ? '…' : '')}
+            </div>
+          ))}
+          {thinking ? <div className="mc-thinking">{thinking}</div> : null}
+          <div ref={bottomRef} />
         </div>
-        <span
-          className="mc-status-dot"
-          style={{
-            color:
-              online === false
-                ? 'var(--pd-text-faint)'
-                : online
-                  ? 'var(--pd-positive)'
-                  : 'var(--pd-text-dim)',
-          }}
-        >
-          {online === false ? 'Offline' : online === null ? 'Connecting…' : 'Live'}
-        </span>
-      </div>
-
-      <div className="mc-command-stream">
-        {msgs.length === 0 && !streaming ? (
-          <p className="mc-command-idle">
-            Ask me anything about markets, risk, launches, or your portfolio. Replies are grounded
-            in live context — nothing invented.
-          </p>
-        ) : null}
-        {msgs.map((m, i) => (
-          <div
-            key={`${m.role}-${i}`}
-            className={m.role === 'user' ? 'mc-msg mc-msg-user' : 'mc-msg mc-msg-ai'}
-          >
-            <div className="mc-msg-role">{m.role === 'user' ? 'You' : 'Mission Control'}</div>
-            <div className="mc-msg-body">{m.text || (streaming && i === msgs.length - 1 ? '…' : '')}</div>
-          </div>
-        ))}
-        {thinking ? <div className="mc-thinking">{thinking}</div> : null}
-        <div ref={bottomRef} />
-      </div>
+      ) : null}
 
       <form
-        className="mc-command-form"
+        className="mc-listen-form"
         onSubmit={(e) => {
           e.preventDefault()
           void run(draft)
         }}
       >
         <input
-          className="mc-command-input"
+          className="mc-listen-input"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Ask me anything…"
           disabled={streaming || online === false}
-          aria-label="Command Center prompt"
+          aria-label="Command Center"
         />
         <button
           type="submit"
-          className="mc-command-send"
+          className="mc-listen-send"
           disabled={streaming || !draft.trim() || online === false}
         >
-          {streaming ? 'Thinking' : 'Send'}
+          {streaming ? '…' : 'Send'}
         </button>
       </form>
 
-      <div className="mc-examples">
-        {EXAMPLES.map((ex) => (
-          <button
-            key={ex}
-            type="button"
-            className="mc-example"
-            disabled={streaming || online === false}
-            onClick={() => void run(ex)}
-          >
-            {ex}
-          </button>
-        ))}
-      </div>
+      {suggestions.length > 0 ? (
+        <div className="mc-listen-suggestions">
+          {suggestions.map((ex) => (
+            <button
+              key={ex}
+              type="button"
+              className="mc-listen-chip"
+              disabled={streaming || online === false}
+              onClick={() => {
+                if (onPickSuggestion) onPickSuggestion(ex)
+                else void run(ex)
+              }}
+            >
+              {ex}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {online === false ? (
+        <p className="mc-listen-offline">Command Center offline — coach key not configured.</p>
+      ) : null}
     </section>
   )
 }

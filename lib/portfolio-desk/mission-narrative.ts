@@ -1,7 +1,6 @@
 /**
- * Phase 17.1 — Mission Control narrative formatters.
- * Pure presentation over already-fetched MissionViewModel / timeline / modules.
- * Never invents market moves, risks, or opportunities — explains gaps honestly.
+ * Mission Control conversation assembly — presentation only.
+ * Assembles speech from MissionViewModel. Never invents activity.
  */
 
 import type { ModuleCardView } from '@/types/intelligence'
@@ -25,12 +24,273 @@ export function runningIntelligenceLabel(description: string, kind: string): str
   if (d.includes('liquidity')) return 'Analyzing liquidity…'
   if (d.includes('launch') || d.includes('listing')) return 'Scanning new launches…'
   if (d.includes('whale') || d.includes('wallet')) return 'Watching wallet activity…'
-  if (d.includes('report') || d.includes('brief') || kind === 'report') return 'Building today’s opportunities…'
-  if (d.includes('risk') || d.includes('audit') || d.includes('scam')) return 'Checking contract safety…'
+  if (d.includes('dev') || d.includes('developer')) return 'Checking developer wallets…'
+  if (d.includes('report') || d.includes('brief') || kind === 'report')
+    return 'Building today’s opportunities…'
+  if (d.includes('risk') || d.includes('audit') || d.includes('scam') || d.includes('portfolio'))
+    return 'Analyzing portfolio risk…'
   if (d.includes('scan') || d.includes('running your query')) return 'Scanning…'
   if (description.trim()) return description.trim()
   return 'Working…'
 }
+
+export type SpeechTurn = {
+  id: string
+  /** Conversation blocks — no cards, no metric grids. */
+  kind: 'speech' | 'aside' | 'live' | 'ask'
+  text: string
+}
+
+export type MissionConversation = {
+  turns: SpeechTurn[]
+  suggestions: string[]
+  readingSeconds: number
+}
+
+/**
+ * One continuous briefing the OS speaks on open.
+ * Conclusions first. Honest gaps. Ends by asking what to do.
+ */
+export function buildMissionConversation(params: {
+  displayName: string | null
+  view: MissionViewModel | null
+  loading: boolean
+}): MissionConversation {
+  if (params.loading || !params.view) {
+    return {
+      turns: [
+        {
+          id: 'load',
+          kind: 'speech',
+          text: `${timeOfDayGreeting()}. I’m assembling your briefing from live feeds…`,
+        },
+      ],
+      suggestions: ['Explain today\'s market', 'Review my portfolio'],
+      readingSeconds: 8,
+    }
+  }
+
+  const v = params.view
+  const turns: SpeechTurn[] = []
+  const name = params.displayName?.trim()
+  turns.push({
+    id: 'greet',
+    kind: 'speech',
+    text: name ? `${timeOfDayGreeting()} ${name}.` : `${timeOfDayGreeting()}.`,
+  })
+
+  // —— Market speech ——
+  if (!v.market.available || v.market.aggregateChange24hPct == null) {
+    turns.push({
+      id: 'mkt-gap',
+      kind: 'speech',
+      text: 'I don’t have enough market activity yet to brief you on direction. The live screener sample came back empty.',
+    })
+  } else {
+    const chg = v.market.aggregateChange24hPct
+    if (chg > 2) {
+      turns.push({
+        id: 'mkt',
+        kind: 'speech',
+        text: 'The market has become more aggressive. The live sample is in a risk-on posture.',
+      })
+    } else if (chg < -2) {
+      turns.push({
+        id: 'mkt',
+        kind: 'speech',
+        text: 'The market has turned defensive. The live sample is risk-off right now.',
+      })
+    } else {
+      turns.push({
+        id: 'mkt',
+        kind: 'speech',
+        text: 'The market is relatively balanced — no decisive risk-on or risk-off signal in the live sample.',
+      })
+    }
+
+    const reasons: string[] = []
+    reasons.push(`Aggregate 24h change across the sample is ${fmtSignedPct(chg)}.`)
+    if (v.market.topMoverSymbol) {
+      reasons.push(
+        `${v.market.topMoverSymbol} leads absolute movement at ${fmtSignedPct(v.market.topMoverChange24hPct ?? 0)}.`,
+      )
+    }
+    if (v.market.spark.length >= 4) {
+      const up = v.market.spark.filter((x) => x > 0).length
+      reasons.push(`${up} of the first ${v.market.spark.length} names print green on 24h.`)
+    }
+    turns.push({
+      id: 'mkt-why',
+      kind: 'aside',
+      text: reasons.join(' '),
+    })
+  }
+
+  // —— Portfolio speech (decisions, not balances) ——
+  if (!v.portfolio.connected) {
+    turns.push({
+      id: 'pf',
+      kind: 'speech',
+      text: 'I can’t judge your portfolio until a wallet is connected.',
+    })
+  } else if (v.portfolio.error) {
+    turns.push({
+      id: 'pf',
+      kind: 'speech',
+      text: 'I couldn’t load portfolio intelligence just now — the holdings request failed. Nothing invented in its place.',
+    })
+  } else {
+    const day = v.portfolio.dayChangePct
+    const safe =
+      day == null ? null : Math.abs(day) < 2 ? 'safely' : Math.abs(day) < 5 ? 'with medium volatility' : 'under pressure'
+
+    if (safe === 'safely') {
+      turns.push({
+        id: 'pf',
+        kind: 'speech',
+        text: 'Your portfolio is positioned safely on the latest 24h read.',
+      })
+    } else if (safe === 'with medium volatility') {
+      turns.push({
+        id: 'pf',
+        kind: 'speech',
+        text: 'Your portfolio is operable, but volatility is present — not extreme.',
+      })
+    } else if (safe === 'under pressure') {
+      turns.push({
+        id: 'pf',
+        kind: 'speech',
+        text: 'Your portfolio is under pressure on the latest 24h read.',
+      })
+    } else {
+      turns.push({
+        id: 'pf',
+        kind: 'speech',
+        text: 'I have portfolio value, but not enough 24h change to call risk confidently.',
+      })
+    }
+
+    if (v.portfolio.topWeightSymbol) {
+      turns.push({
+        id: 'pf-risk',
+        kind: 'speech',
+        text: `However — one position deserves your attention. Your biggest concentration is ${v.portfolio.topWeightSymbol}. That is the first risk to monitor before you size anything new.`,
+      })
+      turns.push({
+        id: 'pf-act',
+        kind: 'aside',
+        text: `What changed: 24h ${day != null ? fmtSignedPct(day) : 'unavailable'}. Suggested next step: review concentration, then decide whether to trim, hold, or hedge — I won’t invent a sell/buy without a grounded recommendation.`,
+      })
+    }
+  }
+
+  // —— Opportunities from grounded recommendations only ——
+  const grounded = v.recommendations.filter((r) => r.grounded)
+  if (grounded.length > 0) {
+    turns.push({
+      id: 'opp',
+      kind: 'speech',
+      text:
+        grounded.length === 1
+          ? `I found one opportunity worth reviewing: ${grounded[0]!.title}. ${grounded[0]!.explanation}`
+          : `I found ${Math.min(2, grounded.length)} opportunities worth reviewing. First: ${grounded[0]!.title}. ${grounded[0]!.explanation}`,
+    })
+    if (grounded[1]) {
+      turns.push({
+        id: 'opp-2',
+        kind: 'aside',
+        text: `Second: ${grounded[1].title}. ${grounded[1].explanation}`,
+      })
+    }
+  } else if (v.dailyBrief.insufficientActivity) {
+    turns.push({
+      id: 'opp-gap',
+      kind: 'speech',
+      text: 'I don’t have enough timeline activity yet for denser opportunities.',
+    })
+  }
+
+  // —— Live work ——
+  if (v.running.length > 0) {
+    turns.push({
+      id: 'live',
+      kind: 'live',
+      text: v.running
+        .slice(0, 4)
+        .map((r) => runningIntelligenceLabel(r.description, r.kind))
+        .join('\n'),
+    })
+  } else {
+    turns.push({
+      id: 'live-idle',
+      kind: 'aside',
+      text: 'Nothing critical is running in the background right now.',
+    })
+  }
+
+  turns.push({
+    id: 'ask',
+    kind: 'ask',
+    text: 'What would you like me to do?',
+  })
+
+  const full = turns.map((t) => t.text).join(' ')
+  return {
+    turns,
+    suggestions: buildDynamicSuggestions(v),
+    readingSeconds: estimateReadingSeconds(full),
+  }
+}
+
+/** Suggestions change with live state — never a fixed casino button row. */
+export function buildDynamicSuggestions(view: MissionViewModel): string[] {
+  const out: string[] = []
+
+  if (!view.portfolio.connected) {
+    out.push('Review my portfolio')
+  } else if (view.portfolio.topWeightSymbol) {
+    out.push(`Explain risk in ${view.portfolio.topWeightSymbol}`)
+    out.push('What should I monitor today?')
+  } else {
+    out.push('Review my portfolio')
+  }
+
+  if (view.market.available) {
+    out.push('Explain today’s market')
+    if (view.market.topMoverSymbol) {
+      out.push(`Why is ${view.market.topMoverSymbol} moving?`)
+    }
+  } else {
+    out.push('Find opportunities')
+  }
+
+  const grounded = view.recommendations.find((r) => r.grounded)
+  if (grounded) {
+    out.push(`Tell me more about ${grounded.title}`)
+  } else {
+    out.push('Scan this token')
+  }
+
+  if (view.running.length > 0) {
+    out.push('What are you working on?')
+  } else {
+    out.push('Track this wallet')
+  }
+
+  // Dedupe, cap
+  const seen = new Set<string>()
+  const unique: string[] = []
+  for (const s of out) {
+    const k = s.toLowerCase()
+    if (seen.has(k)) continue
+    seen.add(k)
+    unique.push(s)
+    if (unique.length >= 5) break
+  }
+  return unique
+}
+
+// —— Legacy helpers kept for tests / aside (still presentation-only) ——
 
 export type ExecutiveBrief = {
   greetingLine: string
@@ -44,102 +304,15 @@ export function buildExecutiveBrief(params: {
   view: MissionViewModel | null
   loading: boolean
 }): ExecutiveBrief {
-  if (params.loading || !params.view) {
-    return {
-      greetingLine: `${timeOfDayGreeting()}.`,
-      paragraphs: ['Assembling your mission brief from live market and portfolio feeds…'],
-      readingSeconds: 10,
-      dataGaps: [],
-    }
-  }
-
-  const v = params.view
-  const name = params.displayName?.trim()
-  const greetingLine = name
-    ? `${timeOfDayGreeting()} ${name}.`
-    : `${timeOfDayGreeting()}. Connect a wallet for a personalized portfolio briefing.`
-
-  const paragraphs: string[] = []
-  const dataGaps: string[] = []
-
-  if (v.market.available && v.market.aggregateChange24hPct != null) {
-    const chg = v.market.aggregateChange24hPct
-    const tone =
-      chg > 1.5 ? 'increasingly aggressive' : chg < -1.5 ? 'risk-off' : 'relatively balanced'
-    paragraphs.push(
-      `The Solana market glance is ${tone} today — aggregate 24h change across the live screener sample is ${fmtSignedPct(chg)}.`,
-    )
-    if (v.market.topMoverSymbol) {
-      paragraphs.push(
-        `Largest absolute move in the sample: ${v.market.topMoverSymbol} at ${fmtSignedPct(v.market.topMoverChange24hPct ?? 0)}.`,
-      )
-    }
-  } else {
-    dataGaps.push('Market glance unavailable — providers returned no screener rows.')
-    paragraphs.push(
-      'Market overview is unavailable right now because the screener feed returned no rows.',
-    )
-  }
-
-  if (!v.portfolio.connected) {
-    paragraphs.push('Portfolio exposure is unknown until a wallet is connected.')
-  } else if (v.portfolio.error) {
-    dataGaps.push('Portfolio fetch failed.')
-    paragraphs.push(
-      'Portfolio health could not be loaded — the holdings request failed. Retry from Portfolio Intelligence.',
-    )
-  } else {
-    const day = v.portfolio.dayChangePct
-    const vol =
-      day == null
-        ? 'unknown (24h change not available for holdings)'
-        : Math.abs(day) >= 5
-          ? 'elevated'
-          : Math.abs(day) >= 2
-            ? 'medium'
-            : 'contained'
-    paragraphs.push(
-      `Your portfolio currently shows ${vol} exposure to short-term volatility${
-        day != null ? ` (${fmtSignedPct(day)} over 24h)` : ''
-      }.`,
-    )
-    if (v.portfolio.topWeightSymbol) {
-      paragraphs.push(
-        `Largest weight sits in ${v.portfolio.topWeightSymbol} — concentration is the first thing to watch.`,
-      )
-    }
-  }
-
-  const critical = v.recommendations.filter((r) => !r.grounded).length
-  if (v.running.length === 0) {
-    paragraphs.push('No critical automated jobs are executing right now.')
-  } else {
-    paragraphs.push(
-      `${v.running.length} intelligence job${v.running.length === 1 ? ' is' : 's are'} running.`,
-    )
-  }
-
-  const grounded = v.recommendations.filter((r) => r.grounded)
-  if (grounded.length > 0) {
-    paragraphs.push(
-      `${Math.min(2, grounded.length)} opportunit${grounded.length === 1 ? 'y deserves' : 'ies deserve'} attention — listed under Mission Priorities.`,
-    )
-  } else if (v.dailyBrief.insufficientActivity) {
-    paragraphs.push('Not enough timeline activity yet for a dense daily brief.')
-  } else if (v.dailyBrief.body && !v.dailyBrief.pending) {
-    paragraphs.push('A morning brief is available when you need the longer read.')
-  }
-
-  if (critical > 0 && grounded.length === 0) {
-    // grounded=false means honest "cause not available" — not a fabricated opportunity
-  }
-
-  const text = paragraphs.join(' ')
+  const conv = buildMissionConversation(params)
+  const speech = conv.turns.filter((t) => t.kind === 'speech' || t.kind === 'ask')
   return {
-    greetingLine,
-    paragraphs,
-    readingSeconds: estimateReadingSeconds(text),
-    dataGaps,
+    greetingLine: speech[0]?.text ?? `${timeOfDayGreeting()}.`,
+    paragraphs: speech.slice(1).map((t) => t.text),
+    readingSeconds: conv.readingSeconds,
+    dataGaps: conv.turns
+      .filter((t) => /don’t have enough|couldn’t load|empty/i.test(t.text))
+      .map((t) => t.text),
   }
 }
 
@@ -156,50 +329,14 @@ export function buildMarketNarrative(view: MissionViewModel | null): MarketNarra
       title: "Today's market summary",
       paragraphs: [],
       sourcesNote: 'Birdeye · Jupiter · Helius · Raydium (via existing screener corpus)',
-      unavailableReason:
-        'Market narrative paused — the live screener sample is empty or providers did not return rows.',
+      unavailableReason: 'I don’t have enough market activity yet.',
     }
   }
-  const m = view.market
-  const paragraphs: string[] = []
-  const chg = m.aggregateChange24hPct
-  if (chg != null) {
-    if (chg > 2) {
-      paragraphs.push(
-        'The live sample is favoring risk-on names — aggregate 24h change is materially positive.',
-      )
-    } else if (chg < -2) {
-      paragraphs.push(
-        'The live sample is defensive — aggregate 24h change is materially negative.',
-      )
-    } else {
-      paragraphs.push(
-        'The live sample is mixed — aggregate 24h change is near flat, so direction is not decisive from this glance alone.',
-      )
-    }
-  }
-  if (m.topMoverSymbol) {
-    paragraphs.push(
-      `${m.topMoverSymbol} leads absolute movement in the current sample at ${fmtSignedPct(m.topMoverChange24hPct ?? 0)}.`,
-    )
-  }
-  if (m.spark.length >= 4) {
-    const up = m.spark.filter((x) => x > 0).length
-    paragraphs.push(
-      `Among the first ${m.spark.length} names in the glance, ${up} print green on 24h — a simple breadth read, not a forecast.`,
-    )
-  }
-  if (!paragraphs.length) {
-    return {
-      title: "Today's market summary",
-      paragraphs: [],
-      sourcesNote: 'Birdeye · Jupiter · Helius · Raydium (via existing screener corpus)',
-      unavailableReason: 'Screener rows loaded but lacked usable change fields for a narrative.',
-    }
-  }
+  const conv = buildMissionConversation({ displayName: null, view, loading: false })
+  const mkt = conv.turns.filter((t) => t.id.startsWith('mkt'))
   return {
     title: "Today's market summary",
-    paragraphs,
+    paragraphs: mkt.map((t) => t.text),
     sourcesNote: 'Birdeye · Jupiter · Helius · Raydium (via existing screener corpus)',
     unavailableReason: null,
   }
@@ -216,14 +353,12 @@ export type PortfolioNarrative = {
   unavailableReason: string | null
 }
 
-export function buildPortfolioNarrative(
-  view: MissionViewModel | null,
-): PortfolioNarrative {
+export function buildPortfolioNarrative(view: MissionViewModel | null): PortfolioNarrative {
   const emptyNums = { totalValueUsd: null, dayChangePct: null, topWeightSymbol: null }
   if (!view) {
     return {
-      title: 'Portfolio Health',
-      healthLine: 'Waiting for portfolio context…',
+      title: 'Portfolio',
+      healthLine: 'Waiting…',
       riskLabel: 'Unknown',
       weakness: null,
       suggestedAction: null,
@@ -234,19 +369,19 @@ export function buildPortfolioNarrative(
   }
   if (!view.portfolio.connected) {
     return {
-      title: 'Portfolio Health',
+      title: 'Portfolio',
       healthLine: 'Connect a wallet to interpret portfolio risk.',
       riskLabel: 'Unknown',
       weakness: null,
       suggestedAction: 'Connect your Solana wallet.',
       confidenceLabel: null,
       numbers: emptyNums,
-      unavailableReason: 'No wallet connected — portfolio narrative cannot be computed.',
+      unavailableReason: 'No wallet connected.',
     }
   }
   if (view.portfolio.error) {
     return {
-      title: 'Portfolio Health',
+      title: 'Portfolio',
       healthLine: 'Portfolio data failed to load.',
       riskLabel: 'Unknown',
       weakness: null,
@@ -256,45 +391,33 @@ export function buildPortfolioNarrative(
       unavailableReason: view.portfolio.error,
     }
   }
-
   const day = view.portfolio.dayChangePct
-  let riskLabel: PortfolioNarrative['riskLabel'] = 'Unknown'
-  if (day != null) {
-    riskLabel = Math.abs(day) >= 5 ? 'Elevated' : Math.abs(day) >= 2 ? 'Medium' : 'Low'
-  }
-
-  const healthLine =
-    riskLabel === 'Low'
-      ? 'Your portfolio looks stable on the latest 24h read.'
-      : riskLabel === 'Medium'
-        ? 'Your portfolio is healthy enough to operate — volatility is present, not extreme.'
-        : riskLabel === 'Elevated'
-          ? 'Your portfolio is under pressure on the latest 24h read.'
-          : 'Portfolio value is available, but 24h change is missing for a risk label.'
-
-  const weakness = view.portfolio.topWeightSymbol
-    ? `Largest weight is concentrated in ${view.portfolio.topWeightSymbol}.`
-    : null
-
-  const suggestedAction = view.portfolio.topWeightSymbol
-    ? 'Review concentration in Portfolio Intelligence before sizing new risk.'
-    : 'Open Portfolio Intelligence to complete cost-basis and allocation detail.'
-
-  // Confidence is coverage of available fields — not a fabricated model score.
-  let covered = 0
-  let total = 3
-  if (view.portfolio.totalValueUsd != null) covered++
-  if (view.portfolio.dayChangePct != null) covered++
-  if (view.portfolio.topWeightSymbol) covered++
-  const confidenceLabel = `${Math.round((covered / total) * 100)}% data coverage`
-
+  const riskLabel: PortfolioNarrative['riskLabel'] =
+    day == null
+      ? 'Unknown'
+      : Math.abs(day) >= 5
+        ? 'Elevated'
+        : Math.abs(day) >= 2
+          ? 'Medium'
+          : 'Low'
   return {
-    title: 'Portfolio Health',
-    healthLine,
+    title: 'Portfolio',
+    healthLine:
+      riskLabel === 'Low'
+        ? 'Positioned safely on the latest 24h read.'
+        : riskLabel === 'Medium'
+          ? 'Operable — volatility present.'
+          : riskLabel === 'Elevated'
+            ? 'Under pressure on the latest 24h read.'
+            : 'Not enough 24h data for a risk call.',
     riskLabel,
-    weakness,
-    suggestedAction,
-    confidenceLabel,
+    weakness: view.portfolio.topWeightSymbol
+      ? `Biggest concentration: ${view.portfolio.topWeightSymbol}.`
+      : null,
+    suggestedAction: view.portfolio.topWeightSymbol
+      ? 'Monitor concentration before sizing new risk.'
+      : 'Open Portfolio Intelligence for full allocation detail.',
+    confidenceLabel: null,
     numbers: {
       totalValueUsd: view.portfolio.totalValueUsd,
       dayChangePct: view.portfolio.dayChangePct,
@@ -311,11 +434,9 @@ export type MissionPriority = {
   detail: string
 }
 
-/** Max 3, ordered by importance — real recommendations / brief / running only. */
 export function buildMissionPriorities(view: MissionViewModel | null): MissionPriority[] {
   if (!view) return []
   const out: MissionPriority[] = []
-
   for (const r of view.recommendations.filter((x) => x.grounded).slice(0, 2)) {
     out.push({
       id: r.predictionId || `rec-${out.length}`,
@@ -324,29 +445,14 @@ export function buildMissionPriorities(view: MissionViewModel | null): MissionPr
       detail: r.explanation,
     })
   }
-
   if (view.running[0]) {
     out.push({
       id: `run-${view.running[0].id}`,
       level: out.length === 0 ? 'High' : 'Medium',
       title: runningIntelligenceLabel(view.running[0].description, view.running[0].kind),
-      detail: 'Live job from agent activity — not a simulated status.',
+      detail: 'Live job from agent activity.',
     })
   }
-
-  if (out.length < 3 && view.dailyBrief.body && !view.dailyBrief.pending) {
-    out.push({
-      id: view.dailyBrief.reportId || 'brief',
-      level: 'Low',
-      title: view.dailyBrief.insufficientActivity
-        ? 'Daily brief waiting on activity'
-        : `${view.dailyBrief.title} ready`,
-      detail: view.dailyBrief.insufficientActivity
-        ? view.dailyBrief.body
-        : 'Open the brief section for the stored report body.',
-    })
-  }
-
   return out.slice(0, 3)
 }
 
@@ -359,47 +465,40 @@ export function buildObservations(params: {
   const out: Observation[] = []
   const v = params.view
   if (!v) {
-    return [{ id: 'wait', text: 'Observations appear when the mission view finishes loading.' }]
+    return [{ id: 'wait', text: 'I’m still loading the briefing.' }]
   }
-
-  if (v.market.available && (v.market.aggregateChange24hPct ?? 0) > 1) {
-    out.push({ id: 'm1', text: 'Market glance leaning constructive on the current screener sample.' })
-  } else if (v.market.available && (v.market.aggregateChange24hPct ?? 0) < -1) {
-    out.push({ id: 'm2', text: 'Market glance leaning defensive on the current screener sample.' })
-  } else if (!v.market.available) {
-    out.push({ id: 'm3', text: 'Market glance unavailable — no fabricated confidence signal.' })
+  if (!v.market.available) {
+    out.push({ id: 'm3', text: 'I don’t have enough market activity yet.' })
+  } else if ((v.market.aggregateChange24hPct ?? 0) > 1) {
+    out.push({ id: 'm1', text: 'Market sample leaning constructive.' })
+  } else if ((v.market.aggregateChange24hPct ?? 0) < -1) {
+    out.push({ id: 'm2', text: 'Market sample leaning defensive.' })
   }
-
-  const dangerModules = params.modules.filter(
-    (m) => m.state === 'running' || m.state === 'investigating',
-  )
-  if (dangerModules.length) {
+  if (v.portfolio.connected && !v.portfolio.error && v.portfolio.topWeightSymbol) {
     out.push({
-      id: 'mod-run',
-      text: `${dangerModules.map((m) => m.displayName).join(', ')} actively working.`,
+      id: 'conc',
+      text: `Watch concentration in ${v.portfolio.topWeightSymbol}.`,
     })
   }
-
+  if (v.running.length === 0) {
+    out.push({ id: 'idle', text: 'No critical background jobs running.' })
+  } else {
+    out.push({
+      id: 'run',
+      text: v.running
+        .slice(0, 2)
+        .map((r) => runningIntelligenceLabel(r.description, r.kind))
+        .join(' '),
+    })
+  }
   const calibrating = params.modules.filter((m) => m.calibrating).length
   if (calibrating > 0) {
     out.push({
       id: 'cal',
-      text: `${calibrating} intelligence module${calibrating === 1 ? '' : 's'} still calibrating — scores withheld until thresholds are met.`,
+      text: `${calibrating} module${calibrating === 1 ? '' : 's'} still calibrating — scores withheld.`,
     })
   }
-
-  if (v.portfolio.connected && !v.portfolio.error && v.portfolio.topWeightSymbol) {
-    out.push({
-      id: 'conc',
-      text: `Concentration watch: ${v.portfolio.topWeightSymbol} is the largest weight.`,
-    })
-  }
-
-  if (v.running.length === 0) {
-    out.push({ id: 'idle', text: 'No critical automated jobs running.' })
-  }
-
-  return out.slice(0, 6)
+  return out.slice(0, 5)
 }
 
 export function formatTimelineClock(iso: string): string {
