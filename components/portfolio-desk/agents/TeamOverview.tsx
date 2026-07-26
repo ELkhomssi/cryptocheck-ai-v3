@@ -16,6 +16,7 @@ export function TeamOverview({ stats }: { stats: TeamOverviewStats }) {
 
   return (
     <div
+      className="pd-team-overview"
       style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
@@ -25,8 +26,12 @@ export function TeamOverview({ stats }: { stats: TeamOverviewStats }) {
     >
       {cards.map((c) => (
         <div key={c.label} className="pd-mcard">
-          <div className="ml">{c.label}</div>
-          <div className="mv">{c.value}</div>
+          <div className="ml" style={{ color: 'var(--text-faint)' }}>
+            {c.label}
+          </div>
+          <div className="mv" style={{ color: 'var(--text)' }}>
+            {c.value}
+          </div>
         </div>
       ))}
     </div>

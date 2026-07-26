@@ -27,7 +27,7 @@ export function TickerTape() {
   if (!quotes.length) {
     return (
       <div className="pd-ticker" aria-label="Market ticker">
-        <span className="pd-num" style={{ paddingLeft: 20, fontSize: 11, color: 'var(--pd-text-faint)' }}>
+        <span className="pd-num" style={{ paddingLeft: 20, fontSize: 11, color: 'var(--text-faint)' }}>
           Awaiting live Jupiter quotes…
         </span>
       </div>
