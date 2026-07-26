@@ -1,17 +1,13 @@
-# Mission Control — speech-driven experience
+# Mission Control — CEO experience
 
-Presentation-only. No new APIs, providers, or engines.
+Presentation-only. Existing Mission / Recommendation / Timeline / Automation engines only.
 
-## Behavior
+## Sequence
 
-1. OS speaks one sentence at a time.
-2. Each sentence unlocks a **proof** surface backed by live data:
-   - `living` → real `MissionViewModel.running`
-   - `feed` → `/api/intelligence-core/timeline`
-   - `market` / `portfolio` → mission market + portfolio fields
-   - `attention` → grounded recommendations
-   - `actions` → prepared Command Center prompts
-3. Mission payload refetches while speaking so living jobs can update.
-4. No fake loaders, no invented counts.
+1. **Reconstruct** — surface honest status from Market, Portfolio, Feed/Timeline, Automation, Recommendations  
+2. **Conclude & filter** — only what deserves attention becomes speech  
+3. **Speak** — one conclusion at a time  
+4. **Prove** — only that conclusion’s evidence (meaning → evidence → numbers)  
+5. **Decide** — prepared actions + Command Center
 
-Speech drives the interface. The interface proves the speech.
+No widget walls. No decorative UI animation. First viewport owns the screen.
