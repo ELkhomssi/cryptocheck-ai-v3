@@ -272,19 +272,19 @@ export function buildMissionConversation(params: {
         turns.push({
           id: 'pf',
           kind: 'speech',
-          text: 'Your portfolio remains healthy.',
+          text: 'I already reviewed your book. Your portfolio remains healthy.',
         })
       } else if (day != null && Math.abs(day) < 5) {
         turns.push({
           id: 'pf',
           kind: 'speech',
-          text: 'Your portfolio remains stable, though volatility deserves a calm review.',
+          text: 'I already reviewed your book. Your portfolio remains stable — volatility deserves a calm look.',
         })
       } else if (day != null) {
         turns.push({
           id: 'pf',
           kind: 'speech',
-          text: 'Your portfolio is under pressure on the latest read.',
+          text: 'I already reviewed your book. Your portfolio is under pressure on the latest read.',
         })
       } else {
         turns.push({
@@ -298,7 +298,7 @@ export function buildMissionConversation(params: {
         turns.push({
           id: 'pf-risk',
           kind: 'speech',
-          text: `However — there is one position I recommend reviewing before tomorrow: ${v.portfolio.topWeightSymbol}. Concentration is your primary exposure.`,
+          text: `However — one position already concerns me: ${v.portfolio.topWeightSymbol}. I recommend reviewing it before tomorrow. Concentration is your primary exposure.`,
         })
         attention.push(`Review concentration in ${v.portfolio.topWeightSymbol}.`)
       }
