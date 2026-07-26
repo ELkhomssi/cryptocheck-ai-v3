@@ -1,0 +1,98 @@
+/**
+ * CryptoCheck AI — Design System Tokens (Phase 12 lockdown)
+ * SINGLE SOURCE OF TRUTH for color. Hex/rgb allowed ONLY in this file.
+ *
+ * Soft overlays (--*-soft) are listed in the Phase 12 token set; values are
+ * color-mix of the named accent/positive/negative/chain tokens (no new hues).
+ */
+
+:root,
+[data-theme='dark'] {
+  --bg: #0a0d12;
+  --bg-elevated: #0f131a;
+  --surface: #131820;
+  --surface-2: #1a212b;
+  --border: #212836;
+  --border-soft: #1a212c;
+  --text: #e9ebf1;
+  --text-dim: #8e96a8;
+  --text-faint: #565f73;
+  --accent: #c9a05a;
+  --accent-bright: #e0bc7d;
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+  --positive: #4fc38a;
+  --positive-soft: color-mix(in srgb, var(--positive) 14%, transparent);
+  --negative: #e5604d;
+  --negative-soft: color-mix(in srgb, var(--negative) 14%, transparent);
+  --chain: #9c8cff;
+  --chain-soft: color-mix(in srgb, var(--chain) 14%, transparent);
+
+  /* Ink on accent fills (equals dark --bg; not a new hue) */
+  --on-accent: #0a0d12;
+
+  /* Layout radii / chrome (non-color) */
+  --radius: 3px;
+  --radius-md: 6px;
+  --shadow: 0 1px 3px color-mix(in srgb, #000 35%, transparent);
+
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  --bg: #f5f6f8;
+  --bg-elevated: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #eef0f4;
+  --border: #e2e5eb;
+  --border-soft: #eaedf2;
+  --text: #161a22;
+  --text-dim: #667085;
+  --text-faint: #98a1b0;
+  --accent: #a9782e;
+  --accent-bright: #8f6423;
+  --accent-soft: color-mix(in srgb, var(--accent) 10%, transparent);
+  --positive: #1e9a63;
+  --positive-soft: color-mix(in srgb, var(--positive) 12%, transparent);
+  --negative: #d14a38;
+  --negative-soft: color-mix(in srgb, var(--negative) 12%, transparent);
+  --chain: #6e5fe0;
+  --chain-soft: color-mix(in srgb, var(--chain) 14%, transparent);
+
+  --on-accent: #0a0d12;
+
+  --shadow: 0 1px 3px color-mix(in srgb, #101828 5%, transparent);
+
+  color-scheme: light;
+}
+
+/*
+ * Portfolio-desk aliases — keep existing --pd-* consumers working.
+ * New code should prefer the unprefixed tokens above.
+ */
+:root,
+[data-theme='dark'],
+[data-theme='light'] {
+  --pd-bg: var(--bg);
+  --pd-bg-elevated: var(--bg-elevated);
+  --pd-surface: var(--surface);
+  --pd-surface-2: var(--surface-2);
+  --pd-border: var(--border);
+  --pd-border-soft: var(--border-soft);
+  --pd-text: var(--text);
+  --pd-text-dim: var(--text-dim);
+  --pd-text-faint: var(--text-faint);
+  --pd-accent: var(--accent);
+  --pd-accent-bright: var(--accent-bright);
+  --pd-accent-soft: var(--accent-soft);
+  --pd-accent-soft-2: color-mix(in srgb, var(--accent) 22%, transparent);
+  --pd-positive: var(--positive);
+  --pd-positive-soft: var(--positive-soft);
+  --pd-negative: var(--negative);
+  --pd-negative-soft: var(--negative-soft);
+  --pd-chain: var(--chain);
+  --pd-chain-soft: var(--chain-soft);
+  --pd-on-accent: var(--on-accent);
+  --pd-shadow: var(--shadow);
+  --pd-radius: var(--radius);
+  --pd-radius-md: var(--radius-md);
+}

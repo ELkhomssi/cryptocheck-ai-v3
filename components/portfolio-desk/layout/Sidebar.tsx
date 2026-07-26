@@ -111,8 +111,8 @@ export function Sidebar({
             fontFamily: 'var(--font-ibm-plex-mono), monospace',
             fontSize: 11,
             fontWeight: 700,
-            color: '#0A0D12',
-            flexShrink: 0,
+          color: 'var(--pd-bg)',
+          flexShrink: 0,
           }}
         >
           {isConnected && shortAddr ? shortAddr.slice(0, 2) : 'CC'}

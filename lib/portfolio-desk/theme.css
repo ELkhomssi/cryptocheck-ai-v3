@@ -1,76 +1,20 @@
 /**
- * CryptoCheck AI Portfolio desk — design tokens from playbook mockups.
- * Dark (default) + light via html[data-theme="light"].
+ * CryptoCheck AI Portfolio desk — layout + component chrome.
+ * Colors come ONLY from /styles/tokens.css (Phase 12 lockdown).
  */
 
+@import '../../styles/tokens.css';
+
 :root,
-[data-theme='dark'] {
-  --pd-bg: #0a0d12;
-  --pd-bg-elevated: #0f131a;
-  --pd-surface: #131820;
-  --pd-surface-2: #1a212b;
-  --pd-border: #212836;
-  --pd-border-soft: #1a212b;
-  --pd-text: #e9ebf1;
-  --pd-text-dim: #8e96a8;
-  --pd-text-faint: #565f73;
-  --pd-accent: #c9a05a;
-  --pd-accent-bright: #e0bc7d;
-  --pd-accent-soft: rgba(201, 160, 90, 0.12);
-  --pd-accent-soft-2: rgba(201, 160, 90, 0.22);
-  --pd-positive: #4fc38a;
-  --pd-positive-soft: rgba(79, 195, 138, 0.14);
-  --pd-negative: #e5604d;
-  --pd-negative-soft: rgba(229, 96, 77, 0.14);
-  --pd-chain: #9c8cff;
-  --pd-radius: 3px;
-  --pd-radius-md: 6px;
+[data-theme='dark'],
+[data-theme='light'] {
   --pd-sidebar: 220px;
   --pd-aside: 340px;
   --pd-topbar: 52px;
   --pd-ticker: 30px;
-  --pd-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-  color-scheme: dark;
-}
-
-[data-theme='light'] {
-  --pd-bg: #f5f6f8;
-  --pd-bg-elevated: #ffffff;
-  --pd-surface: #ffffff;
-  --pd-surface-2: #eef0f4;
-  --pd-border: #e2e5eb;
-  --pd-border-soft: #eaedf2;
-  --pd-text: #161a22;
-  --pd-text-dim: #667085;
-  --pd-text-faint: #98a1b0;
-  --pd-accent: #a9782e;
-  --pd-accent-bright: #8f6423;
-  --pd-accent-soft: rgba(201, 160, 90, 0.1);
-  --pd-accent-soft-2: rgba(201, 160, 90, 0.18);
-  --pd-positive: #1e9a63;
-  --pd-positive-soft: rgba(79, 195, 138, 0.12);
-  --pd-negative: #d14a38;
-  --pd-negative-soft: rgba(229, 96, 77, 0.12);
-  --pd-chain: #6e5fe0;
-  --pd-shadow: 0 1px 3px rgba(16, 24, 40, 0.05);
-  color-scheme: light;
 }
 
 .pd-shell {
-  --bg: var(--pd-bg);
-  --bg-elevated: var(--pd-bg-elevated);
-  --surface: var(--pd-surface);
-  --surface-2: var(--pd-surface-2);
-  --border: var(--pd-border);
-  --text: var(--pd-text);
-  --text-dim: var(--pd-text-dim);
-  --text-faint: var(--pd-text-faint);
-  --accent: var(--pd-accent);
-  --accent-bright: var(--pd-accent-bright);
-  --positive: var(--pd-positive);
-  --negative: var(--pd-negative);
-  --chain: var(--pd-chain);
-
   min-height: 100dvh;
   height: 100dvh;
   display: grid;
@@ -331,7 +275,7 @@
   padding: 0 14px;
   border-radius: var(--pd-radius);
   background: var(--pd-accent);
-  color: #12100a;
+  color: var(--pd-on-accent);
   font-size: 12.5px;
   font-weight: 600;
   border: none;
@@ -362,7 +306,7 @@
   font-size: 11px;
   font-weight: 700;
   font-family: var(--font-ibm-plex-mono), monospace;
-  color: #0a0d12;
+  color: var(--pd-on-accent);
 }
 
 .pd-id-chip span {
@@ -505,7 +449,7 @@
 
 .pd-tab.is-active {
   background: var(--pd-accent);
-  color: #12100a;
+  color: var(--pd-on-accent);
 }
 
 .pd-hero {
@@ -782,7 +726,7 @@
   align-items: center;
   justify-content: center;
   border: none;
-  color: #12100a;
+  color: var(--pd-on-accent);
   cursor: pointer;
 }
 
@@ -868,7 +812,7 @@
     inset: 0;
     z-index: 35;
     border: 0;
-    background: rgba(0, 0, 0, 0.45);
+    background: color-mix(in srgb, var(--pd-bg) 55%, transparent);
     cursor: pointer;
   }
   .pd-metrics {

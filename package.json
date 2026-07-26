@@ -21,6 +21,7 @@
     "build:packages": "npm run build --prefix packages/signing && npm run build --prefix packages/types && npm run build --prefix packages/ccai-connect && npm run build --prefix packages/signal-contracts",
     "start": "next start",
     "lint": "next lint",
+    "lint:tokens": "node scripts/check-design-tokens.cjs",
     "test:sentinel": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-sentinel.ts",
     "test:intelligence": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/smoke-intelligence.ts",
     "test:portfolio-alerts": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/smoke-portfolio-alerts.ts",

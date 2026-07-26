@@ -14,7 +14,7 @@ export default function TerminalPage() {
   return (
     <Suspense
       fallback={
-        <div style={{ padding: 24, color: 'var(--pd-text-dim, #888)' }}>Loading terminal…</div>
+        <div style={{ padding: 24, color: 'var(--pd-text-dim)' }}>Loading terminal…</div>
       }
     >
       <PortfolioDesk />

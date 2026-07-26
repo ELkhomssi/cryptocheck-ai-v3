@@ -25,7 +25,7 @@ export default function AiEmployeesLayout({ children }: { children: React.ReactN
   return (
     <div
       className={`${inter.variable} ${ibmMono.variable} ${inter.className}`}
-      style={{ minHeight: '100vh', background: 'var(--pd-bg, #0A0D12)' }}
+      style={{ minHeight: '100vh', background: 'var(--pd-bg)' }}
     >
       <script
         dangerouslySetInnerHTML={{

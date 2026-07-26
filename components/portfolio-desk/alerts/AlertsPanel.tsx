@@ -99,7 +99,7 @@ function tone(type: PortfolioAlert['type']) {
   ) {
     return { bg: 'var(--pd-negative-soft)', c: 'var(--pd-negative)' }
   }
-  return { bg: 'rgba(156,140,255,0.14)', c: 'var(--pd-chain)' }
+  return { bg: 'var(--pd-chain-soft)', c: 'var(--pd-chain)' }
 }
 
 export function AlertsPanel() {
