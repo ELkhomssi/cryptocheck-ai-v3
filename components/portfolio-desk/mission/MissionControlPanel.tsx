@@ -1,16 +1,23 @@
 'use client'
 
 /**
- * Mission Control — the OS speaks first, proposes actions, then shows evidence.
- * Presentation only. Institutional voice. Never invents.
+ * Mission Control — speech drives the interface.
+ * Each spoken beat unlocks a real proof surface from existing engines.
  */
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSolana } from '@/components/SolanaProvider'
 import { MissionCommandCenter } from '@/components/portfolio-desk/mission/MissionCommandCenter'
 import { MissionFeedPanel } from '@/components/portfolio-desk/mission/MissionFeedPanel'
-import { buildMissionConversation } from '@/lib/portfolio-desk/mission-narrative'
+import {
+  activeProofAt,
+  buildMissionConversation,
+  proofsUnlockedThrough,
+  runningIntelligenceLabel,
+  speechHoldMs,
+  type SpeechProof,
+} from '@/lib/portfolio-desk/mission-narrative'
 import type { MissionViewModel } from '@/types/intelligence-core'
 import type { ScreenerRow } from '@/lib/providers/types'
 
@@ -28,6 +35,8 @@ export function MissionControlPanel({
 }) {
   const { walletAddress, shortAddr, isConnected } = useSolana()
   const [seed, setSeed] = useState<string | null>(null)
+  const [spokenCount, setSpokenCount] = useState(1)
+  const proofRef = useRef<HTMLDivElement | null>(null)
 
   const missionQ = useQuery({
     queryKey: ['intelligence-core-mission', walletAddress],
@@ -37,8 +46,8 @@ export function MissionControlPanel({
       if (!res.ok) throw new Error('Mission view unavailable')
       return (await res.json()) as MissionViewModel
     },
-    refetchInterval: 20_000,
-    staleTime: 10_000,
+    refetchInterval: 8_000,
+    staleTime: 4_000,
   })
 
   const conversation = useMemo(
@@ -51,135 +60,252 @@ export function MissionControlPanel({
     [isConnected, shortAddr, missionQ.data, missionQ.isLoading],
   )
 
+  const briefingKey = missionQ.isLoading
+    ? 'loading'
+    : `${missionQ.data?.fetchedAt ?? 'ready'}:${walletAddress ?? 'anon'}`
+
+  // Reset speech when a new briefing arrives (not on every living-job tick).
+  useEffect(() => {
+    setSpokenCount(1)
+  }, [briefingKey])
+
+  // Advance speech one sentence at a time — proof mounts with each beat.
+  useEffect(() => {
+    if (spokenCount >= conversation.turns.length) return
+    // Hold on the latest spoken sentence, then reveal the next.
+    const turn = conversation.turns[spokenCount - 1]
+    if (!turn) return
+    const t = window.setTimeout(() => {
+      setSpokenCount((n) => Math.min(n + 1, conversation.turns.length))
+    }, speechHoldMs(turn.text))
+    return () => window.clearTimeout(t)
+  }, [spokenCount, conversation.turns])
+
+  const unlocked = proofsUnlockedThrough(conversation.turns, spokenCount)
+  const active = activeProofAt(conversation.turns, spokenCount)
+  const actionsReady = unlocked.includes('actions')
+  const spokenTurns = conversation.turns.slice(0, spokenCount)
+
+  // Live living lines from latest mission payload (updates while speech runs).
+  const liveLiving = useMemo(() => {
+    const running = missionQ.data?.running ?? []
+    if (running.length === 0) return conversation.living
+    return running.slice(0, 4).map((r) => runningIntelligenceLabel(r.description, r.kind))
+  }, [missionQ.data?.running, conversation.living])
+
+  useEffect(() => {
+    if (active === 'none') return
+    proofRef.current?.querySelector(`[data-proof="${active}"]`)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+    })
+  }, [active, spokenCount])
+
   return (
     <div className="mc-talk">
-      {/* Speech → prepared actions → reply */}
-      <div className="mc-talk-screen">
-        <div className="mc-talk-thread" aria-live="polite">
-          {conversation.turns.map((turn, i) => {
-            const delay = { ['--mc-delay' as string]: `${Math.min(i * 0.42, 4.2)}s` }
-            if (turn.kind === 'propose') {
-              return (
-                <p key={turn.id} className="mc-talk-propose mc-talk-line" style={delay}>
-                  {turn.text}
-                </p>
-              )
-            }
-            const cls =
-              turn.id === 'presence'
-                ? 'mc-talk-speech mc-talk-presence mc-talk-line'
-                : turn.id === 'away'
-                  ? 'mc-talk-speech mc-talk-away mc-talk-line'
-                  : 'mc-talk-speech mc-talk-line'
-            return (
-              <p key={turn.id} className={cls} style={delay}>
+      <div className="mc-live-screen">
+        <div className="mc-live-speech">
+          <div className="mc-talk-thread" aria-live="polite">
+            {spokenTurns.map((turn) => (
+              <p
+                key={turn.id}
+                className={
+                  turn.kind === 'propose'
+                    ? 'mc-talk-propose mc-beat'
+                    : turn.id === 'greet'
+                      ? 'mc-talk-speech mc-talk-greet mc-beat'
+                      : 'mc-talk-speech mc-beat'
+                }
+              >
                 {turn.text}
               </p>
-            )
-          })}
+            ))}
+            {spokenCount < conversation.turns.length ? (
+              <p className="mc-talk-cursor" aria-hidden>
+                ▍
+              </p>
+            ) : null}
+          </div>
+
+          {actionsReady ? (
+            <MissionCommandCenter
+              seedPrompt={seed}
+              onSeedConsumed={() => setSeed(null)}
+              suggestions={[]}
+              onPickSuggestion={(s) => setSeed(s)}
+            />
+          ) : null}
         </div>
 
-        <ul
-          className="mc-prepared mc-talk-line"
-          style={{
-            ['--mc-delay' as string]: `${Math.min(conversation.turns.length * 0.42 + 0.2, 4.8)}s`,
-          }}
-        >
-          {conversation.preparedActions.map((action) => (
-            <li key={action}>
-              <button type="button" className="mc-prepared-item" onClick={() => setSeed(action)}>
-                {action}
+        <div className="mc-live-proof" ref={proofRef} aria-live="polite">
+          {unlocked.length === 0 ? (
+            <p className="mc-proof-wait">Listening to live engines…</p>
+          ) : null}
+
+          {unlocked.includes('living') ? (
+            <ProofPanel id="living" active={active === 'living'} label="Currently working">
+              {liveLiving.length > 0 ? (
+                <ul className="mc-proof-list">
+                  {liveLiving.map((line) => (
+                    <li key={line} className="mc-proof-live-item">
+                      {line}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mc-talk-evidence">No critical jobs running. Monitoring continues.</p>
+              )}
+            </ProofPanel>
+          ) : null}
+
+          {unlocked.includes('feed') ? (
+            <ProofPanel id="feed" active={active === 'feed'} label="While you were away">
+              <MissionFeedPanel
+                condensed
+                limit={5}
+                emphasizeLatest={active === 'feed' ? 2 : 0}
+                live
+              />
+              <button type="button" className="mc-talk-quiet-link" onClick={onOpenFeed}>
+                Open full Mission Feed
               </button>
-            </li>
-          ))}
-        </ul>
+            </ProofPanel>
+          ) : null}
 
-        <MissionCommandCenter
-          seedPrompt={seed}
-          onSeedConsumed={() => setSeed(null)}
-          suggestions={[]}
-          onPickSuggestion={(s) => setSeed(s)}
-        />
-      </div>
+          {unlocked.includes('market') ? (
+            <ProofPanel id="market" active={active === 'market'} label="Market conclusion">
+              {conversation.marketMetrics.length > 0 ? (
+                <dl className="mc-talk-metrics">
+                  {conversation.marketMetrics.map((m) => (
+                    <div key={m.label} className={active === 'market' ? 'mc-metric-flash' : undefined}>
+                      <dt>{m.label}</dt>
+                      <dd className="pd-num">{m.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : (
+                <p className="mc-talk-evidence">I don’t have enough market sample yet.</p>
+              )}
+              {conversation.evidence
+                .filter((e) => /sample|move/i.test(e))
+                .slice(0, 2)
+                .map((line) => (
+                  <p key={line} className="mc-talk-evidence">
+                    {line}
+                  </p>
+                ))}
+            </ProofPanel>
+          ) : null}
 
-      {/* Evidence → Timeline → Metrics → Currently working */}
-      <div className="mc-talk-below">
-        {conversation.attention.length > 0 ? (
-          <section className="mc-talk-section">
-            <h3 className="mc-talk-section-label">Things requiring your attention</h3>
-            {conversation.attention.map((line) => (
-              <p key={line} className="mc-talk-evidence">
-                {line}
-              </p>
-            ))}
-          </section>
-        ) : null}
-
-        {conversation.evidence.length > 0 ? (
-          <section className="mc-talk-section">
-            <h3 className="mc-talk-section-label">What I discovered</h3>
-            {conversation.evidence.map((line) => (
-              <p key={line} className="mc-talk-evidence">
-                {line}
-              </p>
-            ))}
-          </section>
-        ) : null}
-
-        <section className="mc-talk-section">
-          <div className="mc-talk-section-row">
-            <h3 className="mc-talk-section-label">While you were away…</h3>
-            <button type="button" className="mc-talk-quiet-link" onClick={onOpenFeed}>
-              Full Mission Feed
-            </button>
-          </div>
-          <MissionFeedPanel condensed limit={5} />
-        </section>
-
-        {conversation.portfolioMetrics.length > 0 ? (
-          <section className="mc-talk-section">
-            <h3 className="mc-talk-section-label">Your portfolio today</h3>
-            <dl className="mc-talk-metrics">
-              {conversation.portfolioMetrics.map((m) => (
-                <div key={m.label}>
-                  <dt>{m.label}</dt>
-                  <dd className="pd-num">{m.value}</dd>
+          {unlocked.includes('portfolio') ? (
+            <ProofPanel
+              id="portfolio"
+              active={active === 'portfolio'}
+              label="Your portfolio today"
+              expanded={active === 'portfolio' || Boolean(conversation.riskSymbol)}
+            >
+              {conversation.portfolioMetrics.length > 0 ? (
+                <dl className="mc-talk-metrics">
+                  {conversation.portfolioMetrics.map((m) => (
+                    <div
+                      key={m.label}
+                      className={
+                        conversation.riskSymbol && m.value === conversation.riskSymbol
+                          ? 'mc-metric-risk'
+                          : undefined
+                      }
+                    >
+                      <dt>{m.label}</dt>
+                      <dd className="pd-num">{m.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : (
+                <p className="mc-talk-evidence">
+                  {isConnected
+                    ? 'I don’t have enough portfolio detail yet.'
+                    : 'Connect a wallet to unlock portfolio proof.'}
+                </p>
+              )}
+              {conversation.riskSymbol ? (
+                <div className="mc-risk-callout">
+                  <strong>{conversation.riskSymbol}</strong>
+                  <span>Largest concentration — primary risk to review.</span>
                 </div>
-              ))}
-            </dl>
-          </section>
-        ) : null}
+              ) : null}
+            </ProofPanel>
+          ) : null}
 
-        {conversation.marketMetrics.length > 0 ? (
-          <section className="mc-talk-section">
-            <h3 className="mc-talk-section-label">Market evidence</h3>
-            <dl className="mc-talk-metrics">
-              {conversation.marketMetrics.map((m) => (
-                <div key={m.label}>
-                  <dt>{m.label}</dt>
-                  <dd className="pd-num">{m.value}</dd>
-                </div>
-              ))}
-            </dl>
-          </section>
-        ) : null}
+          {unlocked.includes('attention') ? (
+            <ProofPanel
+              id="attention"
+              active={active === 'attention'}
+              label="Things requiring your attention"
+            >
+              {conversation.attention.length > 0 ? (
+                <ul className="mc-proof-list">
+                  {conversation.attention.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mc-talk-evidence">Nothing else requires action right now.</p>
+              )}
+              {conversation.evidence
+                .filter((e) => !/sample|move|Portfolio value/i.test(e))
+                .slice(0, 2)
+                .map((line) => (
+                  <p key={line} className="mc-talk-evidence">
+                    {line}
+                  </p>
+                ))}
+            </ProofPanel>
+          ) : null}
 
-        <section className="mc-talk-section">
-          <h3 className="mc-talk-section-label">Currently working…</h3>
-          {conversation.living.length > 0 ? (
-            <div className="mc-talk-live">
-              {conversation.living.map((line) => (
-                <div key={line}>{line}</div>
-              ))}
-            </div>
-          ) : (
-            <p className="mc-talk-evidence">
-              Nothing critical is running. I will continue monitoring the market.
-            </p>
-          )}
-        </section>
+          {unlocked.includes('actions') ? (
+            <ProofPanel id="actions" active={active === 'actions'} label="Prepared actions" expanded>
+              <ul className="mc-action-cards">
+                {conversation.preparedActions.map((action, i) => (
+                  <li
+                    key={action}
+                    className="mc-action-card"
+                    style={{ ['--mc-delay' as string]: `${i * 0.12}s` }}
+                  >
+                    <button type="button" onClick={() => setSeed(action)}>
+                      {action}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </ProofPanel>
+          ) : null}
+        </div>
       </div>
     </div>
+  )
+}
+
+function ProofPanel({
+  id,
+  label,
+  active,
+  expanded,
+  children,
+}: {
+  id: SpeechProof
+  label: string
+  active: boolean
+  expanded?: boolean
+  children: ReactNode
+}) {
+  return (
+    <section
+      data-proof={id}
+      className={`mc-proof${active ? ' is-active' : ''}${expanded || active ? ' is-expanded' : ''}`}
+    >
+      <h3 className="mc-talk-section-label">{label}</h3>
+      {children}
+    </section>
   )
 }
 

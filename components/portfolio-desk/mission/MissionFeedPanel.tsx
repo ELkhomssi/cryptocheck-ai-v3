@@ -45,10 +45,16 @@ export function MissionFeedPanel({
   limit = 40,
   condensed = false,
   moduleFilter = null,
+  emphasizeLatest = 0,
+  live = false,
 }: {
   limit?: number
   condensed?: boolean
   moduleFilter?: IntelligenceModuleId | null
+  /** Highlight the newest N real events when speech points at the feed. */
+  emphasizeLatest?: number
+  /** Faster refetch while Mission Control is speaking. */
+  live?: boolean
 }) {
   const [cat, setCat] = useState<FeedCat>('all')
 
@@ -62,8 +68,8 @@ export function MissionFeedPanel({
       const body = (await res.json()) as { events?: TimelineEvent[] }
       return body.events ?? []
     },
-    refetchInterval: 15_000,
-    staleTime: 8_000,
+    refetchInterval: live ? 6_000 : 15_000,
+    staleTime: live ? 3_000 : 8_000,
   })
 
   const items = useMemo(() => {
@@ -99,8 +105,11 @@ export function MissionFeedPanel({
         ) : null}
         {!loading && shown.length > 0 ? (
           <ul className="mc-timeline">
-            {shown.map((item) => (
-              <li key={item.id}>
+            {shown.map((item, i) => (
+              <li
+                key={item.id}
+                className={i < emphasizeLatest ? 'is-emphasized' : undefined}
+              >
                 <time dateTime={item.at}>{formatTimelineClock(item.at)}</time>
                 <strong>{item.title}</strong>
               </li>

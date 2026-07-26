@@ -67,18 +67,30 @@ export function runningIntelligenceLabel(description: string, kind: string): str
   return 'I’m continuing to monitor the market.'
 }
 
+/** UI proof unlocked when this sentence is spoken — backed by real engines. */
+export type SpeechProof =
+  | 'none'
+  | 'living'
+  | 'feed'
+  | 'market'
+  | 'portfolio'
+  | 'attention'
+  | 'actions'
+
 export type SpeechTurn = {
   id: string
   /** Mission speech — judgement only. */
   kind: 'speech' | 'propose'
   text: string
+  /** Which real surface must prove this sentence. */
+  proof: SpeechProof
 }
 
 export type MissionMetric = { label: string; value: string }
 
 export type MissionConversation = {
   turns: SpeechTurn[]
-  /** OS proposes; user chooses — first screen, after speech. */
+  /** OS proposes; user chooses — revealed when propose is spoken. */
   preparedActions: string[]
   primaryAction: string
   /** @deprecated alias of preparedActions for older callers */
@@ -88,7 +100,35 @@ export type MissionConversation = {
   marketMetrics: MissionMetric[]
   portfolioMetrics: MissionMetric[]
   living: string[]
+  /** Concentration symbol for portfolio proof highlight — from engine only. */
+  riskSymbol: string | null
   readingSeconds: number
+}
+
+/** Hold time so the matching proof surface can mount before the next sentence. */
+export function speechHoldMs(text: string): number {
+  const words = text.trim().split(/\s+/).filter(Boolean).length
+  return Math.max(900, Math.min(3200, 700 + words * 140))
+}
+
+export function proofsUnlockedThrough(turns: SpeechTurn[], spokenCount: number): SpeechProof[] {
+  const seen = new Set<SpeechProof>()
+  const out: SpeechProof[] = []
+  for (let i = 0; i < Math.min(spokenCount, turns.length); i++) {
+    const p = turns[i]!.proof
+    if (p === 'none' || seen.has(p)) continue
+    seen.add(p)
+    out.push(p)
+  }
+  return out
+}
+
+export function activeProofAt(turns: SpeechTurn[], spokenCount: number): SpeechProof {
+  for (let i = Math.min(spokenCount, turns.length) - 1; i >= 0; i--) {
+    const p = turns[i]!.proof
+    if (p !== 'none') return p
+  }
+  return 'none'
 }
 
 const PREPARED_ACTIONS = [
@@ -132,21 +172,19 @@ export function buildMissionConversation(params: {
           id: 'load',
           kind: 'speech',
           text: `${timeOfDayGreeting()}.`,
+          proof: 'none',
         },
         {
-          id: 'presence',
+          id: 'living-load',
           kind: 'speech',
-          text: 'I have already been working for you.',
+          text: 'Pulling live jobs and feeds now.',
+          proof: 'living',
         },
         {
-          id: 'load-2',
+          id: 'feed-load',
           kind: 'speech',
-          text: 'I’m finishing your briefing from the live engines now — stay with me.',
-        },
-        {
-          id: 'propose',
-          kind: 'propose',
-          text: 'I already have several actions prepared. Choose one…',
+          text: 'Checking what changed while you were away.',
+          proof: 'feed',
         },
       ],
       preparedActions,
@@ -157,7 +195,8 @@ export function buildMissionConversation(params: {
       marketMetrics: [],
       portfolioMetrics: [],
       living: [],
-      readingSeconds: 10,
+      riskSymbol: null,
+      readingSeconds: 8,
     }
   }
 
@@ -172,6 +211,8 @@ export function buildMissionConversation(params: {
   const preparedActions = buildPreparedActions(v)
   const primaryAction = preparedActions[0]!
   const living = v.running.slice(0, 3).map((r) => runningIntelligenceLabel(r.description, r.kind))
+  const riskSymbol =
+    v.portfolio.connected && !v.portfolio.error ? v.portfolio.topWeightSymbol : null
 
   const marketMissing = !v.market.available || v.market.aggregateChange24hPct == null
   const portfolioMissing = !v.portfolio.connected || Boolean(v.portfolio.error)
@@ -181,60 +222,61 @@ export function buildMissionConversation(params: {
     grounded.length === 0 &&
     v.dailyBrief.insufficientActivity
 
-  // 1) Greeting — then presence. The OS owns the room.
   turns.push({
     id: 'greet',
     kind: 'speech',
     text: name ? `${timeOfDayGreeting()} ${name}.` : `${timeOfDayGreeting()}.`,
-  })
-  turns.push({
-    id: 'presence',
-    kind: 'speech',
-    text: 'I have already been working for you.',
+    proof: 'none',
   })
 
-  // 2) While you were away…
+  // Living work first — screen proves activity immediately
+  if (living.length > 0) {
+    turns.push({
+      id: 'living',
+      kind: 'speech',
+      text: living[0]!,
+      proof: 'living',
+    })
+  } else {
+    turns.push({
+      id: 'living-idle',
+      kind: 'speech',
+      text: 'No critical jobs are running. I’m still monitoring.',
+      proof: 'living',
+    })
+  }
+
   turns.push({
     id: 'away',
     kind: 'speech',
-    text: 'While you were away, I kept watch.',
+    text: 'While you were away — here’s what the timeline recorded.',
+    proof: 'feed',
   })
 
   if (quiet) {
     turns.push({
       id: 'quiet',
       kind: 'speech',
-      text: 'Today has been relatively quiet. Nothing currently requires immediate action. I filtered the noise so you don’t have to. I will continue monitoring the market.',
+      text: 'Today has been relatively quiet. Nothing requires immediate action.',
+      proof: 'feed',
     })
   } else {
-    // Market judgement
     if (marketMissing) {
       turns.push({
         id: 'mkt',
         kind: 'speech',
-        text: 'I don’t have enough information yet on market direction — the live sample came back empty.',
+        text: 'I don’t have enough information yet on market direction.',
+        proof: 'market',
       })
     } else {
       const chg = v.market.aggregateChange24hPct!
-      if (chg > 2) {
-        turns.push({
-          id: 'mkt',
-          kind: 'speech',
-          text: 'I already read the tape. The market continues strengthening — momentum remains healthy.',
-        })
-      } else if (chg < -2) {
-        turns.push({
-          id: 'mkt',
-          kind: 'speech',
-          text: 'I already read the tape. The market turned more defensive — momentum cooled.',
-        })
-      } else {
-        turns.push({
-          id: 'mkt',
-          kind: 'speech',
-          text: 'I already read the tape. The market remains orderly — no regime shift forced yet.',
-        })
-      }
+      const mktLine =
+        chg > 2
+          ? 'I reviewed the market. Momentum is strengthening.'
+          : chg < -2
+            ? 'I reviewed the market. Conditions turned more defensive.'
+            : 'I reviewed the market. Conditions remain orderly.'
+      turns.push({ id: 'mkt', kind: 'speech', text: mktLine, proof: 'market' })
       marketMetrics.push({ label: 'Sample 24h', value: fmtSignedPct(chg) })
       evidence.push(`Live sample aggregate 24h change: ${fmtSignedPct(chg)}.`)
       if (v.market.topMoverSymbol) {
@@ -248,57 +290,44 @@ export function buildMissionConversation(params: {
         turns.push({
           id: 'mkt-why',
           kind: 'speech',
-          text: `The main pressure is concentrated around ${v.market.topMoverSymbol}.`,
+          text: `Pressure is concentrated around ${v.market.topMoverSymbol}.`,
+          proof: 'market',
         })
       }
     }
 
-    // Portfolio judgement
     if (!v.portfolio.connected) {
       turns.push({
         id: 'pf',
         kind: 'speech',
-        text: 'I can’t judge your portfolio until a wallet is connected.',
+        text: 'Connect a wallet so I can review your portfolio.',
+        proof: 'portfolio',
       })
     } else if (v.portfolio.error) {
       turns.push({
         id: 'pf',
         kind: 'speech',
-        text: 'I don’t have enough information yet on your portfolio — the holdings request failed.',
+        text: 'I don’t have enough information yet on your portfolio.',
+        proof: 'portfolio',
       })
     } else {
       const day = v.portfolio.dayChangePct
-      if (day != null && Math.abs(day) < 2) {
-        turns.push({
-          id: 'pf',
-          kind: 'speech',
-          text: 'I already reviewed your book. Your portfolio remains healthy.',
-        })
-      } else if (day != null && Math.abs(day) < 5) {
-        turns.push({
-          id: 'pf',
-          kind: 'speech',
-          text: 'I already reviewed your book. Your portfolio remains stable — volatility deserves a calm look.',
-        })
-      } else if (day != null) {
-        turns.push({
-          id: 'pf',
-          kind: 'speech',
-          text: 'I already reviewed your book. Your portfolio is under pressure on the latest read.',
-        })
-      } else {
-        turns.push({
-          id: 'pf',
-          kind: 'speech',
-          text: 'I don’t have enough information yet to call portfolio risk confidently.',
-        })
-      }
+      const pfLine =
+        day == null
+          ? 'I reviewed your portfolio. Change data is incomplete.'
+          : Math.abs(day) < 2
+            ? 'I reviewed your portfolio. It remains healthy.'
+            : Math.abs(day) < 5
+              ? 'I reviewed your portfolio. Stable, with volatility to watch.'
+              : 'I reviewed your portfolio. It is under pressure.'
+      turns.push({ id: 'pf', kind: 'speech', text: pfLine, proof: 'portfolio' })
 
       if (v.portfolio.topWeightSymbol) {
         turns.push({
           id: 'pf-risk',
           kind: 'speech',
-          text: `However — one position already concerns me: ${v.portfolio.topWeightSymbol}. I recommend reviewing it before tomorrow. Concentration is your primary exposure.`,
+          text: `One position needs review: ${v.portfolio.topWeightSymbol}. Concentration is the risk.`,
+          proof: 'portfolio',
         })
         attention.push(`Review concentration in ${v.portfolio.topWeightSymbol}.`)
       }
@@ -320,15 +349,15 @@ export function buildMissionConversation(params: {
       }
     }
 
-    // Opportunities — grounded only, filtered
     if (grounded.length > 0) {
       turns.push({
         id: 'opp',
         kind: 'speech',
         text:
           grounded.length === 1
-            ? 'I found one opportunity that deserves attention.'
-            : `I found ${grounded.length} opportunities that deserve attention.`,
+            ? 'I found one item that deserves attention.'
+            : `I found ${grounded.length} items that deserve attention.`,
+        proof: 'attention',
       })
       for (const g of grounded) {
         attention.push(g.title)
@@ -338,50 +367,31 @@ export function buildMissionConversation(params: {
       turns.push({
         id: 'filter',
         kind: 'speech',
-        text: 'I filtered everything else because it doesn’t require action.',
+        text: 'I filtered the rest — nothing else requires action.',
+        proof: 'attention',
       })
     }
   }
 
-  // Living work — spoken when real jobs exist (never empty spinners)
-  if (living.length > 0) {
-    turns.push({
-      id: 'living',
-      kind: 'speech',
-      text: living[0]!,
-    })
-  } else if (!quiet) {
-    turns.push({
-      id: 'living-idle',
-      kind: 'speech',
-      text: 'I’m still watching the market for you — you don’t need to search.',
-    })
-  }
-
-  turns.push({
-    id: 'ready',
-    kind: 'speech',
-    text: 'You don’t need to dig. I’ve already done the work. Now you only decide what we open next.',
-  })
-
-  // Propose — the OS arrives with options ready
   turns.push({
     id: 'propose',
     kind: 'propose',
-    text: 'I already have several actions prepared. Choose one…',
+    text: `I prepared ${Math.min(3, preparedActions.length)} actions. Choose one.`,
+    proof: 'actions',
   })
 
   const full = turns.map((t) => t.text).join(' ')
   return {
     turns,
-    preparedActions,
+    preparedActions: preparedActions.slice(0, 3),
     primaryAction,
-    suggestions: preparedActions,
+    suggestions: preparedActions.slice(0, 3),
     evidence: evidence.slice(0, 5),
     attention: attention.slice(0, 5),
     marketMetrics,
     portfolioMetrics,
     living,
+    riskSymbol,
     readingSeconds: estimateReadingSeconds(full),
   }
 }
