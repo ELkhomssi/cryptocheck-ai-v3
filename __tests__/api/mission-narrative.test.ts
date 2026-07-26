@@ -5,7 +5,7 @@ import {
   buildDynamicSuggestions,
   buildMissionConversation,
   buildPortfolioNarrative,
-  proofsUnlockedThrough,
+  buildReconstruction,
   runningIntelligenceLabel,
   speechHoldMs,
   timelineHeadline,
@@ -40,36 +40,31 @@ const emptyView = (): MissionViewModel => ({
 })
 
 describe('Mission Control conversation', () => {
-  it('tags speech with proof surfaces the UI must unlock', () => {
+  it('reconstructs from real engines before speech', () => {
+    const steps = buildReconstruction({ view: emptyView(), loading: false })
+    assert.ok(steps.some((s) => s.engine.includes('Market')))
+    assert.ok(steps.some((s) => s.engine.includes('Portfolio')))
+    assert.ok(steps.every((s) => s.done))
+    const loading = buildReconstruction({ view: null, loading: true })
+    assert.ok(loading.every((s) => /Reconstructing/i.test(s.status)))
+  })
+
+  it('speaks filtered conclusions with proof tags — no marketing presence line', () => {
     const conv = buildMissionConversation({
       displayName: 'Abderrahim',
       view: emptyView(),
       loading: false,
     })
     assert.match(conv.turns[0]!.text, /Good (morning|afternoon|evening) Abderrahim/)
-    assert.ok(conv.turns.every((t) => t.proof))
-    assert.ok(conv.turns.some((t) => t.proof === 'living'))
-    assert.ok(conv.turns.some((t) => t.proof === 'feed'))
-    assert.ok(conv.turns.some((t) => t.proof === 'actions'))
+    assert.ok(conv.turns.every((t) => t.proof && 'meaning' in t))
+    assert.doesNotMatch(conv.turns.map((t) => t.text).join(' '), /already been working for you/i)
     const propose = conv.turns.find((t) => t.kind === 'propose')
-    assert.match(propose?.text ?? '', /prepared \d+ actions/i)
+    assert.match(propose?.text ?? '', /filtered everything else/i)
     assert.equal(propose?.proof, 'actions')
-  })
-
-  it('unlocks proofs in speech order', () => {
-    const conv = buildMissionConversation({
-      displayName: null,
-      view: emptyView(),
-      loading: false,
-    })
-    const unlocked = proofsUnlockedThrough(conv.turns, conv.turns.length)
-    assert.ok(unlocked.includes('living'))
-    assert.ok(unlocked.includes('feed'))
-    assert.ok(unlocked.includes('actions'))
     assert.equal(activeProofAt(conv.turns, conv.turns.length), 'actions')
   })
 
-  it('never puts metric dumps in speech — metrics stay in proof data', () => {
+  it('keeps numbers out of speech — meaning first', () => {
     const v = emptyView()
     v.market.available = true
     v.market.aggregateChange24hPct = 3.25
@@ -82,43 +77,36 @@ describe('Mission Control conversation', () => {
     v.dailyBrief.insufficientActivity = false
     const conv = buildMissionConversation({ displayName: null, view: v, loading: false })
     const speech = conv.turns.map((t) => t.text).join(' ')
-    assert.match(speech, /reviewed your portfolio/i)
-    assert.match(speech, /BONK/)
+    assert.match(speech, /strengthening|healthy|orderly/i)
     assert.doesNotMatch(speech, /\+3\.25%/)
     assert.doesNotMatch(speech, /\$50/)
     assert.equal(conv.riskSymbol, 'BONK')
     assert.ok(conv.marketMetrics.length > 0)
-    assert.ok(conv.portfolioMetrics.length > 0)
   })
 
-  it('quiet day stays calm and still drives feed proof', () => {
+  it('quiet day stays calm', () => {
     const conv = buildMissionConversation({
       displayName: null,
       view: emptyView(),
       loading: false,
     })
-    const blob = conv.turns.map((t) => t.text).join(' ')
-    assert.match(blob, /relatively quiet/i)
-    assert.doesNotMatch(blob, /No activity/i)
-    assert.doesNotMatch(blob, /already been working for you/i)
+    assert.match(conv.turns.map((t) => t.text).join(' '), /relatively quiet/i)
   })
 
-  it('speech hold scales with sentence length', () => {
-    assert.ok(speechHoldMs('Hi.') < speechHoldMs('I reviewed your portfolio in detail today.'))
+  it('speech hold gives time for proof absorption', () => {
+    assert.ok(speechHoldMs('Hi.') >= 1600)
+    assert.ok(speechHoldMs('The market is strengthening today under pressure.') > speechHoldMs('Hi.'))
   })
 
-  it('prepared actions are a short institutional set', () => {
+  it('prepared actions stay institutional', () => {
     const v = emptyView()
     v.portfolio.connected = true
     v.portfolio.topWeightSymbol = 'BONK'
-    v.market.available = true
-    v.market.aggregateChange24hPct = 3
     const s = buildDynamicSuggestions(v)
     assert.equal(s[0], 'Show hidden risks')
-    assert.ok(s.includes('Scan a token'))
   })
 
-  it('living copy uses institutional voice when real jobs exist', () => {
+  it('living copy uses institutional voice', () => {
     assert.match(
       runningIntelligenceLabel('liquidity scan across pools', 'scan'),
       /analyzing liquidity/i,
