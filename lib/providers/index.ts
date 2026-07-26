@@ -33,6 +33,7 @@ export {
   fetchOhlcv,
   fetchNewListings,
   fetchPriceChange,
+  searchTokens,
 } from '@/lib/providers/birdeye'
 export type { TokenListParams, PriceChangeWindows } from '@/lib/providers/birdeye'
 

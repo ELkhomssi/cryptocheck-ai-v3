@@ -26,6 +26,7 @@ const TTL = {
   tokenList: 20,
   newListings: 20,
   priceChange: 15,
+  search: 20,
 } as const
 
 function apiKey(): string | null {
@@ -166,7 +167,7 @@ export async function fetchTokenList(params: TokenListParams = {}): Promise<Scre
   })
 }
 
-/** OHLCV candles. Empty when no key / failure. */
+/** OHLCV candles. Empty when no key / failure. Tries V3 then legacy. */
 export async function fetchOhlcv(
   mint: string,
   type: string,
@@ -180,22 +181,73 @@ export async function fetchOhlcv(
     time_from: String(Math.floor(time_from)),
     time_to: String(Math.floor(time_to)),
   })
-  return cachedJson(`birdeye:ohlcv:${q.toString()}`, TTL.ohlcv, async () => {
-    const body = (await birdeyeGet(`/defi/ohlcv?${q.toString()}`)) as {
-      data?: { items?: Array<Record<string, unknown>> }
-    } | null
-    const items = body?.data?.items
-    if (!Array.isArray(items)) return []
-    const out: OhlcvPoint[] = []
-    for (const row of items) {
-      const t = num(row.unixTime ?? row.t)
-      const o = num(row.o ?? row.open)
-      const h = num(row.h ?? row.high)
-      const l = num(row.l ?? row.low)
-      const c = num(row.c ?? row.close)
-      const v = num(row.v ?? row.volume)
-      if (!(t > 0)) continue
-      out.push({ t, o, h, l, c, v })
+  return cachedJson(`birdeye:ohlcv:v3:${q.toString()}`, TTL.ohlcv, async () => {
+    const parse = (body: unknown): OhlcvPoint[] => {
+      const items =
+        body &&
+        typeof body === 'object' &&
+        (body as { data?: { items?: unknown } }).data &&
+        Array.isArray((body as { data: { items?: unknown } }).data.items)
+          ? ((body as { data: { items: Array<Record<string, unknown>> } }).data.items)
+          : []
+      const out: OhlcvPoint[] = []
+      for (const row of items) {
+        const t = num(row.unixTime ?? row.t)
+        const o = num(row.o ?? row.open)
+        const h = num(row.h ?? row.high)
+        const l = num(row.l ?? row.low)
+        const c = num(row.c ?? row.close)
+        const v = num(row.v ?? row.volume)
+        if (!(t > 0)) continue
+        out.push({ t, o, h, l, c, v })
+      }
+      return out
+    }
+
+    const v3 = await birdeyeGet(`/defi/v3/ohlcv?${q.toString()}`)
+    const v3Rows = parse(v3)
+    if (v3Rows.length) return v3Rows
+
+    const legacy = await birdeyeGet(`/defi/ohlcv?${q.toString()}`)
+    return parse(legacy)
+  })
+}
+
+/**
+ * Keyword / symbol search via Birdeye V3.
+ * Returns ScreenerRow[] (may be sparse until enriched). Empty on failure.
+ */
+export async function searchTokens(keyword: string, limit = 20): Promise<ScreenerRow[]> {
+  if (!apiKey()) return []
+  const q = keyword.trim()
+  if (!q) return []
+  const lim = Math.min(Math.max(1, Math.floor(limit)), 20)
+  return cachedJson(`birdeye:search:${q.toLowerCase()}:${lim}`, TTL.search, async () => {
+    const params = new URLSearchParams({
+      chain: 'solana',
+      keyword: q,
+      target: 'token',
+      search_mode: 'fuzzy',
+      search_by: 'combination',
+      sort_by: 'volume_24h_usd',
+      sort_type: 'desc',
+      offset: '0',
+      limit: String(lim),
+    })
+    const body = await birdeyeGet(`/defi/v3/search?${params.toString()}`)
+    if (!body || typeof body !== 'object') return []
+    const data = (body as { data?: { items?: Array<{ type?: string; result?: Record<string, unknown>[] }> } })
+      .data
+    const groups = Array.isArray(data?.items) ? data!.items! : []
+    const out: ScreenerRow[] = []
+    for (const group of groups) {
+      if (group.type && group.type !== 'token') continue
+      const results = Array.isArray(group.result) ? group.result : []
+      for (const row of results) {
+        const mapped = mapBirdeyeRowToScreener(row)
+        if (mapped) out.push(mapped)
+        if (out.length >= lim) return out
+      }
     }
     return out
   })
