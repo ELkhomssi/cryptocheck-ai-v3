@@ -33,7 +33,7 @@ async function timed<T>(fn: () => Promise<T>): Promise<TimedOk<T> | TimedErr> {
 }
 
 function detailOf(r: TimedOk<unknown> | TimedErr, okLabel: string): string {
-  if (r.ok) return okLabel
+  if (r.ok === true) return okLabel
   return r.error
 }
 
