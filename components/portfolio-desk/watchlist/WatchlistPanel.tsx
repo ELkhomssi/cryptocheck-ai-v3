@@ -2,9 +2,11 @@
 
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Star, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import type { ScreenerRow } from '@/lib/providers/types'
 import { formatPct, formatUsd } from '@/lib/portfolio-desk/format'
+import { TokenSearch } from '@/components/portfolio-desk/token/TokenSearch'
 
 type WatchItem = {
   id: string
@@ -243,9 +245,17 @@ function WatchCard({
 
 export function WatchlistPanel() {
   const qc = useQueryClient()
-  const [mint, setMint] = useState('')
-  const [symbol, setSymbol] = useState('')
+  const searchParams = useSearchParams()
+  const [mint, setMint] = useState(() => (searchParams.get('mint') || '').trim())
+  const [symbol, setSymbol] = useState(() => (searchParams.get('symbol') || '').trim())
   const [formError, setFormError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const m = (searchParams.get('mint') || '').trim()
+    const s = (searchParams.get('symbol') || '').trim()
+    if (m) setMint(m)
+    if (s) setSymbol(s)
+  }, [searchParams])
 
   const listQ = useQuery({
     queryKey: ['terminal-watchlist'],
@@ -430,22 +440,25 @@ export function WatchlistPanel() {
             e.preventDefault()
             const m = mint.trim()
             if (!m) {
-              setFormError('Enter a mint address')
+              setFormError('Search or paste a token mint')
               return
             }
             setFormError(null)
             addMut.mutate({ mint: m, symbol: symbol.trim() || undefined })
           }}
         >
-          <div className="pd-search" style={{ maxWidth: 'none' }}>
-            <input
-              value={mint}
-              onChange={(e) => setMint(e.target.value)}
-              placeholder="Token mint address"
-              aria-label="Token mint"
-              disabled={addMut.isPending}
-            />
-          </div>
+          <TokenSearch
+            value={mint}
+            fillMintOnSelect
+            placeholder="Search token or paste mint…"
+            onQueryChange={(q) => {
+              if (q.trim().length >= 32 && !q.includes(' ')) setMint(q.trim())
+            }}
+            onSelect={(row) => {
+              setMint(row.mint)
+              if (row.symbol) setSymbol(row.symbol)
+            }}
+          />
           <div className="pd-search" style={{ maxWidth: 'none' }}>
             <input
               value={symbol}
