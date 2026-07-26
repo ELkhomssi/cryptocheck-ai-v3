@@ -62,7 +62,7 @@ export function MissionCommandCenter({
     setMsgs((m) => [...m, { role: 'user', text }, { role: 'assistant', text: '' }])
     setDraft('')
     setStreaming(true)
-    setThinking('Thinking…')
+    setThinking('Working on your request…')
     try {
       const res = await fetch('/api/portfolio/coach', {
         method: 'POST',
@@ -84,7 +84,7 @@ export function MissionCommandCenter({
         return
       }
       setOnline(true)
-      setThinking('Writing…')
+      setThinking('Preparing a response…')
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let acc = ''

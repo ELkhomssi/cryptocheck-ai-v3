@@ -1098,20 +1098,55 @@
   font-style: italic;
 }
 
-.mc-talk-ask {
-  margin: 8px 0 0;
-  font-size: clamp(22px, 2.8vw, 28px);
-  font-weight: 560;
-  letter-spacing: -0.032em;
+.mc-talk-away {
+  font-style: italic;
+  color: var(--pd-text-dim);
+  font-size: clamp(17px, 2.1vw, 20px);
+  max-width: none;
+}
+
+.mc-talk-propose {
+  margin: 16px 0 0;
+  font-size: clamp(20px, 2.6vw, 26px);
+  font-weight: 540;
+  letter-spacing: -0.03em;
   color: var(--pd-text);
+}
+
+.mc-prepared {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mc-prepared-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--pd-text-dim);
+  font-size: 16px;
+  line-height: 1.5;
+  padding: 10px 0;
+  cursor: pointer;
+  border-bottom: 1px solid transparent;
+}
+
+.mc-prepared-item:hover {
+  color: var(--pd-text);
+  border-bottom-color: var(--pd-border-soft);
 }
 
 .mc-listen {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: auto;
-  padding-top: 8px;
+  margin-top: 8px;
+  padding-top: 4px;
 }
 
 .mc-listen-stream {

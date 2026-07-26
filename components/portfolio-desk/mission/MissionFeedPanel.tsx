@@ -94,7 +94,7 @@ export function MissionFeedPanel({
         ) : null}
         {!loading && shown.length === 0 ? (
           <p style={{ margin: 0, fontSize: 13, color: 'var(--pd-text-dim)', lineHeight: 1.5 }}>
-            I don’t have enough memory yet. Events appear here as they happen.
+            Today has been relatively quiet on the timeline. I will continue monitoring.
           </p>
         ) : null}
         {!loading && shown.length > 0 ? (

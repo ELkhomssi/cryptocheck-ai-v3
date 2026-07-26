@@ -1,8 +1,8 @@
 'use client'
 
 /**
- * Mission Control — first screen is ONLY the spoken briefing.
- * Evidence, metrics, living activity, and memory begin after that.
+ * Mission Control — the OS speaks first, proposes actions, then shows evidence.
+ * Presentation only. Institutional voice. Never invents.
  */
 
 import { useMemo, useState } from 'react'
@@ -53,21 +53,36 @@ export function MissionControlPanel({
 
   return (
     <div className="mc-talk">
-      {/* FIRST SCREEN — conversation only */}
+      {/* Speech → prepared actions → reply */}
       <div className="mc-talk-screen">
         <div className="mc-talk-thread" aria-live="polite">
           {conversation.turns.map((turn) =>
-            turn.kind === 'ask' ? (
-              <p key={turn.id} className="mc-talk-ask">
+            turn.kind === 'propose' ? (
+              <p key={turn.id} className="mc-talk-propose">
                 {turn.text}
               </p>
             ) : (
-              <p key={turn.id} className="mc-talk-speech">
+              <p
+                key={turn.id}
+                className={
+                  turn.id === 'away' ? 'mc-talk-speech mc-talk-away' : 'mc-talk-speech'
+                }
+              >
                 {turn.text}
               </p>
             ),
           )}
         </div>
+
+        <ul className="mc-prepared">
+          {conversation.preparedActions.map((action) => (
+            <li key={action}>
+              <button type="button" className="mc-prepared-item" onClick={() => setSeed(action)}>
+                {action}
+              </button>
+            </li>
+          ))}
+        </ul>
 
         <MissionCommandCenter
           seedPrompt={seed}
@@ -77,11 +92,22 @@ export function MissionControlPanel({
         />
       </div>
 
-      {/* AFTER the conversation — supporting layers only */}
+      {/* Evidence → Timeline → Metrics → Currently working */}
       <div className="mc-talk-below">
+        {conversation.attention.length > 0 ? (
+          <section className="mc-talk-section">
+            <h3 className="mc-talk-section-label">Things requiring your attention</h3>
+            {conversation.attention.map((line) => (
+              <p key={line} className="mc-talk-evidence">
+                {line}
+              </p>
+            ))}
+          </section>
+        ) : null}
+
         {conversation.evidence.length > 0 ? (
           <section className="mc-talk-section">
-            <h3 className="mc-talk-section-label">Supporting evidence</h3>
+            <h3 className="mc-talk-section-label">What I discovered</h3>
             {conversation.evidence.map((line) => (
               <p key={line} className="mc-talk-evidence">
                 {line}
@@ -90,23 +116,19 @@ export function MissionControlPanel({
           </section>
         ) : null}
 
-        {conversation.marketMetrics.length > 0 ? (
-          <section className="mc-talk-section">
-            <h3 className="mc-talk-section-label">Market metrics</h3>
-            <dl className="mc-talk-metrics">
-              {conversation.marketMetrics.map((m) => (
-                <div key={m.label}>
-                  <dt>{m.label}</dt>
-                  <dd className="pd-num">{m.value}</dd>
-                </div>
-              ))}
-            </dl>
-          </section>
-        ) : null}
+        <section className="mc-talk-section">
+          <div className="mc-talk-section-row">
+            <h3 className="mc-talk-section-label">While you were away…</h3>
+            <button type="button" className="mc-talk-quiet-link" onClick={onOpenFeed}>
+              Full Mission Feed
+            </button>
+          </div>
+          <MissionFeedPanel condensed limit={5} />
+        </section>
 
         {conversation.portfolioMetrics.length > 0 ? (
           <section className="mc-talk-section">
-            <h3 className="mc-talk-section-label">Portfolio metrics</h3>
+            <h3 className="mc-talk-section-label">Your portfolio today</h3>
             <dl className="mc-talk-metrics">
               {conversation.portfolioMetrics.map((m) => (
                 <div key={m.label}>
@@ -118,43 +140,33 @@ export function MissionControlPanel({
           </section>
         ) : null}
 
-        {conversation.living.length > 0 ? (
+        {conversation.marketMetrics.length > 0 ? (
           <section className="mc-talk-section">
-            <h3 className="mc-talk-section-label">Still watching</h3>
+            <h3 className="mc-talk-section-label">Market evidence</h3>
+            <dl className="mc-talk-metrics">
+              {conversation.marketMetrics.map((m) => (
+                <div key={m.label}>
+                  <dt>{m.label}</dt>
+                  <dd className="pd-num">{m.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        ) : null}
+
+        <section className="mc-talk-section">
+          <h3 className="mc-talk-section-label">Currently working…</h3>
+          {conversation.living.length > 0 ? (
             <div className="mc-talk-live">
               {conversation.living.map((line) => (
                 <div key={line}>{line}</div>
               ))}
             </div>
-          </section>
-        ) : null}
-
-        {conversation.suggestions.length > 0 ? (
-          <section className="mc-talk-section">
-            <h3 className="mc-talk-section-label">Also available</h3>
-            <div className="mc-listen-suggestions">
-              {conversation.suggestions.map((ex) => (
-                <button
-                  key={ex}
-                  type="button"
-                  className="mc-listen-chip"
-                  onClick={() => setSeed(ex)}
-                >
-                  {ex}
-                </button>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        <section className="mc-talk-section">
-          <div className="mc-talk-section-row">
-            <h3 className="mc-talk-section-label">Timeline</h3>
-            <button type="button" className="mc-talk-quiet-link" onClick={onOpenFeed}>
-              Mission Feed
-            </button>
-          </div>
-          <MissionFeedPanel condensed limit={8} />
+          ) : (
+            <p className="mc-talk-evidence">
+              Nothing critical is running. I will continue monitoring the market.
+            </p>
+          )}
         </section>
       </div>
     </div>

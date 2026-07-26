@@ -1,24 +1,17 @@
-# Mission Control — conversation only
+# Mission Control — Phase 17.1 brain
 
 Presentation-only. No providers, APIs, DB, or engines changed.
 
-## First screen (must stand alone)
+## Order
 
-Only five spoken beats:
+1. Mission speech (OS speaks first — judgement, not metrics)
+2. Prepared actions (“I already have several actions prepared. Choose one…”)
+3. Evidence / things requiring attention
+4. Timeline (“While you were away…”)
+5. Metrics (“Your portfolio today”, market evidence)
+6. Currently working…
 
-1. Greeting  
-2. Executive conclusion  
-3. Why it matters  
-4. One recommended action  
-5. “What would you like me to do?”
+## Voice
 
-Plus the reply field. No chips, timeline, metrics, or panels.
-
-## After the conversation (scroll)
-
-Supporting evidence → market metrics → portfolio metrics → still watching → optional prompts → timeline / Mission Feed.
-
-## Honesty
-
-Missing data → “I don’t have enough information yet.”  
-Never invent whale/liquidity/opportunity stats.
+Calm. Confident. Institutional. Never hype. Never invent.
+Quiet days say so explicitly and keep monitoring.
