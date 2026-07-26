@@ -115,28 +115,44 @@ export async function getLosersFeed(limit = LIMIT): Promise<MarketFeedResponse> 
   })
 }
 
-/** GET trending — Birdeye fetchTrending. */
+/** GET trending — Birdeye fetchTrending; DexScreener fallback when empty. */
 export async function getTrendingFeed(limit = LIMIT): Promise<MarketFeedResponse> {
-  if (!hasBirdeyeApiKey()) return unavailable()
   const lim = Math.min(Math.max(1, Math.floor(limit)), LIMIT)
-  return cachedJson(`market:feed:trending:${lim}`, FEED_TTL_SEC, async () => {
-    const items = await fetchTrending(lim)
-    return buildOkMarketFeed(items, 'birdeye')
+  return cachedJson(`market:feed:trending:v2:${lim}`, FEED_TTL_SEC, async () => {
+    if (hasBirdeyeApiKey()) {
+      const items = await fetchTrending(lim)
+      if (items.length) return buildOkMarketFeed(items, 'birdeye')
+    }
+    const { fetchDexScreenerScreenerRows } = await import('@/lib/providers/dexscreener')
+    const dex = await fetchDexScreenerScreenerRows(lim)
+    if (dex.length) return buildOkMarketFeed(dex.slice(0, lim), 'dexscreener')
+    return unavailable()
   })
 }
 
-/** GET new-launches — Birdeye + Raydium merge/dedupe by mint. */
+/** GET new-launches — Birdeye + Raydium merge/dedupe by mint; DexScreener if both empty. */
 export async function getNewLaunchesFeed(limit = LIMIT): Promise<MarketFeedResponse> {
-  if (!hasBirdeyeApiKey()) return unavailable()
   const lim = Math.min(Math.max(1, Math.floor(limit)), LIMIT)
-  return cachedJson(`market:feed:new-launches:${lim}`, FEED_TTL_SEC, async () => {
+  return cachedJson(`market:feed:new-launches:v2:${lim}`, FEED_TTL_SEC, async () => {
     const [birdeye, raydium] = await Promise.all([
-      fetchNewListings(lim),
+      hasBirdeyeApiKey() ? fetchNewListings(lim) : Promise.resolve([]),
       fetchNewPools(lim),
     ])
     const merged = mergeNewPoolsByMint(birdeye, raydium).slice(0, lim)
-    const items = await enrichPools(merged, lim)
-    return buildOkMarketFeed(items, 'birdeye+raydium')
+    if (merged.length) {
+      const items = await enrichPools(merged, lim)
+      const source =
+        birdeye.length && raydium.length
+          ? 'birdeye+raydium'
+          : birdeye.length
+            ? 'birdeye'
+            : 'raydium'
+      return buildOkMarketFeed(items, source)
+    }
+    const { fetchDexScreenerScreenerRows } = await import('@/lib/providers/dexscreener')
+    const dex = await fetchDexScreenerScreenerRows(lim)
+    if (dex.length) return buildOkMarketFeed(dex.slice(0, lim), 'dexscreener')
+    return unavailable()
   })
 }
 

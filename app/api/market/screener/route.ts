@@ -3,12 +3,16 @@
  * Virtualized token screener feed (Phase 10.3).
  * Query: sort, order, offset, limit, minLiquidity, maxRisk, minVolume, minAi,
  *        pumpfun, raydium, graduated, verified, trending, new
- * ~80–400ms estimated (Birdeye tokenlist + in-process scoring; cached via providers).
+ * ~80–600ms estimated (Birdeye primary; DexScreener/Jupiter/Helius/Raydium fallbacks).
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { fetchNewListings, fetchTokenList, fetchTrending } from '@/lib/providers/birdeye'
 import type { ScreenerRow } from '@/lib/providers/types'
+import {
+  enrichScreenerRows,
+  loadScreenerCorpus,
+  newsPoolsToScreenerRows,
+} from '@/lib/terminal/screener-corpus'
 import {
   computeAiScore,
   computeRiskScore,
@@ -18,17 +22,6 @@ import {
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-const SORT_TO_BIRDEYE: Record<string, string> = {
-  volume: 'v24hUSD',
-  liquidity: 'liquidity',
-  marketCap: 'mc',
-  price: 'price',
-  holders: 'holder',
-  change24h: 'v24hChangePercent',
-  change1h: 'v1hChangePercent',
-  change5m: 'v5mChangePercent',
-}
-
 const LOCAL_SORTS = new Set([
   'riskScore',
   'aiScore',
@@ -36,6 +29,7 @@ const LOCAL_SORTS = new Set([
   'fdv',
   'symbol',
   'token',
+  'price', // V3 list has no price sort — local after enrich
 ])
 
 function parseBool(v: string | null): boolean {
@@ -158,28 +152,38 @@ export async function GET(req: NextRequest) {
     flags.verified ||
     needsFlagSets
 
-  const birdSort = SORT_TO_BIRDEYE[sort] ?? 'v24hUSD'
   const fetchLimit = needsLocal ? 50 : Math.min(limit, 50)
   const fetchOffset = needsLocal ? 0 : offset
 
-  const [raw, trending, news] = await Promise.all([
-    // When filtering to new launches only, skip the volume tokenlist call (saves quota)
-    // and build rows from new listings directly.
-    flags.new && !flags.trending && !flags.pumpfun && !flags.raydium && !flags.graduated && !flags.verified
-      ? Promise.resolve([] as ScreenerRow[])
-      : fetchTokenList({
-          sortBy: birdSort,
-          sortType: order,
-          offset: fetchOffset,
-          limit: fetchLimit,
-          minLiquidity,
-        }),
-    flags.trending ? fetchTrending(20) : Promise.resolve([] as ScreenerRow[]),
-    flags.new ? fetchNewListings(50) : Promise.resolve([] as Awaited<ReturnType<typeof fetchNewListings>>),
-  ])
+  const skipTokenList =
+    flags.new &&
+    !flags.trending &&
+    !flags.pumpfun &&
+    !flags.raydium &&
+    !flags.graduated &&
+    !flags.verified
 
-  const { newPoolToScreenerRow } = await import('@/lib/terminal/market-feed-helpers')
-  const newsRows = news.map((p) => enrich(newPoolToScreenerRow(p)))
+  // ~80–600ms estimated (Birdeye + optional Dex/Jupiter/Helius/Raydium)
+  const corpus = await loadScreenerCorpus({
+    sortBy: sort,
+    sortType: order,
+    offset: fetchOffset,
+    limit: fetchLimit,
+    minLiquidity,
+    wantTrending: flags.trending || needsLocal,
+    wantNew: flags.new,
+    skipTokenList,
+  })
+
+  const newsRows = (
+    await enrichScreenerRows(newsPoolsToScreenerRows(corpus.news), {
+      dexFillLimit: 20,
+      heliusFillLimit: 12,
+    })
+  ).map(enrich)
+
+  const raw = corpus.rows
+  const trending = corpus.trending
 
   if (!raw.length && !trending.length && !newsRows.length) {
     return NextResponse.json({
@@ -190,16 +194,16 @@ export async function GET(req: NextRequest) {
       sort,
       order,
       available: false,
+      source: corpus.source,
       latencyMs: Date.now() - t0,
     })
   }
 
   const trendingMints = new Set(trending.map((r) => r.mint))
-  const newMints = new Set(news.map((p) => p.mint))
+  const newMints = new Set(corpus.news.map((p) => p.mint))
 
   let rows: ScreenerRow[]
   if (flags.new && !raw.length) {
-    // Primary corpus = new listings (not intersection with volume leaders).
     rows = newsRows.map((r) => {
       if (trendingMints.has(r.mint)) r.isTrending = true
       return r
@@ -211,10 +215,7 @@ export async function GET(req: NextRequest) {
       return enriched
     })
     if (flags.new) {
-      // Prefer showing new listing rows; fall back to intersection if news empty.
-      rows = newsRows.length
-        ? newsRows
-        : rows.filter((r) => newMints.has(r.mint))
+      rows = newsRows.length ? newsRows : rows.filter((r) => newMints.has(r.mint))
     }
   }
 
@@ -234,7 +235,11 @@ export async function GET(req: NextRequest) {
   if (flags.raydium) rows = rows.filter((r) => r.isRaydium)
   if (flags.graduated) rows = rows.filter((r) => r.isGraduated)
   if (flags.verified) rows = rows.filter((r) => r.isVerified)
-  if (flags.trending) rows = rows.filter((r) => r.isTrending || trendingMints.has(r.mint))
+  if (flags.trending) {
+    // Prefer explicit trending set; if intersection empties, show trending corpus directly
+    const filtered = rows.filter((r) => r.isTrending || trendingMints.has(r.mint))
+    rows = filtered.length ? filtered : trending.map(enrich)
+  }
 
   if (needsLocal) {
     sortLocal(rows, sort, order)
@@ -251,6 +256,7 @@ export async function GET(req: NextRequest) {
     sort,
     order,
     available: true,
+    source: corpus.source,
     latencyMs: Date.now() - t0,
   })
 }

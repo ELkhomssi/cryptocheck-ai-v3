@@ -469,7 +469,7 @@ export function ScreenerPanel() {
           <h3>{available === false ? 'Market data unavailable' : 'No tokens match'}</h3>
           <p>
             {available === false
-              ? 'Birdeye is offline or not configured. Nothing is fabricated — try again later.'
+              ? 'Birdeye / market providers returned no rows. Fallbacks (DexScreener, Jupiter, Helius, Raydium) also empty — try again later. Nothing is fabricated.'
               : 'Adjust filters or clear search to broaden results.'}
           </p>
         </div>

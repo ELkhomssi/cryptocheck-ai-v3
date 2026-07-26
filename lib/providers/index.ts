@@ -20,6 +20,8 @@ export {
   rpc,
   getAssetsByOwner,
   getParsedTokenAccounts,
+  getAsset,
+  heliusAssetMeta,
 } from '@/lib/providers/helius'
 export type { HeliusDasAsset, ParsedTokenAccount } from '@/lib/providers/helius'
 
@@ -36,7 +38,7 @@ export type { TokenListParams, PriceChangeWindows } from '@/lib/providers/birdey
 
 export { fetchNewPools, fetchPoolByMint } from '@/lib/providers/raydium'
 
-export { fetchTokenPairs, fetchTokenMetricsFromDex } from '@/lib/providers/dexscreener'
+export { fetchTokenPairs, fetchTokenMetricsFromDex, fetchDexScreenerSolanaMints, fetchDexScreenerScreenerRows } from '@/lib/providers/dexscreener'
 
 export {
   acquireProviderQuota,

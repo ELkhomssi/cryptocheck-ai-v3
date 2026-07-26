@@ -2,6 +2,13 @@ import 'server-only'
 
 import { cachedJson } from '@/lib/cache/ttl'
 import { providerFetchJson } from '@/lib/providers/http'
+import {
+  extractBirdeyeTokenRows,
+  mapBirdeyeRowToMetrics,
+  mapBirdeyeRowToScreener,
+  SCREENER_SORT_TO_BIRDEYE_LEGACY,
+  SCREENER_SORT_TO_BIRDEYE_V3,
+} from '@/lib/providers/birdeye-map'
 import type {
   NewPool,
   OhlcvPoint,
@@ -53,66 +60,25 @@ async function birdeyeGet(pathAndQuery: string): Promise<unknown | null> {
   })
 }
 
-function buySellRatio(buy: unknown, sell: unknown): number {
-  const b = num(buy)
-  const s = num(sell)
-  if (s <= 0) return b > 0 ? b : 0
-  return b / s
-}
-
-function mapOverviewToMetrics(mint: string, d: Record<string, unknown>): TokenMarketMetrics {
-  return {
-    mint,
-    symbol: typeof d.symbol === 'string' ? d.symbol : undefined,
-    name: typeof d.name === 'string' ? d.name : undefined,
-    priceUsd: num(d.price),
-    change5mPct: num(d.priceChange5mPercent),
-    change1hPct: num(d.priceChange1hPercent),
-    change24hPct: num(d.priceChange24hPercent),
-    volume24hUsd: num(d.v24hUSD ?? d.volume24hUSD),
-    liquidityUsd: num(d.liquidity),
-    marketCapUsd: num(d.marketCap),
-    fdvUsd: num(d.fdv),
-    holders: Math.max(0, Math.floor(num(d.holder))),
-    txCount24h: Math.max(0, Math.floor(num(d.trade24h))),
-    buySellRatio: buySellRatio(d.buy24h, d.sell24h),
-    logoUrl: typeof d.logoURI === 'string' ? d.logoURI : undefined,
+function mapRows(body: unknown, extras?: { isTrending?: boolean }): ScreenerRow[] {
+  const out: ScreenerRow[] = []
+  for (const row of extractBirdeyeTokenRows(body)) {
+    const mapped = mapBirdeyeRowToScreener(row, extras)
+    if (mapped) out.push(mapped)
   }
-}
-
-function mapListRowToScreener(row: Record<string, unknown>): ScreenerRow | null {
-  const mint =
-    (typeof row.address === 'string' && row.address) ||
-    (typeof row.mint === 'string' && row.mint) ||
-    ''
-  if (!mint) return null
-  const base = mapOverviewToMetrics(mint, row)
-  return {
-    ...base,
-    // Scoring fields filled by downstream layers — unset defaults, not fabricated scores
-    riskScore: 0,
-    aiScore: 0,
-    isPumpFun: Boolean(row.isPumpFun ?? row.is_pump_fun),
-    isRaydium: Boolean(row.isRaydium ?? row.is_raydium),
-    isGraduated: Boolean(row.isGraduated ?? row.is_graduated),
-    isVerified: Boolean(row.isVerified ?? row.verified),
-    isTrending: Boolean(row.isTrending),
-    // Only map real Birdeye smart-money fields — never invent whale wallets / scores
-    smartMoneyScore: num(
-      row.smartMoneyScore ?? row.smart_money_score ?? row.smartMoney ?? row.smart_money,
-    ),
-  }
+  return out
 }
 
 /** Token overview → TokenMarketMetrics. null when no key / failure. */
 export async function fetchTokenOverview(mint: string): Promise<TokenMarketMetrics | null> {
   if (!mint || !apiKey()) return null
   return cachedJson(`birdeye:overview:${mint}`, TTL.overview, async () => {
-    const body = (await birdeyeGet(
-      `/defi/token_overview?address=${encodeURIComponent(mint)}`,
-    )) as { data?: Record<string, unknown> } | null
-    if (!body?.data || typeof body.data !== 'object') return null
-    return mapOverviewToMetrics(mint, body.data)
+    const body = await birdeyeGet(`/defi/token_overview?address=${encodeURIComponent(mint)}`)
+    // overview returns a single object under data
+    const d =
+      body && typeof body === 'object' ? (body as { data?: unknown }).data : null
+    if (!d || typeof d !== 'object' || Array.isArray(d)) return null
+    return mapBirdeyeRowToMetrics(mint, d as Record<string, unknown>)
   })
 }
 
@@ -125,19 +91,19 @@ export async function fetchTokenMarket(mint: string): Promise<TokenMarketMetrics
 export async function fetchTrending(limit = 20): Promise<ScreenerRow[]> {
   if (!apiKey()) return []
   const lim = Math.min(Math.max(1, Math.floor(limit)), 20)
-  return cachedJson(`birdeye:trending:${lim}`, TTL.trending, async () => {
-    const body = (await birdeyeGet(
+  return cachedJson(`birdeye:trending:v2:${lim}`, TTL.trending, async () => {
+    // Docs: sort_by = rank | liquidity | volume24hUSD. Try rank then volume.
+    const attempts = [
       `/defi/token_trending?sort_by=rank&sort_type=asc&offset=0&limit=${lim}`,
-    )) as { data?: { tokens?: Record<string, unknown>[] } } | null
-    const tokens = body?.data?.tokens
-    if (!Array.isArray(tokens)) return []
-    const out: ScreenerRow[] = []
-    for (const row of tokens) {
-      if (!row || typeof row !== 'object') continue
-      const mapped = mapListRowToScreener({ ...row, isTrending: true })
-      if (mapped) out.push(mapped)
+      `/defi/token_trending?sort_by=volume24hUSD&sort_type=desc&offset=0&limit=${lim}`,
+      `/defi/token_trending?sort_by=liquidity&sort_type=desc&offset=0&limit=${lim}`,
+    ]
+    for (const path of attempts) {
+      const body = await birdeyeGet(path)
+      const rows = mapRows(body, { isTrending: true })
+      if (rows.length) return rows
     }
-    return out
+    return []
   })
 }
 
@@ -149,38 +115,54 @@ export type TokenListParams = {
   minLiquidity?: number
 }
 
-/** Screener token list. Empty when no key / failure. */
+/**
+ * Screener token list.
+ * Prefers V3 `/defi/v3/token/list` (richer change%/mc/holders), falls back to legacy tokenlist.
+ * Empty when no key / failure.
+ */
 export async function fetchTokenList(params: TokenListParams = {}): Promise<ScreenerRow[]> {
   if (!apiKey()) return []
-  const sortBy = params.sortBy ?? 'v24hUSD'
+  const sortByRaw = params.sortBy ?? 'v24hUSD'
   const sortType = params.sortType ?? 'desc'
   const offset = Math.max(0, Math.floor(params.offset ?? 0))
   const limit = Math.min(Math.max(1, Math.floor(params.limit ?? 50)), 50)
   const minLiq = params.minLiquidity
 
-  const q = new URLSearchParams({
-    sort_by: sortBy,
-    sort_type: sortType,
-    offset: String(offset),
-    limit: String(limit),
-  })
-  if (typeof minLiq === 'number' && Number.isFinite(minLiq)) {
-    q.set('min_liquidity', String(minLiq))
-  }
+  // Accept screener keys (volume), legacy keys (v24hUSD), or V3 enums (volume_24h_usd).
+  const v3Sort =
+    SCREENER_SORT_TO_BIRDEYE_V3[sortByRaw] ??
+    (sortByRaw.includes('_') ? sortByRaw : 'volume_24h_usd')
+  const legacySort =
+    SCREENER_SORT_TO_BIRDEYE_LEGACY[sortByRaw] ??
+    (!sortByRaw.includes('_') ? sortByRaw : 'v24hUSD')
 
-  return cachedJson(`birdeye:tokenlist:${q.toString()}`, TTL.tokenList, async () => {
-    const body = (await birdeyeGet(`/defi/tokenlist?${q.toString()}`)) as {
-      data?: { tokens?: Record<string, unknown>[] }
-    } | null
-    const tokens = body?.data?.tokens
-    if (!Array.isArray(tokens)) return []
-    const out: ScreenerRow[] = []
-    for (const row of tokens) {
-      if (!row || typeof row !== 'object') continue
-      const mapped = mapListRowToScreener(row)
-      if (mapped) out.push(mapped)
+  const cacheKey = `birdeye:tokenlist:v3:${v3Sort}:${sortType}:${offset}:${limit}:${minLiq ?? ''}`
+  return cachedJson(cacheKey, TTL.tokenList, async () => {
+    const v3q = new URLSearchParams({
+      sort_by: v3Sort,
+      sort_type: sortType,
+      offset: String(offset),
+      limit: String(limit),
+    })
+    if (typeof minLiq === 'number' && Number.isFinite(minLiq)) {
+      v3q.set('min_liquidity', String(minLiq))
     }
-    return out
+
+    const v3Body = await birdeyeGet(`/defi/v3/token/list?${v3q.toString()}`)
+    const v3Rows = mapRows(v3Body)
+    if (v3Rows.length) return v3Rows
+
+    const legacyQ = new URLSearchParams({
+      sort_by: legacySort,
+      sort_type: sortType,
+      offset: String(offset),
+      limit: String(limit),
+    })
+    if (typeof minLiq === 'number' && Number.isFinite(minLiq)) {
+      legacyQ.set('min_liquidity', String(minLiq))
+    }
+    const legacyBody = await birdeyeGet(`/defi/tokenlist?${legacyQ.toString()}`)
+    return mapRows(legacyBody)
   })
 }
 
@@ -223,54 +205,51 @@ export async function fetchOhlcv(
 export async function fetchNewListings(limit = 20): Promise<NewPool[]> {
   if (!apiKey()) return []
   const lim = Math.min(Math.max(1, Math.floor(limit)), 50)
-  return cachedJson(`birdeye:new:${lim}`, TTL.newListings, async () => {
-    const body = (await birdeyeGet(
+  return cachedJson(`birdeye:new:v2:${lim}`, TTL.newListings, async () => {
+    const attempts = [
       `/defi/v2/tokens/new_listing?limit=${lim}&meme_platform_enabled=true`,
-    )) as { data?: { items?: Record<string, unknown>[] } | Record<string, unknown>[] } | null
+      `/defi/v2/tokens/new_listing?limit=${lim}`,
+      `/defi/token_new_listing?limit=${lim}`,
+      // V3 recent listing sort as last resort corpus of “fresh” tokens
+      `/defi/v3/token/list?sort_by=recent_listing_time&sort_type=desc&offset=0&limit=${lim}`,
+    ]
 
-    let items: Record<string, unknown>[] = []
-    if (Array.isArray(body?.data)) {
-      items = body.data as Record<string, unknown>[]
-    } else if (body?.data && typeof body.data === 'object' && Array.isArray(body.data.items)) {
-      items = body.data.items
-    }
-    if (!items.length) {
-      // Legacy path
-      const legacy = (await birdeyeGet(
-        `/defi/token_new_listing?limit=${lim}`,
-      )) as { data?: { items?: Record<string, unknown>[] } | Record<string, unknown>[] } | null
-      if (Array.isArray(legacy?.data)) {
-        items = legacy.data as Record<string, unknown>[]
-      } else if (
-        legacy?.data &&
-        typeof legacy.data === 'object' &&
-        Array.isArray((legacy.data as { items?: unknown }).items)
-      ) {
-        items = (legacy.data as { items: Record<string, unknown>[] }).items
+    for (const path of attempts) {
+      const body = await birdeyeGet(path)
+      const rows = extractBirdeyeTokenRows(body)
+      if (!rows.length) continue
+
+      const out: NewPool[] = []
+      for (const row of rows) {
+        const mint =
+          (typeof row.address === 'string' && row.address) ||
+          (typeof row.mint === 'string' && row.mint) ||
+          ''
+        if (!mint) continue
+        out.push({
+          mint,
+          symbol: typeof row.symbol === 'string' ? row.symbol : typeof row.symbols === 'string' ? row.symbols : '',
+          name: typeof row.name === 'string' ? row.name : '',
+          poolAddress:
+            (typeof row.liquidityPool === 'string' && row.liquidityPool) ||
+            (typeof row.poolAddress === 'string' && row.poolAddress) ||
+            '',
+          liquidityUsd: num(row.liquidity),
+          createdAt: Math.floor(
+            num(
+              row.liquidityAddedAt ??
+                row.createdAt ??
+                row.openTime ??
+                row.recent_listing_time ??
+                row.listingTime,
+            ),
+          ),
+          source: 'birdeye',
+        })
       }
+      if (out.length) return out
     }
-
-    const out: NewPool[] = []
-    for (const row of items) {
-      const mint =
-        (typeof row.address === 'string' && row.address) ||
-        (typeof row.mint === 'string' && row.mint) ||
-        ''
-      if (!mint) continue
-      out.push({
-        mint,
-        symbol: typeof row.symbol === 'string' ? row.symbol : '',
-        name: typeof row.name === 'string' ? row.name : '',
-        poolAddress:
-          (typeof row.liquidityPool === 'string' && row.liquidityPool) ||
-          (typeof row.poolAddress === 'string' && row.poolAddress) ||
-          '',
-        liquidityUsd: num(row.liquidity),
-        createdAt: Math.floor(num(row.liquidityAddedAt ?? row.createdAt ?? row.openTime)),
-        source: 'birdeye',
-      })
-    }
-    return out
+    return []
   })
 }
 
@@ -285,20 +264,16 @@ export type PriceChangeWindows = {
 export async function fetchPriceChange(mint: string): Promise<PriceChangeWindows | null> {
   if (!mint || !apiKey()) return null
   return cachedJson(`birdeye:pchg:${mint}`, TTL.priceChange, async () => {
-    const body = (await birdeyeGet(
-      `/defi/token_overview?address=${encodeURIComponent(mint)}`,
-    )) as { data?: Record<string, unknown> } | null
-    const d = body?.data
-    if (!d) return null
-    const asPct = (v: unknown): number | null => {
-      if (typeof v === 'number' && Number.isFinite(v)) return v
-      return null
-    }
+    const overview = await fetchTokenOverview(mint)
+    if (!overview) return null
+    const asPct = (v: number): number | null => (Number.isFinite(v) ? v : null)
     return {
       mint,
-      change5mPct: asPct(d.priceChange5mPercent),
-      change1hPct: asPct(d.priceChange1hPercent),
-      change24hPct: asPct(d.priceChange24hPercent),
+      change5mPct: asPct(overview.change5mPct),
+      change1hPct: asPct(overview.change1hPct),
+      change24hPct: asPct(overview.change24hPct),
     }
   })
 }
+
+export { SCREENER_SORT_TO_BIRDEYE_LEGACY, SCREENER_SORT_TO_BIRDEYE_V3 }
