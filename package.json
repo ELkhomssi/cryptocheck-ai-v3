@@ -26,6 +26,7 @@
     "lint:intelligence-core": "node scripts/check-intelligence-core-boundary.cjs",
     "test:intelligence-modules": "node --import tsx --test __tests__/api/intelligence-modules.test.ts",
     "test:intelligence-core": "node --import tsx --test __tests__/api/intelligence-core.test.ts",
+    "test:mission-narrative": "node --import tsx --test __tests__/api/mission-narrative.test.ts",
     "test:sentinel": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-sentinel.ts",
     "test:intelligence": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/smoke-intelligence.ts",
     "test:portfolio-alerts": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/smoke-portfolio-alerts.ts",
