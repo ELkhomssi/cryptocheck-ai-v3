@@ -66,7 +66,7 @@ export function CoachPanel() {
           const next = [...m]
           next[next.length - 1] = {
             role: 'assistant',
-            text: err.error || 'Coach unavailable. Check ANTHROPIC_API_KEY on the server.',
+            text: err.error || 'Coach unavailable. Check OPENAI_API_KEY on the server.',
           }
           return next
         })

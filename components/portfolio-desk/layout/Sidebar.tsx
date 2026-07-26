@@ -9,6 +9,7 @@ import {
   Star,
   SunMoon,
   Table2,
+  Users,
 } from 'lucide-react'
 import { useSolana } from '@/components/SolanaProvider'
 import { usePortfolioTheme } from '@/store/portfolio-theme'
@@ -20,6 +21,7 @@ export type DeskNav =
   | 'watchlist'
   | 'alerts'
   | 'coach'
+  | 'employees'
   | 'settings'
 
 const ITEMS: { id: DeskNav; label: string; icon: typeof LayoutDashboard }[] = [
@@ -29,6 +31,7 @@ const ITEMS: { id: DeskNav; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'watchlist', label: 'Watchlist', icon: Star },
   { id: 'alerts', label: 'Alerts', icon: Bell },
   { id: 'coach', label: 'AI Coach', icon: Brain },
+  { id: 'employees', label: 'AI Employees', icon: Users },
 ]
 
 export function Sidebar({
