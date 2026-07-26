@@ -6,6 +6,7 @@ import { VersionedTransaction } from '@solana/web3.js'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 import { useSolana } from '@/components/SolanaProvider'
+import { TokenSearch } from '@/components/portfolio-desk/token/TokenSearch'
 import type { SwapQuote } from '@/lib/revenue-dashboard/types'
 import { buildJupiterSwapTransaction } from '@/lib/trading/jupiter-client'
 import type { SwapDecision } from '@/lib/trading/risk-gated-swap'
@@ -25,14 +26,14 @@ async function fetchOrders(wallet: string): Promise<TerminalOrder[]> {
   return body.orders ?? []
 }
 
-export function TradePanel() {
+export function TradePanel({ initialMint = '' }: { initialMint?: string }) {
   const { walletAddress, isConnected, connect } = useSolana()
   const wallet = useWallet()
   const { connection } = useConnection()
   const qc = useQueryClient()
 
   const [side, setSide] = useState<Side>('buy')
-  const [mint, setMint] = useState('')
+  const [mint, setMint] = useState(initialMint)
   const [amount, setAmount] = useState('0.1')
   const [slippageBps, setSlippageBps] = useState(50)
 
@@ -58,6 +59,11 @@ export function TradePanel() {
 
   const assessSeq = useRef(0)
   const quoteSeq = useRef(0)
+
+  useEffect(() => {
+    if (initialMint && initialMint !== mint) setMint(initialMint)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync from URL/inspect only
+  }, [initialMint])
 
   const inputMint = side === 'buy' ? SOL_MINT : mint.trim()
   const outputMint = side === 'buy' ? mint.trim() : SOL_MINT
@@ -303,26 +309,28 @@ export function TradePanel() {
             marginBottom: 4,
           }}
         >
-          Token mint
+          Token (search symbol or paste mint)
         </label>
-        <input
-          value={mint}
-          onChange={(e) => setMint(e.target.value.trim())}
-          placeholder="Solana mint address"
-          aria-label="Token mint"
-          style={{
-            width: '100%',
-            marginBottom: 12,
-            padding: '10px 12px',
-            borderRadius: 'var(--pd-radius)',
-            border: '1px solid var(--pd-border)',
-            background: 'var(--pd-surface-2)',
-            color: 'inherit',
-            fontFamily: 'var(--font-ibm-plex-mono), monospace',
-            fontSize: 12,
-          }}
-        />
-
+        <div style={{ marginBottom: 12 }}>
+          <TokenSearch
+            value={mint}
+            fillMintOnSelect
+            placeholder="Search token or paste mint…"
+            onQueryChange={(q) => {
+              // Allow pasting a full mint directly into the field
+              if (q.trim().length >= 32 && !q.includes(' ')) setMint(q.trim())
+            }}
+            onSelect={(row) => setMint(row.mint)}
+          />
+          {mint ? (
+            <div
+              className="pd-num"
+              style={{ marginTop: 6, fontSize: 11, color: 'var(--pd-text-faint)' }}
+            >
+              Selected · {mint.slice(0, 8)}…{mint.slice(-8)}
+            </div>
+          ) : null}
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
             <label

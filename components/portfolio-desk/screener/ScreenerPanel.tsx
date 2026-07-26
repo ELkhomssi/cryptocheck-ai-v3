@@ -197,7 +197,11 @@ function sortRows(rows: ScreenerRow[], sort: SortKey, order: 'asc' | 'desc'): Sc
   return copy
 }
 
-export function ScreenerPanel() {
+export function ScreenerPanel({
+  onSelectMint,
+}: {
+  onSelectMint?: (mint: string) => void
+} = {}) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [filters, setFilters] = useState<FilterState>(() => readFilters(searchParams))
@@ -213,11 +217,16 @@ export function ScreenerPanel() {
   const replaceUrl = useCallback(
     (next: FilterState) => {
       const p = filtersToParams(next)
+      // Preserve desk navigation + focused mint (token inspect / trade deep-links)
+      const nav = searchParams.get('nav')
+      const mint = searchParams.get('mint')
+      if (nav) p.set('nav', nav)
+      if (mint) p.set('mint', mint)
       const qs = p.toString()
       syncSkip.current = true
       router.replace(qs ? `?${qs}` : '?', { scroll: false })
     },
-    [router],
+    [router, searchParams],
   )
 
   const patchFilters = useCallback(
@@ -527,6 +536,14 @@ export function ScreenerPanel() {
                   <div
                     key={row.mint}
                     role="row"
+                    tabIndex={0}
+                    onClick={() => onSelectMint?.(row.mint)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        onSelectMint?.(row.mint)
+                      }
+                    }}
                     style={{
                       position: 'absolute',
                       top: 0,
@@ -538,6 +555,7 @@ export function ScreenerPanel() {
                       alignItems: 'center',
                       borderBottom: '1px solid var(--pd-border-soft)',
                       fontSize: 13,
+                      cursor: onSelectMint ? 'pointer' : 'default',
                     }}
                   >
                     <div style={{ width: COLUMNS[0].width, flexShrink: 0, padding: '0 12px' }}>

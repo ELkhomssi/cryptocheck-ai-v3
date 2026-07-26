@@ -1,9 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { Bell, ChevronDown, Menu, Search } from 'lucide-react'
+import { useEffect, useRef } from 'react'
+import { Bell, ChevronDown, Menu } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useSolana } from '@/components/SolanaProvider'
+import { TokenSearch } from '@/components/portfolio-desk/token/TokenSearch'
 import { truncateWallet } from '@/lib/portfolio-desk/format'
+import type { ScreenerRow } from '@/lib/providers/types'
 
 export function Topbar({
   alertCount = 0,
@@ -12,8 +15,9 @@ export function Topbar({
   alertCount?: number
   onOpenNav?: () => void
 }) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const { walletAddress, isConnected, connect, disconnect, shortAddr } = useSolana()
-  const [query, setQuery] = useState('')
   const searchRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -32,6 +36,13 @@ export function Topbar({
       ? shortAddr || truncateWallet(walletAddress)
       : null
 
+  const openToken = (row: ScreenerRow) => {
+    const p = new URLSearchParams(searchParams.toString())
+    p.set('mint', row.mint)
+    // Keep current nav; TokenInspect shows above content for chart + swap/watch.
+    router.replace(`?${p.toString()}`, { scroll: false })
+  }
+
   return (
     <header className="pd-topbar">
       {onOpenNav ? (
@@ -45,22 +56,12 @@ export function Topbar({
         </button>
       ) : null}
 
-      <form
-        className="pd-search"
-        onSubmit={(e) => {
-          e.preventDefault()
-        }}
-      >
-        <Search className="h-[15px] w-[15px] shrink-0" strokeWidth={2} />
-        <input
-          ref={searchRef}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search tokens, wallets, or portfolios…"
-          aria-label="Search"
-        />
-        <span className="pd-kbd">⌘K</span>
-      </form>
+      <TokenSearch
+        inputRef={searchRef}
+        showShortcut
+        placeholder="Search tokens to chart, watch, or swap…"
+        onSelect={openToken}
+      />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <div className="pd-chip" title="Network">

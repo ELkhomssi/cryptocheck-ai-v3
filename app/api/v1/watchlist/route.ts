@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { resolveConsumerTier, type ConsumerTier } from '@/lib/billing/consumer-tier'
 import { scanTokenIntelligenceViaGateway } from '@/lib/connect/scan-gateway'
-import { isValidSolanaMint } from '@/lib/validation/mint'
+import { isValidSolanaAddress } from '@/lib/validation/mint'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     const symbol = typeof body.symbol === 'string' ? body.symbol.trim().slice(0, 32) : null
     const name = typeof body.name === 'string' ? body.name.trim().slice(0, 120) : null
 
-    if (!mint || !isValidSolanaMint(mint)) {
+    if (!mint || !isValidSolanaAddress(mint)) {
       return NextResponse.json({ error: 'Invalid mint address' }, { status: 400 })
     }
 

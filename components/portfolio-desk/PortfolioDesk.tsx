@@ -2,7 +2,7 @@
 
 import { Component, Suspense, type ErrorInfo, type ReactNode, useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useSolana } from '@/components/SolanaProvider'
 import { AlertsPanel } from './alerts/AlertsPanel'
 import { AiEmployeesPanel } from './agents/AiEmployeesPanel'
@@ -20,6 +20,7 @@ import { AnalyticsPanel } from './portfolio/AnalyticsPanel'
 import { AiReviewPanel } from './portfolio/AiReviewPanel'
 import { PerformanceChart, usePerformance } from './portfolio/PerformanceChart'
 import { ScreenerPanel } from './screener/ScreenerPanel'
+import { TokenInspectPanel } from './token/TokenInspectPanel'
 import { TradePanel } from './trade/TradePanel'
 import { WatchlistPanel } from './watchlist/WatchlistPanel'
 import { SettingsPanel } from './settings/SettingsPanel'
@@ -104,9 +105,11 @@ class SectionErrorBoundary extends Component<
 }
 
 export function PortfolioDesk() {
+  const router = useRouter()
   const { isConnected, connect, walletAddress } = useSolana()
   const searchParams = useSearchParams()
   const initialNav = (searchParams.get('nav') as DeskNav | null) || 'portfolio'
+  const focusMint = (searchParams.get('mint') || '').trim()
   const [nav, setNav] = useState<DeskNav>(
     [
       'portfolio',
@@ -123,6 +126,37 @@ export function PortfolioDesk() {
   )
   const [range, setRange] = useState<(typeof RANGES)[number]>('24H')
   const [mobileNav, setMobileNav] = useState(false)
+
+  const setDeskNav = (id: DeskNav) => {
+    setNav(id)
+    const p = new URLSearchParams(searchParams.toString())
+    p.set('nav', id)
+    router.replace(`?${p.toString()}`, { scroll: false })
+  }
+
+  const clearMint = () => {
+    const p = new URLSearchParams(searchParams.toString())
+    p.delete('mint')
+    const qs = p.toString()
+    router.replace(qs ? `?${qs}` : '?', { scroll: false })
+  }
+
+  const goTrade = (mint: string) => {
+    const p = new URLSearchParams(searchParams.toString())
+    p.set('nav', 'trade')
+    p.set('mint', mint)
+    setNav('trade')
+    router.replace(`?${p.toString()}`, { scroll: false })
+  }
+
+  const goWatch = (mint: string, symbol?: string) => {
+    const p = new URLSearchParams(searchParams.toString())
+    p.set('nav', 'watchlist')
+    p.set('mint', mint)
+    if (symbol) p.set('symbol', symbol)
+    setNav('watchlist')
+    router.replace(`?${p.toString()}`, { scroll: false })
+  }
 
   useEffect(() => {
     const q = searchParams.get('nav') as DeskNav | null
@@ -169,7 +203,7 @@ export function PortfolioDesk() {
       ) : null}
       <Sidebar
         active={nav}
-        onSelect={setNav}
+        onSelect={setDeskNav}
         mobileOpen={mobileNav}
         onCloseMobile={() => setMobileNav(false)}
       />
@@ -199,6 +233,17 @@ export function PortfolioDesk() {
           }
         />
 
+        {focusMint.length >= 32 ? (
+          <SectionErrorBoundary title="Token">
+            <TokenInspectPanel
+              mint={focusMint}
+              onClose={clearMint}
+              onTrade={goTrade}
+              onWatch={goWatch}
+            />
+          </SectionErrorBoundary>
+        ) : null}
+
         {!isConnected && nav !== 'screener' && nav !== 'watchlist' && nav !== 'employees' ? (
           <div className="pd-empty pd-panel">
             <h3>Connect your wallet to open the desk</h3>
@@ -223,14 +268,21 @@ export function PortfolioDesk() {
                 </div>
               }
             >
-              <ScreenerPanel />
+              <ScreenerPanel
+                onSelectMint={(mint) => {
+                  const p = new URLSearchParams(searchParams.toString())
+                  p.set('mint', mint)
+                  p.set('nav', 'screener')
+                  router.replace(`?${p.toString()}`, { scroll: false })
+                }}
+              />
             </Suspense>
           </SectionErrorBoundary>
         ) : null}
 
         {nav === 'trade' && isConnected ? (
           <SectionErrorBoundary title="Trade">
-            <TradePanel />
+            <TradePanel initialMint={focusMint.length >= 32 ? focusMint : ''} />
           </SectionErrorBoundary>
         ) : null}
 
