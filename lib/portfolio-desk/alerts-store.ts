@@ -88,6 +88,10 @@ export async function pushAlert(alert: PortfolioAlert): Promise<void> {
   }
 }
 
+export async function clearAlertsMemory(): Promise<void> {
+  cacheSet(KEY, [], 24 * 60 * 60 * 1000)
+}
+
 export async function alertsForSymbols(
   symbols: Set<string>,
   limit = 20,
