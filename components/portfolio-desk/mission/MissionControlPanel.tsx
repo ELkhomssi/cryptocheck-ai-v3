@@ -81,10 +81,11 @@ export function MissionControlPanel({
     return () => window.clearTimeout(t)
   }, [spokenCount, conversation.turns])
 
-  const unlocked = proofsUnlockedThrough(conversation.turns, spokenCount)
-  const active = activeProofAt(conversation.turns, spokenCount)
+  const safeSpoken = Math.min(spokenCount, conversation.turns.length)
+  const unlocked = proofsUnlockedThrough(conversation.turns, safeSpoken)
+  const active = activeProofAt(conversation.turns, safeSpoken)
   const actionsReady = unlocked.includes('actions')
-  const spokenTurns = conversation.turns.slice(0, spokenCount)
+  const spokenTurns = conversation.turns.slice(0, safeSpoken)
 
   // Live living lines from latest mission payload (updates while speech runs).
   const liveLiving = useMemo(() => {
@@ -120,7 +121,7 @@ export function MissionControlPanel({
                 {turn.text}
               </p>
             ))}
-            {spokenCount < conversation.turns.length ? (
+            {safeSpoken < conversation.turns.length ? (
               <p className="mc-talk-cursor" aria-hidden>
                 ▍
               </p>
