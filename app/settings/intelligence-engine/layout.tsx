@@ -17,12 +17,12 @@ const ibmMono = IBM_Plex_Mono({
 })
 
 export const metadata = {
-  title: 'Terminal · CryptoCheck AI OS',
+  title: 'Intelligence Engine · CryptoCheck AI',
   description:
-    'CryptoCheck AI Operating System — Mission Control, Market Intelligence, Trading, Portfolio, Automation.',
+    'Advanced AI employee roster and orchestrator — relocated under Settings (Phase 15).',
 }
 
-export default function TerminalLayout({ children }: { children: React.ReactNode }) {
+export default function IntelligenceEngineLayout({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={`${inter.variable} ${ibmMono.variable} ${inter.className}`}

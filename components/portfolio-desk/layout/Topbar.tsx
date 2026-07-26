@@ -12,11 +12,14 @@ export function Topbar({
   alertCount = 0,
   onOpenNav,
   onSelectToken,
+  onOpenFeed,
 }: {
   alertCount?: number
   onOpenNav?: () => void
   /** Optional override — default navigates to /terminal?mint=… */
   onSelectToken?: (row: ScreenerRow) => void
+  /** Mission Feed (replaces notifications panel). */
+  onOpenFeed?: () => void
 }) {
   const router = useRouter()
   const { walletAddress, isConnected, connect, disconnect, shortAddr } = useSolana()
@@ -43,7 +46,7 @@ export function Topbar({
       onSelectToken(row)
       return
     }
-    router.push(`/terminal?nav=screener&mint=${encodeURIComponent(row.mint)}`)
+    router.push(`/terminal?nav=market&mint=${encodeURIComponent(row.mint)}`)
   }
 
   return (
@@ -62,7 +65,7 @@ export function Topbar({
       <TokenSearch
         inputRef={searchRef}
         showShortcut
-        placeholder="Search tokens to chart, watch, or swap…"
+        placeholder="Command Center — search tokens to chart, watch, or swap…"
         onSelect={openToken}
       />
 
@@ -73,7 +76,16 @@ export function Topbar({
           <ChevronDown className="h-3 w-3" strokeWidth={2} aria-hidden />
         </div>
 
-        <button type="button" className="pd-icon-btn" aria-label="Notifications">
+        <button
+          type="button"
+          className="pd-icon-btn"
+          aria-label="Mission Feed"
+          title="Mission Feed"
+          onClick={() => {
+            if (onOpenFeed) onOpenFeed()
+            else router.push('/terminal?nav=feed')
+          }}
+        >
           {alertCount > 0 ? <span className="ping" aria-hidden /> : null}
           <Bell className="h-[17px] w-[17px]" strokeWidth={1.7} />
         </button>
