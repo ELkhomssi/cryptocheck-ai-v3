@@ -8,6 +8,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { AgentActivityRow, AIEmployee } from '@/types/agents'
+import { statusCopyForAgentRun } from '@/lib/intelligence/copy'
 
 const RECIPES: {
   id: string
@@ -104,9 +105,10 @@ export function AutomationPanel({ walletAddress }: { walletAddress: string | nul
       return { agent, recipe, body }
     },
     onSuccess: ({ recipe, agent }) => {
-      setMsg(`Started “${recipe.title}” via ${agent.name}`)
+      setMsg(statusCopyForAgentRun(agent.id, 'started', recipe.title))
       void qc.invalidateQueries({ queryKey: ['automation-activity'] })
       void qc.invalidateQueries({ queryKey: ['mission-running-intel'] })
+      void qc.invalidateQueries({ queryKey: ['intelligence-modules'] })
     },
     onError: (e) => setMsg(e instanceof Error ? e.message : 'Failed'),
   })

@@ -232,6 +232,8 @@ export function customRowToEmployee(row: CustomEmployeeRow): AIEmployee {
     iconTone: row.iconTone,
     icon: row.icon,
     builtin: false,
+    // Custom builders are Command Center tooling — not counted on Intelligence Module cards.
+    modules: [],
   }
 }
 

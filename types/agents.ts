@@ -1,7 +1,10 @@
 /**
  * Phase 11 — AI Employees type contracts.
  * Config objects only — all employees share the same backend model.
+ * Phase 16 — each employee maps to one or more Intelligence Modules.
  */
+
+import type { IntelligenceModuleId } from '@/types/intelligence'
 
 export type AgentDataSource =
   | 'jupiter-price'
@@ -58,6 +61,12 @@ export type AIEmployee = {
   /** Lucide icon name key for the badge. */
   icon: string
   builtin: boolean
+  /**
+   * Intelligence Modules this worker contributes to (Phase 16).
+   * Empty = internal tooling only (never shown on module cards).
+   * A worker may list multiple modules (e.g. scam-investigator → security + launch).
+   */
+  modules: IntelligenceModuleId[]
 }
 
 export type AgentActivityKind =

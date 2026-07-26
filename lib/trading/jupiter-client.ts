@@ -122,6 +122,7 @@ export async function getJupiterQuote(
   slippageBps: number,
   options?: JupiterQuoteOptions,
 ): Promise<JupiterQuote> {
+  const quoteStarted = Date.now()
   const q = new URLSearchParams({
     inputMint,
     outputMint,
@@ -136,6 +137,12 @@ export async function getJupiterQuote(
   if (!data || typeof data.outAmount !== 'string') {
     throw new JupiterError('No route found for this pair/amount')
   }
+  // Phase 16 — record real quote latency/count for Trading Intelligence stats (~0ms extra).
+  void import('@/lib/intelligence/module-stats')
+    .then(({ recordJupiterQuoteLatency }) =>
+      recordJupiterQuoteLatency(Date.now() - quoteStarted),
+    )
+    .catch(() => {})
   return {
     inputMint: String(data.inputMint ?? inputMint),
     outputMint: String(data.outputMint ?? outputMint),
@@ -145,7 +152,7 @@ export async function getJupiterQuote(
     swapMode: String(data.swapMode ?? 'ExactIn'),
     slippageBps: Number(data.slippageBps ?? slippageBps),
     priceImpactPct: String(data.priceImpactPct ?? '0'),
-    routePlan: Array.isArray(data.routePlan) ? data.routePlan : [],
+    routePlan: Array.isArray(data.routePlan) ? (data.routePlan as unknown[]) : [],
     raw: data,
   }
 }

@@ -16,6 +16,7 @@ import {
   resolveEmployee,
   updateAgentActivityStatus,
 } from '@/lib/agents/store'
+import { statusCopyForAgentRun } from '@/lib/intelligence/copy'
 import type { AgentRunRequest, AgentRunStructured } from '@/types/agents'
 
 export const runtime = 'nodejs'
@@ -194,10 +195,13 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
     kind: effectiveAction === 'chat' ? 'chat' : effectiveAction,
     description:
       effectiveAction === 'chat'
-        ? `Chat: ${message.slice(0, 120)}`
-        : `Started ${employee.actionLabel}`,
+        ? statusCopyForAgentRun(employee.id, 'running')
+        : statusCopyForAgentRun(employee.id, 'started'),
     walletAddress: body.walletAddress ?? null,
     status: 'running',
+    meta: body.mint
+      ? { targetMint: body.mint, investigation: Boolean(body.mint) }
+      : {},
   })
 
   // ~50–800ms estimated
