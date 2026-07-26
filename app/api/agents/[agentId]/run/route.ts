@@ -1,13 +1,14 @@
 /**
  * POST /api/agents/[agentId]/run
- * Orchestrates a single AI Employee action — live context + Anthropic (server-only).
+ * Orchestrates a single AI Employee action — live context + OpenAI (server-only).
  * Chat streams; report/analysis/signals/optimize return AgentRunStructured JSON.
  */
 
-import { createAnthropic } from '@ai-sdk/anthropic'
+import { createOpenAI } from '@ai-sdk/openai'
 import { generateText, streamText } from 'ai'
 import { NextRequest, NextResponse } from 'next/server'
 import { buildAgentLiveContext } from '@/lib/agents/context'
+import { AGENT_OPENAI_MODEL, getOpenAiApiKey, isOpenAiConfigured } from '@/lib/agents/llm'
 import { parseStructuredAgentOutput } from '@/lib/agents/parse-structured'
 import {
   insertPrediction,
@@ -25,7 +26,7 @@ type RouteCtx = { params: { agentId: string } }
 
 function completenessFromStructured(out: AgentRunStructured): number {
   let filled = 0
-  let total = 4
+  const total = 4
   if (out.summary?.trim()) filled += 1
   if (out.sections?.length) filled += 1
   if (out.stats?.length) filled += 1
@@ -129,7 +130,7 @@ export async function GET(_req: NextRequest, ctx: RouteCtx) {
   const agentId = decodeURIComponent(ctx.params.agentId)
   const employee = await resolveEmployee(agentId)
   return NextResponse.json({
-    available: Boolean(process.env.ANTHROPIC_API_KEY?.trim()),
+    available: isOpenAiConfigured(),
     agentId: employee?.id ?? null,
     found: Boolean(employee),
   })
@@ -142,16 +143,16 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
     return NextResponse.json({ error: 'unknown agent' }, { status: 404 })
   }
 
-  const key = process.env.ANTHROPIC_API_KEY?.trim()
+  const key = getOpenAiApiKey()
   if (!key) {
     return NextResponse.json(
-      { error: 'ANTHROPIC_API_KEY is not configured on the server.' },
+      { error: 'OPENAI_API_KEY is not configured on the server.' },
       { status: 503 },
     )
   }
 
   const { acquireProviderQuota } = await import('@/lib/providers/quota')
-  const quota = await acquireProviderQuota('anthropic')
+  const quota = await acquireProviderQuota('openai')
   if (quota.ok === false) {
     return NextResponse.json(
       {
@@ -174,13 +175,8 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
   }
 
   const action = body.action || employee.actionType
-  if (action !== employee.actionType && employee.builtin) {
-    // Allow chat-style follow-ups only when employee is chat-typed; otherwise force declared action.
-    if (!(employee.actionType === 'chat' && action === 'chat')) {
-      /* keep requested action for custom flexibility; built-ins stick to declared type */
-    }
-  }
-  const effectiveAction = employee.builtin ? employee.actionType : action
+  void action
+  const effectiveAction = employee.builtin ? employee.actionType : body.action || employee.actionType
 
   const message =
     body.message?.trim() ||
@@ -212,12 +208,13 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
     message,
   })
 
-  const anthropic = createAnthropic({ apiKey: key })
+  const openai = createOpenAI({ apiKey: key })
+  const model = openai(AGENT_OPENAI_MODEL)
   const system = employee.systemPromptTemplate
 
   if (effectiveAction === 'chat') {
     const result = streamText({
-      model: anthropic('claude-sonnet-4-6'),
+      model,
       system,
       messages: [
         {
@@ -227,7 +224,6 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
       ],
     })
 
-    // Mark completed asynchronously after stream starts (best-effort).
     if (activityId) {
       void updateAgentActivityStatus(activityId, 'completed', { streamed: true })
     }
@@ -237,7 +233,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
 
   try {
     const result = await generateText({
-      model: anthropic('claude-sonnet-4-6'),
+      model,
       system,
       prompt: [
         liveContext,
@@ -284,7 +280,6 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
       employee.performanceFormula.verificationWindowHours,
     )
 
-    // Enrich optimize suggestions with stable ids if missing
     if (structured.suggestions?.length) {
       structured.suggestions = structured.suggestions.map((s, i) => ({
         ...s,

@@ -11,6 +11,7 @@ export type ProviderId =
   | 'raydium'
   | 'dexscreener'
   | 'anthropic'
+  | 'openai'
 
 const DEFAULTS: Record<
   ProviderId,
@@ -23,6 +24,7 @@ const DEFAULTS: Record<
   raydium: { rpm: 60, daily: 30_000, softRatio: 0.8, maxDelayMs: 1_200, pauseOn429Ms: 20_000 },
   dexscreener: { rpm: 50, daily: 20_000, softRatio: 0.75, maxDelayMs: 2_000, pauseOn429Ms: 45_000 },
   anthropic: { rpm: 30, daily: 2_000, softRatio: 0.8, maxDelayMs: 2_000, pauseOn429Ms: 60_000 },
+  openai: { rpm: 60, daily: 10_000, softRatio: 0.8, maxDelayMs: 2_000, pauseOn429Ms: 60_000 },
 }
 
 export function getProviderQuotaConfig(provider: ProviderId) {

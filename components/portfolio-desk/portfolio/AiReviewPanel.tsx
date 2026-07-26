@@ -81,7 +81,7 @@ export function AiReviewPanel() {
 
         {availQ.data === false ? (
           <p style={{ marginTop: 10, fontSize: 12, color: 'var(--pd-text-faint)' }}>
-            ANTHROPIC_API_KEY is not configured on the server.
+            OPENAI_API_KEY is not configured on the server.
           </p>
         ) : null}
 

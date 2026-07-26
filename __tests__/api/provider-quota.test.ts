@@ -22,6 +22,7 @@ describe('provider quota helpers', () => {
       'raydium',
       'dexscreener',
       'anthropic',
+      'openai',
     ] as const) {
       const cfg = getProviderQuotaConfig(id)
       assert.ok(cfg.rpm > 0, `${id} rpm`)

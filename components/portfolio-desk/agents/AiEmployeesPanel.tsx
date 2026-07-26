@@ -20,7 +20,8 @@ import { TeamOverview } from './TeamOverview'
 type RosterResponse = {
   employees: RosterEmployeeView[]
   overview: TeamOverviewStats
-  anthropicAvailable: boolean
+  openaiAvailable?: boolean
+  anthropicAvailable?: boolean
 }
 
 async function fetchRoster(wallet: string | null): Promise<RosterResponse> {
@@ -36,7 +37,7 @@ async function fetchRoster(wallet: string | null): Promise<RosterResponse> {
         alertsToday: 0,
         successRate: null,
       },
-      anthropicAvailable: false,
+      openaiAvailable: false,
     }
   }
   return (await res.json()) as RosterResponse
@@ -80,7 +81,9 @@ export function AiEmployeesPanel() {
     return () => clearInterval(t)
   }, [])
 
-  const online = rosterQ.data ? rosterQ.data.anthropicAvailable : null
+  const online = rosterQ.data
+    ? Boolean(rosterQ.data.openaiAvailable ?? rosterQ.data.anthropicAvailable)
+    : null
 
   const runStructured = useCallback(
     async (emp: RosterEmployeeView) => {

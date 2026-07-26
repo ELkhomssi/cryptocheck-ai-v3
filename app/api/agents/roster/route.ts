@@ -11,6 +11,7 @@ import {
   latestPerformanceSnapshots,
   listAllEmployees,
 } from '@/lib/agents/store'
+import { isOpenAiConfigured } from '@/lib/agents/llm'
 import type { AgentPerformanceSnapshot, AIEmployee, RosterEmployeeView } from '@/types/agents'
 
 export const runtime = 'nodejs'
@@ -86,7 +87,9 @@ export async function GET(req: NextRequest) {
       alertsToday,
       successRate,
     },
-    anthropicAvailable: Boolean(process.env.ANTHROPIC_API_KEY?.trim()),
+    openaiAvailable: isOpenAiConfigured(),
+    /** @deprecated use openaiAvailable — kept for older clients */
+    anthropicAvailable: isOpenAiConfigured(),
     fetchedAt: new Date().toISOString(),
   })
 }

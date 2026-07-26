@@ -1,6 +1,7 @@
-import { createAnthropic } from '@ai-sdk/anthropic'
+import { createOpenAI } from '@ai-sdk/openai'
 import { streamText } from 'ai'
 import { NextRequest, NextResponse } from 'next/server'
+import { AGENT_OPENAI_MODEL, getOpenAiApiKey, isOpenAiConfigured } from '@/lib/agents/llm'
 import { listAlerts } from '@/lib/portfolio-desk/alerts-store'
 import { buildHoldingsResponse } from '@/lib/portfolio-desk/holdings-service'
 import { fetchTokenMarket, fetchTrending } from '@/lib/providers/birdeye'
@@ -81,26 +82,26 @@ async function buildMarketGrounding(message: string): Promise<string> {
  */
 export async function GET() {
   return NextResponse.json({
-    available: Boolean(process.env.ANTHROPIC_API_KEY?.trim()),
+    available: isOpenAiConfigured(),
   })
 }
 
 /**
- * POST /api/portfolio/coach — Claude portfolio coach (server-side only).
- * Streams via Vercel AI SDK. Never expose ANTHROPIC_API_KEY to the browser.
+ * POST /api/portfolio/coach — OpenAI portfolio coach (server-side only).
+ * Streams via Vercel AI SDK. Never expose OPENAI_API_KEY to the browser.
  * Grounds replies on holdings, alerts, Birdeye trending, and any mint in the message.
  */
 export async function POST(req: NextRequest) {
-  const key = process.env.ANTHROPIC_API_KEY?.trim()
+  const key = getOpenAiApiKey()
   if (!key) {
     return NextResponse.json(
-      { error: 'ANTHROPIC_API_KEY is not configured on the server.' },
+      { error: 'OPENAI_API_KEY is not configured on the server.' },
       { status: 503 },
     )
   }
 
   const { acquireProviderQuota } = await import('@/lib/providers/quota')
-  const quota = await acquireProviderQuota('anthropic')
+  const quota = await acquireProviderQuota('openai')
   if (quota.ok === false) {
     return NextResponse.json(
       {
@@ -150,10 +151,10 @@ export async function POST(req: NextRequest) {
 
   const marketBlock = await buildMarketGrounding(message)
 
-  const anthropic = createAnthropic({ apiKey: key })
+  const openai = createOpenAI({ apiKey: key })
 
   const result = streamText({
-    model: anthropic('claude-sonnet-4-6'),
+    model: openai(AGENT_OPENAI_MODEL),
     system: [
       'You are CryptoCheck AI Coach — a portfolio-aware Solana trading coach.',
       'Cite specific numbers from the provided portfolio and market context when available.',

@@ -1,13 +1,14 @@
 /**
  * POST /api/portfolio/review
  * Body: { walletAddress }
- * Fetches analytics + light market context, asks Claude for structured
- * per-holding recommendations. Server-only ANTHROPIC_API_KEY.
+ * Fetches analytics + light market context, asks OpenAI for structured
+ * per-holding recommendations. Server-only OPENAI_API_KEY.
  */
 
-import { createAnthropic } from '@ai-sdk/anthropic'
+import { createOpenAI } from '@ai-sdk/openai'
 import { generateText } from 'ai'
 import { NextRequest, NextResponse } from 'next/server'
+import { AGENT_OPENAI_MODEL, getOpenAiApiKey, isOpenAiConfigured } from '@/lib/agents/llm'
 import { fetchTrending } from '@/lib/providers/birdeye'
 import { isValidSolanaWallet } from '@/lib/portfolio-desk/validate'
 import { buildPortfolioAnalytics } from '@/lib/terminal/portfolio-analytics'
@@ -75,16 +76,16 @@ function parseRecommendations(raw: string, known: Map<string, string>): HoldingR
 }
 
 export async function POST(req: NextRequest) {
-  const key = process.env.ANTHROPIC_API_KEY?.trim()
+  const key = getOpenAiApiKey()
   if (!key) {
     return NextResponse.json(
-      { error: 'ANTHROPIC_API_KEY is not configured on the server.' },
+      { error: 'OPENAI_API_KEY is not configured on the server.' },
       { status: 503 },
     )
   }
 
   const { acquireProviderQuota } = await import('@/lib/providers/quota')
-  const quota = await acquireProviderQuota('anthropic')
+  const quota = await acquireProviderQuota('openai')
   if (quota.ok === false) {
     return NextResponse.json(
       {
@@ -145,13 +146,13 @@ export async function POST(req: NextRequest) {
     ),
   ].join('\n')
 
-  const anthropic = createAnthropic({ apiKey: key })
+  const openai = createOpenAI({ apiKey: key })
 
   let rawText = ''
   let summary = ''
   try {
     const result = await generateText({
-      model: anthropic('claude-sonnet-4-6'),
+      model: openai(AGENT_OPENAI_MODEL),
       system: [
         'You are CryptoCheck portfolio reviewer for Solana wallets.',
         'Return ONLY valid JSON matching:',
@@ -174,7 +175,7 @@ export async function POST(req: NextRequest) {
       summary = ''
     }
   } catch (err) {
-    console.error('[portfolio/review] anthropic', err)
+    console.error('[portfolio/review] openai', err)
     return NextResponse.json({ error: 'AI review failed' }, { status: 502 })
   }
 
@@ -218,6 +219,6 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   return NextResponse.json({
-    available: Boolean(process.env.ANTHROPIC_API_KEY?.trim()),
+    available: isOpenAiConfigured(),
   })
 }
