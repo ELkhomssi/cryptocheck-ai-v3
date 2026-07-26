@@ -71,10 +71,13 @@ export async function GET() {
       })
     } else {
       const r = await timed(async () => {
-        const { fetchTrending } = await import('@/lib/providers/birdeye')
-        const rows = await fetchTrending(1)
-        if (!rows.length) throw new Error('empty trending response')
-        return rows
+        const { fetchTokenList, fetchTrending } = await import('@/lib/providers/birdeye')
+        // Prefer tokenlist (screener primary); trending is flaky on some tiers.
+        const list = await fetchTokenList({ limit: 1, sortBy: 'volume', sortType: 'desc' })
+        if (list.length) return list
+        const trend = await fetchTrending(1)
+        if (!trend.length) throw new Error('empty tokenlist + trending')
+        return trend
       })
       probes.push({
         id: 'birdeye',

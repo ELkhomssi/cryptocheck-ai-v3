@@ -48,6 +48,18 @@ async function loadIndex(): Promise<ScreenerRow[]> {
     seen.add(row.mint)
     merged.push(enrich(row))
   }
+
+  // DexScreener fallback when Birdeye index empty
+  if (!merged.length) {
+    const { fetchDexScreenerScreenerRows } = await import('@/lib/providers/dexscreener')
+    const dex = await fetchDexScreenerScreenerRows(16)
+    for (const row of dex) {
+      if (seen.has(row.mint)) continue
+      seen.add(row.mint)
+      merged.push(enrich(row))
+    }
+  }
+
   if (merged.length) {
     await cacheSetJson(INDEX_KEY, merged, INDEX_TTL_SEC)
   }
@@ -67,7 +79,7 @@ export async function GET(req: NextRequest) {
 
   const q = qRaw.toLowerCase()
 
-  // Exact mint fast-path — overview is TTL-cached.
+  // Exact mint fast-path — overview is TTL-cached; DexScreener if Birdeye miss.
   if (BASE58_MINT.test(qRaw)) {
     const overview = await fetchTokenOverview(qRaw)
     if (overview) {
@@ -85,6 +97,27 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         hits: [row],
         q: qRaw,
+        latencyMs: Date.now() - t0,
+      })
+    }
+    const { fetchTokenMetricsFromDex } = await import('@/lib/providers/dexscreener')
+    const dex = await fetchTokenMetricsFromDex(qRaw)
+    if (dex) {
+      const row: ScreenerRow = enrich({
+        ...dex,
+        riskScore: 0,
+        aiScore: 0,
+        isPumpFun: false,
+        isRaydium: false,
+        isGraduated: false,
+        isVerified: false,
+        isTrending: false,
+        smartMoneyScore: 0,
+      })
+      return NextResponse.json({
+        hits: [row],
+        q: qRaw,
+        source: 'dexscreener',
         latencyMs: Date.now() - t0,
       })
     }

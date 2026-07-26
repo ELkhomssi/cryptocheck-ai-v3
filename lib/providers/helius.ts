@@ -156,3 +156,50 @@ export async function getParsedTokenAccounts(owner: string): Promise<ParsedToken
     return out
   })
 }
+
+/**
+ * DAS getAsset — metadata + optional price for a single mint.
+ * null when unconfigured / failure. Never fabricates.
+ */
+export async function getAsset(mint: string): Promise<HeliusDasAsset | null> {
+  if (!mint || mint.length < 32) return null
+  const url = heliusRpcUrl()
+  if (!url) return null
+
+  return cachedJson(`helius:asset:${mint}`, HOLDINGS_TTL_SEC, async () => {
+    const body = await postRpc(url, 'getAsset', {
+      id: mint,
+      displayOptions: { showFungible: true },
+    })
+    if (!body || body.error) return null
+    const result = body.result
+    if (!result || typeof result !== 'object') return null
+    return result as HeliusDasAsset
+  })
+}
+
+/** Pull name / symbol / logo from a DAS asset when present. */
+export function heliusAssetMeta(asset: HeliusDasAsset | null | undefined): {
+  name?: string
+  symbol?: string
+  logoUrl?: string
+  priceUsd?: number
+} {
+  if (!asset) return {}
+  const name = asset.content?.metadata?.name
+  const symbol = asset.content?.metadata?.symbol ?? asset.token_info?.symbol
+  const logoUrl =
+    asset.content?.links?.image ||
+    asset.content?.files?.find((f) => f.cdn_uri || f.uri)?.cdn_uri ||
+    asset.content?.files?.find((f) => f.uri)?.uri
+  const priceUsd = asset.token_info?.price_info?.price_per_token
+  return {
+    name: typeof name === 'string' && name.trim() ? name.trim() : undefined,
+    symbol: typeof symbol === 'string' && symbol.trim() ? symbol.trim() : undefined,
+    logoUrl: typeof logoUrl === 'string' && logoUrl.trim() ? logoUrl.trim() : undefined,
+    priceUsd:
+      typeof priceUsd === 'number' && Number.isFinite(priceUsd) && priceUsd > 0
+        ? priceUsd
+        : undefined,
+  }
+}
