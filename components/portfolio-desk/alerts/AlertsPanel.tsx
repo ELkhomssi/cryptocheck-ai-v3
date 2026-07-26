@@ -1,5 +1,11 @@
 'use client'
 
+/**
+ * AI Alerts feed — rebuilt from scratch (Phase 12.3).
+ * Row structure: icon badge · title/desc · relative timestamp.
+ * Colors: --accent / --positive / --negative / --chain only.
+ */
+
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -9,6 +15,7 @@ import {
   Rocket,
   Sparkles,
   Waves,
+  type LucideIcon,
 } from 'lucide-react'
 import { useSolana } from '@/components/SolanaProvider'
 import { relativeAge } from '@/lib/portfolio-desk/format'
@@ -54,18 +61,16 @@ async function fetchPrefs(wallet: string | null): Promise<AlertPreference[]> {
   return body.preferences ?? []
 }
 
-function iconFor(type: PortfolioAlert['type']) {
+type Tone = { bg: string; fg: string }
+
+function iconFor(type: PortfolioAlert['type']): LucideIcon {
   if (type === 'liquidity' || type === 'liquidity_added' || type === 'liquidity_removed') {
     return Droplets
   }
   if (type === 'dev_wallet' || type === 'mint_authority' || type === 'freeze_authority') {
     return Waves
   }
-  if (
-    type === 'smart_money' ||
-    type === 'smart_money_entry' ||
-    type === 'smart_money_exit'
-  ) {
+  if (type === 'smart_money' || type === 'smart_money_entry' || type === 'smart_money_exit') {
     return Sparkles
   }
   if (type === 'risk' || type === 'rug_risk' || type === 'large_holder_distribution') {
@@ -75,12 +80,13 @@ function iconFor(type: PortfolioAlert['type']) {
   return Fish
 }
 
-function tone(type: PortfolioAlert['type']) {
+/** Phase 10 §3.6 / Phase 12.3 — badge tones from design tokens only. */
+function toneFor(type: PortfolioAlert['type']): Tone {
   if (type === 'liquidity' || type === 'liquidity_added') {
-    return { bg: 'var(--pd-positive-soft)', c: 'var(--pd-positive)' }
+    return { bg: 'var(--positive-soft)', fg: 'var(--positive)' }
   }
   if (type === 'liquidity_removed' || type === 'whale_sell' || type === 'smart_money_exit') {
-    return { bg: 'var(--pd-negative-soft)', c: 'var(--pd-negative)' }
+    return { bg: 'var(--negative-soft)', fg: 'var(--negative)' }
   }
   if (
     type === 'dev_wallet' ||
@@ -89,7 +95,7 @@ function tone(type: PortfolioAlert['type']) {
     type === 'new_listing' ||
     type === 'new_token_launch'
   ) {
-    return { bg: 'var(--pd-accent-soft)', c: 'var(--pd-accent-bright)' }
+    return { bg: 'var(--accent-soft)', fg: 'var(--accent-bright)' }
   }
   if (
     type === 'risk' ||
@@ -97,9 +103,35 @@ function tone(type: PortfolioAlert['type']) {
     type === 'mint_authority' ||
     type === 'freeze_authority'
   ) {
-    return { bg: 'var(--pd-negative-soft)', c: 'var(--pd-negative)' }
+    return { bg: 'var(--negative-soft)', fg: 'var(--negative)' }
   }
-  return { bg: 'rgba(156,140,255,0.14)', c: 'var(--pd-chain)' }
+  // whale_buy / whale / default → chain
+  return { bg: 'var(--chain-soft)', fg: 'var(--chain)' }
+}
+
+function AlertRow({
+  alert,
+  now,
+}: {
+  alert: PortfolioAlert
+  now: number
+}) {
+  const Icon = iconFor(alert.type)
+  const tone = toneFor(alert.type)
+  return (
+    <li className="pd-alert-row">
+      <span className="pd-alert-badge" style={{ background: tone.bg, color: tone.fg }} aria-hidden>
+        <Icon className="h-3.5 w-3.5" strokeWidth={1.7} />
+      </span>
+      <div className="pd-alert-body">
+        <div className="pd-alert-title">{alert.title}</div>
+        <div className="pd-alert-desc">{alert.description}</div>
+      </div>
+      <time className="pd-alert-time" dateTime={alert.createdAt}>
+        {relativeAge(alert.createdAt, now)}
+      </time>
+    </li>
+  )
 }
 
 export function AlertsPanel() {
@@ -164,10 +196,10 @@ export function AlertsPanel() {
   }, [prefs])
 
   return (
-    <section>
+    <section className="pd-alerts">
       <div className="pd-panel-head" style={{ padding: '0 4px 14px', border: 'none' }}>
         <h2>AI Alerts</h2>
-        <span style={{ fontSize: 12, color: 'var(--pd-accent)', fontWeight: 600 }}>
+        <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>
           {filtered.length ? `${filtered.length}` : 'Live'}
         </span>
       </div>
@@ -198,7 +230,7 @@ export function AlertsPanel() {
             style={{
               fontSize: 10.5,
               letterSpacing: '0.06em',
-              color: 'var(--pd-text-faint)',
+              color: 'var(--text-faint)',
               fontWeight: 600,
               marginBottom: 6,
             }}
@@ -232,27 +264,16 @@ export function AlertsPanel() {
       ) : null}
 
       {!filtered.length ? (
-        <p style={{ fontSize: 12.5, color: 'var(--pd-text-faint)', padding: '4px 4px 16px' }}>
+        <p style={{ fontSize: 12.5, color: 'var(--text-faint)', padding: '4px 4px 16px' }}>
           No webhook alerts yet. Configure Helius →{' '}
           <span className="pd-num">/api/webhooks/helius</span>. Nothing is fabricated.
         </p>
       ) : (
-        filtered.map((a) => {
-          const Icon = iconFor(a.type)
-          const t = tone(a.type)
-          return (
-            <div key={a.id} className="pd-alert-item">
-              <div className="pd-al-icon" style={{ background: t.bg, color: t.c }}>
-                <Icon className="h-3.5 w-3.5" strokeWidth={1.7} />
-              </div>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div className="pd-al-title">{a.title}</div>
-                <div className="pd-al-desc">{a.description}</div>
-              </div>
-              <div className="pd-al-time pd-num">{relativeAge(a.createdAt, now)}</div>
-            </div>
-          )
-        })
+        <ul className="pd-alert-list">
+          {filtered.map((a) => (
+            <AlertRow key={a.id} alert={a} now={now} />
+          ))}
+        </ul>
       )}
     </section>
   )

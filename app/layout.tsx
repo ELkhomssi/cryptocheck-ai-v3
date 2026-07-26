@@ -3,6 +3,7 @@ import { IBM_Plex_Mono, IBM_Plex_Sans, JetBrains_Mono } from 'next/font/google'
 import { SolanaProvider } from '@/components/SolanaProvider'
 import { DisclaimerModal } from '@/components/legal/DisclaimerModal'
 import { Analytics } from '@vercel/analytics/react'
+import '@/styles/tokens.css'
 import './globals.css'
 // ── Bloomberg-style monospace + companion sans ──
 const ibmMono = IBM_Plex_Mono({

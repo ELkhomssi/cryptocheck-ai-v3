@@ -34,7 +34,7 @@ const TONE_BG: Record<AgentIconTone, string> = {
   gold: 'var(--pd-accent-soft)',
   green: 'var(--pd-positive-soft)',
   red: 'var(--pd-negative-soft)',
-  chain: 'rgba(156,140,255,0.14)',
+  chain: 'var(--pd-chain-soft)',
   accent: 'var(--pd-accent-soft)',
 }
 

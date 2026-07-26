@@ -163,18 +163,25 @@ export async function GET(req: NextRequest) {
   const fetchOffset = needsLocal ? 0 : offset
 
   const [raw, trending, news] = await Promise.all([
-    fetchTokenList({
-      sortBy: birdSort,
-      sortType: order,
-      offset: fetchOffset,
-      limit: fetchLimit,
-      minLiquidity,
-    }),
+    // When filtering to new launches only, skip the volume tokenlist call (saves quota)
+    // and build rows from new listings directly.
+    flags.new && !flags.trending && !flags.pumpfun && !flags.raydium && !flags.graduated && !flags.verified
+      ? Promise.resolve([] as ScreenerRow[])
+      : fetchTokenList({
+          sortBy: birdSort,
+          sortType: order,
+          offset: fetchOffset,
+          limit: fetchLimit,
+          minLiquidity,
+        }),
     flags.trending ? fetchTrending(20) : Promise.resolve([] as ScreenerRow[]),
     flags.new ? fetchNewListings(50) : Promise.resolve([] as Awaited<ReturnType<typeof fetchNewListings>>),
   ])
 
-  if (!raw.length && !trending.length) {
+  const { newPoolToScreenerRow } = await import('@/lib/terminal/market-feed-helpers')
+  const newsRows = news.map((p) => enrich(newPoolToScreenerRow(p)))
+
+  if (!raw.length && !trending.length && !newsRows.length) {
     return NextResponse.json({
       rows: [] as ScreenerRow[],
       total: 0,
@@ -188,13 +195,28 @@ export async function GET(req: NextRequest) {
   }
 
   const trendingMints = new Set(trending.map((r) => r.mint))
-  const newMints = new Set(news.map((r) => r.mint))
+  const newMints = new Set(news.map((p) => p.mint))
 
-  let rows = (raw.length ? raw : trending).map((r) => {
-    const enriched = enrich(r)
-    if (trendingMints.has(enriched.mint)) enriched.isTrending = true
-    return enriched
-  })
+  let rows: ScreenerRow[]
+  if (flags.new && !raw.length) {
+    // Primary corpus = new listings (not intersection with volume leaders).
+    rows = newsRows.map((r) => {
+      if (trendingMints.has(r.mint)) r.isTrending = true
+      return r
+    })
+  } else {
+    rows = (raw.length ? raw : trending).map((r) => {
+      const enriched = enrich(r)
+      if (trendingMints.has(enriched.mint)) enriched.isTrending = true
+      return enriched
+    })
+    if (flags.new) {
+      // Prefer showing new listing rows; fall back to intersection if news empty.
+      rows = newsRows.length
+        ? newsRows
+        : rows.filter((r) => newMints.has(r.mint))
+    }
+  }
 
   if (minLiquidity != null) {
     rows = rows.filter((r) => r.liquidityUsd >= minLiquidity)
@@ -213,7 +235,6 @@ export async function GET(req: NextRequest) {
   if (flags.graduated) rows = rows.filter((r) => r.isGraduated)
   if (flags.verified) rows = rows.filter((r) => r.isVerified)
   if (flags.trending) rows = rows.filter((r) => r.isTrending || trendingMints.has(r.mint))
-  if (flags.new) rows = rows.filter((r) => newMints.has(r.mint))
 
   if (needsLocal) {
     sortLocal(rows, sort, order)

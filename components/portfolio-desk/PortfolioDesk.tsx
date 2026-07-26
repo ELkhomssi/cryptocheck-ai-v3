@@ -22,6 +22,7 @@ import { PerformanceChart, usePerformance } from './portfolio/PerformanceChart'
 import { ScreenerPanel } from './screener/ScreenerPanel'
 import { TradePanel } from './trade/TradePanel'
 import { WatchlistPanel } from './watchlist/WatchlistPanel'
+import { SettingsPanel } from './settings/SettingsPanel'
 import type { PortfolioAlert } from '@/types/portfolio-desk'
 
 const RANGES = ['24H', '7D', '30D', '90D', 'ALL'] as const
@@ -65,7 +66,7 @@ const PAGE_META: Record<DeskNav, { kicker: string; title: string; subtitle: stri
   settings: {
     kicker: '// SETTINGS',
     title: 'Settings',
-    subtitle: 'Track your assets, performance and analytics in real-time.',
+    subtitle: 'Account, appearance, notifications, provider health, and data controls.',
   },
 }
 
@@ -305,10 +306,9 @@ export function PortfolioDesk() {
         ) : null}
 
         {nav === 'settings' ? (
-          <div className="pd-panel pd-empty">
-            <h3>Settings</h3>
-            <p>Use the sidebar Theme control for dark/light. Wallet disconnect is on the topbar chip.</p>
-          </div>
+          <SectionErrorBoundary title="Settings">
+            <SettingsPanel />
+          </SectionErrorBoundary>
         ) : null}
 
         {(nav === 'alerts' || nav === 'coach') && isConnected ? (
