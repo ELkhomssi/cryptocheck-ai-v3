@@ -40,9 +40,18 @@ async function maybeLogPredictions(
   windowHours: number,
 ): Promise<void> {
   const resolveAfter = new Date(Date.now() + windowHours * 3_600_000)
+  const { fetchPrices } = await import('@/lib/providers/jupiter')
+
   if (formulaId === 'setup_win_rate' || formulaId === 'whale_followthrough') {
     for (const sig of structured.signals ?? []) {
       if (!sig.mint) continue
+      let entryPriceUsd: number | undefined
+      try {
+        const prices = await fetchPrices([sig.mint])
+        entryPriceUsd = prices.get(sig.mint)?.priceUsd
+      } catch {
+        /* optional */
+      }
       await insertPrediction({
         agentId,
         kind: formulaId === 'whale_followthrough' ? 'whale_buy' : 'setup',
@@ -52,6 +61,7 @@ async function maybeLogPredictions(
           symbol: sig.symbol,
           note: sig.note,
           direction: 'up',
+          entryPriceUsd,
         },
         resolveAfter,
       })
@@ -61,13 +71,22 @@ async function maybeLogPredictions(
     const bias = structured.summary.toLowerCase()
     const direction = bias.includes('bear') ? 'down' : bias.includes('bull') ? 'up' : null
     if (direction) {
+      const sol = 'So11111111111111111111111111111111111111112'
+      let entryPriceUsd: number | undefined
+      try {
+        const prices = await fetchPrices([sol])
+        entryPriceUsd = prices.get(sol)?.priceUsd
+      } catch {
+        /* optional */
+      }
       await insertPrediction({
         agentId,
         kind: 'outlook',
         subject: 'SOL',
         payload: {
-          mint: 'So11111111111111111111111111111111111111112',
+          mint: sol,
           direction,
+          entryPriceUsd,
           summary: structured.summary.slice(0, 400),
         },
         resolveAfter,
@@ -79,11 +98,24 @@ async function maybeLogPredictions(
       if (!sig.mint) continue
       const severity = (sig.severity || '').toLowerCase()
       if (severity.includes('danger') || severity.includes('avoid')) continue
+      let entryPriceUsd: number | undefined
+      try {
+        const prices = await fetchPrices([sig.mint])
+        entryPriceUsd = prices.get(sig.mint)?.priceUsd
+      } catch {
+        /* optional */
+      }
       await insertPrediction({
         agentId,
         kind: 'launch_approval',
         subject: sig.mint,
-        payload: { mint: sig.mint, symbol: sig.symbol, note: sig.note, direction: 'up' },
+        payload: {
+          mint: sig.mint,
+          symbol: sig.symbol,
+          note: sig.note,
+          direction: 'up',
+          entryPriceUsd,
+        },
         resolveAfter,
       })
     }

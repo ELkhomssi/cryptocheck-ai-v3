@@ -1,9 +1,11 @@
 'use client'
 
-import { Component, Suspense, type ErrorInfo, type ReactNode, useState } from 'react'
+import { Component, Suspense, type ErrorInfo, type ReactNode, useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'next/navigation'
 import { useSolana } from '@/components/SolanaProvider'
 import { AlertsPanel } from './alerts/AlertsPanel'
+import { AiEmployeesPanel } from './agents/AiEmployeesPanel'
 import { CoachPanel } from './coach/CoachPanel'
 import { useHoldings } from './hooks/useHoldings'
 import { Sidebar, type DeskNav } from './layout/Sidebar'
@@ -55,6 +57,11 @@ const PAGE_META: Record<DeskNav, { kicker: string; title: string; subtitle: stri
     title: 'AI Coach',
     subtitle: 'Track your assets, performance and analytics in real-time.',
   },
+  employees: {
+    kicker: '// AI EMPLOYEES',
+    title: 'AI Employees',
+    subtitle: 'Specialized trading agents with live status and real performance scores.',
+  },
   settings: {
     kicker: '// SETTINGS',
     title: 'Settings',
@@ -97,9 +104,43 @@ class SectionErrorBoundary extends Component<
 
 export function PortfolioDesk() {
   const { isConnected, connect, walletAddress } = useSolana()
-  const [nav, setNav] = useState<DeskNav>('portfolio')
+  const searchParams = useSearchParams()
+  const initialNav = (searchParams.get('nav') as DeskNav | null) || 'portfolio'
+  const [nav, setNav] = useState<DeskNav>(
+    [
+      'portfolio',
+      'screener',
+      'trade',
+      'watchlist',
+      'alerts',
+      'coach',
+      'employees',
+      'settings',
+    ].includes(initialNav)
+      ? initialNav
+      : 'portfolio',
+  )
   const [range, setRange] = useState<(typeof RANGES)[number]>('24H')
   const [mobileNav, setMobileNav] = useState(false)
+
+  useEffect(() => {
+    const q = searchParams.get('nav') as DeskNav | null
+    if (
+      q &&
+      [
+        'portfolio',
+        'screener',
+        'trade',
+        'watchlist',
+        'alerts',
+        'coach',
+        'employees',
+        'settings',
+      ].includes(q)
+    ) {
+      setNav(q)
+    }
+  }, [searchParams])
   const holdingsQ = useHoldings()
   const perfQ = usePerformance(walletAddress, range)
   const alertsQ = useQuery({
@@ -157,7 +198,7 @@ export function PortfolioDesk() {
           }
         />
 
-        {!isConnected && nav !== 'screener' && nav !== 'watchlist' ? (
+        {!isConnected && nav !== 'screener' && nav !== 'watchlist' && nav !== 'employees' ? (
           <div className="pd-empty pd-panel">
             <h3>Connect your wallet to open the desk</h3>
             <p>
@@ -249,6 +290,12 @@ export function PortfolioDesk() {
               <MarketFeeds />
             </SectionErrorBoundary>
           </>
+        ) : null}
+
+        {nav === 'employees' ? (
+          <SectionErrorBoundary title="AI Employees">
+            <AiEmployeesPanel />
+          </SectionErrorBoundary>
         ) : null}
 
         {nav === 'watchlist' ? (

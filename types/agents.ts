@@ -123,3 +123,23 @@ export type AgentRunStructured = {
   suggestions?: Array<{ id: string; title: string; detail: string }>
   disclaimer: string
 }
+
+/** Client-safe roster row (system prompt stripped). */
+export type RosterEmployeeView = Omit<AIEmployee, 'systemPromptTemplate'> & {
+  systemPromptTemplate: string
+  performance: {
+    score: number | null
+    sampleSize: number
+    calibrating: boolean
+    computedAt: string | null
+  }
+  currentActivity: string
+}
+
+export type TeamOverviewStats = {
+  totalEmployees: number
+  activeNow: number
+  tasksRunning: number
+  alertsToday: number
+  successRate: number | null
+}

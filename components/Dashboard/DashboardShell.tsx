@@ -29,6 +29,8 @@ export function DashboardShell({
   const isTradingTerminal =
     pathname === '/terminal' ||
     pathname.startsWith('/terminal/') ||
+    pathname === '/ai-employees' ||
+    pathname.startsWith('/ai-employees/') ||
     pathname === '/dashboard/terminal' ||
     pathname.startsWith('/dashboard/terminal/')
 

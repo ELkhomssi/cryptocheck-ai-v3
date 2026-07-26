@@ -238,11 +238,17 @@ export function customRowToEmployee(row: CustomEmployeeRow): AIEmployee {
 export async function listCustomEmployees(walletAddress?: string | null): Promise<AIEmployee[]> {
   try {
     const admin = getSupabaseAdmin()
-    let q = admin.from('agent_custom_employees').select('*').order('created_at', { ascending: false }).limit(50)
-    if (walletAddress) q = q.or(`wallet_address.eq.${walletAddress},wallet_address.is.null`)
-    const { data, error } = await q
+    const { data, error } = await admin
+      .from('agent_custom_employees')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50)
     if (error || !data) return []
-    return data.map((r) => customRowToEmployee(mapCustom(r as Record<string, unknown>)))
+    const rows = data.map((r) => mapCustom(r as Record<string, unknown>))
+    const filtered = walletAddress
+      ? rows.filter((r) => !r.walletAddress || r.walletAddress === walletAddress)
+      : rows
+    return filtered.map(customRowToEmployee)
   } catch {
     return []
   }

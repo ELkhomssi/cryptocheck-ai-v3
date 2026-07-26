@@ -11,20 +11,10 @@ import {
   latestPerformanceSnapshots,
   listAllEmployees,
 } from '@/lib/agents/store'
-import type { AgentPerformanceSnapshot, AIEmployee } from '@/types/agents'
+import type { AgentPerformanceSnapshot, AIEmployee, RosterEmployeeView } from '@/types/agents'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-
-export type RosterEmployeeView = AIEmployee & {
-  performance: {
-    score: number | null
-    sampleSize: number
-    calibrating: boolean
-    computedAt: string | null
-  }
-  currentActivity: string
-}
 
 function viewFor(
   emp: AIEmployee,
