@@ -21,7 +21,6 @@ import { Topbar } from './layout/Topbar'
 import { LaunchLabPanel } from './launchlab/LaunchLabPanel'
 import { MarketFeeds } from './market/MarketFeeds'
 import { MarketIntelligencePanel } from './market/MarketIntelligencePanel'
-import { MissionControlPanel } from './mission/MissionControlPanel'
 import { MissionFeedPanel } from './mission/MissionFeedPanel'
 import { Hero } from './portfolio/Hero'
 import { HoldingsTable } from './portfolio/HoldingsTable'
@@ -144,10 +143,9 @@ export function PortfolioDesk() {
 
   const meta = PAGE_META[nav]
   const needsWallet = !PUBLIC_NAV.has(nav)
-  const isMission = nav === 'mission'
 
   return (
-    <div className={`pd-shell${isMission ? ' is-mission' : ''}`}>
+    <div className="pd-shell">
       {mobileNav ? (
         <button
           type="button"
@@ -172,10 +170,10 @@ export function PortfolioDesk() {
           router.replace(`?${p.toString()}`, { scroll: false })
         }}
       />
-      {isMission ? null : <TickerTape />}
+      <TickerTape />
 
-      <main className={`pd-main${isMission ? ' is-mission-main' : ''}`}>
-        {nav === 'mission' || nav === 'market' || nav === 'screener' || nav === 'watchlist' ? null : (
+      <main className="pd-main">
+        {nav === 'market' || nav === 'screener' || nav === 'watchlist' ? null : (
           <PageHeader
             kicker={meta.kicker}
             title={meta.title}
@@ -221,21 +219,6 @@ export function PortfolioDesk() {
               Connect Wallet
             </button>
           </div>
-        ) : null}
-
-        {nav === 'mission' ? (
-          <SectionErrorBoundary title="Mission Control">
-            <MissionControlPanel
-              onOpenFeed={() => setDeskNav('feed')}
-              onOpenMarket={() => setDeskNav('market')}
-              onSelectToken={(row) => {
-                const p = new URLSearchParams(searchParams.toString())
-                p.set('mint', row.mint)
-                router.replace(`?${p.toString()}`, { scroll: false })
-              }}
-              onSuggestion={() => setDeskNav('market')}
-            />
-          </SectionErrorBoundary>
         ) : null}
 
         {nav === 'market' || nav === 'screener' || nav === 'watchlist' ? (
@@ -353,32 +336,24 @@ export function PortfolioDesk() {
             <SettingsPanel onOpenIntelligence={() => setDeskNav('intelligence')} />
           </SectionErrorBoundary>
         ) : null}
-
-        {nav === 'coach' && isConnected ? (
-          <SectionErrorBoundary title="AI Coach">
-            <CoachPanel />
-          </SectionErrorBoundary>
-        ) : null}
       </main>
 
-      {isMission ? null : (
-        <aside className="pd-aside">
-          <SectionErrorBoundary title="Mission Feed">
-            <div style={{ padding: '0 0 12px' }}>
-              <div className="pd-panel-head" style={{ padding: '0 0 10px' }}>
-                <h2 className="pd-section-label">Mission Feed</h2>
-                <button type="button" className="pd-tab" onClick={() => setDeskNav('feed')}>
-                  Expand
-                </button>
-              </div>
-              <MissionFeedPanel condensed limit={16} />
+      <aside className="pd-aside">
+        <SectionErrorBoundary title="Mission Feed">
+          <div style={{ padding: '0 0 12px' }}>
+            <div className="pd-panel-head" style={{ padding: '0 0 10px' }}>
+              <h2 className="pd-section-label">Mission Feed</h2>
+              <button type="button" className="pd-tab" onClick={() => setDeskNav('feed')}>
+                Expand
+              </button>
             </div>
-          </SectionErrorBoundary>
-          <SectionErrorBoundary title="AI Coach">
-            <CoachPanel />
-          </SectionErrorBoundary>
-        </aside>
-      )}
+            <MissionFeedPanel condensed limit={16} />
+          </div>
+        </SectionErrorBoundary>
+        <SectionErrorBoundary title="AI Coach">
+          <CoachPanel />
+        </SectionErrorBoundary>
+      </aside>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 
-/** Phase 15.3 — Mission Control is the terminal default landing. */
+/** Legacy Mission Control URL → Portfolio Intelligence (connect wallet). */
 export default function MissionControlPage() {
-  redirect('/terminal?nav=mission')
+  redirect('/terminal?nav=portfolio')
 }
