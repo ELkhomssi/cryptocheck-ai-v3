@@ -1,6 +1,11 @@
 /** Shared contracts for the CryptoCheck Portfolio desk (playbook). */
 
-export type PortfolioTheme = 'dark' | 'light'
+/**
+ * Theme ids map to `html[data-theme]`.
+ * - dark / light → Phase 19 signal-blue (canonical)
+ * - brass / brass-light → legacy gold (kept for visual rollback until cleanup)
+ */
+export type PortfolioTheme = 'dark' | 'light' | 'brass' | 'brass-light'
 
 export type Holding = {
   mint: string

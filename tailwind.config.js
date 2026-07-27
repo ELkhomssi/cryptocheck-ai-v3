@@ -30,7 +30,7 @@ module.exports = {
         ],
       },
       colors: {
-        // Phase 12 — brass terminal tokens (CSS variables from styles/tokens.css)
+        // Phase 12 / 19 — terminal tokens (CSS variables from styles/tokens.css; signal-blue default)
         bg: 'var(--bg)',
         'bg-elevated': 'var(--bg-elevated)',
         surface: 'var(--surface)',

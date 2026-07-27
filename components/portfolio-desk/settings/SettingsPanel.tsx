@@ -199,8 +199,10 @@ export function SettingsPanel({
           ))}
         </div>
         <p style={{ fontSize: 11.5, color: 'var(--text-faint)', marginTop: 10 }}>
-          Persists via the portfolio theme store (`ccai-portfolio-theme`) and applies to{' '}
-          <span className="pd-num">data-theme</span> instantly.
+          Signal-blue palette (Phase 19). Persists via `ccai-portfolio-theme` on{' '}
+          <span className="pd-num">data-theme</span>. Legacy brass remains as{' '}
+          <span className="pd-num">brass</span> / <span className="pd-num">brass-light</span> for
+          rollback until cleanup.
         </p>
       </Section>
 

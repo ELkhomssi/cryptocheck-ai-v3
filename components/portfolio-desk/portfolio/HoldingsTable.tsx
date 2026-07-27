@@ -13,11 +13,11 @@ export function HoldingsTable({
   connected: boolean
 }) {
   return (
-    <section className="pd-panel">
+    <section className="pd-panel is-dense">
       <div className="pd-panel-head">
-        <h2>Holdings</h2>
-        <span style={{ fontSize: 12, color: 'var(--pd-accent)', fontWeight: 600 }}>
-          Live · Jupiter + Helius
+        <h2 className="pd-section-label">Portfolio</h2>
+        <span className="pd-section-label" style={{ letterSpacing: '0.08em' }}>
+          Live · Helius + Jupiter
         </span>
       </div>
 
@@ -27,12 +27,12 @@ export function HoldingsTable({
           <p>Holdings load from Helius + Jupiter once your wallet is connected.</p>
         </div>
       ) : loading && !holdings.length ? (
-        <div style={{ padding: 18 }}>
+        <div style={{ padding: '8px 0' }}>
           {Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
               className="pd-skeleton"
-              style={{ height: 36, marginBottom: 10, width: '100%' }}
+              style={{ height: 32, marginBottom: 8, width: '100%' }}
             />
           ))}
         </div>
@@ -43,24 +43,19 @@ export function HoldingsTable({
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
-          <table className="pd-table" style={{ minWidth: 960 }}>
+          <table className="pd-table" style={{ minWidth: 720 }}>
             <thead>
               <tr>
-                <th>Token</th>
-                <th className="num">Amount</th>
+                <th>Asset</th>
+                <th className="num">Price</th>
+                <th className="num">Holdings</th>
                 <th className="num">Value</th>
-                <th className="num">24H P&L</th>
-                <th className="num">P&L %</th>
-                <th className="num">Avg. Price</th>
-                <th className="num">Current Price</th>
-                <th className="num">Allocation</th>
+                <th className="num">24H</th>
               </tr>
             </thead>
             <tbody>
               {holdings.map((h) => {
                 const up = (h.change24hPct ?? 0) >= 0
-                const pnlUsd =
-                  h.change24hPct != null ? (h.valueUsd * h.change24hPct) / (100 + h.change24hPct) : null
                 return (
                   <tr key={h.mint} tabIndex={0}>
                     <td>
@@ -70,11 +65,11 @@ export function HoldingsTable({
                           <img
                             src={h.logoUrl}
                             alt=""
-                            width={28}
-                            height={28}
+                            width={24}
+                            height={24}
                             style={{
-                              width: 28,
-                              height: 28,
+                              width: 24,
+                              height: 24,
                               borderRadius: '50%',
                               objectFit: 'cover',
                               background: 'var(--pd-surface-2)',
@@ -88,8 +83,8 @@ export function HoldingsTable({
                         ) : null}
                         <div
                           style={{
-                            width: 28,
-                            height: 28,
+                            width: 24,
+                            height: 24,
                             borderRadius: '50%',
                             background: 'var(--pd-accent-soft)',
                             color: 'var(--pd-accent-bright)',
@@ -109,23 +104,9 @@ export function HoldingsTable({
                         </div>
                       </div>
                     </td>
+                    <td className="num pd-num">{formatUsd(h.priceUsd, h.priceUsd < 1)}</td>
                     <td className="num pd-num">{formatAmount(h.amount, h.decimals)}</td>
                     <td className="num pd-num">{formatUsd(h.valueUsd)}</td>
-                    <td
-                      className="num pd-num"
-                      style={{
-                        color:
-                          pnlUsd == null
-                            ? 'var(--pd-text-faint)'
-                            : up
-                              ? 'var(--pd-positive)'
-                              : 'var(--pd-negative)',
-                      }}
-                    >
-                      {pnlUsd != null
-                        ? `${pnlUsd >= 0 ? '+' : ''}${formatUsd(Math.abs(pnlUsd))}`
-                        : '—'}
-                    </td>
                     <td
                       className="num pd-num"
                       style={{
@@ -138,41 +119,6 @@ export function HoldingsTable({
                       }}
                     >
                       {formatPct(h.change24hPct)}
-                    </td>
-                    <td className="num pd-num" style={{ color: 'var(--pd-text-dim)' }}>
-                      —
-                    </td>
-                    <td className="num pd-num">{formatUsd(h.priceUsd, h.priceUsd < 1)}</td>
-                    <td className="num">
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          justifyContent: 'flex-end',
-                        }}
-                      >
-                        <span className="pd-num" style={{ color: 'var(--pd-text-dim)' }}>
-                          {h.allocationPct.toFixed(1)}%
-                        </span>
-                        <div
-                          style={{
-                            width: 56,
-                            height: 4,
-                            background: 'var(--pd-surface-2)',
-                            borderRadius: 2,
-                            overflow: 'hidden',
-                          }}
-                        >
-                          <div
-                            style={{
-                              height: '100%',
-                              width: `${Math.min(100, Math.max(2, h.allocationPct))}%`,
-                              background: 'var(--pd-accent)',
-                            }}
-                          />
-                        </div>
-                      </div>
                     </td>
                   </tr>
                 )

@@ -1,13 +1,119 @@
 /**
- * CryptoCheck AI — Design System Tokens (Phase 12 lockdown)
+ * CryptoCheck AI — Design System Tokens (Phase 12 lockdown · Phase 19 signal)
  * SINGLE SOURCE OF TRUTH for color. Hex/rgb allowed ONLY in this file.
  *
- * Soft overlays (--*-soft) are listed in the Phase 12 token set; values are
- * color-mix of the named accent/positive/negative/chain tokens (no new hues).
+ * Phase 19: canonical accent is signal-blue (logo-aligned). Brass remains
+ * available as data-theme="brass" | "brass-light" until a cleanup pass
+ * confirms nothing still needs it.
+ *
+ * Soft overlays (--*-soft) are color-mix of named tokens (no new hues).
  */
 
+/* ─── Signal (canonical default) ─── */
 :root,
-[data-theme='dark'] {
+[data-theme='dark'],
+[data-theme='signal'] {
+  /* Phase 19 sampled set + existing alias names */
+  --bg-base: #06090e;
+  --bg-surface: #0b0f16;
+  --bg-surface-2: #10151d;
+  --text-primary: #e7eaee;
+  --text-label: #4a5160;
+  --accent-glow: rgba(59, 140, 209, 0.18);
+  --texture-scanline: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.015) 0px,
+    transparent 1px,
+    transparent 3px
+  );
+
+  --bg: var(--bg-base);
+  --bg-elevated: #080c12;
+  --surface: var(--bg-surface);
+  --surface-2: var(--bg-surface-2);
+  --border: #1c2430;
+  --border-soft: #151b24;
+  --text: var(--text-primary);
+  --text-dim: #6b7280;
+  --text-faint: var(--text-label);
+  --accent: #3b8cd1;
+  --accent-bright: #5ba3e0;
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+  --positive: #3fbf8f;
+  --positive-soft: color-mix(in srgb, var(--positive) 14%, transparent);
+  --negative: #d1534a;
+  --negative-soft: color-mix(in srgb, var(--negative) 14%, transparent);
+  --chain: #7a8cff;
+  --chain-soft: color-mix(in srgb, var(--chain) 14%, transparent);
+
+  /* Ink on accent fills — high-contrast for primary CTAs */
+  --on-accent: #f5f8fc;
+
+  --radius: 3px;
+  --radius-md: 6px;
+  --shadow: 0 1px 3px color-mix(in srgb, #000 40%, transparent);
+
+  color-scheme: dark;
+}
+
+[data-theme='light'],
+[data-theme='signal-light'] {
+  --bg-base: #f4f6f9;
+  --bg-surface: #ffffff;
+  --bg-surface-2: #eef1f5;
+  --text-primary: #12161e;
+  --text-label: #6b7382;
+  --accent-glow: rgba(59, 140, 209, 0.12);
+  --texture-scanline: repeating-linear-gradient(
+    90deg,
+    rgba(12, 20, 32, 0.02) 0px,
+    transparent 1px,
+    transparent 3px
+  );
+
+  --bg: var(--bg-base);
+  --bg-elevated: #ffffff;
+  --surface: var(--bg-surface);
+  --surface-2: var(--bg-surface-2);
+  --border: #d8dee8;
+  --border-soft: #e6ebf2;
+  --text: var(--text-primary);
+  --text-dim: #5c6574;
+  --text-faint: var(--text-label);
+  --accent: #2f7bbd;
+  --accent-bright: #1f6aad;
+  --accent-soft: color-mix(in srgb, var(--accent) 10%, transparent);
+  --positive: #2a9f74;
+  --positive-soft: color-mix(in srgb, var(--positive) 12%, transparent);
+  --negative: #c4473f;
+  --negative-soft: color-mix(in srgb, var(--negative) 12%, transparent);
+  --chain: #5c6ee0;
+  --chain-soft: color-mix(in srgb, var(--chain) 14%, transparent);
+
+  --on-accent: #ffffff;
+
+  --radius: 3px;
+  --radius-md: 6px;
+  --shadow: 0 1px 3px color-mix(in srgb, #101828 5%, transparent);
+
+  color-scheme: light;
+}
+
+/* ─── Brass (legacy — keep until Phase 19 cleanup) ─── */
+[data-theme='brass'] {
+  --bg-base: #0a0d12;
+  --bg-surface: #131820;
+  --bg-surface-2: #1a212b;
+  --text-primary: #e9ebf1;
+  --text-label: #565f73;
+  --accent-glow: rgba(201, 160, 90, 0.16);
+  --texture-scanline: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.012) 0px,
+    transparent 1px,
+    transparent 3px
+  );
+
   --bg: #0a0d12;
   --bg-elevated: #0f131a;
   --surface: #131820;
@@ -27,10 +133,8 @@
   --chain: #9c8cff;
   --chain-soft: color-mix(in srgb, var(--chain) 14%, transparent);
 
-  /* Ink on accent fills — high-contrast for primary CTAs only */
   --on-accent: #12100a;
 
-  /* Layout radii / chrome (non-color) */
   --radius: 3px;
   --radius-md: 6px;
   --shadow: 0 1px 3px color-mix(in srgb, #000 35%, transparent);
@@ -38,7 +142,20 @@
   color-scheme: dark;
 }
 
-[data-theme='light'] {
+[data-theme='brass-light'] {
+  --bg-base: #f5f6f8;
+  --bg-surface: #ffffff;
+  --bg-surface-2: #eef0f4;
+  --text-primary: #161a22;
+  --text-label: #98a1b0;
+  --accent-glow: rgba(169, 120, 46, 0.12);
+  --texture-scanline: repeating-linear-gradient(
+    90deg,
+    rgba(16, 24, 40, 0.02) 0px,
+    transparent 1px,
+    transparent 3px
+  );
+
   --bg: #f5f6f8;
   --bg-elevated: #ffffff;
   --surface: #ffffff;
@@ -58,9 +175,10 @@
   --chain: #6e5fe0;
   --chain-soft: color-mix(in srgb, var(--chain) 14%, transparent);
 
-  /* White ink on deeper light-theme accent (Phase 13.4 contrast) */
   --on-accent: #ffffff;
 
+  --radius: 3px;
+  --radius-md: 6px;
   --shadow: 0 1px 3px color-mix(in srgb, #101828 5%, transparent);
 
   color-scheme: light;
@@ -72,7 +190,11 @@
  */
 :root,
 [data-theme='dark'],
-[data-theme='light'] {
+[data-theme='light'],
+[data-theme='signal'],
+[data-theme='signal-light'],
+[data-theme='brass'],
+[data-theme='brass-light'] {
   --pd-bg: var(--bg);
   --pd-bg-elevated: var(--bg-elevated);
   --pd-surface: var(--surface);
@@ -82,10 +204,12 @@
   --pd-text: var(--text);
   --pd-text-dim: var(--text-dim);
   --pd-text-faint: var(--text-faint);
+  --pd-text-label: var(--text-label);
   --pd-accent: var(--accent);
   --pd-accent-bright: var(--accent-bright);
   --pd-accent-soft: var(--accent-soft);
   --pd-accent-soft-2: color-mix(in srgb, var(--accent) 22%, transparent);
+  --pd-accent-glow: var(--accent-glow);
   --pd-positive: var(--positive);
   --pd-positive-soft: var(--positive-soft);
   --pd-negative: var(--negative);
@@ -96,4 +220,5 @@
   --pd-shadow: var(--shadow);
   --pd-radius: var(--radius);
   --pd-radius-md: var(--radius-md);
+  --pd-texture-scanline: var(--texture-scanline);
 }

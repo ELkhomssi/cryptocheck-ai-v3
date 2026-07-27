@@ -25,7 +25,15 @@ export const usePortfolioTheme = create<ThemeState>()(
         set({ theme })
       },
       toggle: () => {
-        const next = get().theme === 'dark' ? 'light' : 'dark'
+        const cur = get().theme
+        const next =
+          cur === 'dark'
+            ? 'light'
+            : cur === 'light'
+              ? 'dark'
+              : cur === 'brass'
+                ? 'brass-light'
+                : 'brass'
         applyDom(next)
         set({ theme: next })
       },

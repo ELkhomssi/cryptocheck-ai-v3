@@ -43,12 +43,26 @@ export function PerformanceChart({
   note?: string
 }) {
   return (
-    <section className="pd-panel">
+    <section className="pd-panel is-dense">
       <div className="pd-panel-head">
-        <h2>Performance</h2>
-        <span style={{ fontSize: 12, color: 'var(--pd-text-dim)' }}>Total Value</span>
+        <h2 className="pd-section-label">Balance history</h2>
+        <span className="pd-section-label" style={{ letterSpacing: '0.08em' }}>
+          {/* Documented simplification — current holdings × historical prices */}
+          Mark-to-market curve
+        </span>
       </div>
-      <div style={{ padding: 18, height: 260 }}>
+      <div style={{ padding: '4px 0 8px', height: 240, position: 'relative' }}>
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            inset: '20% 10% auto',
+            height: '70%',
+            background: 'radial-gradient(ellipse at center, var(--pd-accent-glow), transparent 72%)',
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}
+        />
         {loading ? (
           <div className="pd-skeleton" style={{ height: '100%', width: '100%' }} />
         ) : series.length < 2 ? (
