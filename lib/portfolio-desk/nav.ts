@@ -102,7 +102,7 @@ export const PAGE_META: Record<
   market: {
     kicker: '// MARKET INTELLIGENCE',
     title: 'Market Intelligence',
-    subtitle: 'Discovery, tracked tokens, and live Solana market structure.',
+    subtitle: 'Chief Market Strategist — already finished the analysis.',
   },
   trade: {
     kicker: '// TRADING',
