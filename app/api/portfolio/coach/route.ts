@@ -102,6 +102,16 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  const { resolveIdentityWithLookup } = await import('@/lib/identity/resolve')
+  const { enforceIdentityRateLimit } = await import('@/lib/identity/rate-limit')
+  const identity = await resolveIdentityWithLookup(req)
+  const limited = await enforceIdentityRateLimit({
+    userId: identity.userId,
+    walletAddress: identity.walletAddress,
+    route: 'coach',
+  })
+  if (!limited.ok) return limited.response
+
   const { acquireProviderQuota } = await import('@/lib/providers/quota')
   const quota = await acquireProviderQuota('openai')
   if (quota.ok === false) {
@@ -130,11 +140,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'message required' }, { status: 400 })
   }
 
+  const wallet = identity.walletAddress || body.walletAddress || null
   let contextBlock = 'No wallet connected — answer generally and ask the user to connect.'
-  if (body.walletAddress && body.walletAddress.length >= 32) {
+  if (wallet && wallet.length >= 32) {
     try {
-      // Phase 17.3 — assemble via ContextEngine (same underlying holdings/alerts/memory/timeline).
-      const coachCtx = await getCoachContext(body.walletAddress)
+      const coachCtx = await getCoachContext(identity.userId || wallet, wallet)
       contextBlock = formatCoachContextForPrompt(coachCtx)
     } catch {
       contextBlock = 'Wallet provided but holdings fetch failed — say so honestly.'

@@ -9,6 +9,7 @@ import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { AgentActivityRow, AIEmployee } from '@/types/agents'
 import { statusCopyForAgentRun } from '@/lib/intelligence/copy'
+import { ProUpgradePrompt } from '@/components/identity/ProUpgradePrompt'
 
 const RECIPES: {
   id: string
@@ -50,6 +51,7 @@ const RECIPES: {
 export function AutomationPanel({ walletAddress }: { walletAddress: string | null }) {
   const qc = useQueryClient()
   const [msg, setMsg] = useState<string | null>(null)
+  const [showProUpsell, setShowProUpsell] = useState(false)
 
   const rosterQ = useQuery({
     queryKey: ['automation-roster'],
@@ -93,12 +95,20 @@ export function AutomationPanel({ walletAddress }: { walletAddress: string | nul
         body: JSON.stringify({
           action: recipe.action,
           walletAddress: walletAddress || undefined,
+          automation: true,
+          source: 'automation',
         }),
       })
       const body = (await res.json().catch(() => ({}))) as {
         available?: boolean
         error?: string
+        message?: string
+        feature?: string
         activityId?: string
+      }
+      if (res.status === 402) {
+        setShowProUpsell(true)
+        throw new Error(body.message || body.error || 'Pro required for Automation')
       }
       if (!res.ok) throw new Error(body.error || 'Run failed')
       if (body.available === false) throw new Error(body.error || 'Agent unavailable')
@@ -157,6 +167,11 @@ export function AutomationPanel({ walletAddress }: { walletAddress: string | nul
         </div>
         {msg ? (
           <p style={{ marginTop: 12, fontSize: 12, color: 'var(--pd-text-dim)' }}>{msg}</p>
+        ) : null}
+        {showProUpsell ? (
+          <div style={{ marginTop: 14 }}>
+            <ProUpgradePrompt feature="automation" onDismiss={() => setShowProUpsell(false)} />
+          </div>
         ) : null}
       </div>
 

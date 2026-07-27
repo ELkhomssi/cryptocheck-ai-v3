@@ -110,10 +110,18 @@ export async function getTradingContext(userId: string): Promise<TradingContext>
 
 /**
  * Coach consumer context — portfolio, user_memory, alerts, timeline slice.
+ * Phase 18: `userId` is the stable identity; `walletAddress` is for on-chain reads.
  */
-export async function getCoachContext(userId: string): Promise<CoachContext> {
+export async function getCoachContext(
+  userId: string,
+  walletAddress?: string | null,
+): Promise<CoachContext> {
+  const looksLikeWallet =
+    Boolean(userId) && userId.length >= 32 && !userId.includes('@') && !userId.includes('-')
   const wallet =
-    userId && userId.length >= 32 && !userId.includes('@') ? userId : null
+    (walletAddress && walletAddress.length >= 32 ? walletAddress.trim() : null) ||
+    (looksLikeWallet ? userId : null)
+  const memoryKey = userId.trim() || wallet || 'anonymous'
   const fetchedAt = new Date().toISOString()
 
   let portfolioBlock = 'No wallet connected — answer generally and ask the user to connect.'
@@ -134,15 +142,14 @@ export async function getCoachContext(userId: string): Promise<CoachContext> {
     }
   }
 
-  const memoryKey = wallet || userId || 'anonymous'
+  const ownerKeys = [memoryKey, wallet].filter((k): k is string => Boolean(k && k.trim()))
   const [memoryEntries, alerts, timelineSlice, aggregates] = await Promise.all([
     listUserMemory(memoryKey, 20),
     listAlerts(10),
-    listTimelineEvents({ limit: 12 }),
+    listTimelineEvents({ limit: 12, ownerKeys }),
     aggregateUserMemory(memoryKey),
   ])
 
-  // Surface aggregate hints inside memory meta for the coach prompt without a giant blob.
   void aggregates
 
   return {

@@ -3,12 +3,18 @@
 /**
  * Command Center — heart of Mission Control.
  * Streams via existing POST /api/portfolio/coach. Suggestions are dynamic.
+ * Phase 18: rate-limit voice copy + contextual Pro upsell (never mid-briefing —
+ * this panel only mounts after briefingDone).
  */
 
 import { useEffect, useRef, useState } from 'react'
 import { useSolana } from '@/components/SolanaProvider'
+import { ProUpgradePrompt } from '@/components/identity/ProUpgradePrompt'
 
 type Msg = { role: 'user' | 'assistant'; text: string }
+
+const AUTOMATION_INTENT =
+  /\b(set (this|it) to run automatically|run automatically|schedule this|automate this|automation)\b/i
 
 export function MissionCommandCenter({
   seedPrompt,
@@ -27,6 +33,7 @@ export function MissionCommandCenter({
   const [streaming, setStreaming] = useState(false)
   const [online, setOnline] = useState<boolean | null>(null)
   const [thinking, setThinking] = useState<string | null>(null)
+  const [upsellAutomation, setUpsellAutomation] = useState(false)
   const bottomRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -59,6 +66,9 @@ export function MissionCommandCenter({
   const run = async (prompt: string) => {
     const text = prompt.trim()
     if (!text || streaming) return
+    if (AUTOMATION_INTENT.test(text)) {
+      setUpsellAutomation(true)
+    }
     setMsgs((m) => [...m, { role: 'user', text }, { role: 'assistant', text: '' }])
     setDraft('')
     setStreaming(true)
@@ -70,14 +80,22 @@ export function MissionCommandCenter({
         body: JSON.stringify({ message: text, walletAddress: walletAddress ?? undefined }),
       })
       if (!res.ok || !res.body) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string }
+        const err = (await res.json().catch(() => ({}))) as {
+          error?: string
+          message?: string
+        }
         if (res.status === 503) setOnline(false)
         setThinking(null)
+        const voice =
+          res.status === 429
+            ? err.message ||
+              'Catching up — try again in a moment. I’ve paused this request so shared market feeds stay healthy for everyone.'
+            : err.error || 'I’m offline — OPENAI_API_KEY may be missing on the server.'
         setMsgs((m) => {
           const next = [...m]
           next[next.length - 1] = {
             role: 'assistant',
-            text: err.error || 'I’m offline — OPENAI_API_KEY may be missing on the server.',
+            text: voice,
           }
           return next
         })
@@ -130,6 +148,10 @@ export function MissionCommandCenter({
           {thinking ? <div className="mc-thinking">{thinking}</div> : null}
           <div ref={bottomRef} />
         </div>
+      ) : null}
+
+      {upsellAutomation && !streaming ? (
+        <ProUpgradePrompt feature="automation" onDismiss={() => setUpsellAutomation(false)} />
       ) : null}
 
       <form

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { Connection, PublicKey } from '@solana/web3.js'
 import { buildLaunchTransactions } from '@/lib/launch/build-launch'
 import { getPlatformId, getRpcUrl } from '@/lib/launch/config'
@@ -24,7 +24,7 @@ export const runtime = 'nodejs'
  * Client NEVER receives a tx unless metadata, creator reputation, and curve bounds pass.
  * Non-custodial: returns unsigned/mint-partially-signed txs only — user wallet co-signs.
  */
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const trackingId = newTrackingId()
 
   try {
@@ -78,24 +78,31 @@ export async function POST(req: Request) {
   try {
     rl = await enforceRateLimit(`launch:prepare:${rlKey}`, 'free')
   } catch {
-    rl = { ok: true, limit: 0, remaining: 0, reset: 0 }
+    rl = { ok: true, limit: 0, remaining: 0, reset: Date.now() }
   }
   if (!rl.ok) {
-    const { body: err, status } = launchErrorResponse('RATE_LIMITED', {
+    const { body, status } = launchErrorResponse('RATE_LIMITED', {
       trackingId,
       compliance: LAUNCH_COMPLIANCE,
     })
-    return NextResponse.json(
-      { ...err, blocked: true, reasons: ['Too many launch prepare attempts'] },
-      {
-        status,
-        headers: {
-          'X-RateLimit-Limit': String(rl.limit),
-          'X-RateLimit-Remaining': String(rl.remaining),
-          'X-RateLimit-Reset': String(rl.reset),
+    return NextResponse.json({ ...body, blocked: true }, { status })
+  }
+
+  // Phase 18 — LaunchLab create is Pro-gated
+  {
+    const { resolveIdentityWithLookup } = await import('@/lib/identity/resolve')
+    const { isEntitled, entitlementDeniedBody } = await import('@/lib/identity/entitlements')
+    const identity = await resolveIdentityWithLookup(req)
+    if (!identity.userId || !(await isEntitled(identity.userId, 'launchlab_create'))) {
+      return NextResponse.json(
+        {
+          ...entitlementDeniedBody('launchlab_create'),
+          blocked: true,
+          trackingId,
         },
-      },
-    )
+        { status: 402 },
+      )
+    }
   }
 
   void recordPrepareAttempt(creatorWallet || 'anon')

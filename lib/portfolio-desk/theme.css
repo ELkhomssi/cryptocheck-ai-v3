@@ -1586,6 +1586,49 @@
   line-height: 1.4;
 }
 
+/* Phase 18 — SIWS + contextual upsell (never mid-briefing chrome) */
+.mc-ceo-siws {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--pd-text-faint);
+}
+
+.mc-upsell {
+  margin: 12px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--pd-border-soft);
+  max-width: 48ch;
+}
+
+.mc-upsell-copy {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--pd-text-dim);
+}
+
+.mc-upsell-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.mc-upsell-primary {
+  appearance: none;
+  border: 1px solid var(--pd-border);
+  background: var(--pd-surface-2);
+  color: var(--pd-text);
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: var(--pd-radius);
+  cursor: pointer;
+}
+
+.mc-upsell-primary:hover {
+  border-color: var(--pd-text-dim);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mc-thinking {
     animation: none;
