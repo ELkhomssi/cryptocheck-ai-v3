@@ -281,8 +281,28 @@ export function PortfolioDesk() {
                 loading={holdingsQ.isLoading}
                 spark={perfQ.data?.series ?? []}
                 range={range}
+                wallet={walletAddress}
               />
             </SectionErrorBoundary>
+            <SectionErrorBoundary title="Balance history">
+              <PerformanceChart
+                series={perfQ.data?.series ?? []}
+                loading={perfQ.isLoading}
+                note={perfQ.data?.simplification}
+              />
+            </SectionErrorBoundary>
+            <SectionErrorBoundary title="Holdings">
+              <HoldingsTable
+                holdings={holdingsQ.data?.holdings ?? []}
+                loading={holdingsQ.isLoading}
+                connected={isConnected}
+              />
+            </SectionErrorBoundary>
+            {/* Phase 19.3 deferred:
+                - Transfers: timeline_events has agent/alert/order rows, not wallet
+                  transfer from/to/amount. Helius tx history is not wired for this desk.
+                - Exchange Usage: no per-venue execution breakdown exists yet.
+                Do not ship placeholder tables to match the reference. */}
             <SectionErrorBoundary title="Risk & Allocation">
               <Metrics data={holdingsQ.data} loading={holdingsQ.isLoading} />
             </SectionErrorBoundary>
@@ -291,26 +311,6 @@ export function PortfolioDesk() {
             </SectionErrorBoundary>
             <SectionErrorBoundary title="AI Recommendations">
               <AiReviewPanel />
-            </SectionErrorBoundary>
-            <SectionErrorBoundary title="Performance">
-              <PerformanceChart
-                series={perfQ.data?.series ?? []}
-                loading={perfQ.isLoading}
-                note={perfQ.data?.simplification}
-              />
-            </SectionErrorBoundary>
-            <div className="pd-page-head" style={{ marginTop: 8 }}>
-              <div>
-                <h1>Holdings detail</h1>
-                <p>Supporting inventory — health and risk metrics above take priority.</p>
-              </div>
-            </div>
-            <SectionErrorBoundary title="Holdings">
-              <HoldingsTable
-                holdings={holdingsQ.data?.holdings ?? []}
-                loading={holdingsQ.isLoading}
-                connected={isConnected}
-              />
             </SectionErrorBoundary>
             <div className="pd-page-head" style={{ marginTop: 8 }}>
               <div>
