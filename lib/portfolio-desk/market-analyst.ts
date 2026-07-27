@@ -66,17 +66,27 @@ export type NarrativeCluster = {
 }
 
 export type MarketAnalystBrief = {
-  /** First-screen hero — what the market is doing. */
+  /** First-screen hero — what the market is doing (Decision). */
   conclusion: string
   whyItMatters: string
   attention: string | null
   insightCards: MarketInsightCard[]
   narratives: NarrativeCluster[]
-  /** Aggregate sample for charts section (not first screen). */
+  /** Aggregate sample for charts section (Evidence only). */
   sampleSpark: number[]
   sourcesNote: string
   unavailableReason: string | null
   fetchedHint: string | null
+  /** Data → Thinking → Decision → Evidence sequence (presentation). */
+  dataSteps: MarketProcessStep[]
+  thinkingSteps: MarketProcessStep[]
+}
+
+export type MarketProcessStep = {
+  id: string
+  label: string
+  status: string
+  done: boolean
 }
 
 const NARRATIVE_META: Record<
@@ -458,11 +468,146 @@ export type MarketAnalystInput = {
 }
 
 /**
+ * Build Data → Thinking steps from what we actually have (never invent facts).
+ */
+export function buildMarketProcess(params: {
+  screenerRows: ScreenerRow[]
+  quotes: MarketMacroQuotes | null
+  loading?: boolean
+  source?: string | null
+}): { dataSteps: MarketProcessStep[]; thinkingSteps: MarketProcessStep[] } {
+  const loading = Boolean(params.loading)
+  const rows = params.screenerRows ?? []
+  const q = params.quotes
+  const n = rows.length
+
+  const dataSteps: MarketProcessStep[] = [
+    {
+      id: 'screener',
+      label: 'Screener sample',
+      status: loading
+        ? 'Reading…'
+        : n > 0
+          ? `${n} tokens from live corpus${params.source ? ` · ${params.source}` : ''}.`
+          : 'No tokens returned.',
+      done: !loading,
+    },
+    {
+      id: 'macro',
+      label: 'Macro quotes',
+      status: loading
+        ? 'Reading…'
+        : q && (q.btcChangePct != null || q.fearGreed != null || q.solChangePct != null)
+          ? 'BTC / SOL / Fear&Greed available.'
+          : 'Macro quote set incomplete.',
+      done: !loading,
+    },
+    {
+      id: 'flow',
+      label: 'Order-flow fields',
+      status: loading
+        ? 'Reading…'
+        : rows.some((r) => r.buySellRatio > 0)
+          ? 'Buy/sell ratios present in sample.'
+          : 'Buy/sell ratios sparse.',
+      done: !loading,
+    },
+    {
+      id: 'smart',
+      label: 'Smart-money scores',
+      status: loading
+        ? 'Reading…'
+        : rows.some((r) => r.smartMoneyScore > 0)
+          ? 'Smart-money scores present in sample.'
+          : 'Smart-money scores sparse.',
+      done: !loading,
+    },
+  ]
+
+  if (loading) {
+    return {
+      dataSteps,
+      thinkingSteps: [
+        {
+          id: 'wait',
+          label: 'Thinking',
+          status: 'Waiting on live data…',
+          done: false,
+        },
+      ],
+    }
+  }
+
+  const chgs = rows.map((r) => r.change24hPct).filter((n) => Number.isFinite(n))
+  const aChg = avg(chgs)
+  const buys = rows.map((r) => r.buySellRatio).filter((x) => x > 0)
+  const aBuy = avg(buys)
+  const classified = rows.filter((r) => classifyRow(r) != null).length
+
+  const thinkingSteps: MarketProcessStep[] = [
+    {
+      id: 'breadth',
+      label: 'Tape breadth',
+      status:
+        aChg == null
+          ? 'Cannot judge breadth — sample empty.'
+          : aChg > 2
+            ? 'Advances outweigh declines in the sample.'
+            : aChg < -2
+              ? 'Declines outweigh advances in the sample.'
+              : 'Aggregate move is muted — treat as rotation.',
+      done: true,
+    },
+    {
+      id: 'pressure',
+      label: 'Pressure',
+      status:
+        aBuy == null
+          ? 'Order-flow inconclusive.'
+          : aBuy >= 1.12
+            ? 'Buy-side pressure elevated versus sells.'
+            : aBuy < 0.9
+              ? 'Sell-side pressure more visible than bids.'
+              : 'Flow near balance — no aggressive imprint.',
+      done: true,
+    },
+    {
+      id: 'cluster',
+      label: 'Narratives',
+      status:
+        classified > 0
+          ? `Mapped ${classified} tokens into narrative clusters from live names/flags.`
+          : 'No narrative clusters matched — will not invent themes.',
+      done: true,
+    },
+    {
+      id: 'macro-think',
+      label: 'Macro context',
+      status:
+        q?.btcChangePct != null && q?.fearGreed != null
+          ? 'Weighing BTC relative strength and sentiment against the Solana sample.'
+          : q?.fearGreed != null
+            ? 'Sentiment print available; BTC relative read incomplete.'
+            : 'Macro context thin — decision leans on Solana sample only.',
+      done: true,
+    },
+  ]
+
+  return { dataSteps, thinkingSteps }
+}
+/**
  * Build the analyst brief from existing market payloads only.
+ * Cognitive order for UI: Data → Thinking → Decision → Evidence.
  */
 export function buildMarketAnalystBrief(input: MarketAnalystInput): MarketAnalystBrief {
   const rows = (input.screenerRows ?? []).filter((r) => r.mint && r.mint.length >= 32)
   const sourcesNote = 'Birdeye · Jupiter · Helius · Raydium · CoinGecko / Fear&Greed (existing routes)'
+  const process = buildMarketProcess({
+    screenerRows: rows,
+    quotes: input.quotes,
+    loading: false,
+    source: input.source,
+  })
 
   if (!rows.length && !input.quotes) {
     return {
@@ -477,6 +622,8 @@ export function buildMarketAnalystBrief(input: MarketAnalystInput): MarketAnalys
       sourcesNote,
       unavailableReason: UNAVAILABLE,
       fetchedHint: input.source ?? null,
+      dataSteps: process.dataSteps,
+      thinkingSteps: process.thinkingSteps,
     }
   }
 
@@ -551,6 +698,8 @@ export function buildMarketAnalystBrief(input: MarketAnalystInput): MarketAnalys
     sourcesNote,
     unavailableReason: rows.length === 0 && insightCards.length === 0 ? UNAVAILABLE : null,
     fetchedHint: input.source ?? null,
+    dataSteps: process.dataSteps,
+    thinkingSteps: process.thinkingSteps,
   }
 }
 

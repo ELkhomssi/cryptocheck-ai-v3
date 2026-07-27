@@ -1593,6 +1593,80 @@
 }
 
 /* ─── Phase 17.2 — Market Analyst (Bloomberg-analyst voice) ─── */
+.ma-process {
+  margin-top: 18px;
+  max-width: 36rem;
+}
+
+.ma-process-title {
+  margin: 0 0 10px;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pd-text-faint);
+  font-family: var(--font-ibm-plex-mono), monospace;
+}
+
+.ma-process-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ma-process-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 14px;
+  line-height: 1.35;
+  border-bottom: 1px solid var(--pd-border-soft);
+  padding-bottom: 8px;
+}
+
+.ma-process-list li span {
+  color: var(--pd-text);
+  flex-shrink: 0;
+}
+
+.ma-process-list li em {
+  font-style: normal;
+  color: var(--pd-text-dim);
+  text-align: right;
+}
+
+.ma-process-list li.is-busy em {
+  color: var(--pd-accent-bright);
+}
+
+.ma-step-label {
+  margin: 0 0 4px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pd-text-faint);
+  font-family: var(--font-ibm-plex-mono), monospace;
+}
+
+.ma-unlock-evidence {
+  appearance: none;
+  align-self: flex-start;
+  margin-top: 14px;
+  border: 1px solid var(--pd-border);
+  background: transparent;
+  color: var(--pd-text);
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: var(--pd-radius);
+  cursor: pointer;
+}
+
+.ma-unlock-evidence:hover {
+  border-color: var(--pd-text-dim);
+}
+
 .ma-shell {
   display: flex;
   flex-direction: column;

@@ -102,7 +102,7 @@ export const PAGE_META: Record<
   market: {
     kicker: '// MARKET INTELLIGENCE',
     title: 'Market Intelligence',
-    subtitle: 'Analyst conclusions first — evidence, charts, and raw metrics below.',
+    subtitle: 'Data → Thinking → Decision — evidence only when asked.',
   },
   trade: {
     kicker: '// TRADING',

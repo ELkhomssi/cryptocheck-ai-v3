@@ -155,4 +155,20 @@ describe('Phase 17.2 — Market Analyst brief', () => {
     // Raw numbers live in evidence, not the conclusion headline
     assert.ok(btc!.evidence.metrics.some((m) => m.label.includes('BTC')))
   })
+
+  it('exposes Data → Thinking steps before Decision fields', () => {
+    const rows = [
+      row({ mint: '11111111111111111111111111111111', change24hPct: 4, buySellRatio: 1.2 }),
+      row({ mint: '22222222222222222222222222222222', change24hPct: 3, buySellRatio: 1.1 }),
+      row({ mint: '33333333333333333333333333333333', change24hPct: 2, buySellRatio: 1.15 }),
+    ]
+    const brief = buildMarketAnalystBrief({ screenerRows: rows, quotes: null })
+    assert.ok(brief.dataSteps.length >= 3)
+    assert.ok(brief.thinkingSteps.length >= 3)
+    assert.ok(brief.dataSteps.every((s) => s.label && s.status))
+    assert.ok(brief.thinkingSteps.every((s) => s.done))
+    assert.ok(brief.conclusion)
+    // Evidence is attached but must not replace the decision headline
+    assert.notEqual(brief.conclusion, brief.dataSteps[0]!.status)
+  })
 })
