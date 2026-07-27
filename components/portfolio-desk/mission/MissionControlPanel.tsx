@@ -35,13 +35,13 @@ export function MissionControlPanel({
   onSuggestion: (text: string) => void
   showObservationsInline?: boolean
 }) {
-  const { walletAddress, shortAddr, isConnected } = useSolana()
+  const { walletAddress, shortAddr, isConnected, siwsStatus, siwsError, signInSiws } = useSolana()
   const [seed, setSeed] = useState<string | null>(null)
   const [phase, setPhase] = useState<Phase>('reconstruct')
   const [spokenCount, setSpokenCount] = useState(0)
 
   const missionQ = useQuery({
-    queryKey: ['intelligence-core-mission', walletAddress],
+    queryKey: ['intelligence-core-mission', walletAddress, siwsStatus],
     queryFn: async () => {
       const q = walletAddress ? `?wallet=${encodeURIComponent(walletAddress)}` : ''
       const res = await fetch(`/api/intelligence-core/mission${q}`, { cache: 'no-store' })
@@ -112,6 +112,19 @@ export function MissionControlPanel({
 
   return (
     <div className="mc-ceo">
+      {isConnected && (siwsStatus === 'challenging' || siwsStatus === 'signing' || siwsStatus === 'verifying') ? (
+        <p className="mc-ceo-siws" aria-live="polite">
+          Confirming wallet ownership…
+        </p>
+      ) : null}
+      {siwsStatus === 'error' && siwsError ? (
+        <p className="mc-ceo-siws">
+          Sign-in needed for a durable account.{' '}
+          <button type="button" className="mc-talk-quiet-link" onClick={() => void signInSiws()}>
+            Sign again
+          </button>
+        </p>
+      ) : null}
       {phase === 'reconstruct' ? (
         <div className="mc-ceo-stage" aria-live="polite">
           <p className="mc-ceo-kicker">Mission Control</p>

@@ -18,33 +18,71 @@ import { listAgentActivity } from '@/lib/agents/store'
 import { getAutomationBridgeStatus } from '@/lib/intelligence-core/automation-bridge'
 import { listRecentRecommendations } from '@/lib/intelligence-core/recommendation-engine'
 import { generateReport, getLatestReport } from '@/lib/intelligence-core/report-engine'
+import { listUserMemory } from '@/lib/intelligence-core/memory-engine'
+import { listTimelineEvents } from '@/lib/intelligence-core/timeline-engine'
 import { buildHoldingsResponse } from '@/lib/portfolio-desk/holdings-service'
 import { loadScreenerCorpus } from '@/lib/terminal/screener-corpus'
 import type { MissionViewModel } from '@/types/intelligence-core'
 
 export async function assembleMissionViewModel(params?: {
   walletAddress?: string | null
+  userId?: string | null
 }): Promise<MissionViewModel> {
   const wallet = params?.walletAddress?.trim() || null
+  const userId = params?.userId?.trim() || null
   const fetchedAt = new Date().toISOString()
 
-  const [market, portfolio, activity, recommendations, existingBrief, automation] =
+  const ownerKeys = [userId, wallet].filter((k): k is string => Boolean(k && k.trim()))
+
+  const [market, portfolio, activity, recommendationsRaw, existingBrief, automation, memory, timeline] =
     await Promise.all([
       loadMarketGlance(),
       loadPortfolioGlance(wallet),
       listAgentActivity(40),
-      listRecentRecommendations(5),
+      listRecentRecommendations(5, userId),
       getLatestReport('morning_brief', wallet),
       getAutomationBridgeStatus(),
+      userId ? listUserMemory(userId, 5) : Promise.resolve([]),
+      ownerKeys.length
+        ? listTimelineEvents({ limit: 5, ownerKeys })
+        : Promise.resolve([]),
     ])
+
+  // Free tier: Mission briefing stays; full Recommendation Engine output is Pro.
+  let recommendations = recommendationsRaw
+  if (userId) {
+    try {
+      const { isEntitled } = await import('@/lib/identity/entitlements')
+      if (!(await isEntitled(userId, 'recommendations_full'))) {
+        recommendations = []
+      }
+    } catch {
+      recommendations = []
+    }
+  }
 
   const running = activity
     .filter((a) => a.status === 'running')
+    .filter((a) => {
+      if (!userId && !wallet) return true
+      if (a.userId && userId && a.userId === userId) return true
+      if (a.walletAddress && wallet && a.walletAddress === wallet) return true
+      // Global/system jobs without owner — ok to surface as ambient
+      return !a.userId && !a.walletAddress
+    })
     .map((a) => ({
       id: a.id,
       description: a.description || `${a.kind} running`,
       kind: a.kind,
     }))
+
+  // Brand-new user: no memory, no *user* timeline, no holdings — not the same as a quiet day.
+  const noHoldings =
+    !portfolio.connected ||
+    Boolean(portfolio.error) ||
+    (portfolio.totalValueUsd == null && portfolio.topWeightSymbol == null)
+  const firstRun =
+    Boolean(userId) && memory.length === 0 && timeline.length === 0 && noHoldings
 
   let dailyBrief: MissionViewModel['dailyBrief']
   if (existingBrief) {
@@ -64,10 +102,10 @@ export async function assembleMissionViewModel(params?: {
       reportId: null,
     }
   } else {
-    // Generate once and persist (honest empty if not enough events).
     const generated = await generateReport({
       reportType: 'morning_brief',
       walletAddress: wallet,
+      userId,
     })
     dailyBrief = {
       title: generated.title,
@@ -84,6 +122,8 @@ export async function assembleMissionViewModel(params?: {
     running,
     recommendations,
     dailyBrief,
+    firstRun,
+    userId,
     fetchedAt,
   }
 }

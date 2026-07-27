@@ -121,6 +121,9 @@ export type AgentRunRequest = {
   mint?: string
   /** Extra free-text for custom / optimize flows. */
   payload?: Record<string, unknown>
+  /** Phase 18 — true when invoked from Automation recipes (Pro-gated). */
+  automation?: boolean
+  source?: 'automation' | string
 }
 
 export type AgentRunStructured = {

@@ -36,6 +36,8 @@ const emptyView = (): MissionViewModel => ({
     pending: false,
     reportId: null,
   },
+  firstRun: false,
+  userId: null,
   fetchedAt: new Date().toISOString(),
 })
 
@@ -91,6 +93,24 @@ describe('Mission Control conversation', () => {
       loading: false,
     })
     assert.match(conv.turns.map((t) => t.text).join(' '), /relatively quiet/i)
+  })
+
+  it('first-run onboarding is distinct from quiet day', () => {
+    const v = emptyView()
+    v.firstRun = true
+    v.userId = 'user-a'
+    const first = buildMissionConversation({ displayName: null, view: v, loading: false })
+    const speech = first.turns.map((t) => t.text).join(' ')
+    assert.match(speech, /first run/i)
+    assert.doesNotMatch(speech, /relatively quiet/i)
+    assert.ok(first.preparedActions.some((a) => /scan a token|watchlist|wallet/i.test(a)))
+
+    const quiet = emptyView()
+    quiet.firstRun = false
+    quiet.userId = 'user-a'
+    const returning = buildMissionConversation({ displayName: null, view: quiet, loading: false })
+    assert.match(returning.turns.map((t) => t.text).join(' '), /relatively quiet/i)
+    assert.doesNotMatch(returning.turns.map((t) => t.text).join(' '), /first run/i)
   })
 
   it('speech hold gives time for proof absorption', () => {

@@ -22,6 +22,7 @@ function mapRow(row: Record<string, unknown>): TimelineEvent {
     summary: String(row.summary ?? ''),
     module: (row.module as string | null) ?? null,
     createdAt: String(row.created_at),
+    ownerKey: (row.owner_key as string | null) ?? null,
   }
 }
 
@@ -30,6 +31,8 @@ export async function listTimelineEvents(params?: {
   module?: string | null
   sinceIso?: string | null
   untilIso?: string | null
+  /** Phase 18 — tenant scope: wallet addresses and/or identity user_id */
+  ownerKeys?: string[] | null
 }): Promise<TimelineEvent[]> {
   const limit = Math.min(Math.max(params?.limit ?? 40, 1), 200)
   try {
@@ -42,6 +45,12 @@ export async function listTimelineEvents(params?: {
     if (params?.module) q = q.eq('module', params.module)
     if (params?.sinceIso) q = q.gte('created_at', params.sinceIso)
     if (params?.untilIso) q = q.lt('created_at', params.untilIso)
+    const keys = (params?.ownerKeys ?? []).map((k) => k.trim()).filter(Boolean)
+    if (keys.length === 1) {
+      q = q.eq('owner_key', keys[0]!)
+    } else if (keys.length > 1) {
+      q = q.in('owner_key', keys)
+    }
     const { data, error } = await q
     if (error || !data) return []
     return data.map((r) => mapRow(r as Record<string, unknown>))

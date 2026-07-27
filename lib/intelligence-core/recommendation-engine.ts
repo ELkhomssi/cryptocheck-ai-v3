@@ -53,27 +53,40 @@ export async function generateGroundedRecommendation(params: {
 }
 
 /** Latest recommendations relevant to portfolio/watchlist (from agent_predictions). */
-export async function listRecentRecommendations(limit = 5): Promise<RecommendationResult[]> {
+export async function listRecentRecommendations(
+  limit = 5,
+  userId?: string | null,
+): Promise<RecommendationResult[]> {
   try {
     const { getSupabaseAdmin } = await import('@/lib/supabase/admin')
+    const { filterTenantRows } = await import('@/lib/identity/tenant-scope')
     const admin = getSupabaseAdmin()
     const { data, error } = await admin
       .from('agent_predictions')
-      .select('id, payload, kind, created_at')
+      .select('id, payload, kind, created_at, subject')
       .eq('kind', 'recommendation')
       .order('created_at', { ascending: false })
-      .limit(limit)
+      .limit(Math.max(limit * 4, limit))
     if (error || !data?.length) return []
-    return data.map((row) => {
+    const mapped = data.map((row) => {
       const payload = (row.payload as Record<string, unknown>) ?? {}
+      const rowUser =
+        (typeof payload.userId === 'string' ? payload.userId : null) ||
+        (typeof row.subject === 'string' && row.subject.includes('-') ? row.subject : null)
       return {
         title: typeof payload.title === 'string' ? payload.title : 'Recommendation',
         explanation:
           typeof payload.explanation === 'string' ? payload.explanation : NO_DIFF_EXPLANATION,
         grounded: payload.grounded === true,
         predictionId: String(row.id),
+        userId: rowUser,
+        walletAddress:
+          typeof payload.walletAddress === 'string' ? payload.walletAddress : null,
       }
     })
+    // Authenticated tenants: only rows tagged for them (untagged legacy omitted — no leak).
+    const scoped = userId ? filterTenantRows(mapped, { userId }) : mapped
+    return scoped.slice(0, limit).map(({ userId: _u, walletAddress: _w, ...rest }) => rest)
   } catch {
     return []
   }

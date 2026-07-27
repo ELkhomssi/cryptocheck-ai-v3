@@ -16,6 +16,8 @@ export type TimelineEvent = {
   summary: string
   module: string | null
   createdAt: string
+  /** Phase 18 — wallet or identity user_id when known. */
+  ownerKey?: string | null
 }
 
 export type UserMemoryActionType =
@@ -128,6 +130,10 @@ export type MissionViewModel = {
     pending: boolean
     reportId: string | null
   }
+  /** Phase 18 — brand-new identity with zero history (not a quiet day). */
+  firstRun: boolean
+  /** Phase 18 — stable SIWS user id when authenticated. */
+  userId: string | null
   fetchedAt: string
 }
 

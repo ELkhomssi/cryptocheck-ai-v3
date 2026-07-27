@@ -190,6 +190,12 @@ export function buildReconstruction(params: {
   ]
 }
 
+const ONBOARD_ACTIONS = [
+  'Connect a wallet',
+  'Scan a token',
+  'Import a watchlist',
+] as const
+
 const PREPARED_ACTIONS = [
   'Review my portfolio',
   "Find today's opportunity",
@@ -199,6 +205,7 @@ const PREPARED_ACTIONS = [
 ] as const
 
 function pickPrimaryAction(view: MissionViewModel): string {
+  if (view.firstRun) return 'Scan a token'
   const grounded = view.recommendations.find((r) => r.grounded)
   if (grounded) return "Find today's opportunity"
   if (view.portfolio.connected && view.portfolio.topWeightSymbol) return 'Show hidden risks'
@@ -208,6 +215,7 @@ function pickPrimaryAction(view: MissionViewModel): string {
 }
 
 export function buildPreparedActions(view: MissionViewModel): string[] {
+  if (view.firstRun) return [...ONBOARD_ACTIONS]
   const primary = pickPrimaryAction(view)
   const rest = PREPARED_ACTIONS.filter((a) => a !== primary)
   return [primary, ...rest]
@@ -258,6 +266,7 @@ export function buildMissionConversation(params: {
   const marketMissing = !v.market.available || v.market.aggregateChange24hPct == null
   const portfolioMissing = !v.portfolio.connected || Boolean(v.portfolio.error)
   const quiet =
+    !v.firstRun &&
     marketMissing &&
     (portfolioMissing || (v.portfolio.dayChangePct != null && Math.abs(v.portfolio.dayChangePct) < 2)) &&
     grounded.length === 0 &&
@@ -268,10 +277,21 @@ export function buildMissionConversation(params: {
     kind: 'speech',
     text: name ? `${timeOfDayGreeting()} ${name}.` : `${timeOfDayGreeting()}.`,
     proof: 'none',
-    meaning: 'I’ve already reconstructed your operating picture.',
+    meaning: v.firstRun
+      ? 'You’re new here — I’ll keep this short until we have history to work with.'
+      : 'I’ve already reconstructed your operating picture.',
   })
 
-  if (quiet) {
+  if (v.firstRun) {
+    turns.push({
+      id: 'onboard',
+      kind: 'speech',
+      text: 'This is your first run. I don’t have history for you yet.',
+      proof: 'actions',
+      meaning:
+        'Connect a wallet, run a first token scan, or import a watchlist — then I’ll reconstruct from real activity.',
+    })
+  } else if (quiet) {
     turns.push({
       id: 'quiet',
       kind: 'speech',
@@ -397,9 +417,13 @@ export function buildMissionConversation(params: {
   turns.push({
     id: 'propose',
     kind: 'propose',
-    text: 'I filtered everything else. Choose what we open next.',
+    text: v.firstRun
+      ? 'I’ve prepared a first step and filtered everything else.'
+      : 'I filtered everything else. Choose what we open next.',
     proof: 'actions',
-    meaning: `${preparedActions.length} actions are prepared from the briefing.`,
+    meaning: v.firstRun
+      ? 'Start with one action — no briefing filler until you have history.'
+      : `${preparedActions.length} actions are prepared from the briefing.`,
   })
 
   const full = turns.map((t) => t.text).join(' ')

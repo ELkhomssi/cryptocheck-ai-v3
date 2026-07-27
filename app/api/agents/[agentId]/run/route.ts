@@ -144,6 +144,27 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
     return NextResponse.json({ error: 'unknown agent' }, { status: 404 })
   }
 
+  const { resolveIdentityWithLookup } = await import('@/lib/identity/resolve')
+  const { isEntitled, entitlementDeniedBody } = await import('@/lib/identity/entitlements')
+  const identity = await resolveIdentityWithLookup(req)
+
+  let body: AgentRunRequest
+  try {
+    body = (await req.json()) as AgentRunRequest
+  } catch {
+    return NextResponse.json({ error: 'invalid json' }, { status: 400 })
+  }
+
+  // Phase 18 — Automation schedule/recipe runs are Pro-gated (interactive chat stays free).
+  const automationRun =
+    (body as { automation?: boolean; source?: string }).automation === true ||
+    (body as { source?: string }).source === 'automation'
+  if (automationRun) {
+    if (!identity.userId || !(await isEntitled(identity.userId, 'automation'))) {
+      return NextResponse.json(entitlementDeniedBody('automation'), { status: 402 })
+    }
+  }
+
   const key = getOpenAiApiKey()
   if (!key) {
     return NextResponse.json(
@@ -166,13 +187,6 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
         headers: { 'Retry-After': String(Math.ceil(quota.retryAfterMs / 1000)) },
       },
     )
-  }
-
-  let body: AgentRunRequest
-  try {
-    body = (await req.json()) as AgentRunRequest
-  } catch {
-    return NextResponse.json({ error: 'invalid json' }, { status: 400 })
   }
 
   const action = body.action || employee.actionType

@@ -1,19 +1,31 @@
 /**
- * GET /api/intelligence-core/mission?wallet=
- * Mission Control view model via MissionEngine.
+ * GET /api/intelligence-core/mission
+ * Prefer SIWS session → userId; wallet for portfolio on-chain reads.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { assembleMissionViewModel } from '@/lib/intelligence-core/mission-engine'
+import { resolveIdentityWithLookup } from '@/lib/identity/resolve'
+import { enforceIdentityRateLimit } from '@/lib/identity/rate-limit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 export async function GET(req: NextRequest) {
-  const wallet = (req.nextUrl.searchParams.get('wallet') || '').trim() || null
+  const identity = await resolveIdentityWithLookup(req)
+  const limited = await enforceIdentityRateLimit({
+    userId: identity.userId,
+    walletAddress: identity.walletAddress,
+    route: 'mission',
+  })
+  if (!limited.ok) return limited.response
+
   try {
-    const view = await assembleMissionViewModel({ walletAddress: wallet })
+    const view = await assembleMissionViewModel({
+      walletAddress: identity.walletAddress,
+      userId: identity.userId,
+    })
     return NextResponse.json(view)
   } catch (e) {
     console.error('[intelligence-core/mission]', e)
