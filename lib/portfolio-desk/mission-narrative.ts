@@ -1,447 +1,254 @@
 /**
- * Mission Control conversation assembly — presentation only.
- * Assembles CEO conclusions from MissionViewModel. Never invents.
- *
- * The OS is already alive. Speech opens after the work — never a boot sequence.
+ * Mission Control OS summaries — presentation only.
+ * Deterministic labels from MissionViewModel. Never invents. Never chats.
+ * No OpenAI. No conversational theatre.
  */
 
 import type { ModuleCardView } from '@/types/intelligence'
 import type { MissionViewModel, TimelineEvent } from '@/types/intelligence-core'
-
-export function timeOfDayGreeting(now = new Date()): string {
-  const h = now.getHours()
-  if (h < 12) return 'Good morning'
-  if (h < 18) return 'Good afternoon'
-  return 'Good evening'
-}
-
-export function estimateReadingSeconds(text: string): number {
-  const words = text.trim().split(/\s+/).filter(Boolean).length
-  return Math.max(8, Math.min(45, Math.round(words / 3.2)))
-}
 
 function countFromDescription(description: string): string | null {
   const m = description.match(/\b(\d{1,3}(?:,\d{3})*|\d+)\b/)
   return m?.[1] ?? null
 }
 
+/** System-voice label for a live automation / agent job. */
 export function runningIntelligenceLabel(description: string, kind: string): string {
   const d = (description || '').toLowerCase()
   const n = countFromDescription(description)
 
   if (d.includes('liquidity') || d.includes('pool')) {
-    return 'I’m currently analyzing liquidity across Solana.'
+    return 'Liquidity analysis running across Solana.'
   }
   if (d.includes('report') || d.includes('brief') || kind === 'report') {
-    return 'Today’s market report is still being prepared.'
+    return 'Market report in progress.'
   }
   if (d.includes('portfolio') || d.includes('exposure') || d.includes('holding')) {
-    return 'Recalculating portfolio exposure…'
+    return 'Portfolio exposure recalculating.'
   }
   if (d.includes('whale')) {
     return n
-      ? `I’m monitoring ${n} whale wallets that moved while you were away.`
-      : 'I’m monitoring whale wallets that moved while you were away.'
+      ? `Monitoring ${n} whale wallets with recent movement.`
+      : 'Monitoring whale wallets with recent movement.'
   }
   if (d.includes('wallet') || d.includes('holder')) {
-    return n ? `I’m watching ${n} wallets for unusual behaviour.` : 'I’m watching wallets for unusual behaviour.'
+    return n ? `Watching ${n} wallets for unusual behaviour.` : 'Watching wallets for unusual behaviour.'
   }
   if (d.includes('launch') || d.includes('listing')) {
-    return n ? `I’m scanning ${n} new launches.` : 'I’m scanning new launches on Solana.'
+    return n ? `Scanning ${n} new launches.` : 'Scanning new launches on Solana.'
   }
   if (d.includes('dev') || d.includes('developer')) {
-    return 'I’m checking developer wallets tied to recent launches.'
+    return 'Checking developer wallets tied to recent launches.'
   }
   if (d.includes('risk') || d.includes('audit') || d.includes('scam')) {
-    return 'I’m recalculating portfolio risk.'
+    return 'Portfolio risk recalculating.'
   }
   if (d.includes('scan') || d.includes('running your query')) {
-    return 'I’m running a live scan for you.'
+    return 'Live scan in progress.'
   }
   if (description.trim() && !/job\s*#|queue|task\s*id|process\s*#/i.test(description)) {
-    return description.trim().replace(/\.*$/, '') + '…'
+    return description.trim().replace(/\.*$/, '') + '.'
   }
-  return 'I’m continuing to monitor the market.'
-}
-
-export type SpeechProof =
-  | 'none'
-  | 'living'
-  | 'feed'
-  | 'market'
-  | 'portfolio'
-  | 'attention'
-  | 'actions'
-
-export type SpeechTurn = {
-  id: string
-  kind: 'speech' | 'propose'
-  text: string
-  proof: SpeechProof
-  meaning: string | null
+  return 'Market monitoring active.'
 }
 
 export type MissionMetric = { label: string; value: string }
 
-export type MissionConversation = {
-  turns: SpeechTurn[]
-  preparedActions: string[]
-  primaryAction: string
-  suggestions: string[]
-  evidence: string[]
-  attention: string[]
+export type MissionOsPriority = {
+  id: string
+  title: string
+  detail: string
+  level: 'High' | 'Medium' | 'Low'
+}
+
+export type MissionOsSummary = {
+  statusLine: string
+  marketHeadline: string
+  marketDetail: string | null
   marketMetrics: MissionMetric[]
+  portfolioHeadline: string
+  portfolioDetail: string | null
   portfolioMetrics: MissionMetric[]
-  living: string[]
+  priorities: MissionOsPriority[]
+  briefTitle: string
+  briefBody: string
+  automationLines: string[]
   riskSymbol: string | null
-  readingSeconds: number
+  firstRun: boolean
+  fetchedAt: string | null
 }
 
-export function speechHoldMs(text: string): number {
-  const words = text.trim().split(/\s+/).filter(Boolean).length
-  return Math.max(1600, Math.min(4200, 1100 + words * 160))
+function fmtSignedPct(n: number): string {
+  const sign = n > 0 ? '+' : ''
+  return `${sign}${n.toFixed(2)}%`
 }
 
-export function activeProofAt(turns: SpeechTurn[], spokenCount: number): SpeechProof {
-  const i = Math.min(spokenCount, turns.length) - 1
-  if (i < 0) return 'none'
-  return turns[i]?.proof ?? 'none'
+function fmtUsd(n: number): string {
+  return `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
 }
 
-export function proofsUnlockedThrough(turns: SpeechTurn[], spokenCount: number): SpeechProof[] {
-  const seen = new Set<SpeechProof>()
-  const out: SpeechProof[] = []
-  for (let i = 0; i < Math.min(spokenCount, turns.length); i++) {
-    const p = turns[i]!.proof
-    if (p === 'none' || seen.has(p)) continue
-    seen.add(p)
-    out.push(p)
+export function buildMissionOsSummary(view: MissionViewModel | null): MissionOsSummary {
+  if (!view) {
+    return {
+      statusLine: 'Intelligence Core standing by.',
+      marketHeadline: 'Market sample pending.',
+      marketDetail: null,
+      marketMetrics: [],
+      portfolioHeadline: 'Portfolio pending.',
+      portfolioDetail: null,
+      portfolioMetrics: [],
+      priorities: [],
+      briefTitle: 'Daily brief',
+      briefBody: 'No brief yet.',
+      automationLines: [],
+      riskSymbol: null,
+      firstRun: false,
+      fetchedAt: null,
+    }
   }
-  return out
+
+  const grounded = view.recommendations.filter((r) => r.grounded)
+  const priorities: MissionOsPriority[] = grounded.slice(0, 5).map((r, i) => ({
+    id: r.predictionId || `rec-${i}`,
+    title: r.title,
+    detail: r.explanation,
+    level: i === 0 ? 'High' : i === 1 ? 'Medium' : 'Low',
+  }))
+
+  const riskSymbol =
+    view.portfolio.connected && !view.portfolio.error ? view.portfolio.topWeightSymbol : null
+
+  const marketMetrics: MissionMetric[] = []
+  let marketHeadline = 'Market sample unavailable.'
+  let marketDetail: string | null = null
+  if (view.market.available && view.market.aggregateChange24hPct != null) {
+    const chg = view.market.aggregateChange24hPct
+    marketHeadline =
+      chg > 2
+        ? 'Market sample constructive.'
+        : chg < -2
+          ? 'Market sample defensive.'
+          : 'Market sample orderly.'
+    marketMetrics.push({ label: 'Sample 24h', value: fmtSignedPct(chg) })
+    if (view.market.topMoverSymbol) {
+      marketMetrics.push({
+        label: 'Leading move',
+        value: `${view.market.topMoverSymbol} ${fmtSignedPct(view.market.topMoverChange24hPct ?? 0)}`,
+      })
+      marketDetail = `Largest absolute move: ${view.market.topMoverSymbol}.`
+    }
+  }
+
+  const portfolioMetrics: MissionMetric[] = []
+  let portfolioHeadline = 'Wallet not connected.'
+  let portfolioDetail: string | null = null
+  if (!view.portfolio.connected) {
+    portfolioHeadline = 'Wallet not connected.'
+  } else if (view.portfolio.error) {
+    portfolioHeadline = 'Portfolio holdings unavailable.'
+  } else {
+    const day = view.portfolio.dayChangePct
+    portfolioHeadline =
+      day == null
+        ? 'Portfolio connected — 24h change pending.'
+        : Math.abs(day) >= 5
+          ? 'Portfolio under pressure.'
+          : Math.abs(day) >= 2
+            ? 'Portfolio operable with volatility.'
+            : 'Portfolio stable on latest 24h read.'
+    if (view.portfolio.totalValueUsd != null) {
+      portfolioMetrics.push({ label: 'Value', value: fmtUsd(view.portfolio.totalValueUsd) })
+    }
+    if (day != null) portfolioMetrics.push({ label: '24h', value: fmtSignedPct(day) })
+    if (riskSymbol) {
+      portfolioMetrics.push({ label: 'Largest position', value: riskSymbol })
+      portfolioDetail = `Primary concentration: ${riskSymbol}.`
+    }
+  }
+
+  const automationLines = view.running
+    .slice(0, 5)
+    .map((r) => runningIntelligenceLabel(r.description, r.kind))
+
+  const statusParts: string[] = []
+  if (view.firstRun) statusParts.push('First session — limited history')
+  else if (priorities.length === 0) statusParts.push('No grounded priorities')
+  else statusParts.push(`${priorities.length} grounded priorit${priorities.length === 1 ? 'y' : 'ies'}`)
+  if (automationLines.length > 0) {
+    statusParts.push(
+      `${automationLines.length} automation job${automationLines.length === 1 ? '' : 's'} live`,
+    )
+  } else {
+    statusParts.push('Automation idle')
+  }
+
+  let briefBody = view.dailyBrief.body?.trim() || 'No brief body yet.'
+  if (view.dailyBrief.insufficientActivity) {
+    briefBody = 'Insufficient timeline activity for a denser brief.'
+  }
+  if (view.dailyBrief.pending) {
+    briefBody = 'Brief pending — automation still closing the window.'
+  }
+
+  return {
+    statusLine: statusParts.join(' · '),
+    marketHeadline,
+    marketDetail,
+    marketMetrics,
+    portfolioHeadline,
+    portfolioDetail,
+    portfolioMetrics,
+    priorities,
+    briefTitle: view.dailyBrief.title || 'Daily brief',
+    briefBody,
+    automationLines,
+    riskSymbol,
+    firstRun: view.firstRun,
+    fetchedAt: view.fetchedAt,
+  }
 }
 
-const ONBOARD_ACTIONS = [
-  'Connect a wallet',
-  'Scan a token',
-  'Import a watchlist',
-] as const
-
-const PREPARED_ACTIONS = [
-  'Review my portfolio',
-  "Find today's opportunity",
-  'Scan a token',
-  "Explain today's market",
-  'Show hidden risks',
-] as const
-
-function pickPrimaryAction(view: MissionViewModel): string {
-  if (view.firstRun) return 'Scan a token'
-  const grounded = view.recommendations.find((r) => r.grounded)
-  if (grounded) return "Find today's opportunity"
-  if (view.portfolio.connected && view.portfolio.topWeightSymbol) return 'Show hidden risks'
-  if (!view.portfolio.connected) return 'Review my portfolio'
-  if (!view.market.available) return "Explain today's market"
-  return 'Review my portfolio'
-}
-
-export function buildPreparedActions(view: MissionViewModel): string[] {
-  if (view.firstRun) return [...ONBOARD_ACTIONS]
-  const primary = pickPrimaryAction(view)
-  const rest = PREPARED_ACTIONS.filter((a) => a !== primary)
-  return [primary, ...rest]
-}
-
-function pushOpening(turns: SpeechTurn[], name: string | undefined) {
-  turns.push({
-    id: 'greet',
-    kind: 'speech',
-    text: name ? `${timeOfDayGreeting()} ${name}.` : `${timeOfDayGreeting()}.`,
-    proof: 'none',
-    meaning: null,
-  })
-  turns.push({
-    id: 'presence',
-    kind: 'speech',
-    text: 'While you were away, I continuously monitored your portfolio, the market and your active missions.',
-    proof: 'none',
-    meaning: null,
-  })
-}
-
+/** @deprecated Use buildMissionOsSummary — kept for tenant isolation tests. */
 export function buildMissionConversation(params: {
   displayName: string | null
   view: MissionViewModel | null
   loading: boolean
-}): MissionConversation {
-  const name = params.displayName?.trim() || undefined
-
-  // Still fetching — speak as an already-running OS. Never invent a boot screen.
-  if (params.loading || !params.view) {
-    const turns: SpeechTurn[] = []
-    pushOpening(turns, name)
-    const preparedActions = [...PREPARED_ACTIONS].slice(0, 3)
-    return {
-      turns,
-      preparedActions,
-      primaryAction: preparedActions[0]!,
-      suggestions: preparedActions,
-      evidence: [],
-      attention: [],
-      marketMetrics: [],
-      portfolioMetrics: [],
-      living: [],
-      riskSymbol: null,
-      readingSeconds: estimateReadingSeconds(turns.map((t) => t.text).join(' ')),
-    }
-  }
-
-  const v = params.view
-  const turns: SpeechTurn[] = []
-  const evidence: string[] = []
-  const attention: string[] = []
-  const marketMetrics: MissionMetric[] = []
-  const portfolioMetrics: MissionMetric[] = []
-  const grounded = v.recommendations.filter((r) => r.grounded).slice(0, 3)
-  const preparedActions = buildPreparedActions(v).slice(0, 3)
-  const primaryAction = preparedActions[0]!
-  const living = v.running.slice(0, 3).map((r) => runningIntelligenceLabel(r.description, r.kind))
-  const riskSymbol =
-    v.portfolio.connected && !v.portfolio.error ? v.portfolio.topWeightSymbol : null
-
-  const marketMissing = !v.market.available || v.market.aggregateChange24hPct == null
-  const portfolioMissing = !v.portfolio.connected || Boolean(v.portfolio.error)
-  const quiet =
-    !v.firstRun &&
-    marketMissing &&
-    (portfolioMissing || (v.portfolio.dayChangePct != null && Math.abs(v.portfolio.dayChangePct) < 2)) &&
-    grounded.length === 0 &&
-    v.dailyBrief.insufficientActivity
-
-  pushOpening(turns, name)
-
-  if (v.firstRun) {
-    turns.push({
-      id: 'onboard',
-      kind: 'speech',
-      text: 'I don’t have history for you yet — give me a wallet, a first scan, or a watchlist and I’ll work from real activity.',
-      proof: 'actions',
-      meaning: null,
-    })
-  } else if (quiet) {
-    turns.push({
-      id: 'quiet',
-      kind: 'speech',
-      text: 'I’ve been monitoring the market, but nothing today requires immediate action.',
-      proof: 'feed',
-      meaning: null,
-    })
-  } else {
-    // Build priority insights first — highest first — then announce the count.
-    const insights: SpeechTurn[] = []
-
-    for (const g of grounded) {
-      insights.push({
-        id: `opp-${g.predictionId || insights.length}`,
-        kind: 'speech',
-        text: g.title,
-        proof: 'attention',
-        meaning: g.explanation,
-      })
-      attention.push(g.title)
-      evidence.push(g.explanation)
-    }
-
-    if (v.portfolio.connected && !v.portfolio.error) {
-      const day = v.portfolio.dayChangePct
-      const healthy = day != null && Math.abs(day) < 2
-      const stressed = day != null && Math.abs(day) >= 5
-
-      if (v.portfolio.totalValueUsd != null) {
-        portfolioMetrics.push({
-          label: 'Portfolio value',
-          value: `$${v.portfolio.totalValueUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
-        })
-        evidence.push(
-          `Portfolio value: ~$${v.portfolio.totalValueUsd.toLocaleString(undefined, {
-            maximumFractionDigits: 0,
-          })}${day != null ? ` · 24h ${fmtSignedPct(day)}` : ''}.`,
-        )
-      }
-      if (day != null) portfolioMetrics.push({ label: 'Portfolio 24h', value: fmtSignedPct(day) })
-      if (riskSymbol) portfolioMetrics.push({ label: 'Largest position', value: riskSymbol })
-
-      if (riskSymbol && (stressed || !healthy)) {
-        insights.push({
-          id: 'pf-risk',
-          kind: 'speech',
-          text: `${riskSymbol} deserves review before tomorrow.`,
-          proof: 'portfolio',
-          meaning: stressed
-            ? 'Your portfolio is under pressure — concentration is what can hurt you first.'
-            : `Concentration in ${riskSymbol} is what can hurt you first.`,
-        })
-        attention.push(`Review concentration in ${riskSymbol}.`)
-      } else if (riskSymbol) {
-        attention.push(`Watch concentration in ${riskSymbol}.`)
-      } else if (!healthy && day != null) {
-        insights.push({
-          id: 'pf',
-          kind: 'speech',
-          text: stressed
-            ? 'Your portfolio is under pressure.'
-            : 'Your portfolio is stable, with volatility to watch.',
-          proof: 'portfolio',
-          meaning: 'No single concentration stands out yet.',
-        })
-      }
-    } else if (!v.portfolio.connected) {
-      insights.push({
-        id: 'pf',
-        kind: 'speech',
-        text: 'Connect a wallet when you want portfolio judgement.',
-        proof: 'portfolio',
-        meaning: 'I can’t manage what I can’t see.',
-      })
-    }
-
-    if (!marketMissing) {
-      const chg = v.market.aggregateChange24hPct!
-      marketMetrics.push({ label: 'Sample 24h', value: fmtSignedPct(chg) })
-      evidence.push(`Live sample aggregate 24h change: ${fmtSignedPct(chg)}.`)
-      if (v.market.topMoverSymbol) {
-        marketMetrics.push({
-          label: 'Leading move',
-          value: `${v.market.topMoverSymbol} ${fmtSignedPct(v.market.topMoverChange24hPct ?? 0)}`,
-        })
-        evidence.push(
-          `Largest absolute move: ${v.market.topMoverSymbol} at ${fmtSignedPct(v.market.topMoverChange24hPct ?? 0)}.`,
-        )
-      }
-      if (Math.abs(chg) > 2 || v.market.topMoverSymbol) {
-        insights.push({
-          id: 'mkt',
-          kind: 'speech',
-          text:
-            chg > 2
-              ? 'The market is strengthening.'
-              : chg < -2
-                ? 'The market turned defensive.'
-                : 'The market remains orderly.',
-          proof: 'market',
-          meaning:
-            v.market.topMoverSymbol != null
-              ? `Main pressure sits around ${v.market.topMoverSymbol}.`
-              : 'Live sample supports this read.',
-        })
-      }
-    }
-
-    if (living.length > 0) {
-      insights.push({
-        id: 'living',
-        kind: 'speech',
-        text: living[0]!,
-        proof: 'living',
-        meaning: null,
-      })
-    }
-
-    const n = insights.length
-    turns.push({
-      id: 'attention-count',
-      kind: 'speech',
-      text:
-        n === 0
-          ? 'I’ve been monitoring the market, but nothing today requires immediate action.'
-          : n === 1
-            ? 'I found 1 item that deserves your attention today.'
-            : `I found ${n} items that deserve your attention today.`,
-      proof: n === 0 ? 'feed' : 'none',
-      meaning: null,
-    })
-
-    // Highest-priority insight immediately after the count.
-    for (const insight of insights) turns.push(insight)
-  }
-
-  turns.push({
-    id: 'propose',
-    kind: 'propose',
-    text: v.firstRun
-      ? 'I’ve prepared a first step. Choose what we open next.'
-      : 'Choose what we open next.',
-    proof: 'actions',
-    meaning: null,
-  })
-
-  const full = turns.map((t) => t.text).join(' ')
+}) {
+  const os = buildMissionOsSummary(params.loading ? null : params.view)
   return {
-    turns,
-    preparedActions,
-    primaryAction,
-    suggestions: preparedActions,
-    evidence: evidence.slice(0, 5),
-    attention: attention.slice(0, 5),
-    marketMetrics,
-    portfolioMetrics,
-    living,
-    riskSymbol,
-    readingSeconds: estimateReadingSeconds(full),
+    turns: os.priorities.map((p) => ({
+      id: p.id,
+      kind: 'speech' as const,
+      text: p.title,
+      proof: 'attention' as const,
+      meaning: p.detail,
+    })),
+    preparedActions: [] as string[],
+    primaryAction: '',
+    suggestions: [] as string[],
+    evidence: os.priorities.map((p) => p.detail),
+    attention: os.priorities.map((p) => p.title),
+    marketMetrics: os.marketMetrics,
+    portfolioMetrics: os.portfolioMetrics,
+    living: os.automationLines,
+    riskSymbol: os.riskSymbol,
+    readingSeconds: 0,
   }
+}
+
+export function buildPreparedActions(view: MissionViewModel): string[] {
+  if (view.firstRun) return ['Connect a wallet', 'Scan a token', 'Import a watchlist']
+  if (view.portfolio.connected && view.portfolio.topWeightSymbol) {
+    return ['Show hidden risks', "Find today's opportunity", 'Scan a token']
+  }
+  if (!view.portfolio.connected) {
+    return ['Review my portfolio', 'Scan a token', "Explain today's market"]
+  }
+  return ['Review my portfolio', "Find today's opportunity", 'Scan a token']
 }
 
 export function buildDynamicSuggestions(view: MissionViewModel): string[] {
   return buildPreparedActions(view)
-}
-
-export type ExecutiveBrief = {
-  greetingLine: string
-  paragraphs: string[]
-  readingSeconds: number
-  dataGaps: string[]
-}
-
-export function buildExecutiveBrief(params: {
-  displayName: string | null
-  view: MissionViewModel | null
-  loading: boolean
-}): ExecutiveBrief {
-  const conv = buildMissionConversation(params)
-  const speech = conv.turns.filter((t) => t.kind === 'speech' || t.kind === 'propose')
-  return {
-    greetingLine: speech[0]?.text ?? `${timeOfDayGreeting()}.`,
-    paragraphs: speech.slice(1).map((t) => t.text),
-    readingSeconds: conv.readingSeconds,
-    dataGaps: conv.turns
-      .filter((t) => /don’t have enough|couldn’t load|empty/i.test(t.text))
-      .map((t) => t.text),
-  }
-}
-
-export type MarketNarrative = {
-  title: string
-  paragraphs: string[]
-  sourcesNote: string
-  unavailableReason: string | null
-}
-
-export function buildMarketNarrative(view: MissionViewModel | null): MarketNarrative {
-  if (!view || !view.market.available) {
-    return {
-      title: "Today's market summary",
-      paragraphs: [],
-      sourcesNote: 'Birdeye · Jupiter · Helius · Raydium (via existing screener corpus)',
-      unavailableReason: 'I don’t have enough information yet.',
-    }
-  }
-  const conv = buildMissionConversation({ displayName: null, view, loading: false })
-  const mkt = conv.turns.filter((t) => t.id.startsWith('mkt'))
-  return {
-    title: "Today's market summary",
-    paragraphs: mkt.map((t) => t.text),
-    sourcesNote: 'Birdeye · Jupiter · Helius · Raydium (via existing screener corpus)',
-    unavailableReason: null,
-  }
 }
 
 export type PortfolioNarrative = {
@@ -460,7 +267,7 @@ export function buildPortfolioNarrative(view: MissionViewModel | null): Portfoli
   if (!view) {
     return {
       title: 'Portfolio',
-      healthLine: 'Waiting…',
+      healthLine: 'Portfolio pending.',
       riskLabel: 'Unknown',
       weakness: null,
       suggestedAction: null,
@@ -484,7 +291,7 @@ export function buildPortfolioNarrative(view: MissionViewModel | null): Portfoli
   if (view.portfolio.error) {
     return {
       title: 'Portfolio',
-      healthLine: 'Portfolio data failed to load.',
+      healthLine: 'Portfolio holdings unavailable.',
       riskLabel: 'Unknown',
       weakness: null,
       suggestedAction: 'Retry from Portfolio Intelligence.',
@@ -506,7 +313,7 @@ export function buildPortfolioNarrative(view: MissionViewModel | null): Portfoli
     title: 'Portfolio',
     healthLine:
       riskLabel === 'Low'
-        ? 'Your portfolio is healthy on the latest 24h read.'
+        ? 'Portfolio healthy on the latest 24h read.'
         : riskLabel === 'Medium'
           ? 'Operable — volatility present.'
           : riskLabel === 'Elevated'
@@ -514,7 +321,7 @@ export function buildPortfolioNarrative(view: MissionViewModel | null): Portfoli
             : 'Not enough 24h data for a risk call.',
     riskLabel,
     weakness: view.portfolio.topWeightSymbol
-      ? `Your largest weakness is concentration in ${view.portfolio.topWeightSymbol}.`
+      ? `Largest concentration: ${view.portfolio.topWeightSymbol}.`
       : null,
     suggestedAction: view.portfolio.topWeightSymbol
       ? 'Monitor concentration before sizing new risk.'
@@ -537,25 +344,7 @@ export type MissionPriority = {
 }
 
 export function buildMissionPriorities(view: MissionViewModel | null): MissionPriority[] {
-  if (!view) return []
-  const out: MissionPriority[] = []
-  for (const r of view.recommendations.filter((x) => x.grounded).slice(0, 2)) {
-    out.push({
-      id: r.predictionId || `rec-${out.length}`,
-      level: out.length === 0 ? 'High' : 'Medium',
-      title: r.title,
-      detail: r.explanation,
-    })
-  }
-  if (view.running[0]) {
-    out.push({
-      id: `run-${view.running[0].id}`,
-      level: out.length === 0 ? 'High' : 'Medium',
-      title: runningIntelligenceLabel(view.running[0].description, view.running[0].kind),
-      detail: 'Live observation from agent activity.',
-    })
-  }
-  return out.slice(0, 3)
+  return buildMissionOsSummary(view).priorities
 }
 
 export type Observation = { id: string; text: string }
@@ -567,15 +356,10 @@ export function buildObservations(params: {
   const out: Observation[] = []
   const v = params.view
   if (!v) {
-    return [
-      {
-        id: 'wait',
-        text: 'I’ve been monitoring the market, but nothing today requires immediate action.',
-      },
-    ]
+    return [{ id: 'wait', text: 'Intelligence Core standing by.' }]
   }
   if (!v.market.available) {
-    out.push({ id: 'm3', text: 'I don’t have enough information yet on the market.' })
+    out.push({ id: 'm3', text: 'Market sample unavailable.' })
   } else if ((v.market.aggregateChange24hPct ?? 0) > 1) {
     out.push({ id: 'm1', text: 'Market sample leaning constructive.' })
   } else if ((v.market.aggregateChange24hPct ?? 0) < -1) {
@@ -584,7 +368,7 @@ export function buildObservations(params: {
   if (v.portfolio.connected && !v.portfolio.error && v.portfolio.topWeightSymbol) {
     out.push({
       id: 'conc',
-      text: `Watch concentration in ${v.portfolio.topWeightSymbol}.`,
+      text: `Concentration watch: ${v.portfolio.topWeightSymbol}.`,
     })
   }
   if (v.running.length > 0) {
@@ -600,7 +384,7 @@ export function buildObservations(params: {
   if (calibrating > 0) {
     out.push({
       id: 'cal',
-      text: `${calibrating} module${calibrating === 1 ? '' : 's'} still calibrating — scores withheld.`,
+      text: `${calibrating} module${calibrating === 1 ? '' : 's'} calibrating — scores withheld.`,
     })
   }
   return out.slice(0, 5)
@@ -656,9 +440,4 @@ export function timelineHeadline(ev: TimelineEvent): string {
   if (!cleaned) return 'Something changed.'
   if (!/[.!?]$/.test(cleaned)) cleaned += '.'
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1)
-}
-
-function fmtSignedPct(n: number): string {
-  const sign = n > 0 ? '+' : ''
-  return `${sign}${n.toFixed(2)}%`
 }

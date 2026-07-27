@@ -10,7 +10,7 @@ import {
   assertNoCrossTenantLeak,
   filterTenantRows,
 } from '../../lib/identity/tenant-scope'
-import { buildMissionConversation } from '../../lib/portfolio-desk/mission-narrative'
+import { buildMissionOsSummary } from '../../lib/portfolio-desk/mission-narrative'
 import type { MissionViewModel } from '../../types/intelligence-core'
 import {
   decodeSiwsSession,
@@ -74,7 +74,7 @@ describe('Phase 18.3 — tenant isolation', () => {
     assertNoCrossTenantLeak(scoped, userA, userB.userId)
   })
 
-  it('mission narrative for A with A-only recs never speaks B titles', () => {
+  it('mission OS summary for A with A-only recs never includes B titles', () => {
     const view: MissionViewModel = {
       market: {
         available: true,
@@ -110,8 +110,8 @@ describe('Phase 18.3 — tenant isolation', () => {
       userId: userA.userId,
       fetchedAt: new Date().toISOString(),
     }
-    const conv = buildMissionConversation({ displayName: 'A', view, loading: false })
-    const blob = JSON.stringify(conv)
+    const os = buildMissionOsSummary(view)
+    const blob = JSON.stringify(os)
     assert.doesNotMatch(blob, /B secret|WalletBBBB|22222222/)
     assert.match(blob, /A only priority/)
   })

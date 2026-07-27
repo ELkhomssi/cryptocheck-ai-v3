@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Observations hook — extracted so MissionControlPanel stays conversation-only.
+ * Observations hook — Mission Control OS may surface these alongside the core board.
  */
 
 import { useQuery } from '@tanstack/react-query'
