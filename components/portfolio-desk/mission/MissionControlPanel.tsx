@@ -1,9 +1,9 @@
 'use client'
 
 /**
- * Mission Control — CEO briefing experience.
- * Reconstruct → conclude → one conclusion + one proof at a time.
- * Presentation only. No fake data. No widget walls.
+ * Mission Control — live operating system briefing.
+ * The Core has already finished. We arrive after the work.
+ * Presentation only. No boot / reconstruct / loading theatre.
  */
 
 import { useEffect, useMemo, useState } from 'react'
@@ -21,8 +21,6 @@ import {
 import type { MissionViewModel } from '@/types/intelligence-core'
 import type { ScreenerRow } from '@/lib/providers/types'
 
-type Phase = 'reconstruct' | 'speak'
-
 export function MissionControlPanel({
   onOpenFeed,
   onOpenMarket: _onOpenMarket,
@@ -37,8 +35,7 @@ export function MissionControlPanel({
 }) {
   const { walletAddress, shortAddr, isConnected, siwsStatus, siwsError, signInSiws } = useSolana()
   const [seed, setSeed] = useState<string | null>(null)
-  const [phase, setPhase] = useState<Phase>('reconstruct')
-  const [spokenCount, setSpokenCount] = useState(0)
+  const [spokenCount, setSpokenCount] = useState(1)
 
   const missionQ = useQuery({
     queryKey: ['intelligence-core-mission', walletAddress, siwsStatus],
@@ -48,7 +45,7 @@ export function MissionControlPanel({
       if (!res.ok) throw new Error('Mission view unavailable')
       return (await res.json()) as MissionViewModel
     },
-    refetchInterval: phase === 'speak' ? 10_000 : 5_000,
+    refetchInterval: 10_000,
     staleTime: 3_000,
   })
 
@@ -57,35 +54,20 @@ export function MissionControlPanel({
       buildMissionConversation({
         displayName: isConnected && shortAddr ? shortAddr : null,
         view: missionQ.data ?? null,
-        loading: missionQ.isLoading,
+        loading: missionQ.isLoading && !missionQ.data,
       }),
     [isConnected, shortAddr, missionQ.data, missionQ.isLoading],
   )
 
-  const briefingKey = missionQ.isLoading
-    ? 'loading'
-    : `${missionQ.data?.fetchedAt ?? 'ready'}:${walletAddress ?? 'anon'}`
+  const briefingKey = `${missionQ.data?.fetchedAt ?? 'await'}:${walletAddress ?? 'anon'}:${conversation.turns.map((t) => t.id).join(',')}`
 
-  // New briefing → reconstruct first (engines already ran; we surface status).
+  // New briefing arrives — speak immediately. Never boot.
   useEffect(() => {
-    setPhase('reconstruct')
-    setSpokenCount(0)
-  }, [briefingKey])
+    setSpokenCount(conversation.turns.length > 0 ? 1 : 0)
+  }, [briefingKey, conversation.turns.length])
 
-  // After engines report done, hold reconstruct briefly, then speak.
+  // One line at a time after the Core has already finished.
   useEffect(() => {
-    if (phase !== 'reconstruct') return
-    if (missionQ.isLoading || !missionQ.data) return
-    const t = window.setTimeout(() => {
-      setPhase('speak')
-      setSpokenCount(1)
-    }, 2200)
-    return () => window.clearTimeout(t)
-  }, [phase, missionQ.isLoading, missionQ.data])
-
-  // One conclusion at a time.
-  useEffect(() => {
-    if (phase !== 'speak') return
     if (spokenCount <= 0) return
     if (spokenCount >= conversation.turns.length) return
     const turn = conversation.turns[spokenCount - 1]
@@ -94,15 +76,13 @@ export function MissionControlPanel({
       setSpokenCount((n) => Math.min(n + 1, conversation.turns.length))
     }, speechHoldMs(turn.text))
     return () => window.clearTimeout(t)
-  }, [phase, spokenCount, conversation.turns])
+  }, [spokenCount, conversation.turns])
 
   const safeSpoken = Math.min(spokenCount, conversation.turns.length)
-  const current: SpeechTurn | null =
-    phase === 'speak' && safeSpoken > 0 ? conversation.turns[safeSpoken - 1]! : null
-  const prior =
-    phase === 'speak' && safeSpoken > 1 ? conversation.turns.slice(0, safeSpoken - 1) : []
+  const current: SpeechTurn | null = safeSpoken > 0 ? conversation.turns[safeSpoken - 1]! : null
+  const prior = safeSpoken > 1 ? conversation.turns.slice(0, safeSpoken - 1) : []
   const active: SpeechProof = current ? current.proof : 'none'
-  const briefingDone = phase === 'speak' && safeSpoken >= conversation.turns.length && conversation.turns.length > 0
+  const briefingDone = safeSpoken >= conversation.turns.length && conversation.turns.length > 0
 
   const liveLiving = useMemo(() => {
     const running = missionQ.data?.running ?? []
@@ -112,11 +92,6 @@ export function MissionControlPanel({
 
   return (
     <div className="mc-ceo">
-      {isConnected && (siwsStatus === 'challenging' || siwsStatus === 'signing' || siwsStatus === 'verifying') ? (
-        <p className="mc-ceo-siws" aria-live="polite">
-          Confirming wallet ownership…
-        </p>
-      ) : null}
       {siwsStatus === 'error' && siwsError ? (
         <p className="mc-ceo-siws">
           Sign-in needed for a durable account.{' '}
@@ -125,76 +100,58 @@ export function MissionControlPanel({
           </button>
         </p>
       ) : null}
-      {phase === 'reconstruct' ? (
-        <div className="mc-ceo-stage" aria-live="polite">
-          <p className="mc-ceo-kicker">Mission Control</p>
-          <h1 className="mc-ceo-title">Reconstructing your operating picture.</h1>
-          <p className="mc-ceo-sub">
-            Reading Market Intelligence, Portfolio Intelligence, Mission Feed, Timeline, and
-            Automation — then filtering what deserves your attention.
-          </p>
-          <ul className="mc-ceo-engines">
-            {conversation.reconstruction.map((step) => (
-              <li key={step.id} className={step.done ? 'is-done' : 'is-busy'}>
-                <span>{step.engine}</span>
-                <em>{step.status}</em>
-              </li>
+
+      <div className="mc-ceo-stage" aria-live="polite">
+        {prior.length > 0 ? (
+          <div className="mc-ceo-trail">
+            {prior.map((t) => (
+              <p key={t.id}>{t.text}</p>
             ))}
-          </ul>
-        </div>
-      ) : (
-        <div className="mc-ceo-stage" aria-live="polite">
-          {prior.length > 0 ? (
-            <div className="mc-ceo-trail">
-              {prior.map((t) => (
-                <p key={t.id}>{t.text}</p>
-              ))}
-            </div>
-          ) : null}
+          </div>
+        ) : null}
 
-          {current ? (
-            <div className="mc-ceo-focus" key={current.id}>
-              <p
-                className={
-                  current.id === 'greet'
-                    ? 'mc-ceo-line mc-ceo-greet'
-                    : current.kind === 'propose'
-                      ? 'mc-ceo-line mc-ceo-propose'
-                      : 'mc-ceo-line'
-                }
-              >
-                {current.text}
-              </p>
-              {current.meaning ? <p className="mc-ceo-meaning">{current.meaning}</p> : null}
+        {current ? (
+          <div className="mc-ceo-focus" key={current.id}>
+            <p
+              className={
+                current.id === 'greet'
+                  ? 'mc-ceo-line mc-ceo-greet'
+                  : current.kind === 'propose'
+                    ? 'mc-ceo-line mc-ceo-propose'
+                    : 'mc-ceo-line'
+              }
+            >
+              {current.text}
+            </p>
+            {current.meaning ? <p className="mc-ceo-meaning">{current.meaning}</p> : null}
 
-              {active !== 'none' ? (
-                <div className="mc-ceo-proof">
-                  <p className="mc-ceo-proof-label">Evidence</p>
-                  <ActiveProof
-                    proof={active}
-                    conversation={conversation}
-                    liveLiving={liveLiving}
-                    isConnected={isConnected}
-                    onOpenFeed={onOpenFeed}
-                    onPickAction={(a) => setSeed(a)}
-                  />
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+            {active !== 'none' ? (
+              <div className="mc-ceo-proof">
+                <p className="mc-ceo-proof-label">Evidence</p>
+                <ActiveProof
+                  proof={active}
+                  conversation={conversation}
+                  liveLiving={liveLiving}
+                  isConnected={isConnected}
+                  onOpenFeed={onOpenFeed}
+                  onPickAction={(a) => setSeed(a)}
+                />
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
-          {briefingDone ? (
-            <div className="mc-ceo-listen">
-              <MissionCommandCenter
-                seedPrompt={seed}
-                onSeedConsumed={() => setSeed(null)}
-                suggestions={[]}
-                onPickSuggestion={(s) => setSeed(s)}
-              />
-            </div>
-          ) : null}
-        </div>
-      )}
+        {briefingDone ? (
+          <div className="mc-ceo-listen">
+            <MissionCommandCenter
+              seedPrompt={seed}
+              onSeedConsumed={() => setSeed(null)}
+              suggestions={[]}
+              onPickSuggestion={(s) => setSeed(s)}
+            />
+          </div>
+        ) : null}
+      </div>
     </div>
   )
 }
