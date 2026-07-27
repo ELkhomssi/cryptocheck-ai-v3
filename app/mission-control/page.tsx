@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 
-/** Legacy Mission Control URL → Portfolio Intelligence (connect wallet). */
+/** Mission Control → terminal OS desk (operational, not conversational). */
 export default function MissionControlPage() {
-  redirect('/terminal?nav=portfolio')
+  redirect('/terminal?nav=mission')
 }

@@ -6,10 +6,10 @@ export const dynamic = 'force-dynamic'
 export const metadata = {
   title: 'Terminal · CryptoCheck AI OS',
   description:
-    'CryptoCheck AI Operating System — portfolio intelligence, market desk, and institutional execution.',
+    'CryptoCheck AI Operating System — Mission Control, portfolio intelligence, and institutional execution.',
 }
 
-/** Canonical production terminal — /terminal. Default nav = portfolio (connect wallet). */
+/** Canonical production terminal — /terminal. Default nav = Mission Control OS desk. */
 export default function TerminalPage() {
   return (
     <Suspense

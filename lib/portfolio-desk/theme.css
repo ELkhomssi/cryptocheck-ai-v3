@@ -1143,6 +1143,158 @@
   }
 }
 
+/* ─── Mission Control — operational OS desk (no conversational shell) ─── */
+.mc-ops {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 960px;
+  padding-bottom: 32px;
+}
+
+.mc-ops-banner {
+  margin: 0;
+  font-size: 12px;
+  color: var(--pd-text-faint);
+}
+
+.mc-ops-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mc-ops-metric {
+  appearance: none;
+  text-align: left;
+  border: 1px solid var(--pd-border);
+  background: var(--pd-surface);
+  color: inherit;
+  padding: 12px 14px;
+  border-radius: var(--pd-radius-md);
+  cursor: default;
+  font: inherit;
+}
+
+button.mc-ops-metric {
+  cursor: pointer;
+}
+
+button.mc-ops-metric:hover {
+  border-color: var(--pd-accent);
+}
+
+.mc-ops-metric-value {
+  margin-top: 6px;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--pd-text);
+}
+
+.mc-ops-metric-hint {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--pd-text-dim);
+}
+
+.mc-ops-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.mc-ops-block {
+  min-width: 0;
+}
+
+.mc-ops-block-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.mc-ops-block > .pd-section-label {
+  margin-bottom: 8px;
+}
+
+.mc-ops-list,
+.mc-ops-recs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.mc-ops-list li,
+.mc-ops-recs li {
+  display: grid;
+  gap: 4px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--pd-border);
+  font-size: 13px;
+  color: var(--pd-text-dim);
+  line-height: 1.4;
+}
+
+.mc-ops-kind {
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-label);
+}
+
+.mc-ops-recs li strong {
+  color: var(--pd-text);
+  font-weight: 560;
+  font-size: 14px;
+}
+
+.mc-ops-ungrounded {
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-label);
+  font-family: var(--font-ibm-plex-mono), monospace;
+}
+
+.mc-ops-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pd-text-faint);
+}
+
+.mc-ops-brief-title {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 560;
+  color: var(--pd-text);
+}
+
+.mc-ops-brief-body {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--pd-text-dim);
+  max-width: 62ch;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 900px) {
+  .mc-ops-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mc-ops-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ─── Mission Control — CEO owns the screen ─── */
 .mc-ceo {
   width: min(720px, 100%);

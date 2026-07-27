@@ -20,6 +20,7 @@ import { Topbar } from './layout/Topbar'
 import { LaunchLabPanel } from './launchlab/LaunchLabPanel'
 import { MarketFeeds } from './market/MarketFeeds'
 import { MarketIntelligencePanel } from './market/MarketIntelligencePanel'
+import { MissionControlPanel } from './mission/MissionControlPanel'
 import { MissionFeedPanel } from './mission/MissionFeedPanel'
 import { Hero } from './portfolio/Hero'
 import { HoldingsTable } from './portfolio/HoldingsTable'
@@ -172,7 +173,7 @@ export function PortfolioDesk() {
       <TickerTape />
 
       <main className="pd-main">
-        {nav === 'market' || nav === 'screener' || nav === 'watchlist' ? null : (
+        {nav === 'mission' || nav === 'market' || nav === 'screener' || nav === 'watchlist' ? null : (
           <PageHeader
             kicker={meta.kicker}
             title={meta.title}
@@ -218,6 +219,21 @@ export function PortfolioDesk() {
               Connect Wallet
             </button>
           </div>
+        ) : null}
+
+        {nav === 'mission' ? (
+          <SectionErrorBoundary title="Mission Control">
+            <MissionControlPanel
+              onOpenFeed={() => setDeskNav('feed')}
+              onOpenMarket={() => setDeskNav('market')}
+              onSelectToken={(row) => {
+                const p = new URLSearchParams(searchParams.toString())
+                p.set('mint', row.mint)
+                router.replace(`?${p.toString()}`, { scroll: false })
+              }}
+              onSuggestion={() => setDeskNav('market')}
+            />
+          </SectionErrorBoundary>
         ) : null}
 
         {nav === 'market' || nav === 'screener' || nav === 'watchlist' ? (
