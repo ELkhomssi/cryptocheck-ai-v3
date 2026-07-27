@@ -1,12 +1,12 @@
 /**
- * Phase 17.2 — Market Analyst narrative (presentation only).
- * Derives human conclusions from existing ScreenerRow + LiveMarketQuotes fields.
- * Never invents prices, volumes, or provider facts. If inputs are empty → honest gap.
+ * Phase 17.2 — Market Analyst briefing (presentation only).
+ * Cognitive order: Reconstruction → Executive Conclusion → ≤3 Decisions
+ *   → Evidence per decision → Charts → Raw data.
+ * Never invents market moves. Quiet tape → say so.
  */
 
 import type { ScreenerRow, TokenMarketMetrics } from '@/lib/providers/types'
 
-/** Subset of GET /api/market/intelligence — presentation only. */
 export type MarketMacroQuotes = {
   solUsd: number | null
   solChangePct: number | null
@@ -23,22 +23,6 @@ export type MarketMacroQuotes = {
   source?: string
 }
 
-export type MarketNarrativeId =
-  | 'ai'
-  | 'infrastructure'
-  | 'memecoins'
-  | 'defi'
-  | 'rwa'
-
-export type MarketInsightCard = {
-  id: string
-  /** Human conclusion — never a raw metric label. */
-  conclusion: string
-  whyItMatters: string
-  confidence: 'low' | 'medium' | 'high'
-  evidence: MarketEvidence
-}
-
 export type MarketEvidence = {
   metrics: Array<{ label: string; value: string }>
   movers: Array<{
@@ -52,36 +36,6 @@ export type MarketEvidence = {
   unavailableReason: string | null
 }
 
-export type NarrativeCluster = {
-  id: MarketNarrativeId
-  title: string
-  conclusion: string
-  liquidityMove: string
-  why: string
-  confidence: 'low' | 'medium' | 'high'
-  risk: string
-  shortTerm: string
-  evidence: MarketEvidence
-  tokenCount: number
-}
-
-export type MarketAnalystBrief = {
-  /** First-screen hero — what the market is doing (Decision). */
-  conclusion: string
-  whyItMatters: string
-  attention: string | null
-  insightCards: MarketInsightCard[]
-  narratives: NarrativeCluster[]
-  /** Aggregate sample for charts section (Evidence only). */
-  sampleSpark: number[]
-  sourcesNote: string
-  unavailableReason: string | null
-  fetchedHint: string | null
-  /** Data → Thinking → Decision → Evidence sequence (presentation). */
-  dataSteps: MarketProcessStep[]
-  thinkingSteps: MarketProcessStep[]
-}
-
 export type MarketProcessStep = {
   id: string
   label: string
@@ -89,30 +43,29 @@ export type MarketProcessStep = {
   done: boolean
 }
 
-const NARRATIVE_META: Record<
-  MarketNarrativeId,
-  { title: string; keywords: string[] }
-> = {
-  ai: {
-    title: 'AI',
-    keywords: ['ai', 'gpt', 'llm', 'agent', 'neural', 'compute', 'intel', 'brain'],
-  },
-  infrastructure: {
-    title: 'Infrastructure',
-    keywords: ['rpc', 'infra', 'oracle', 'node', 'validator', 'data', 'bridge', 'l2', 'network'],
-  },
-  memecoins: {
-    title: 'Memecoins',
-    keywords: ['pepe', 'doge', 'bonk', 'wif', 'meme', 'cat', 'dog', 'trump', 'popcat', 'moodeng'],
-  },
-  defi: {
-    title: 'DeFi',
-    keywords: ['swap', 'lend', 'yield', 'amm', 'dex', 'perp', 'stake', 'vault', 'finance', 'usd'],
-  },
-  rwa: {
-    title: 'RWA',
-    keywords: ['rwa', 'treasury', 'gold', 'estate', 'bond', 'tbill', 't-bill', 'realworld'],
-  },
+/** One decision the analyst elevates — answers What / Why / Do. */
+export type MarketDecision = {
+  id: string
+  whatHappened: string
+  whyItMatters: string
+  whatToDo: string
+  evidence: MarketEvidence
+}
+
+export type MarketAnalystBrief = {
+  reconstruction: MarketProcessStep[]
+  /** Single executive line — the OS already finished reading. */
+  executiveConclusion: string
+  /** One sentence under the conclusion. */
+  executiveWhy: string
+  /** Quiet tape — honest when nothing significant. */
+  quiet: boolean
+  /** At most three decisions. */
+  decisions: MarketDecision[]
+  sampleSpark: number[]
+  sourcesNote: string
+  unavailableReason: string | null
+  fetchedHint: string | null
 }
 
 const UNAVAILABLE = 'Not enough real market data available yet.'
@@ -128,28 +81,6 @@ function fmtUsd(n: number): string {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`
   if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`
   return `$${n.toFixed(0)}`
-}
-
-function confidenceFromSample(n: number, avgAbsChg: number): 'low' | 'medium' | 'high' {
-  if (n < 3) return 'low'
-  if (n >= 8 && avgAbsChg >= 2) return 'high'
-  if (n >= 5) return 'medium'
-  return 'low'
-}
-
-function textBlob(row: TokenMarketMetrics): string {
-  return `${row.symbol ?? ''} ${row.name ?? ''}`.toLowerCase()
-}
-
-function classifyRow(row: ScreenerRow): MarketNarrativeId | null {
-  const blob = textBlob(row)
-  for (const id of Object.keys(NARRATIVE_META) as MarketNarrativeId[]) {
-    if (NARRATIVE_META[id].keywords.some((k) => blob.includes(k))) return id
-  }
-  // Structural fallback from existing flags — still real attributes, not invented categories.
-  if (row.isPumpFun) return 'memecoins'
-  if (row.isRaydium && row.liquidityUsd >= 250_000 && row.volume24hUsd >= 100_000) return 'defi'
-  return null
 }
 
 function avg(nums: number[]): number | null {
@@ -187,9 +118,7 @@ function evidenceFromRows(rows: ScreenerRow[]): MarketEvidence {
   const vols = rows.map((r) => r.volume24hUsd).filter((n) => Number.isFinite(n) && n > 0)
   const liqs = rows.map((r) => r.liquidityUsd).filter((n) => Number.isFinite(n) && n > 0)
   const buys = rows.map((r) => r.buySellRatio).filter((n) => Number.isFinite(n) && n > 0)
-  const smart = rows
-    .map((r) => r.smartMoneyScore)
-    .filter((n) => Number.isFinite(n))
+  const smart = rows.map((r) => r.smartMoneyScore).filter((n) => Number.isFinite(n))
   const aChg = avg(chgs)
   const aVol = avg(vols)
   const aLiq = avg(liqs)
@@ -210,286 +139,32 @@ function evidenceFromRows(rows: ScreenerRow[]): MarketEvidence {
   }
 }
 
-function pressureInsight(rows: ScreenerRow[]): MarketInsightCard | null {
-  if (rows.length < 3) return null
-  const buys = rows.map((r) => r.buySellRatio).filter((n) => Number.isFinite(n) && n > 0)
-  const smart = rows.map((r) => r.smartMoneyScore).filter((n) => Number.isFinite(n))
-  const vols = rows.map((r) => r.volume24hUsd).filter((n) => n > 0)
-  const aBuy = avg(buys)
-  const aSmart = avg(smart)
-  const aVol = avg(vols)
-  if (aBuy == null && aSmart == null) return null
-
-  let conclusion: string
-  let why: string
-  if (aBuy != null && aBuy >= 1.12 && (aSmart == null || aSmart < 55)) {
-    conclusion =
-      'Buying pressure increased in the live sample, leaning toward newer flow rather than concentrated smart-money accumulation.'
-    why =
-      'Average buy/sell ratio is elevated while smart-money scores stay moderate — attention without a clear institutional stamp.'
-  } else if (aBuy != null && aBuy >= 1.12 && aSmart != null && aSmart >= 55) {
-    conclusion =
-      'Buying pressure rose with elevated smart-money scores — accumulation looks more structured than pure retail chase.'
-    why =
-      'Both buy/sell ratio and smart-money scores sit above the mid range in the same live sample.'
-  } else if (aBuy != null && aBuy < 0.9) {
-    conclusion =
-      'Selling pressure is more visible than demand in today’s live sample.'
-    why =
-      'Average buy/sell ratio sits below parity across the tokens we can measure.'
-  } else {
-    conclusion =
-      'Order flow looks balanced — neither aggressive bid nor dump dominates the sample.'
-    why = 'Buy/sell ratios cluster near parity across measured tokens.'
-  }
-
-  return {
-    id: 'flow',
-    conclusion,
-    whyItMatters: why,
-    confidence: confidenceFromSample(rows.length, Math.abs(aBuy ?? 1 - 1) * 10),
-    evidence: evidenceFromRows(rows),
-  }
-}
-
-function tapeInsight(rows: ScreenerRow[]): MarketInsightCard | null {
-  if (!rows.length) return null
-  const chgs = rows.map((r) => r.change24hPct).filter((n) => Number.isFinite(n))
-  const a = avg(chgs)
-  if (a == null) return null
-  const top = [...rows].sort((x, y) => Math.abs(y.change24hPct) - Math.abs(x.change24hPct))[0]
-  let conclusion: string
-  if (a > 2) {
-    conclusion = 'The Solana sample tape is strengthening — breadth of positive 24h moves outweighs declines.'
-  } else if (a < -2) {
-    conclusion = 'The Solana sample tape turned defensive — declines outweigh advances in the live set.'
-  } else {
-    conclusion = 'The Solana sample tape remains orderly — moves exist, but the aggregate stay measured.'
-  }
-  const why =
-    top?.symbol != null
-      ? `Largest absolute move in sample: ${top.symbol} at ${fmtPct(top.change24hPct)}.`
-      : 'Aggregate is computed from the live screener sample only.'
-  return {
-    id: 'tape',
-    conclusion,
-    whyItMatters: why,
-    confidence: confidenceFromSample(rows.length, Math.abs(a)),
-    evidence: evidenceFromRows(rows),
-  }
-}
-
-function macroInsight(q: MarketMacroQuotes | null): MarketInsightCard[] {
-  if (!q) return []
-  const cards: MarketInsightCard[] = []
-
-  if (q.btcChangePct != null && Number.isFinite(q.btcChangePct)) {
-    const btc = q.btcChangePct
-    const sol = q.solChangePct
-    let conclusion: string
-    if (btc > 1 && (sol == null || sol < btc - 0.5)) {
-      conclusion = 'Bitcoin continues absorbing relative strength versus Solana in today’s quotes.'
-    } else if (sol != null && sol > btc + 1) {
-      conclusion = 'Solana is outperforming Bitcoin on the day — alt liquidity is not fully rotating into BTC.'
-    } else if (btc < -1 && sol != null && sol <= btc) {
-      conclusion = 'Risk assets are softening together — Bitcoin is not offering a clean hedge in this window.'
-    } else {
-      conclusion = 'Bitcoin’s day move is present, but it is not dominating the Solana tape alone.'
-    }
-    cards.push({
-      id: 'btc',
-      conclusion,
-      whyItMatters:
-        sol != null
-          ? 'Relative BTC vs SOL 24h change frames whether liquidity is concentrating or rotating.'
-          : 'BTC 24h change is available; SOL change was not returned in this quote set.',
-      confidence: sol != null ? 'medium' : 'low',
-      evidence: {
-        metrics: [
-          { label: 'BTC 24h', value: fmtPct(btc) },
-          sol != null ? { label: 'SOL 24h', value: fmtPct(sol) } : null,
-          q.btcUsd != null ? { label: 'BTC USD', value: fmtUsd(q.btcUsd) } : null,
-          q.solUsd != null ? { label: 'SOL USD', value: fmtUsd(q.solUsd) } : null,
-        ].filter(Boolean) as Array<{ label: string; value: string }>,
-        movers: [],
-        spark: [btc, sol ?? 0].filter((n) => Number.isFinite(n)),
-        unavailableReason: null,
-      },
-    })
-  }
-
-  if (q.fearGreed != null && Number.isFinite(q.fearGreed)) {
-    const v = q.fearGreed
-    const label = q.fearGreedLabel || ''
-    let conclusion: string
-    if (v >= 65) {
-      conclusion =
-        'Market optimism remains elevated, though stretched readings often accompany thinner caution.'
-    } else if (v >= 45) {
-      conclusion =
-        'Market optimism remains positive but confidence has weakened versus classic greed readings.'
-    } else if (v >= 30) {
-      conclusion = 'Sentiment sits in a cautious band — participants are hedging enthusiasm.'
-    } else {
-      conclusion = 'Fear dominates the sentiment print — capital is defensive in the macro read.'
-    }
-    cards.push({
-      id: 'sentiment',
-      conclusion,
-      whyItMatters: label
-        ? `Fear & Greed classifies this print as “${label}”.`
-        : 'Fear & Greed index is available from the existing intelligence feed.',
-      confidence: 'medium',
-      evidence: {
-        metrics: [
-          { label: 'Fear & Greed', value: String(Math.round(v)) },
-          label ? { label: 'Classification', value: label } : null,
-          q.marketCapChangePct != null
-            ? { label: 'Global mcap 24h', value: fmtPct(q.marketCapChangePct) }
-            : null,
-        ].filter(Boolean) as Array<{ label: string; value: string }>,
-        movers: [],
-        spark: [v],
-        unavailableReason: null,
-      },
-    })
-  }
-
-  if (q.marketCapChangePct != null && Number.isFinite(q.marketCapChangePct)) {
-    const m = q.marketCapChangePct
-    cards.push({
-      id: 'mcap',
-      conclusion:
-        m > 1
-          ? 'Global crypto market cap expanded — liquidity is entering the complex, not only rotating inside it.'
-          : m < -1
-            ? 'Global crypto market cap contracted — pressure is broader than a single chain story.'
-            : 'Global market cap is roughly flat — today’s drama is more rotation than net inflow.',
-      whyItMatters: 'Macro market-cap change frames whether Solana moves are idiosyncratic or systemic.',
-      confidence: 'medium',
-      evidence: {
-        metrics: [
-          { label: 'Global mcap 24h', value: fmtPct(m) },
-          q.marketCapUsd != null ? { label: 'Global mcap', value: fmtUsd(q.marketCapUsd) } : null,
-        ].filter(Boolean) as Array<{ label: string; value: string }>,
-        movers: [],
-        spark: [m],
-        unavailableReason: null,
-      },
-    })
-  }
-
-  return cards
-}
-
-function buildNarrative(
-  id: MarketNarrativeId,
-  rows: ScreenerRow[],
-): NarrativeCluster {
-  const title = NARRATIVE_META[id].title
-  if (rows.length === 0) {
-    return {
-      id,
-      title,
-      conclusion: UNAVAILABLE,
-      liquidityMove: UNAVAILABLE,
-      why: 'No tokens in the live sample matched this narrative with enough evidence.',
-      confidence: 'low',
-      risk: 'Unknown — sample empty.',
-      shortTerm: UNAVAILABLE,
-      evidence: emptyEvidence(),
-      tokenCount: 0,
-    }
-  }
-
-  const chgs = rows.map((r) => r.change24hPct)
-  const aChg = avg(chgs) ?? 0
-  const aVol = avg(rows.map((r) => r.volume24hUsd)) ?? 0
-  const aLiq = avg(rows.map((r) => r.liquidityUsd)) ?? 0
-  const aRisk = avg(rows.map((r) => r.riskScore)) ?? 50
-  const aSmart = avg(rows.map((r) => r.smartMoneyScore)) ?? 0
-  const aBuy = avg(rows.map((r) => r.buySellRatio).filter((n) => n > 0))
-  const top = [...rows].sort((a, b) => b.volume24hUsd - a.volume24hUsd)[0]!
-
-  let conclusion: string
-  if (aChg > 3) {
-    conclusion = `${title} names in the live sample are advancing — volume is following the move higher.`
-  } else if (aChg < -3) {
-    conclusion = `${title} names are under pressure — liquidity is leaving this cluster in the sample.`
-  } else {
-    conclusion = `${title} looks rotational rather than directional — price action is mixed inside the cluster.`
-  }
-
-  const liquidityMove =
-    aVol > aLiq * 0.35
-      ? `Turnover is elevated versus resting liquidity (sample avg volume ${fmtUsd(aVol)} vs liquidity ${fmtUsd(aLiq)}).`
-      : `Liquidity still cushions turnover in this cluster (sample avg liquidity ${fmtUsd(aLiq)}).`
-
-  const why =
-    aBuy != null && aBuy >= 1.1
-      ? `Buy/sell ratio averages ${aBuy.toFixed(2)}; ${top.symbol || 'top name'} leads volume.`
-      : aBuy != null && aBuy < 0.9
-        ? `Sell-leaning flow (avg ratio ${aBuy.toFixed(2)}); ${top.symbol || 'top name'} anchors volume.`
-        : `${top.symbol || 'Lead name'} carries the volume print at ${fmtUsd(top.volume24hUsd)}.`
-
-  const risk =
-    aRisk >= 65
-      ? 'Elevated risk scores dominate this cluster — treat strength as fragile.'
-      : aRisk >= 40
-        ? 'Risk scores are mixed — dispersion matters more than the headline.'
-        : 'Risk scores sit lower in-sample — still not a guarantee of stability.'
-
-  const shortTerm =
-    aChg > 2 && aSmart >= 50
-      ? 'Short-term bias: continued attention if smart-money scores hold.'
-      : aChg < -2
-        ? 'Short-term bias: further digestion until sell pressure cools in the sample.'
-        : 'Short-term bias: range-bound until a clearer volume leader emerges.'
-
-  return {
-    id,
-    title,
-    conclusion,
-    liquidityMove,
-    why,
-    confidence: confidenceFromSample(rows.length, Math.abs(aChg)),
-    risk,
-    shortTerm,
-    evidence: evidenceFromRows(rows),
-    tokenCount: rows.length,
-  }
-}
-
-export type MarketAnalystInput = {
-  screenerRows: ScreenerRow[]
+function buildReconstruction(params: {
+  rows: ScreenerRow[]
   quotes: MarketMacroQuotes | null
-  available?: boolean
+  loading: boolean
   source?: string | null
-}
-
-/**
- * Build Data → Thinking steps from what we actually have (never invent facts).
- */
-export function buildMarketProcess(params: {
-  screenerRows: ScreenerRow[]
-  quotes: MarketMacroQuotes | null
-  loading?: boolean
-  source?: string | null
-}): { dataSteps: MarketProcessStep[]; thinkingSteps: MarketProcessStep[] } {
-  const loading = Boolean(params.loading)
-  const rows = params.screenerRows ?? []
-  const q = params.quotes
-  const n = rows.length
-
-  const dataSteps: MarketProcessStep[] = [
+}): MarketProcessStep[] {
+  const { rows, quotes: q, loading, source } = params
+  return [
     {
       id: 'screener',
-      label: 'Screener sample',
+      label: 'Solana screener corpus',
       status: loading
         ? 'Reading…'
-        : n > 0
-          ? `${n} tokens from live corpus${params.source ? ` · ${params.source}` : ''}.`
-          : 'No tokens returned.',
+        : rows.length > 0
+          ? `${rows.length} tokens loaded${source ? ` · ${source}` : ''}.`
+          : 'Empty sample.',
+      done: !loading,
+    },
+    {
+      id: 'flow',
+      label: 'Order flow & smart money',
+      status: loading
+        ? 'Reading…'
+        : rows.some((r) => r.buySellRatio > 0 || r.smartMoneyScore > 0)
+          ? 'Scores present in sample.'
+          : 'Sparse flow fields.',
       done: !loading,
     },
     {
@@ -497,212 +172,306 @@ export function buildMarketProcess(params: {
       label: 'Macro quotes',
       status: loading
         ? 'Reading…'
-        : q && (q.btcChangePct != null || q.fearGreed != null || q.solChangePct != null)
+        : q && (q.btcChangePct != null || q.fearGreed != null)
           ? 'BTC / SOL / Fear&Greed available.'
-          : 'Macro quote set incomplete.',
+          : 'Macro incomplete.',
       done: !loading,
     },
     {
-      id: 'flow',
-      label: 'Order-flow fields',
-      status: loading
-        ? 'Reading…'
-        : rows.some((r) => r.buySellRatio > 0)
-          ? 'Buy/sell ratios present in sample.'
-          : 'Buy/sell ratios sparse.',
-      done: !loading,
-    },
-    {
-      id: 'smart',
-      label: 'Smart-money scores',
-      status: loading
-        ? 'Reading…'
-        : rows.some((r) => r.smartMoneyScore > 0)
-          ? 'Smart-money scores present in sample.'
-          : 'Smart-money scores sparse.',
+      id: 'filter',
+      label: 'Significance filter',
+      status: loading ? 'Filtering…' : 'Keeping only moves that deserve attention.',
       done: !loading,
     },
   ]
-
-  if (loading) {
-    return {
-      dataSteps,
-      thinkingSteps: [
-        {
-          id: 'wait',
-          label: 'Thinking',
-          status: 'Waiting on live data…',
-          done: false,
-        },
-      ],
-    }
-  }
-
-  const chgs = rows.map((r) => r.change24hPct).filter((n) => Number.isFinite(n))
-  const aChg = avg(chgs)
-  const buys = rows.map((r) => r.buySellRatio).filter((x) => x > 0)
-  const aBuy = avg(buys)
-  const classified = rows.filter((r) => classifyRow(r) != null).length
-
-  const thinkingSteps: MarketProcessStep[] = [
-    {
-      id: 'breadth',
-      label: 'Tape breadth',
-      status:
-        aChg == null
-          ? 'Cannot judge breadth — sample empty.'
-          : aChg > 2
-            ? 'Advances outweigh declines in the sample.'
-            : aChg < -2
-              ? 'Declines outweigh advances in the sample.'
-              : 'Aggregate move is muted — treat as rotation.',
-      done: true,
-    },
-    {
-      id: 'pressure',
-      label: 'Pressure',
-      status:
-        aBuy == null
-          ? 'Order-flow inconclusive.'
-          : aBuy >= 1.12
-            ? 'Buy-side pressure elevated versus sells.'
-            : aBuy < 0.9
-              ? 'Sell-side pressure more visible than bids.'
-              : 'Flow near balance — no aggressive imprint.',
-      done: true,
-    },
-    {
-      id: 'cluster',
-      label: 'Narratives',
-      status:
-        classified > 0
-          ? `Mapped ${classified} tokens into narrative clusters from live names/flags.`
-          : 'No narrative clusters matched — will not invent themes.',
-      done: true,
-    },
-    {
-      id: 'macro-think',
-      label: 'Macro context',
-      status:
-        q?.btcChangePct != null && q?.fearGreed != null
-          ? 'Weighing BTC relative strength and sentiment against the Solana sample.'
-          : q?.fearGreed != null
-            ? 'Sentiment print available; BTC relative read incomplete.'
-            : 'Macro context thin — decision leans on Solana sample only.',
-      done: true,
-    },
-  ]
-
-  return { dataSteps, thinkingSteps }
 }
+
+export type MarketAnalystInput = {
+  screenerRows: ScreenerRow[]
+  quotes: MarketMacroQuotes | null
+  available?: boolean
+  source?: string | null
+  loading?: boolean
+}
+
 /**
- * Build the analyst brief from existing market payloads only.
- * Cognitive order for UI: Data → Thinking → Decision → Evidence.
+ * Build ≤3 decisions from live engines. Quiet tape → say so. Never invent.
  */
 export function buildMarketAnalystBrief(input: MarketAnalystInput): MarketAnalystBrief {
+  const loading = Boolean(input.loading)
   const rows = (input.screenerRows ?? []).filter((r) => r.mint && r.mint.length >= 32)
+  const q = input.quotes
   const sourcesNote = 'Birdeye · Jupiter · Helius · Raydium · CoinGecko / Fear&Greed (existing routes)'
-  const process = buildMarketProcess({
-    screenerRows: rows,
-    quotes: input.quotes,
-    loading: false,
+  const reconstruction = buildReconstruction({
+    rows,
+    quotes: q,
+    loading,
     source: input.source,
   })
 
-  if (!rows.length && !input.quotes) {
+  if (loading) {
     return {
-      conclusion: UNAVAILABLE,
-      whyItMatters: 'Market Intelligence needs a live screener or macro quote sample before it can speak.',
-      attention: null,
-      insightCards: [],
-      narratives: (Object.keys(NARRATIVE_META) as MarketNarrativeId[]).map((id) =>
-        buildNarrative(id, []),
-      ),
+      reconstruction,
+      executiveConclusion: 'Reading the live market.',
+      executiveWhy: 'Screener and macro routes first — no decision until the sample lands.',
+      quiet: false,
+      decisions: [],
+      sampleSpark: [],
+      sourcesNote,
+      unavailableReason: null,
+      fetchedHint: input.source ?? null,
+    }
+  }
+
+  if (!rows.length && !q) {
+    return {
+      reconstruction,
+      executiveConclusion: UNAVAILABLE,
+      executiveWhy: 'Existing market routes returned nothing usable.',
+      quiet: true,
+      decisions: [],
       sampleSpark: [],
       sourcesNote,
       unavailableReason: UNAVAILABLE,
       fetchedHint: input.source ?? null,
-      dataSteps: process.dataSteps,
-      thinkingSteps: process.thinkingSteps,
     }
   }
 
-  const insightCards: MarketInsightCard[] = []
-  const tape = tapeInsight(rows)
-  if (tape) insightCards.push(tape)
-  const flow = pressureInsight(rows)
-  if (flow) insightCards.push(flow)
-  insightCards.push(...macroInsight(input.quotes))
-
-  const byNarrative: Record<MarketNarrativeId, ScreenerRow[]> = {
-    ai: [],
-    infrastructure: [],
-    memecoins: [],
-    defi: [],
-    rwa: [],
-  }
-  for (const row of rows) {
-    const id = classifyRow(row)
-    if (id) byNarrative[id].push(row)
-  }
-  const narratives = (Object.keys(NARRATIVE_META) as MarketNarrativeId[]).map((id) =>
-    buildNarrative(id, byNarrative[id]),
-  )
-
   const chgs = rows.map((r) => r.change24hPct).filter((n) => Number.isFinite(n))
   const aChg = avg(chgs)
-  let conclusion: string
-  let whyItMatters: string
-  if (aChg == null && insightCards[0]) {
-    conclusion = insightCards[0].conclusion
-    whyItMatters = insightCards[0].whyItMatters
-  } else if (aChg == null) {
-    conclusion = UNAVAILABLE
-    whyItMatters = 'Macro quotes may be present, but the Solana screener sample is empty.'
-  } else if (aChg > 2) {
-    conclusion = 'Solana markets are strengthening across the live sample.'
-    whyItMatters =
-      'Aggregate 24h change in the screener sample is firmly positive — attention should focus on where volume confirms the move.'
-  } else if (aChg < -2) {
-    conclusion = 'Solana markets turned defensive across the live sample.'
-    whyItMatters =
-      'Aggregate 24h change is negative — watch liquidity exits inside narratives before chasing dips.'
-  } else {
-    conclusion = 'Solana markets look orderly — rotation matters more than direction today.'
-    whyItMatters =
-      'Aggregate sample change is muted; narrative clusters and flow scores decide what deserves attention.'
+  const buys = rows.map((r) => r.buySellRatio).filter((n) => n > 0)
+  const aBuy = avg(buys)
+  const smart = rows.map((r) => r.smartMoneyScore).filter((n) => Number.isFinite(n))
+  const aSmart = avg(smart)
+  const top = [...rows].sort((a, b) => Math.abs(b.change24hPct) - Math.abs(a.change24hPct))[0]
+
+  const tapeSignificant = aChg != null && Math.abs(aChg) >= 2
+  const flowSignificant = aBuy != null && (aBuy >= 1.12 || aBuy < 0.88)
+  const macroSignificant =
+    (q?.btcChangePct != null && Math.abs(q.btcChangePct) >= 1.5) ||
+    (q?.fearGreed != null && (q.fearGreed >= 65 || q.fearGreed <= 30)) ||
+    (q?.marketCapChangePct != null && Math.abs(q.marketCapChangePct) >= 1.5)
+
+  const quiet =
+    rows.length > 0 &&
+    !tapeSignificant &&
+    !flowSignificant &&
+    !macroSignificant
+
+  const decisions: MarketDecision[] = []
+
+  // Decision 1 — tape (only if significant or we need an honest quiet call)
+  if (rows.length > 0) {
+    if (quiet || !tapeSignificant) {
+      if (quiet) {
+        decisions.push({
+          id: 'tape',
+          whatHappened:
+            'No significant market change in the live Solana sample — the tape is relatively quiet.',
+          whyItMatters:
+            'Quiet sessions are information: chasing noise usually costs more than waiting for a real imprint.',
+          whatToDo:
+            'Do not force a trade narrative. Keep monitoring; revisit when breadth or flow breaks the quiet band.',
+          evidence: evidenceFromRows(rows),
+        })
+      }
+    } else if (aChg != null && aChg > 2) {
+      decisions.push({
+        id: 'tape',
+        whatHappened: 'Solana sample breadth strengthened — advances outweigh declines.',
+        whyItMatters:
+          top?.symbol != null
+            ? `Largest absolute move sits with ${top.symbol} (${fmtPct(top.change24hPct)}) — that is where attention concentrates.`
+            : 'Positive aggregate 24h change is visible in the live screener sample.',
+        whatToDo:
+          'Prioritize confirmation from volume leaders before treating strength as durable. Inspect the leading names; do not extrapolate from a single print.',
+        evidence: evidenceFromRows(rows),
+      })
+    } else if (aChg != null && aChg < -2) {
+      decisions.push({
+        id: 'tape',
+        whatHappened: 'Solana sample turned defensive — declines outweigh advances.',
+        whyItMatters:
+          top?.symbol != null
+            ? `Pressure is loudest in ${top.symbol} (${fmtPct(top.change24hPct)}).`
+            : 'Negative aggregate 24h change is visible in the live screener sample.',
+        whatToDo:
+          'Treat bounces as suspect until sell pressure cools in the sample. Review liquidity exits before adding risk.',
+        evidence: evidenceFromRows(rows),
+      })
+    }
   }
 
-  const hotNarrative = [...narratives]
-    .filter((n) => n.tokenCount > 0 && n.evidence.unavailableReason == null)
-    .sort((a, b) => {
-      const aa = avg(a.evidence.spark) ?? 0
-      const bb = avg(b.evidence.spark) ?? 0
-      return Math.abs(bb) - Math.abs(aa)
-    })[0]
+  // Decision 2 — flow (only if significant)
+  if (flowSignificant && aBuy != null && decisions.length < 3) {
+    if (aBuy >= 1.12 && (aSmart == null || aSmart < 55)) {
+      decisions.push({
+        id: 'flow',
+        whatHappened:
+          'Buying pressure rose in the live sample, without a strong smart-money stamp.',
+        whyItMatters:
+          'Elevated buy/sell with moderate smart-money scores often means newer flow — attention without institutional confirmation.',
+        whatToDo:
+          'Size cautiously. Prefer names where volume and liquidity both confirm; avoid chasing pure ratio spikes.',
+        evidence: evidenceFromRows(rows),
+      })
+    } else if (aBuy >= 1.12 && aSmart != null && aSmart >= 55) {
+      decisions.push({
+        id: 'flow',
+        whatHappened:
+          'Buying pressure rose alongside elevated smart-money scores in the sample.',
+        whyItMatters:
+          'When both flow and smart-money lean the same way, the move is more structured than retail chase alone.',
+        whatToDo:
+          'Focus review on high smart-money names in the sample. Still simulate risk before any size.',
+        evidence: evidenceFromRows(rows),
+      })
+    } else if (aBuy < 0.88) {
+      decisions.push({
+        id: 'flow',
+        whatHappened: 'Sell-side pressure is more visible than demand in today’s sample.',
+        whyItMatters: `Average buy/sell ratio sits at ${aBuy.toFixed(2)} — below parity across measured tokens.`,
+        whatToDo:
+          'Do not lean into weakness without a clear liquidity reclaim. Wait for ratio normalization in the sample.',
+        evidence: evidenceFromRows(rows),
+      })
+    }
+  }
 
-  const attention =
-    hotNarrative && hotNarrative.tokenCount > 0
-      ? `${hotNarrative.title} deserves attention: ${hotNarrative.conclusion}`
-      : flow
-        ? flow.conclusion
-        : null
+  // Decision 3 — macro (only if significant)
+  if (macroSignificant && q && decisions.length < 3) {
+    if (q.btcChangePct != null && Math.abs(q.btcChangePct) >= 1.5) {
+      const btc = q.btcChangePct
+      const sol = q.solChangePct
+      let what: string
+      let why: string
+      let action: string
+      if (btc > 1.5 && (sol == null || sol < btc - 0.5)) {
+        what = 'Bitcoin is absorbing relative strength versus Solana in today’s quotes.'
+        why = 'When BTC leads and SOL lags, alt liquidity often rotates up the risk curve — or stalls.'
+        action =
+          'Assume Solana beta may lag until relative strength reappears. Do not invent a Solana breakout from BTC alone.'
+      } else if (sol != null && sol > btc + 1) {
+        what = 'Solana is outperforming Bitcoin on the day in the quote set.'
+        why = 'Relative SOL strength means today’s Solana tape is not just a BTC shadow.'
+        action =
+          'Judge Solana names on their own sample — BTC is not the whole story in this window.'
+      } else if (btc < -1.5) {
+        what = 'Bitcoin softens in the macro quote set — risk appetite is under pressure.'
+        why =
+          sol != null
+            ? `SOL 24h is ${fmtPct(sol)} beside BTC ${fmtPct(btc)}.`
+            : `BTC 24h is ${fmtPct(btc)}; SOL change was not returned.`
+        action =
+          'Raise the bar for new risk until BTC stabilizes or Solana clearly decouples in the sample.'
+      } else {
+        what = 'Bitcoin’s day move is material, but it is not cleanly dominating Solana.'
+        why = 'Relative BTC/SOL prints are mixed — treat chain-specific sample as primary.'
+        action = 'Stay with Solana sample leaders; do not force a BTC-led narrative.'
+      }
+      const metrics: MarketEvidence['metrics'] = [
+        { label: 'BTC 24h', value: fmtPct(btc) },
+      ]
+      if (sol != null) metrics.push({ label: 'SOL 24h', value: fmtPct(sol) })
+      if (q.fearGreed != null) metrics.push({ label: 'Fear & Greed', value: String(Math.round(q.fearGreed)) })
+      decisions.push({
+        id: 'macro',
+        whatHappened: what,
+        whyItMatters: why,
+        whatToDo: action,
+        evidence: {
+          metrics,
+          movers: [],
+          spark: [btc, sol ?? 0].filter((n) => Number.isFinite(n)),
+          unavailableReason: null,
+        },
+      })
+    } else if (q.fearGreed != null && (q.fearGreed >= 65 || q.fearGreed <= 30)) {
+      const v = q.fearGreed
+      decisions.push({
+        id: 'sentiment',
+        whatHappened:
+          v >= 65
+            ? 'Sentiment print is stretched toward greed.'
+            : 'Sentiment print is stretched toward fear.',
+        whyItMatters: q.fearGreedLabel
+          ? `Fear & Greed classifies this as “${q.fearGreedLabel}”.`
+          : 'Extreme sentiment often coincides with thinner caution or forced selling.',
+        whatToDo:
+          v >= 65
+            ? 'Demand stronger confirmation from the Solana sample before adding risk into optimism.'
+            : 'Do not invent a bottom. Wait for sample breadth or flow to stabilize first.',
+        evidence: {
+          metrics: [
+            { label: 'Fear & Greed', value: String(Math.round(v)) },
+            q.fearGreedLabel ? { label: 'Classification', value: q.fearGreedLabel } : null,
+          ].filter(Boolean) as Array<{ label: string; value: string }>,
+          movers: [],
+          spark: [v],
+          unavailableReason: null,
+        },
+      })
+    }
+  }
+
+  // Cap at 3
+  const capped = decisions.slice(0, 3)
+
+  let executiveConclusion: string
+  let executiveWhy: string
+  if (capped.length === 0 && !rows.length) {
+    executiveConclusion = UNAVAILABLE
+    executiveWhy = 'Macro may be thin and the Solana sample is empty.'
+  } else if (quiet) {
+    executiveConclusion = 'The market is quiet. Nothing significant requires your attention.'
+    executiveWhy =
+      'I filtered the live sample — breadth, flow, and macro all sit inside a quiet band.'
+  } else if (aChg != null && aChg > 2) {
+    executiveConclusion = 'The market is strengthening.'
+    executiveWhy =
+      'I already filtered the live sample. Three decisions follow — only what deserves attention.'
+  } else if (aChg != null && aChg < -2) {
+    executiveConclusion = 'The market turned defensive.'
+    executiveWhy =
+      'I already filtered the live sample. Three decisions follow — only what deserves attention.'
+  } else if (capped.length > 0) {
+    executiveConclusion = 'The market is rotational — a few prints deserve attention, not a blanket call.'
+    executiveWhy = 'Breadth is muted; the decisions below are the only ones that cleared the filter.'
+  } else {
+    executiveConclusion = 'No significant market change cleared the filter.'
+    executiveWhy = 'Quiet is an honest result when the sample does not move enough to act on.'
+  }
+
+  // If we have significant decisions but quiet was false and tape didn't add, ensure we still have content
+  if (!quiet && capped.length === 0 && rows.length > 0) {
+    capped.push({
+      id: 'tape',
+      whatHappened: 'The live sample moved, but not enough to force a directional call.',
+      whyItMatters: 'Mixed prints without aggregate significance usually mean rotation, not a regime shift.',
+      whatToDo: 'Stay with monitoring. Do not invent urgency from a flat aggregate.',
+      evidence: evidenceFromRows(rows),
+    })
+  }
 
   return {
-    conclusion,
-    whyItMatters,
-    attention,
-    insightCards,
-    narratives,
+    reconstruction,
+    executiveConclusion,
+    executiveWhy,
+    quiet,
+    decisions: capped.slice(0, 3),
     sampleSpark: chgs.slice(0, 16),
     sourcesNote,
-    unavailableReason: rows.length === 0 && insightCards.length === 0 ? UNAVAILABLE : null,
+    unavailableReason: !rows.length && !q ? UNAVAILABLE : null,
     fetchedHint: input.source ?? null,
-    dataSteps: process.dataSteps,
-    thinkingSteps: process.thinkingSteps,
   }
 }
 
 export function isMarketAnalystUnavailable(brief: MarketAnalystBrief): boolean {
-  return Boolean(brief.unavailableReason) && brief.insightCards.length === 0
+  return Boolean(brief.unavailableReason) && brief.decisions.length === 0
+}
+
+/** Hold time for speech absorption (same spirit as Mission Control). */
+export function marketSpeechHoldMs(text: string): number {
+  const words = text.trim().split(/\s+/).filter(Boolean).length
+  return Math.min(5200, Math.max(2200, 1400 + words * 85))
 }

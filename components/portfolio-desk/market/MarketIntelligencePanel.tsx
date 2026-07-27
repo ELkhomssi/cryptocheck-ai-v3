@@ -1,9 +1,10 @@
 'use client'
 
 /**
- * Market Intelligence — AI Market Analyst (Phase 17.2).
- * Presentation only. Reuses existing /api/market/screener + /api/market/intelligence
- * and existing desk panels for evidence / raw metrics below the fold.
+ * Market Intelligence — AI Market Analyst (not a dashboard).
+ * Default: briefing only. Raw screener / feeds only after the analyst finishes
+ * and the user asks — never first.
+ * Presentation only. Existing /api/market/screener + /api/market/intelligence.
  */
 
 import { Suspense, useMemo, useState } from 'react'
@@ -15,14 +16,7 @@ import { MarketFeeds } from '@/components/portfolio-desk/market/MarketFeeds'
 import { ScreenerPanel } from '@/components/portfolio-desk/screener/ScreenerPanel'
 import { WatchlistPanel } from '@/components/portfolio-desk/watchlist/WatchlistPanel'
 
-const TABS = [
-  { id: 'analyst', label: 'Analyst' },
-  { id: 'discovery', label: 'Discovery' },
-  { id: 'tracked', label: 'Tracked' },
-  { id: 'structure', label: 'Structure' },
-] as const
-
-type TabId = (typeof TABS)[number]['id']
+type DeskMode = 'briefing' | 'raw'
 
 type ScreenerPayload = {
   rows?: ScreenerRow[]
@@ -46,36 +40,38 @@ async function fetchScreenerSample(): Promise<ScreenerPayload> {
   return (await res.json()) as ScreenerPayload
 }
 
-async function fetchQuotes(): Promise<import('@/lib/portfolio-desk/market-analyst').MarketMacroQuotes | null> {
+async function fetchQuotes(): Promise<
+  import('@/lib/portfolio-desk/market-analyst').MarketMacroQuotes | null
+> {
   const res = await fetch('/api/market/intelligence', { cache: 'no-store' })
   if (!res.ok) return null
   return (await res.json()) as import('@/lib/portfolio-desk/market-analyst').MarketMacroQuotes
-}
-
-function normalizeInitialTab(initialTab?: string): TabId {
-  if (initialTab === 'tracked' || initialTab === 'watchlist') return 'tracked'
-  if (initialTab === 'discovery' || initialTab === 'screener') return 'discovery'
-  if (
-    initialTab === 'whales' ||
-    initialTab === 'smart' ||
-    initialTab === 'liquidity' ||
-    initialTab === 'dex' ||
-    initialTab === 'narratives' ||
-    initialTab === 'structure'
-  ) {
-    return 'structure'
-  }
-  return 'analyst'
 }
 
 export function MarketIntelligencePanel({
   initialTab = 'analyst',
   onSelectMint,
 }: {
-  initialTab?: TabId | string
+  initialTab?: string
   onSelectMint?: (mint: string) => void
 }) {
-  const [tab, setTab] = useState<TabId>(() => normalizeInitialTab(initialTab))
+  const wantRawFirst =
+    initialTab === 'tracked' ||
+    initialTab === 'watchlist' ||
+    initialTab === 'discovery' ||
+    initialTab === 'screener'
+  const [mode, setMode] = useState<DeskMode>(wantRawFirst ? 'raw' : 'briefing')
+  const [rawTab, setRawTab] = useState<'discovery' | 'tracked' | 'structure'>(() =>
+    initialTab === 'tracked' || initialTab === 'watchlist'
+      ? 'tracked'
+      : initialTab === 'structure' ||
+          initialTab === 'whales' ||
+          initialTab === 'smart' ||
+          initialTab === 'liquidity' ||
+          initialTab === 'dex'
+        ? 'structure'
+        : 'discovery',
+  )
 
   const screenerQ = useQuery({
     queryKey: ['market-analyst-screener'],
@@ -91,6 +87,8 @@ export function MarketIntelligencePanel({
     refetchInterval: 60_000,
   })
 
+  const loading = screenerQ.isLoading && quotesQ.isLoading
+
   const brief = useMemo(
     () =>
       buildMarketAnalystBrief({
@@ -98,57 +96,52 @@ export function MarketIntelligencePanel({
         quotes: quotesQ.data ?? null,
         available: screenerQ.data?.available !== false,
         source: screenerQ.data?.source ?? null,
+        loading,
       }),
-    [screenerQ.data, quotesQ.data],
+    [screenerQ.data, quotesQ.data, loading],
   )
 
-  const loading = screenerQ.isLoading && quotesQ.isLoading
+  if (mode === 'briefing') {
+    return (
+      <MarketAnalystView
+        brief={brief}
+        loading={loading}
+        onSelectMint={onSelectMint}
+        onOpenRaw={() => setMode('raw')}
+      />
+    )
+  }
 
   return (
     <section className="ma-shell">
-      <div className="pd-tabs" style={{ flexWrap: 'wrap' }}>
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className={`pd-tab${tab === t.id ? ' is-active' : ''}`}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+        <button type="button" className="mc-talk-quiet-link" onClick={() => setMode('briefing')}>
+          ← Back to analyst briefing
+        </button>
+        <div className="pd-tabs" style={{ flexWrap: 'wrap' }}>
+          {(
+            [
+              ['discovery', 'Discovery'],
+              ['tracked', 'Tracked'],
+              ['structure', 'Structure'],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              className={`pd-tab${rawTab === id ? ' is-active' : ''}`}
+              onClick={() => setRawTab(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {tab === 'analyst' ? (
-        <>
-          <MarketAnalystView
-            brief={brief}
-            loading={loading}
-            onSelectMint={onSelectMint}
-          />
-          <details className="ma-raw-desk">
-            <summary>Raw metrics &amp; discovery tables</summary>
-            <p className="ma-soft" style={{ marginBottom: 12 }}>
-              Evidence desk — tables stay below the analyst brief on purpose.
-            </p>
-            <Suspense
-              fallback={
-                <div className="pd-panel" style={{ padding: 18 }}>
-                  <div className="pd-skeleton" style={{ height: 36 }} />
-                </div>
-              }
-            >
-              <ScreenerPanel onSelectMint={onSelectMint} />
-            </Suspense>
-          </details>
-        </>
-      ) : null}
-
-      {tab === 'discovery' ? (
+      {rawTab === 'discovery' ? (
         <Suspense
           fallback={
             <div className="pd-panel" style={{ padding: 18 }}>
-              <div className="pd-skeleton" style={{ height: 36, marginBottom: 10 }} />
               <div className="pd-skeleton" style={{ height: 36 }} />
             </div>
           }
@@ -156,15 +149,11 @@ export function MarketIntelligencePanel({
           <ScreenerPanel onSelectMint={onSelectMint} />
         </Suspense>
       ) : null}
-
-      {tab === 'tracked' ? <WatchlistPanel /> : null}
-
-      {tab === 'structure' ? (
+      {rawTab === 'tracked' ? <WatchlistPanel /> : null}
+      {rawTab === 'structure' ? (
         <div className="pd-panel" style={{ padding: 16 }}>
-          <h3 style={{ margin: '0 0 8px', fontSize: 15 }}>Market structure</h3>
           <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--pd-text-dim)' }}>
-            Supporting feeds for the analyst brief — gainers, losers, smart money, volume. Live
-            provider data only.
+            Raw supporting feeds — only after the analyst briefing.
           </p>
           <MarketFeeds />
         </div>
