@@ -27,13 +27,13 @@ export const usePortfolioTheme = create<ThemeState>()(
       toggle: () => {
         const cur = get().theme
         const next =
-          cur === 'light' || cur === 'brass-light'
-            ? cur === 'brass-light'
-              ? 'brass'
-              : 'dark'
-            : cur === 'brass'
-              ? 'brass-light'
-              : 'light'
+          cur === 'dark'
+            ? 'light'
+            : cur === 'light'
+              ? 'dark'
+              : cur === 'brass'
+                ? 'brass-light'
+                : 'brass'
         applyDom(next)
         set({ theme: next })
       },
