@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     walletAddress: wallet,
     route: 'context',
   })
-  if (!limited.ok) return limited.response
+  if (limited.ok === false) return limited.response
 
   const kind = (req.nextUrl.searchParams.get('kind') || 'trading').trim()
   try {

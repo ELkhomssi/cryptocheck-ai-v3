@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     walletAddress: identity.walletAddress,
     route: 'reports-get',
   })
-  if (!limited.ok) return limited.response
+  if (limited.ok === false) return limited.response
 
   const type = (req.nextUrl.searchParams.get('type') || 'morning_brief') as ReportType
   if (!TYPES.has(type)) {
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     walletAddress: identity.walletAddress,
     route: 'reports-post',
   })
-  if (!limited.ok) return limited.response
+  if (limited.ok === false) return limited.response
 
   const reportType = (body.reportType || 'morning_brief') as ReportType
   if (!TYPES.has(reportType)) {

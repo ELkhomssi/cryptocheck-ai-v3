@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     walletAddress: identity.walletAddress,
     route: 'timeline',
   })
-  if (!limited.ok) return limited.response
+  if (limited.ok === false) return limited.response
 
   const limit = Number(req.nextUrl.searchParams.get('limit') || '40')
   const module = req.nextUrl.searchParams.get('module')

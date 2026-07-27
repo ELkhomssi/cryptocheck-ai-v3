@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
     walletAddress: identity.walletAddress,
     route: 'coach',
   })
-  if (!limited.ok) return limited.response
+  if (limited.ok === false) return limited.response
 
   const { acquireProviderQuota } = await import('@/lib/providers/quota')
   const quota = await acquireProviderQuota('openai')

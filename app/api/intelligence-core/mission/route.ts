@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     walletAddress: identity.walletAddress,
     route: 'mission',
   })
-  if (!limited.ok) return limited.response
+  if (limited.ok === false) return limited.response
 
   try {
     const view = await assembleMissionViewModel({

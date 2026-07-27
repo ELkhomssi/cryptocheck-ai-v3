@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     walletAddress: identity.walletAddress,
     route: 'memory',
   })
-  if (!limited.ok) return limited.response
+  if (limited.ok === false) return limited.response
 
   const [entries, aggregates] = await Promise.all([
     listUserMemory(userId, 40),
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     walletAddress: identity.walletAddress,
     route: 'memory-write',
   })
-  if (!limited.ok) return limited.response
+  if (limited.ok === false) return limited.response
 
   const actionType = body.actionType as UserMemoryActionType
   if (!ACTIONS.has(actionType)) {
