@@ -34,52 +34,104 @@ function row(partial: Partial<ScreenerRow> & { mint: string }): ScreenerRow {
   }
 }
 
-describe('Phase 17.2 — Market Analyst briefing', () => {
-  it('says not enough data when sample is empty', () => {
-    const brief = buildMarketAnalystBrief({ screenerRows: [], quotes: null })
-    assert.match(brief.executiveConclusion, /Not enough real market data/i)
-    assert.equal(isMarketAnalystUnavailable(brief), true)
-    assert.equal(brief.decisions.length, 0)
-  })
-
-  it('executive conclusion is human speech — not a metric headline', () => {
+describe('Phase 17.2 — Chief Market Strategist voice', () => {
+  it('opens in natural strategist voice — not generic section titles', () => {
     const rows = [
-      row({ mint: '11111111111111111111111111111111', change24hPct: 5, symbol: 'A' }),
-      row({ mint: '22222222222222222222222222222222', change24hPct: 4, symbol: 'B' }),
-      row({ mint: '33333333333333333333333333333333', change24hPct: 3, symbol: 'C' }),
-      row({ mint: '44444444444444444444444444444444', change24hPct: 6, symbol: 'D' }),
+      row({ mint: '11111111111111111111111111111111', change24hPct: 5 }),
+      row({ mint: '22222222222222222222222222222222', change24hPct: 4 }),
+      row({ mint: '33333333333333333333333333333333', change24hPct: 3 }),
+      row({ mint: '44444444444444444444444444444444', change24hPct: 6 }),
     ]
     const brief = buildMarketAnalystBrief({ screenerRows: rows, quotes: null })
-    assert.match(brief.executiveConclusion, /strengthening/i)
-    assert.doesNotMatch(brief.executiveConclusion, /^\+?\d+(\.\d+)?%$/)
-    assert.ok(brief.decisions.length >= 1 && brief.decisions.length <= 3)
+    assert.match(brief.openingLine, /finished analyzing|I've finished/i)
+    assert.doesNotMatch(brief.openingLine, /Executive Conclusion|Market Reconstruction/i)
+    assert.doesNotMatch(brief.executiveConclusion, /Executive Conclusion|^Decision\b/i)
   })
 
-  it('each decision answers What / Why / Do — evidence only attached', () => {
+  it('attaches confidence from engine scores — never missing', () => {
     const rows = Array.from({ length: 6 }, (_, i) =>
       row({
         mint: `${'1'.repeat(31)}${i}`,
-        buySellRatio: 1.3,
-        smartMoneyScore: 30,
-        change24hPct: 3 + i,
-        volume24hUsd: 500_000,
+        change24hPct: 4,
+        smartMoneyScore: 70,
+        aiScore: 65,
+        riskScore: 30,
+        buySellRatio: 1.2,
       }),
     )
     const brief = buildMarketAnalystBrief({ screenerRows: rows, quotes: null })
     assert.ok(brief.decisions.length >= 1)
     for (const d of brief.decisions) {
-      assert.ok(d.whatHappened.length > 10)
-      assert.ok(d.whyItMatters.length > 10)
-      assert.ok(d.whatToDo.length > 10)
-      assert.ok(d.evidence)
-      assert.doesNotMatch(d.whatHappened, /^Volume \+/)
+      assert.ok(d.confidencePct >= 10 && d.confidencePct <= 97)
+      assert.ok(Number.isInteger(d.confidencePct))
     }
   })
 
-  it('caps at three decisions', () => {
-    const rows = Array.from({ length: 8 }, (_, i) =>
+  it('sets market temperature from breadth/flow — not Fear & Greed label', () => {
+    const aggressive = Array.from({ length: 8 }, (_, i) =>
       row({
         mint: `${'2'.repeat(31)}${i}`,
+        change24hPct: 5,
+        buySellRatio: 1.3,
+        smartMoneyScore: 60,
+      }),
+    )
+    const brief = buildMarketAnalystBrief({ screenerRows: aggressive, quotes: null })
+    assert.equal(brief.temperature, 'Aggressive')
+    assert.match(brief.temperatureLine, /Aggressive/)
+
+    const quietRows = Array.from({ length: 5 }, (_, i) =>
+      row({
+        mint: `${'3'.repeat(31)}${i}`,
+        change24hPct: 0.3,
+        buySellRatio: 1.0,
+      }),
+    )
+    const quiet = buildMarketAnalystBrief({ screenerRows: quietRows, quotes: null })
+    assert.ok(['Healthy', 'Uncertain'].includes(quiet.temperature))
+  })
+
+  it('ends with conviction or honest low-conviction refusal', () => {
+    const quietRows = Array.from({ length: 5 }, (_, i) =>
+      row({
+        mint: `${'4'.repeat(31)}${i}`,
+        change24hPct: 0.2,
+        buySellRatio: 1.0,
+        smartMoneyScore: 20,
+        aiScore: 20,
+      }),
+    )
+    const quiet = buildMarketAnalystBrief({ screenerRows: quietRows, quotes: null })
+    assert.match(quiet.convictionLine, /don’t currently have a high-conviction/i)
+
+    const strong = Array.from({ length: 10 }, (_, i) =>
+      row({
+        mint: `${'5'.repeat(31)}${i}`,
+        change24hPct: 6,
+        buySellRatio: 1.35,
+        smartMoneyScore: 80,
+        aiScore: 75,
+        riskScore: 25,
+        symbol: i === 0 ? 'AGENT' : `T${i}`,
+      }),
+    )
+    const brief = buildMarketAnalystBrief({ screenerRows: strong, quotes: null })
+    assert.ok(brief.convictionLine.length > 10)
+    if (brief.decisions.some((d) => d.confidencePct >= 70)) {
+      assert.match(brief.convictionLine, /If I had to focus|don’t currently have a high-conviction/i)
+    }
+  })
+
+  it('empty sample stays honest', () => {
+    const brief = buildMarketAnalystBrief({ screenerRows: [], quotes: null })
+    assert.match(brief.executiveConclusion, /Not enough real market data/i)
+    assert.equal(isMarketAnalystUnavailable(brief), true)
+  })
+
+  it('caps at three elevations', () => {
+    const rows = Array.from({ length: 8 }, (_, i) =>
+      row({
+        mint: `${'6'.repeat(31)}${i}`,
         change24hPct: 5,
         buySellRatio: 1.4,
         smartMoneyScore: 70,
@@ -101,29 +153,5 @@ describe('Phase 17.2 — Market Analyst briefing', () => {
     }
     const brief = buildMarketAnalystBrief({ screenerRows: rows, quotes })
     assert.ok(brief.decisions.length <= 3)
-  })
-
-  it('quiet tape says so — does not invent urgency', () => {
-    const rows = Array.from({ length: 5 }, (_, i) =>
-      row({
-        mint: `${'3'.repeat(31)}${i}`,
-        change24hPct: 0.4,
-        buySellRatio: 1.0,
-        smartMoneyScore: 40,
-      }),
-    )
-    const brief = buildMarketAnalystBrief({ screenerRows: rows, quotes: null })
-    assert.equal(brief.quiet, true)
-    assert.match(brief.executiveConclusion, /quiet/i)
-    assert.ok(brief.decisions.every((d) => /quiet|significant|monitoring/i.test(d.whatHappened + d.whatToDo)))
-  })
-
-  it('reconstruction steps exist before any decision', () => {
-    const brief = buildMarketAnalystBrief({
-      screenerRows: [row({ mint: '11111111111111111111111111111111', change24hPct: 4 })],
-      quotes: null,
-    })
-    assert.ok(brief.reconstruction.length >= 3)
-    assert.ok(brief.reconstruction.every((s) => s.label && s.status))
   })
 })

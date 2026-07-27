@@ -1,11 +1,9 @@
 'use client'
 
 /**
- * Market Intelligence — AI Market Analyst briefing.
- * Sequence: Reconstruction → Executive Conclusion → ≤3 Decisions
- *   (What / Why / Do) → Evidence per decision → Charts → Raw data.
- * Not a dashboard. Not cards. Not a screener.
- * Presentation only. Reuses mc-ceo speech chrome from Mission Control.
+ * Market Intelligence — Chief Market Strategist briefing.
+ * Continuous conversation. No cards. No widget titles. No dashboard chrome.
+ * Presentation polish only.
  */
 
 import { useEffect, useState } from 'react'
@@ -52,12 +50,7 @@ function EvidenceBody({
   }
   return (
     <div className="ma-evidence">
-      {evidence.spark.length > 1 ? (
-        <div>
-          <p className="mc-ceo-proof-label">Sample path</p>
-          <Spark values={evidence.spark} />
-        </div>
-      ) : null}
+      {evidence.spark.length > 1 ? <Spark values={evidence.spark} /> : null}
       {evidence.metrics.length > 0 ? (
         <dl className="mc-ceo-nums">
           {evidence.metrics.map((m) => (
@@ -99,15 +92,12 @@ function DecisionSpeech({
   return (
     <div className="mc-ceo-focus">
       <p className="mc-ceo-line">{decision.whatHappened}</p>
-      <p className="mc-ceo-meaning">
-        <strong>Why it matters.</strong> {decision.whyItMatters}
-      </p>
-      <p className="mc-ceo-meaning">
-        <strong>What to do.</strong> {decision.whatToDo}
-      </p>
+      <p className="mc-ceo-meaning">{decision.whyItMatters}</p>
+      <p className="mc-ceo-meaning">{decision.whatToDo}</p>
+      <p className="mc-ceo-soft">I’m {decision.confidencePct}% confident in this read.</p>
       {showEvidence ? (
         <div className="mc-ceo-proof">
-          <p className="mc-ceo-proof-label">Evidence</p>
+          <p className="mc-ceo-soft">Here’s why.</p>
           <EvidenceBody evidence={decision.evidence} onSelectMint={onSelectMint} />
         </div>
       ) : null}
@@ -127,13 +117,12 @@ export function MarketAnalystView({
   onOpenRaw?: () => void
 }) {
   const [phase, setPhase] = useState<Phase>('reconstruct')
-  /** 0 = executive only; 1..N = decision index (1-based); after last = aftermath */
   const [step, setStep] = useState(0)
   const [evidenceOn, setEvidenceOn] = useState(false)
 
   const briefingKey = loading
     ? 'loading'
-    : `${brief?.executiveConclusion ?? 'x'}:${brief?.decisions.length ?? 0}:${brief?.fetchedHint ?? ''}`
+    : `${brief?.executiveConclusion ?? 'x'}:${brief?.decisions.length ?? 0}:${brief?.convictionLine ?? ''}`
 
   useEffect(() => {
     setPhase('reconstruct')
@@ -141,7 +130,6 @@ export function MarketAnalystView({
     setEvidenceOn(false)
   }, [briefingKey])
 
-  // Reconstruction hold → executive
   useEffect(() => {
     if (phase !== 'reconstruct') return
     if (loading) return
@@ -153,11 +141,12 @@ export function MarketAnalystView({
     return () => window.clearTimeout(t)
   }, [phase, loading, brief, briefingKey])
 
-  // Executive → first decision (or aftermath if none)
   useEffect(() => {
     if (phase !== 'executive') return
     if (!brief) return
-    const hold = marketSpeechHoldMs(brief.executiveConclusion + ' ' + brief.executiveWhy)
+    const hold = marketSpeechHoldMs(
+      `${brief.openingLine} ${brief.executiveConclusion} ${brief.executiveWhy} ${brief.temperatureLine}`,
+    )
     const t = window.setTimeout(() => {
       if (brief.decisions.length === 0) {
         setPhase('aftermath')
@@ -170,7 +159,6 @@ export function MarketAnalystView({
     return () => window.clearTimeout(t)
   }, [phase, brief, briefingKey])
 
-  // Advance decisions: speech → then evidence → next
   useEffect(() => {
     if (phase !== 'decisions') return
     if (!brief) return
@@ -200,11 +188,8 @@ export function MarketAnalystView({
     return (
       <div className="mc-ceo">
         <div className="mc-ceo-stage" aria-busy aria-live="polite">
-          <p className="mc-ceo-kicker">Market Intelligence</p>
-          <h1 className="mc-ceo-title">Reconstructing the market.</h1>
-          <p className="mc-ceo-sub">
-            The OS is finishing its read of the live sample — you will not see tables first.
-          </p>
+          <p className="mc-ceo-line mc-ceo-greet">I’m finishing today’s market read.</p>
+          <p className="mc-ceo-meaning">Hold on — I won’t speak a call from an incomplete book.</p>
         </div>
       </div>
     )
@@ -214,9 +199,8 @@ export function MarketAnalystView({
     return (
       <div className="mc-ceo">
         <div className="mc-ceo-stage">
-          <p className="mc-ceo-kicker">Market Intelligence</p>
-          <h1 className="mc-ceo-title">Not enough real market data available yet.</h1>
-          <p className="mc-ceo-sub">Nothing is fabricated. Existing market routes returned no usable sample.</p>
+          <p className="mc-ceo-line">Not enough real market data available yet.</p>
+          <p className="mc-ceo-meaning">I will not invent a tape.</p>
         </div>
       </div>
     )
@@ -226,11 +210,9 @@ export function MarketAnalystView({
     return (
       <div className="mc-ceo">
         <div className="mc-ceo-stage" aria-live="polite">
-          <p className="mc-ceo-kicker">Market Intelligence</p>
-          <h1 className="mc-ceo-title">Reconstructing the market.</h1>
-          <p className="mc-ceo-sub">
-            The OS has been reading the live screener and macro quotes. Filtering what deserves
-            your attention — then speaking.
+          <p className="mc-ceo-line mc-ceo-greet">I’m finishing today’s market read.</p>
+          <p className="mc-ceo-meaning">
+            Live book, flow, and macro — then I filter what deserves your attention.
           </p>
           <ul className="mc-ceo-engines">
             {brief.reconstruction.map((s) => (
@@ -249,10 +231,11 @@ export function MarketAnalystView({
     return (
       <div className="mc-ceo">
         <div className="mc-ceo-stage" aria-live="polite">
-          <p className="mc-ceo-kicker">Market Intelligence</p>
           <div className="mc-ceo-focus">
-            <p className="mc-ceo-line mc-ceo-greet">{brief.executiveConclusion}</p>
+            <p className="mc-ceo-line mc-ceo-greet">{brief.openingLine}</p>
+            <p className="mc-ceo-line">{brief.executiveConclusion}</p>
             <p className="mc-ceo-meaning">{brief.executiveWhy}</p>
+            <p className="mc-ceo-meaning">{brief.temperatureLine}</p>
           </div>
         </div>
       </div>
@@ -265,16 +248,19 @@ export function MarketAnalystView({
     return (
       <div className="mc-ceo">
         <div className="mc-ceo-stage" aria-live="polite">
-          <p className="mc-ceo-kicker">
-            Market Intelligence · Decision {step} of {brief.decisions.length}
-          </p>
           {prior.length > 0 ? (
             <div className="mc-ceo-trail">
+              <p>{brief.openingLine}</p>
+              <p>{brief.executiveConclusion}</p>
               {prior.map((d) => (
                 <p key={d.id}>{d.whatHappened}</p>
               ))}
             </div>
-          ) : null}
+          ) : (
+            <div className="mc-ceo-trail">
+              <p>{brief.executiveConclusion}</p>
+            </div>
+          )}
           {current ? (
             <DecisionSpeech
               decision={current}
@@ -287,40 +273,38 @@ export function MarketAnalystView({
     )
   }
 
-  // Aftermath: charts, then raw desk — never before decisions
   return (
     <div className="mc-ceo">
       <div className="mc-ceo-stage" aria-live="polite">
-        <p className="mc-ceo-kicker">Market Intelligence</p>
         <div className="mc-ceo-trail">
+          <p>{brief.openingLine}</p>
           <p>{brief.executiveConclusion}</p>
+          <p>{brief.temperatureLine}</p>
           {brief.decisions.map((d) => (
-            <p key={d.id}>{d.whatHappened}</p>
+            <p key={d.id}>
+              {d.whatHappened}{' '}
+              <span className="mc-ceo-soft">({d.confidencePct}%)</span>
+            </p>
           ))}
         </div>
 
         <div className="mc-ceo-focus">
-          <p className="mc-ceo-line mc-ceo-propose">That is the briefing. Evidence is above — charts and raw data only if you need them.</p>
-          <p className="mc-ceo-meaning">{brief.sourcesNote}</p>
+          <p className="mc-ceo-line mc-ceo-propose">{brief.convictionLine}</p>
+          <p className="mc-ceo-meaning">
+            That is the briefing. Supporting path and raw book only if you still need them.
+          </p>
         </div>
 
-        <div className="mc-ceo-proof">
-          <p className="mc-ceo-proof-label">Charts</p>
-          {brief.sampleSpark.length > 1 ? (
-            <>
-              <Spark values={brief.sampleSpark} />
-              <p className="mc-ceo-soft">
-                Screener sample 24h path — each point is a token change, not a price candle.
-              </p>
-            </>
-          ) : (
-            <p className="mc-ceo-soft">Not enough real market data available yet for a sample chart.</p>
-          )}
-        </div>
+        {brief.sampleSpark.length > 1 ? (
+          <div className="mc-ceo-proof">
+            <Spark values={brief.sampleSpark} />
+            <p className="mc-ceo-soft">Sample 24h path across the live book — not a price candle.</p>
+          </div>
+        ) : null}
 
         {onOpenRaw ? (
           <button type="button" className="ma-unlock-evidence" onClick={onOpenRaw}>
-            Open raw market data
+            Show me the raw book
           </button>
         ) : null}
       </div>
