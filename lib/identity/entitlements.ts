@@ -43,6 +43,7 @@ export type EntitlementRow = {
   status: string
   currentPeriodEnd: string | null
   source: string
+  stripeCustomerId: string | null
 }
 
 export async function getEntitlement(userId: string): Promise<EntitlementRow | null> {
@@ -51,7 +52,7 @@ export async function getEntitlement(userId: string): Promise<EntitlementRow | n
     const admin = getSupabaseAdmin()
     const { data, error } = await admin
       .from('entitlements')
-      .select('user_id, plan, status, current_period_end, source')
+      .select('user_id, plan, status, current_period_end, source, stripe_customer_id')
       .eq('user_id', userId)
       .maybeSingle()
     if (error || !data) return null
@@ -61,6 +62,7 @@ export async function getEntitlement(userId: string): Promise<EntitlementRow | n
       status: String(data.status || 'active'),
       currentPeriodEnd: (data.current_period_end as string | null) ?? null,
       source: String(data.source || 'system'),
+      stripeCustomerId: (data.stripe_customer_id as string | null) ?? null,
     }
   } catch {
     return null

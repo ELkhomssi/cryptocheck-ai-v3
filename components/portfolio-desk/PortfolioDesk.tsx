@@ -175,7 +175,7 @@ export function PortfolioDesk() {
       {isMission ? null : <TickerTape />}
 
       <main className={`pd-main${isMission ? ' is-mission-main' : ''}`}>
-        {nav === 'mission' ? null : (
+        {nav === 'mission' || nav === 'market' || nav === 'screener' || nav === 'watchlist' ? null : (
           <PageHeader
             kicker={meta.kicker}
             title={meta.title}
@@ -242,7 +242,11 @@ export function PortfolioDesk() {
           <SectionErrorBoundary title="Market Intelligence">
             <MarketIntelligencePanel
               initialTab={
-                nav === 'watchlist' ? 'tracked' : marketTab === 'tracked' ? 'tracked' : 'discovery'
+                nav === 'watchlist' || marketTab === 'tracked'
+                  ? 'tracked'
+                  : marketTab === 'discovery'
+                    ? 'discovery'
+                    : 'analyst'
               }
               onSelectMint={(mint) => {
                 const p = new URLSearchParams(searchParams.toString())
