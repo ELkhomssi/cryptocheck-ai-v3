@@ -123,8 +123,6 @@ describe('Mission Control conversation', () => {
         title: 'Market breadth improving',
         explanation: 'Sample supports constructive read.',
         grounded: true,
-        confidence: 0.7,
-        module: 'market',
       },
     ]
     const conv = buildMissionConversation({ displayName: null, view: v, loading: false })
