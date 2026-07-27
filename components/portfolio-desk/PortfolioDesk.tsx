@@ -366,7 +366,7 @@ export function PortfolioDesk() {
           <SectionErrorBoundary title="Mission Feed">
             <div style={{ padding: '0 0 12px' }}>
               <div className="pd-panel-head" style={{ padding: '0 0 10px' }}>
-                <h2 style={{ fontSize: 13 }}>Mission Feed</h2>
+                <h2 className="pd-section-label">Mission Feed</h2>
                 <button type="button" className="pd-tab" onClick={() => setDeskNav('feed')}>
                   Expand
                 </button>
