@@ -1591,3 +1591,296 @@
     animation: none;
   }
 }
+
+/* ─── Phase 17.2 — Market Analyst (Bloomberg-analyst voice) ─── */
+.ma-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ma-root {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding-bottom: 32px;
+}
+
+.ma-stage {
+  min-height: min(52dvh, 420px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 28px 4px 8px;
+  max-width: 52rem;
+}
+
+.ma-kicker {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pd-text-faint);
+  font-family: var(--font-ibm-plex-mono), monospace;
+}
+
+.ma-title {
+  margin: 0;
+  font-size: clamp(26px, 3.6vw, 38px);
+  font-weight: 560;
+  letter-spacing: -0.035em;
+  line-height: 1.18;
+  color: var(--pd-text);
+  max-width: 28ch;
+}
+
+.ma-sub {
+  margin: 0;
+  max-width: 48ch;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--pd-text-dim);
+}
+
+.ma-attention {
+  margin: 8px 0 0;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--pd-border-soft);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--pd-text);
+  max-width: 52ch;
+}
+
+.ma-attention span {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pd-text-faint);
+  margin-bottom: 4px;
+  font-family: var(--font-ibm-plex-mono), monospace;
+}
+
+.ma-section {
+  max-width: 56rem;
+  padding: 0 4px;
+}
+
+.ma-section-title {
+  margin: 0 0 6px;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pd-text-faint);
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-weight: 500;
+}
+
+.ma-section-sub {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--pd-text-dim);
+  max-width: 52ch;
+}
+
+.ma-insight-grid,
+.ma-narrative-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px 22px;
+}
+
+.ma-insight,
+.ma-narrative {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.ma-insight-conclusion {
+  margin: 0 0 8px;
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--pd-text);
+  letter-spacing: -0.015em;
+}
+
+.ma-insight-why {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--pd-text-dim);
+}
+
+.ma-insight-why strong {
+  color: var(--pd-text-faint);
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+.ma-confidence {
+  margin: 0 0 10px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pd-text-faint);
+  font-family: var(--font-ibm-plex-mono), monospace;
+}
+
+.ma-narrative-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.ma-narrative-head h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 560;
+  letter-spacing: -0.02em;
+}
+
+.ma-why-wrap {
+  margin-top: 4px;
+}
+
+.ma-why-toggle {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  color: var(--pd-accent-bright);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ma-why-toggle:hover {
+  color: var(--pd-text);
+}
+
+.ma-evidence {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--pd-border-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ma-evidence-label {
+  margin: 0 0 4px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pd-text-faint);
+  font-family: var(--font-ibm-plex-mono), monospace;
+}
+
+.ma-metrics {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 280px;
+}
+
+.ma-metrics > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 12px;
+}
+
+.ma-metrics dt {
+  color: var(--pd-text-faint);
+}
+
+.ma-metrics dd {
+  margin: 0;
+  color: var(--pd-text-dim);
+}
+
+.ma-movers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ma-mover-btn {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 13px;
+  color: var(--pd-text);
+}
+
+.ma-mover-btn em {
+  font-style: normal;
+  color: var(--pd-text-faint);
+  font-size: 12px;
+}
+
+.ma-soft {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--pd-text-dim);
+}
+
+.ma-below {
+  padding-top: 8px;
+  border-top: 1px solid var(--pd-border-soft);
+}
+
+.ma-chart-panel {
+  padding: 4px 0;
+}
+
+.ma-sources {
+  margin: 0;
+  padding: 0 4px;
+  font-size: 11px;
+  color: var(--pd-text-faint);
+}
+
+.ma-raw-desk {
+  margin-top: 8px;
+  padding: 12px 4px 24px;
+  border-top: 1px solid var(--pd-border-soft);
+}
+
+.ma-raw-desk summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--pd-text-dim);
+  margin-bottom: 12px;
+}
+
+.ma-spark {
+  display: block;
+  opacity: 0.9;
+}
+
+@media (max-width: 720px) {
+  .ma-stage {
+    min-height: auto;
+    padding-top: 16px;
+  }
+}
