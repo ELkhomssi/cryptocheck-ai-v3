@@ -1,29 +1,22 @@
 'use client'
 
 /**
- * Mission Control — live operating system briefing.
- * The Core has already finished. We arrive after the work.
- * Presentation only. No boot / reconstruct / loading theatre.
+ * Mission Control — operating system desk (presentation only).
+ * No greeting, no scripted speech, no chat landing.
+ * Surfaces live MissionViewModel + intelligence modules as operational chrome.
  */
 
-import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSolana } from '@/components/SolanaProvider'
-import { MissionCommandCenter } from '@/components/portfolio-desk/mission/MissionCommandCenter'
+import { IntelligenceModulesGrid } from '@/components/portfolio-desk/mission/IntelligenceModulesGrid'
 import { MissionFeedPanel } from '@/components/portfolio-desk/mission/MissionFeedPanel'
-import {
-  buildMissionConversation,
-  runningIntelligenceLabel,
-  speechHoldMs,
-  type SpeechProof,
-  type SpeechTurn,
-} from '@/lib/portfolio-desk/mission-narrative'
+import { formatPct, formatUsd } from '@/lib/portfolio-desk/format'
 import type { MissionViewModel } from '@/types/intelligence-core'
 import type { ScreenerRow } from '@/lib/providers/types'
 
 export function MissionControlPanel({
   onOpenFeed,
-  onOpenMarket: _onOpenMarket,
+  onOpenMarket,
   onSelectToken: _onSelectToken,
   onSuggestion: _onSuggestion,
 }: {
@@ -33,9 +26,7 @@ export function MissionControlPanel({
   onSuggestion: (text: string) => void
   showObservationsInline?: boolean
 }) {
-  const { walletAddress, shortAddr, isConnected, siwsStatus, siwsError, signInSiws } = useSolana()
-  const [seed, setSeed] = useState<string | null>(null)
-  const [spokenCount, setSpokenCount] = useState(1)
+  const { walletAddress, isConnected, siwsStatus, siwsError, signInSiws, connect } = useSolana()
 
   const missionQ = useQuery({
     queryKey: ['intelligence-core-mission', walletAddress, siwsStatus],
@@ -49,51 +40,13 @@ export function MissionControlPanel({
     staleTime: 3_000,
   })
 
-  const conversation = useMemo(
-    () =>
-      buildMissionConversation({
-        displayName: isConnected && shortAddr ? shortAddr : null,
-        view: missionQ.data ?? null,
-        loading: missionQ.isLoading && !missionQ.data,
-      }),
-    [isConnected, shortAddr, missionQ.data, missionQ.isLoading],
-  )
-
-  const briefingKey = `${missionQ.data?.fetchedAt ?? 'await'}:${walletAddress ?? 'anon'}:${conversation.turns.map((t) => t.id).join(',')}`
-
-  // New briefing arrives — speak immediately. Never boot.
-  useEffect(() => {
-    setSpokenCount(conversation.turns.length > 0 ? 1 : 0)
-  }, [briefingKey, conversation.turns.length])
-
-  // One line at a time after the Core has already finished.
-  useEffect(() => {
-    if (spokenCount <= 0) return
-    if (spokenCount >= conversation.turns.length) return
-    const turn = conversation.turns[spokenCount - 1]
-    if (!turn) return
-    const t = window.setTimeout(() => {
-      setSpokenCount((n) => Math.min(n + 1, conversation.turns.length))
-    }, speechHoldMs(turn.text))
-    return () => window.clearTimeout(t)
-  }, [spokenCount, conversation.turns])
-
-  const safeSpoken = Math.min(spokenCount, conversation.turns.length)
-  const current: SpeechTurn | null = safeSpoken > 0 ? conversation.turns[safeSpoken - 1]! : null
-  const prior = safeSpoken > 1 ? conversation.turns.slice(0, safeSpoken - 1) : []
-  const active: SpeechProof = current ? current.proof : 'none'
-  const briefingDone = safeSpoken >= conversation.turns.length && conversation.turns.length > 0
-
-  const liveLiving = useMemo(() => {
-    const running = missionQ.data?.running ?? []
-    if (running.length === 0) return conversation.living
-    return running.slice(0, 3).map((r) => runningIntelligenceLabel(r.description, r.kind))
-  }, [missionQ.data?.running, conversation.living])
+  const view = missionQ.data
+  const loading = missionQ.isLoading && !view
 
   return (
-    <div className="mc-ceo">
+    <div className="mc-ops">
       {siwsStatus === 'error' && siwsError ? (
-        <p className="mc-ceo-siws">
+        <p className="mc-ops-banner">
           Sign-in needed for a durable account.{' '}
           <button type="button" className="mc-talk-quiet-link" onClick={() => void signInSiws()}>
             Sign again
@@ -101,197 +54,171 @@ export function MissionControlPanel({
         </p>
       ) : null}
 
-      <div className="mc-ceo-stage" aria-live="polite">
-        {prior.length > 0 ? (
-          <div className="mc-ceo-trail">
-            {prior.map((t) => (
-              <p key={t.id}>{t.text}</p>
-            ))}
-          </div>
-        ) : null}
+      <section className="mc-ops-metrics" aria-label="Live operating metrics">
+        <Metric
+          label="Market 24h"
+          value={
+            loading
+              ? '…'
+              : view?.market.available
+                ? formatPct(view.market.aggregateChange24hPct)
+                : '—'
+          }
+          tone={pctTone(view?.market.aggregateChange24hPct)}
+        />
+        <Metric
+          label="Top mover"
+          value={
+            loading
+              ? '…'
+              : view?.market.topMoverSymbol
+                ? `${view.market.topMoverSymbol} ${formatPct(view.market.topMoverChange24hPct)}`
+                : '—'
+          }
+          onClick={onOpenMarket}
+        />
+        <Metric
+          label="Portfolio"
+          value={
+            loading
+              ? '…'
+              : !isConnected
+                ? 'Connect'
+                : view?.portfolio.totalValueUsd != null
+                  ? formatUsd(view.portfolio.totalValueUsd)
+                  : view?.portfolio.error
+                    ? '—'
+                    : '—'
+          }
+          hint={
+            !isConnected
+              ? 'Wallet required'
+              : view?.portfolio.dayChangePct != null
+                ? formatPct(view.portfolio.dayChangePct)
+                : undefined
+          }
+          tone={pctTone(view?.portfolio.dayChangePct)}
+          onClick={!isConnected ? () => void connect() : undefined}
+        />
+        <Metric
+          label="Running"
+          value={loading ? '…' : String(view?.running.length ?? 0)}
+          hint="Active jobs"
+        />
+      </section>
 
-        {current ? (
-          <div className="mc-ceo-focus" key={current.id}>
-            <p
-              className={
-                current.id === 'greet'
-                  ? 'mc-ceo-line mc-ceo-greet'
-                  : current.kind === 'propose'
-                    ? 'mc-ceo-line mc-ceo-propose'
-                    : 'mc-ceo-line'
-              }
-            >
-              {current.text}
-            </p>
-            {current.meaning ? <p className="mc-ceo-meaning">{current.meaning}</p> : null}
+      <div className="mc-ops-grid">
+        <section className="mc-ops-block">
+          <h2 className="pd-section-label">Active jobs</h2>
+          {loading ? (
+            <div className="pd-skeleton" style={{ height: 72 }} />
+          ) : view?.running.length ? (
+            <ul className="mc-ops-list">
+              {view.running.slice(0, 6).map((job) => (
+                <li key={job.id}>
+                  <span className="mc-ops-kind">{job.kind}</span>
+                  <span>{job.description || '—'}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mc-ops-empty">No active jobs.</p>
+          )}
+        </section>
 
-            {active !== 'none' ? (
-              <div className="mc-ceo-proof">
-                <p className="mc-ceo-proof-label">Evidence</p>
-                <ActiveProof
-                  proof={active}
-                  conversation={conversation}
-                  liveLiving={liveLiving}
-                  isConnected={isConnected}
-                  onOpenFeed={onOpenFeed}
-                  onPickAction={(a) => setSeed(a)}
-                />
-              </div>
-            ) : null}
+        <section className="mc-ops-block">
+          <div className="mc-ops-block-head">
+            <h2 className="pd-section-label">Mission feed</h2>
+            <button type="button" className="mc-talk-quiet-link" onClick={onOpenFeed}>
+              Expand
+            </button>
           </div>
-        ) : null}
-
-        {briefingDone ? (
-          <div className="mc-ceo-listen">
-            <MissionCommandCenter
-              seedPrompt={seed}
-              onSeedConsumed={() => setSeed(null)}
-              suggestions={[]}
-              onPickSuggestion={(s) => setSeed(s)}
-            />
-          </div>
-        ) : null}
+          <MissionFeedPanel condensed limit={6} live />
+        </section>
       </div>
+
+      <section className="mc-ops-block">
+        <h2 className="pd-section-label">Recommendations</h2>
+        {loading ? (
+          <div className="pd-skeleton" style={{ height: 64 }} />
+        ) : view?.recommendations.length ? (
+          <ul className="mc-ops-recs">
+            {view.recommendations.slice(0, 5).map((rec, i) => (
+              <li key={`${rec.predictionId ?? rec.title}-${i}`}>
+                <strong>{rec.title}</strong>
+                <span>{rec.explanation}</span>
+                {!rec.grounded ? (
+                  <em className="mc-ops-ungrounded">Ungrounded</em>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mc-ops-empty">No recommendations in this window.</p>
+        )}
+      </section>
+
+      {view?.dailyBrief && !view.dailyBrief.pending && !view.dailyBrief.insufficientActivity ? (
+        <section className="mc-ops-block">
+          <h2 className="pd-section-label">Daily brief</h2>
+          <h3 className="mc-ops-brief-title">{view.dailyBrief.title}</h3>
+          <p className="mc-ops-brief-body">{view.dailyBrief.body}</p>
+        </section>
+      ) : null}
+
+      <IntelligenceModulesGrid />
     </div>
   )
 }
 
-function ActiveProof({
-  proof,
-  conversation,
-  liveLiving,
-  isConnected,
-  onOpenFeed,
-  onPickAction,
+function pctTone(n: number | null | undefined): 'up' | 'down' | undefined {
+  if (n == null || Number.isNaN(n)) return undefined
+  if (n > 0) return 'up'
+  if (n < 0) return 'down'
+  return undefined
+}
+
+function Metric({
+  label,
+  value,
+  hint,
+  tone,
+  onClick,
 }: {
-  proof: SpeechProof
-  conversation: ReturnType<typeof buildMissionConversation>
-  liveLiving: string[]
-  isConnected: boolean
-  onOpenFeed: () => void
-  onPickAction: (action: string) => void
+  label: string
+  value: string
+  hint?: string
+  tone?: 'up' | 'down'
+  onClick?: () => void
 }) {
-  if (proof === 'living') {
-    return liveLiving.length > 0 ? (
-      <ul className="mc-ceo-list">
-        {liveLiving.map((line) => (
-          <li key={line}>{line}</li>
-        ))}
-      </ul>
-    ) : (
-      <p className="mc-ceo-soft">No critical jobs running. Monitoring continues.</p>
-    )
-  }
-
-  if (proof === 'feed') {
-    return (
-      <div>
-        <MissionFeedPanel condensed limit={3} emphasizeLatest={2} live />
-        <button type="button" className="mc-talk-quiet-link" onClick={onOpenFeed}>
-          Full Mission Feed
-        </button>
+  const body = (
+    <>
+      <div className="pd-section-label">{label}</div>
+      <div
+        className="mc-ops-metric-value pd-num"
+        style={
+          tone === 'up'
+            ? { color: 'var(--pd-positive)' }
+            : tone === 'down'
+              ? { color: 'var(--pd-negative)' }
+              : undefined
+        }
+      >
+        {value}
       </div>
-    )
-  }
+      {hint ? <div className="mc-ops-metric-hint pd-num">{hint}</div> : null}
+    </>
+  )
 
-  if (proof === 'market') {
+  if (onClick) {
     return (
-      <div>
-        {conversation.evidence
-          .filter((e) => /sample|move/i.test(e))
-          .slice(0, 2)
-          .map((line) => (
-            <p key={line} className="mc-ceo-soft">
-              {line}
-            </p>
-          ))}
-        {conversation.marketMetrics.length > 0 ? (
-          <dl className="mc-ceo-nums">
-            {conversation.marketMetrics.map((m) => (
-              <div key={m.label}>
-                <dt>{m.label}</dt>
-                <dd className="pd-num">{m.value}</dd>
-              </div>
-            ))}
-          </dl>
-        ) : (
-          <p className="mc-ceo-soft">I don’t have enough market sample yet.</p>
-        )}
-      </div>
+      <button type="button" className="mc-ops-metric" onClick={onClick}>
+        {body}
+      </button>
     )
   }
 
-  if (proof === 'portfolio') {
-    return (
-      <div>
-        {conversation.riskSymbol ? (
-          <div className="mc-ceo-risk">
-            <strong>{conversation.riskSymbol}</strong>
-            <span>Primary concentration risk.</span>
-          </div>
-        ) : null}
-        {conversation.evidence
-          .filter((e) => /Portfolio value/i.test(e))
-          .slice(0, 1)
-          .map((line) => (
-            <p key={line} className="mc-ceo-soft">
-              {line}
-            </p>
-          ))}
-        {conversation.portfolioMetrics.length > 0 ? (
-          <dl className="mc-ceo-nums">
-            {conversation.portfolioMetrics.map((m) => (
-              <div
-                key={m.label}
-                className={
-                  conversation.riskSymbol && m.value === conversation.riskSymbol
-                    ? 'is-risk'
-                    : undefined
-                }
-              >
-                <dt>{m.label}</dt>
-                <dd className="pd-num">{m.value}</dd>
-              </div>
-            ))}
-          </dl>
-        ) : (
-          <p className="mc-ceo-soft">
-            {isConnected
-              ? 'I don’t have enough portfolio detail yet.'
-              : 'Connect a wallet to unlock portfolio proof.'}
-          </p>
-        )}
-      </div>
-    )
-  }
-
-  if (proof === 'attention') {
-    return conversation.attention.length > 0 ? (
-      <ul className="mc-ceo-list">
-        {conversation.attention.map((line) => (
-          <li key={line}>{line}</li>
-        ))}
-      </ul>
-    ) : (
-      <p className="mc-ceo-soft">Nothing else requires action right now.</p>
-    )
-  }
-
-  if (proof === 'actions') {
-    return (
-      <ul className="mc-ceo-actions">
-        {conversation.preparedActions.map((action) => (
-          <li key={action}>
-            <button type="button" onClick={() => onPickAction(action)}>
-              {action}
-            </button>
-          </li>
-        ))}
-      </ul>
-    )
-  }
-
-  return null
+  return <div className="mc-ops-metric">{body}</div>
 }
 
 export { useMissionObservations } from './useMissionObservations'

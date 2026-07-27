@@ -19,7 +19,7 @@ const ibmMono = IBM_Plex_Mono({
 export const metadata = {
   title: 'Terminal · CryptoCheck AI OS',
   description:
-    'CryptoCheck AI Operating System — Portfolio Intelligence, Market, Trading, Automation.',
+    'CryptoCheck AI Operating System — Mission Control, Market Intelligence, Trading, Portfolio, Automation.',
 }
 
 export default function TerminalLayout({ children }: { children: React.ReactNode }) {

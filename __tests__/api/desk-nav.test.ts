@@ -8,11 +8,11 @@ import {
 } from '../../lib/portfolio-desk/nav'
 
 describe('Phase 15 desk nav', () => {
-  it('primary nav lands on portfolio first (no Mission Control)', () => {
-    assert.equal(PRIMARY_NAV.length, 5)
+  it('primary nav leads with Mission Control OS desk', () => {
+    assert.equal(PRIMARY_NAV.length, 6)
     assert.deepEqual(
       PRIMARY_NAV.map((i) => i.id),
-      ['portfolio', 'market', 'trade', 'launchlab', 'automation'],
+      ['mission', 'portfolio', 'market', 'trade', 'launchlab', 'automation'],
     )
   })
 
@@ -21,16 +21,15 @@ describe('Phase 15 desk nav', () => {
     assert.equal(normalizeDeskNav('watchlist'), 'market')
     assert.equal(normalizeDeskNav('alerts'), 'feed')
     assert.equal(normalizeDeskNav('employees'), 'intelligence')
-    assert.equal(normalizeDeskNav(null), 'portfolio')
-    assert.equal(normalizeDeskNav('mission'), 'portfolio')
-    assert.equal(normalizeDeskNav('coach'), 'portfolio')
+    assert.equal(normalizeDeskNav(null), 'mission')
+    assert.equal(normalizeDeskNav('coach'), 'mission')
     assert.equal(marketTabFromLegacy('watchlist'), 'tracked')
   })
 
-  it('keeps market / feed public; portfolio requires wallet connect', () => {
+  it('keeps mission / market / feed public without wallet gate', () => {
+    assert.equal(PUBLIC_NAV.has('mission'), true)
     assert.equal(PUBLIC_NAV.has('market'), true)
     assert.equal(PUBLIC_NAV.has('feed'), true)
     assert.equal(PUBLIC_NAV.has('portfolio'), false)
-    assert.equal(PUBLIC_NAV.has('mission'), false)
   })
 })
