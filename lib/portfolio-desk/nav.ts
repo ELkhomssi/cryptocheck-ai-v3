@@ -97,7 +97,7 @@ export const PAGE_META: Record<
   mission: {
     kicker: '// MISSION CONTROL',
     title: 'Mission Control',
-    subtitle: 'The OS speaks first. Conversation only.',
+    subtitle: 'Live operating picture from the Intelligence Core — priorities, market, portfolio, timeline, automation.',
   },
   market: {
     kicker: '// MARKET INTELLIGENCE',

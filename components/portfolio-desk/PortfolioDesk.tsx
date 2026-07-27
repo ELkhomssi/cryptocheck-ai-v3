@@ -144,10 +144,8 @@ export function PortfolioDesk() {
 
   const meta = PAGE_META[nav]
   const needsWallet = !PUBLIC_NAV.has(nav)
-  const isMission = nav === 'mission'
-
   return (
-    <div className={`pd-shell${isMission ? ' is-mission' : ''}`}>
+    <div className="pd-shell">
       {mobileNav ? (
         <button
           type="button"
@@ -172,10 +170,10 @@ export function PortfolioDesk() {
           router.replace(`?${p.toString()}`, { scroll: false })
         }}
       />
-      {isMission ? null : <TickerTape />}
+      <TickerTape />
 
-      <main className={`pd-main${isMission ? ' is-mission-main' : ''}`}>
-        {nav === 'mission' || nav === 'market' || nav === 'screener' || nav === 'watchlist' ? null : (
+      <main className="pd-main">
+        {nav === 'market' || nav === 'screener' || nav === 'watchlist' ? null : (
           <PageHeader
             kicker={meta.kicker}
             title={meta.title}
@@ -228,6 +226,8 @@ export function PortfolioDesk() {
             <MissionControlPanel
               onOpenFeed={() => setDeskNav('feed')}
               onOpenMarket={() => setDeskNav('market')}
+              onOpenPortfolio={() => setDeskNav('portfolio')}
+              onOpenAutomation={() => setDeskNav('automation')}
               onSelectToken={(row) => {
                 const p = new URLSearchParams(searchParams.toString())
                 p.set('mint', row.mint)
@@ -361,24 +361,24 @@ export function PortfolioDesk() {
         ) : null}
       </main>
 
-      {isMission ? null : (
-        <aside className="pd-aside">
-          <SectionErrorBoundary title="Mission Feed">
-            <div style={{ padding: '0 0 12px' }}>
-              <div className="pd-panel-head" style={{ padding: '0 0 10px' }}>
-                <h2 style={{ fontSize: 13 }}>Mission Feed</h2>
-                <button type="button" className="pd-tab" onClick={() => setDeskNav('feed')}>
-                  Expand
-                </button>
-              </div>
-              <MissionFeedPanel condensed limit={16} />
+      <aside className="pd-aside">
+        <SectionErrorBoundary title="Mission Feed">
+          <div style={{ padding: '0 0 12px' }}>
+            <div className="pd-panel-head" style={{ padding: '0 0 10px' }}>
+              <h2 style={{ fontSize: 13 }}>Mission Feed</h2>
+              <button type="button" className="pd-tab" onClick={() => setDeskNav('feed')}>
+                Expand
+              </button>
             </div>
-          </SectionErrorBoundary>
+            <MissionFeedPanel condensed limit={16} />
+          </div>
+        </SectionErrorBoundary>
+        {nav === 'mission' ? null : (
           <SectionErrorBoundary title="AI Coach">
             <CoachPanel />
           </SectionErrorBoundary>
-        </aside>
-      )}
+        )}
+      </aside>
     </div>
   )
 }
