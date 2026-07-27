@@ -6,7 +6,6 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   ArrowLeftRight,
-  Crosshair,
   LayoutDashboard,
   Radar,
   Rocket,
@@ -34,7 +33,6 @@ export type DeskNav =
   | 'employees'
 
 export type DeskNavPrimary =
-  | 'mission'
   | 'market'
   | 'trade'
   | 'portfolio'
@@ -42,10 +40,9 @@ export type DeskNavPrimary =
   | 'automation'
 
 export const PRIMARY_NAV: { id: DeskNavPrimary; label: string; icon: LucideIcon }[] = [
-  { id: 'mission', label: 'Mission Control', icon: Crosshair },
+  { id: 'portfolio', label: 'Portfolio Intelligence', icon: LayoutDashboard },
   { id: 'market', label: 'Market Intelligence', icon: Radar },
   { id: 'trade', label: 'Trading', icon: ArrowLeftRight },
-  { id: 'portfolio', label: 'Portfolio Intelligence', icon: LayoutDashboard },
   { id: 'launchlab', label: 'LaunchLab', icon: Rocket },
   { id: 'automation', label: 'Automation', icon: Workflow },
 ]
@@ -55,7 +52,11 @@ export const SYSTEM_NAV: { id: DeskNav; label: string; icon: LucideIcon }[] = [
   { id: 'settings', label: 'Settings', icon: Settings },
 ]
 
-/** Map legacy query params / deep-links onto Phase 15 surfaces. */
+/**
+ * Map legacy query params / deep-links onto desk surfaces.
+ * Default home is Portfolio Intelligence (connect wallet directly).
+ * Mission Control landing is retired — ?nav=mission|coach → portfolio.
+ */
 export function normalizeDeskNav(raw: string | null | undefined): DeskNav {
   const q = (raw || '').trim()
   switch (q) {
@@ -68,8 +69,8 @@ export function normalizeDeskNav(raw: string | null | undefined): DeskNav {
     case 'employees':
       return 'intelligence'
     case 'coach':
-      return 'mission' // coach remains in aside; home is Mission Control
     case 'mission':
+      return 'portfolio'
     case 'market':
     case 'trade':
     case 'portfolio':
@@ -80,7 +81,7 @@ export function normalizeDeskNav(raw: string | null | undefined): DeskNav {
     case 'intelligence':
       return q
     default:
-      return 'mission'
+      return 'portfolio'
   }
 }
 
@@ -167,9 +168,11 @@ export const PAGE_META: Record<
   },
 }
 
-/** Surfaces that do not require a connected wallet. */
+/**
+ * Surfaces that do not require a connected wallet.
+ * Portfolio / trade stay gated so /terminal opens straight to Connect.
+ */
 export const PUBLIC_NAV = new Set<DeskNav>([
-  'mission',
   'market',
   'screener',
   'watchlist',

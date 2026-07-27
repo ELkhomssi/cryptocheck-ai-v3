@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
   const body = new URLSearchParams({
     customer: customerId,
-    return_url: `${siteUrl}/terminal?nav=mission&billing=portal`,
+    return_url: `${siteUrl}/terminal?nav=portfolio&billing=portal`,
   })
 
   const response = await fetch('https://api.stripe.com/v1/billing_portal/sessions', {
