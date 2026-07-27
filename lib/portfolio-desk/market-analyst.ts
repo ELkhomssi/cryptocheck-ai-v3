@@ -5,7 +5,7 @@
  * Never invents market moves. Quiet tape → say so.
  */
 
-import type { ScreenerRow, TokenMarketMetrics } from '@/lib/providers/types'
+import type { ScreenerRow } from '@/lib/providers/types'
 
 export type MarketMacroQuotes = {
   solUsd: number | null
