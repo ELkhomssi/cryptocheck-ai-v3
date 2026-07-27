@@ -5,11 +5,10 @@
  * Reorganize/reframe only: existing panels remain reachable via new or legacy nav.
  */
 
-import { Component, Suspense, type ErrorInfo, type ReactNode, useEffect, useState } from 'react'
+import { Component, type ErrorInfo, type ReactNode, useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSolana } from '@/components/SolanaProvider'
-import { AlertsPanel } from './alerts/AlertsPanel'
 import { AiEmployeesPanel } from './agents/AiEmployeesPanel'
 import { AutomationPanel } from './automation/AutomationPanel'
 import { CoachPanel } from './coach/CoachPanel'
