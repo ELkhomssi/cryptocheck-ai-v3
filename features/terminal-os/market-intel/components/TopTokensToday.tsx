@@ -1,17 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
 import { Sparkline } from '@/features/terminal-os/shared/components/Sparkline'
-import { formatUsd } from '@/features/terminal-os/shared/lib/format'
 import { Pct } from '@/features/terminal-os/shared/components/Pct'
-import { mockMarketDataProvider } from '@/features/terminal-os/shared/lib/mock-providers'
+import { formatUsd } from '@/features/terminal-os/shared/lib/format'
+import { useTopTokens } from '@/features/terminal-os/shared/hooks/useTerminalQueries'
 import { useTerminalOsStore } from '@/stores/terminal-os'
-import type { ChainId, TokenRow } from '@/features/terminal-os/shared/types'
+import type { ChainId } from '@/features/terminal-os/shared/types'
 
 const TABS: { id: ChainId; label: string }[] = [
-  { id: 'all', label: 'All' },
+  { id: 'all', label: 'All Chains' },
   { id: 'solana', label: 'Solana' },
   { id: 'bnb', label: 'BNB' },
   { id: 'base', label: 'Base' },
@@ -21,31 +20,14 @@ const TABS: { id: ChainId; label: string }[] = [
 export function TopTokensToday() {
   const tab = useTerminalOsStore((s) => s.tokenChainTab)
   const setTab = useTerminalOsStore((s) => s.setTokenChainTab)
-  const [rows, setRows] = useState<TokenRow[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    let c = false
-    setRows(null)
-    mockMarketDataProvider
-      .getTopTokens(tab)
-      .then((r) => {
-        if (!c) setRows(r)
-      })
-      .catch((e: Error) => {
-        if (!c) setError(e.message)
-      })
-    return () => {
-      c = true
-    }
-  }, [tab])
+  const { data: rows, isLoading, isError, error } = useTopTokens(tab)
 
   return (
     <Panel
       title="Top Tokens Today"
       live
       action={
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -60,49 +42,50 @@ export function TopTokensToday() {
         </div>
       }
     >
-      {error ? (
-        <EmptyState message={error} />
-      ) : !rows ? (
-        <PanelSkeleton rows={4} />
+      {isError ? (
+        <EmptyState message={error instanceof Error ? error.message : 'Token feed offline'} />
+      ) : isLoading || !rows ? (
+        <PanelSkeleton rows={2} />
       ) : rows.length === 0 ? (
         <EmptyState message="No tokens for this chain filter." />
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-            <thead>
-              <tr className="tos-muted" style={{ textAlign: 'left' }}>
-                <th style={{ padding: '6px 8px', fontWeight: 600 }}>Token</th>
-                <th style={{ padding: '6px 8px', fontWeight: 600 }}>Price</th>
-                <th style={{ padding: '6px 8px', fontWeight: 600 }}>24h</th>
-                <th style={{ padding: '6px 8px', fontWeight: 600 }}>Volume</th>
-                <th style={{ padding: '6px 8px', fontWeight: 600 }}>Trend</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((t) => (
-                <tr key={t.id} style={{ borderTop: '1px solid var(--tos-border-subtle)' }}>
-                  <td style={{ padding: '8px' }}>
-                    <strong>${t.symbol}</strong>
-                    <span className="tos-muted" style={{ marginLeft: 6 }}>
-                      {t.name}
-                    </span>
-                  </td>
-                  <td className="tos-num" style={{ padding: '8px' }}>
-                    {formatUsd(t.priceUsd)}
-                  </td>
-                  <td style={{ padding: '8px' }}>
-                    <Pct value={t.change24hPct} />
-                  </td>
-                  <td className="tos-num tos-secondary" style={{ padding: '8px' }}>
-                    {formatUsd(t.volume24hUsd, true)}
-                  </td>
-                  <td style={{ padding: '8px' }}>
-                    <Sparkline values={t.sparkline} positive={t.change24hPct >= 0} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="tos-scroll-x">
+          {rows.map((t, idx) => (
+            <article key={t.id} className="tos-metric-card">
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: '0.35rem',
+                  marginBottom: '0.35rem',
+                }}
+              >
+                <strong style={{ fontSize: 'var(--tos-fs-md)' }}>
+                  #{idx + 1} ${t.symbol}
+                </strong>
+                <span className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)' }}>
+                  {t.chain}
+                </span>
+              </div>
+              <div className="tos-num" style={{ fontSize: 'var(--tos-fs-lg)', fontWeight: 700 }}>
+                {formatUsd(t.priceUsd)}
+              </div>
+              <div style={{ margin: '0.25rem 0' }}>
+                <Pct value={t.change24hPct} />
+              </div>
+              <Sparkline values={t.sparkline} positive={t.change24hPct >= 0} width={96} height={28} />
+              <div
+                className="tos-muted tos-num"
+                style={{ fontSize: 'var(--tos-fs-xs)', marginTop: '0.4rem', lineHeight: 1.4 }}
+              >
+                Vol {formatUsd(t.volume24hUsd, true)}
+                <br />
+                Liq {formatUsd(t.liquidityUsd, true)} · MCap {formatUsd(t.marketCapUsd, true)}
+                <br />
+                Tx {t.txCount24h.toLocaleString()} · B/S {t.buySellRatio.toFixed(2)}
+              </div>
+            </article>
+          ))}
         </div>
       )}
     </Panel>

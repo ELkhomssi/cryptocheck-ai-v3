@@ -11,6 +11,7 @@ import type {
   ChainMarketSnapshot,
   CoachInsight,
   DiscoveryOpportunity,
+  MarketOverview,
   PortfolioHealthSummary,
   SwapQuotePreview,
   TickerQuote,
@@ -26,6 +27,7 @@ export interface IMarketDataProvider {
   getTopTokens(chain: ChainId): Promise<TokenRow[]>
   getChainSnapshots(): Promise<ChainMarketSnapshot[]>
   getCandles(chain: ChainId): Promise<CandleBar[]>
+  getMarketOverview(): Promise<MarketOverview | null>
 }
 
 export interface IWhaleFeedProvider {

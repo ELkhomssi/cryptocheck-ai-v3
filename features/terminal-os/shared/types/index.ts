@@ -39,6 +39,10 @@ export interface TopTrader {
   aiConfidence: number
   /** Plain-language why the confidence score exists */
   confidenceWhy: string
+  volume24hUsd?: number
+  priceUsd?: number
+  marketCapUsd?: number
+  logoUrl?: string
 }
 
 export interface WhaleMovement {
@@ -62,7 +66,23 @@ export interface TokenRow {
   priceUsd: number
   change24hPct: number
   volume24hUsd: number
+  liquidityUsd: number
+  marketCapUsd: number
+  txCount24h: number
+  buySellRatio: number
   sparkline: number[]
+  logoUrl?: string
+  pairAddress?: string
+}
+
+export interface MarketOverview {
+  marketCapUsd: number
+  volume24hUsd: number
+  btcDominancePct: number
+  altcoinIndex: number
+  marketCapChange24hPct: number
+  fetchedAt: string
+  source: string
 }
 
 export interface CandleBar {

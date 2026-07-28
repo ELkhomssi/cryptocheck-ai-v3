@@ -1,10 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
 import { formatUsd, timeAgo } from '@/features/terminal-os/shared/lib/format'
-import { mockWhaleFeedProvider } from '@/features/terminal-os/shared/lib/mock-providers'
+import { useWhaleMovements } from '@/features/terminal-os/shared/hooks/useTerminalQueries'
 import type { WhaleMovement } from '@/features/terminal-os/shared/types'
 
 const ACTION_COLOR: Record<WhaleMovement['action'], string> = {
@@ -16,68 +15,66 @@ const ACTION_COLOR: Record<WhaleMovement['action'], string> = {
 }
 
 export function TopWhaleMovements() {
-  const [rows, setRows] = useState<WhaleMovement[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    let c = false
-    mockWhaleFeedProvider
-      .getRecentMovements()
-      .then((r) => {
-        if (!c) setRows(r)
-      })
-      .catch((e: Error) => {
-        if (!c) setError(e.message)
-      })
-    return () => {
-      c = true
-    }
-  }, [])
+  const { data: rows, isLoading, isError, error } = useWhaleMovements(10)
 
   return (
     <Panel title="Top Whale Movements" live>
-      {error ? (
-        <EmptyState message={error} />
-      ) : !rows ? (
-        <PanelSkeleton rows={3} />
+      {isError ? (
+        <EmptyState message={error instanceof Error ? error.message : 'Whale feed offline'} />
+      ) : isLoading || !rows ? (
+        <PanelSkeleton rows={2} />
       ) : rows.length === 0 ? (
         <EmptyState message="Waiting for whale flow…" />
       ) : (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="tos-scroll-x">
           {rows.map((w, i) => (
-            <li
-              key={w.id}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'auto 1fr auto',
-                gap: 10,
-                alignItems: 'center',
-                fontSize: 12,
-                padding: '8px 0',
-                borderBottom:
-                  i === rows.length - 1 ? 'none' : '1px solid var(--tos-border-subtle)',
-              }}
-            >
-              <span className="tos-mono tos-secondary">Whale #{i + 1}</span>
-              <div>
-                <div>
-                  <span className="tos-mono">{w.walletTruncated}</span>{' '}
-                  <span style={{ color: ACTION_COLOR[w.action], fontWeight: 700 }}>
-                    {w.action.toUpperCase()}
-                  </span>{' '}
-                  <strong>${w.assetSymbol}</strong>{' '}
-                  <span className="tos-num">{formatUsd(w.usdValue, true)}</span>
-                </div>
-                <div className="tos-muted" style={{ fontSize: 10, marginTop: 2 }}>
-                  {w.classification} — {w.classificationWhy}
-                </div>
+            <article key={w.id} className="tos-metric-card">
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: '0.35rem',
+                  marginBottom: '0.35rem',
+                }}
+              >
+                <span className="tos-mono tos-secondary" style={{ fontSize: 'var(--tos-fs-sm)' }}>
+                  Whale #{i + 1}
+                </span>
+                <span className="tos-muted tos-num" style={{ fontSize: 'var(--tos-fs-xs)' }}>
+                  {timeAgo(w.occurredAt)}
+                </span>
               </div>
-              <span className="tos-muted tos-num" style={{ fontSize: 11 }}>
-                {timeAgo(w.occurredAt)}
-              </span>
-            </li>
+              <div className="tos-mono" style={{ fontSize: 'var(--tos-fs-md)', fontWeight: 700 }}>
+                {w.walletTruncated}
+              </div>
+              <div style={{ marginTop: '0.35rem', fontSize: 'var(--tos-fs-sm)' }}>
+                <span style={{ color: ACTION_COLOR[w.action], fontWeight: 700 }}>
+                  {w.action.toUpperCase()}
+                </span>{' '}
+                <strong>${w.assetSymbol}</strong>
+              </div>
+              <div className="tos-num" style={{ fontSize: 'var(--tos-fs-lg)', fontWeight: 800, marginTop: '0.25rem' }}>
+                {formatUsd(w.usdValue, true)}
+              </div>
+              <div className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)', marginTop: '0.35rem' }}>
+                {w.chain} · amt {w.amount.toLocaleString()}
+              </div>
+              <div
+                style={{
+                  marginTop: '0.4rem',
+                  fontSize: 'var(--tos-fs-xs)',
+                  fontWeight: 700,
+                  color: 'var(--tos-accent-gold)',
+                }}
+              >
+                {w.classification}
+              </div>
+              <div className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)', lineHeight: 1.35, marginTop: '0.2rem' }}>
+                {w.classificationWhy}
+              </div>
+            </article>
           ))}
-        </ul>
+        </div>
       )}
     </Panel>
   )

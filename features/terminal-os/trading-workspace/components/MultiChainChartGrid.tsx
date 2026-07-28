@@ -1,100 +1,98 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
 import { CandlestickChart } from './CandlestickChart'
-import { formatUsd } from '@/features/terminal-os/shared/lib/format'
 import { Pct } from '@/features/terminal-os/shared/components/Pct'
-import { mockMarketDataProvider } from '@/features/terminal-os/shared/lib/mock-providers'
-import type { ChainMarketSnapshot } from '@/features/terminal-os/shared/types'
+import { formatUsd } from '@/features/terminal-os/shared/lib/format'
+import { useChainSnapshots } from '@/features/terminal-os/shared/hooks/useTerminalQueries'
+import type { ChainId } from '@/features/terminal-os/shared/types'
+
+const TABS: { id: ChainId; label: string }[] = [
+  { id: 'solana', label: 'Solana' },
+  { id: 'bnb', label: 'BNB Chain' },
+  { id: 'base', label: 'Base' },
+  { id: 'all', label: 'All Market' },
+]
 
 export function MultiChainChartGrid() {
-  const [snaps, setSnaps] = useState<ChainMarketSnapshot[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const { data: snaps, isLoading, isError, error } = useChainSnapshots()
+  const [tab, setTab] = useState<ChainId>('solana')
 
-  useEffect(() => {
-    let c = false
-    mockMarketDataProvider
-      .getChainSnapshots()
-      .then((s) => {
-        if (!c) setSnaps(s)
-      })
-      .catch((e: Error) => {
-        if (!c) setError(e.message)
-      })
-    return () => {
-      c = true
-    }
-  }, [])
+  const active = useMemo(() => snaps?.find((s) => s.chain === tab) ?? snaps?.[0], [snaps, tab])
 
   return (
-    <Panel title="Multi-Chain Charts" live>
-      {error ? (
-        <EmptyState message={error} />
-      ) : !snaps ? (
-        <PanelSkeleton rows={6} />
+    <Panel
+      title="Multi-Chain Charts"
+      live
+      action={
+        <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className="tos-tab"
+              data-active={tab === t.id}
+              onClick={() => setTab(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      }
+    >
+      {isError ? (
+        <EmptyState message={error instanceof Error ? error.message : 'Charts offline'} />
+      ) : isLoading || !active ? (
+        <PanelSkeleton rows={5} />
       ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: 12,
-          }}
-        >
-          {snaps.map((s) => (
+        <div className="tos-chart-split">
+          <div>
             <div
-              key={s.chain}
               style={{
-                border: '1px solid var(--tos-border-subtle)',
-                borderRadius: 10,
-                padding: 10,
-                background: 'var(--tos-bg-panel)',
+                fontSize: 'var(--tos-fs-sm)',
+                fontWeight: 700,
+                marginBottom: '0.5rem',
               }}
             >
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  marginBottom: 8,
-                  color: 'var(--tos-text-primary)',
-                }}
-              >
-                Top {s.label}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 8 }}>
-                <ul style={{ listStyle: 'none', margin: 0, padding: 0, fontSize: 11 }}>
-                  {s.topTokens.length === 0 ? (
-                    <li className="tos-muted">No leaders</li>
-                  ) : (
-                    s.topTokens.map((t) => (
-                      <li
-                        key={t.id}
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          gap: 6,
-                          padding: '4px 0',
-                          borderBottom: '1px solid var(--tos-border-subtle)',
-                        }}
-                      >
-                        <span>${t.symbol}</span>
-                        <span className="tos-num">
-                          <Pct value={t.change24hPct} />
-                        </span>
-                      </li>
-                    ))
-                  )}
-                </ul>
-                <CandlestickChart candles={s.candles} height={120} />
-              </div>
-              {s.topTokens[0] ? (
-                <div className="tos-muted" style={{ fontSize: 10, marginTop: 6 }}>
-                  Lead vol {formatUsd(s.topTokens[0].volume24hUsd, true)}
-                </div>
-              ) : null}
+              Top {active.label}
             </div>
-          ))}
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, fontSize: 'var(--tos-fs-sm)' }}>
+              {active.topTokens.length === 0 ? (
+                <li className="tos-muted">No leaders</li>
+              ) : (
+                active.topTokens.map((t) => (
+                  <li
+                    key={t.id}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr auto auto',
+                      gap: '0.4rem',
+                      padding: '0.4rem 0',
+                      borderBottom: '1px solid var(--tos-border-subtle)',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <span>
+                      <strong>${t.symbol}</strong>
+                      <span className="tos-muted" style={{ display: 'block', fontSize: 'var(--tos-fs-xs)' }}>
+                        Vol {formatUsd(t.volume24hUsd, true)} · Liq {formatUsd(t.liquidityUsd, true)}
+                      </span>
+                    </span>
+                    <Pct value={t.change24hPct} />
+                    <span className="tos-num tos-secondary">{formatUsd(t.priceUsd)}</span>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
+          <div>
+            <CandlestickChart candles={active.candles} height={200} />
+            <div className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)', marginTop: '0.35rem' }}>
+              Live CoinGecko OHLC · leaderboard DexScreener
+            </div>
+          </div>
         </div>
       )}
     </Panel>

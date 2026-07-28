@@ -7,32 +7,25 @@ Canonical product desk remains at `/terminal` (Portfolio Desk). This surface is 
 
 | Phase | Scope | Status |
 |------|--------|--------|
-| 1 | Shell, design system, mock providers, all layer panels | **In progress / shippable** |
-| 2 | Live providers, TanStack Query, WebSocket | Not started |
+| 1 | Shell, design system, mock providers, all layer panels | Done |
+| 1.1 | Gap-fix: density, live CoinGecko/DexScreener, 4K layout | **This PR** |
+| 2 | WebSocket streaming + richer Birdeye/Helius wiring | Next |
 | 3 | Behavioral engine, Pause & Teach, predictions | Not started |
-| 4 | Security Center pipeline + Coach | Not started |
-| 5 | Portfolio OS + Discovery scoring | Not started |
-| 6 | Autonomous trading (flagged OFF) | Not started |
-| 7 | AI Workforce telemetry dashboard | Stub roster only |
+| 4–7 | Security depth, portfolio OS, autonomy, workforce | Not started |
 
-## Architecture
+## Live data
 
-- Feature folders under `features/terminal-os/*`
-- Provider ports in `shared/lib/providers.ts` — UI never imports fixtures directly for numbers
-- Mock implementations in `shared/lib/mock-providers.ts`
-- Client UI state: `stores/terminal-os.ts` (Zustand)
-- Tokens: `styles/terminal-os.css` scoped with `[data-tos]`
-- Feature flags default OFF for `autonomousTrading`, `copyTrading`, `realSwapExecution`
+`GET /api/terminal-os/feed?resource=ticker|tokens|whales|traders|snapshots|candles|overview`
+
+- CoinGecko (no key): ticker, market overview, OHLC, trader gainers
+- DexScreener (no key): per-chain tokens, whale-scale volume flows
+- Optional: `WHALE_ALERT_API_KEY`, `HELIUS_API_KEY`, `BIRDEYE_API_KEY`, scan explorers
+
+Client panels use TanStack Query (`staleTime` ~12–60s) via `live-providers.ts`.
 
 ## Dev
 
 ```bash
 npm run dev
 # open http://localhost:3000/terminalOS
-```
-
-Whale classifier unit test:
-
-```bash
-npx tsx --test __tests__/terminal-os/classify-whale-movement.test.ts
 ```

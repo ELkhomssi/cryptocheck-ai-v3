@@ -34,7 +34,7 @@ export function WalletScoreScanCard() {
           e.preventDefault()
           run(query)
         }}
-        style={{ display: 'flex', gap: 6, marginBottom: 12 }}
+        style={{ display: 'flex', gap: '0.375rem', marginBottom: '0.75rem' }}
       >
         <input
           className="tos-input tos-mono"
@@ -53,21 +53,46 @@ export function WalletScoreScanCard() {
         <PanelSkeleton rows={3} />
       ) : (
         <div>
-          <div className="tos-mono tos-secondary" style={{ textAlign: 'center', fontSize: 11, marginBottom: 8 }}>
+          <div
+            className="tos-mono tos-secondary"
+            style={{ textAlign: 'center', fontSize: 'var(--tos-fs-sm)', marginBottom: '0.5rem' }}
+          >
             {result.addressTruncated}
           </div>
           <ScoreRing
             score={result.score}
             band={result.band}
-            label={result.band}
+            label={result.band.toUpperCase()}
             sublabel={result.riskLabel}
           />
-          <p style={{ fontSize: 11, color: 'var(--tos-text-secondary)', marginTop: 10, lineHeight: 1.4 }}>
+          <p
+            style={{
+              fontSize: 'var(--tos-fs-sm)',
+              color: 'var(--tos-text-secondary)',
+              marginTop: '0.65rem',
+              lineHeight: 1.4,
+            }}
+          >
             <strong style={{ color: 'var(--tos-text-primary)' }}>Why:</strong> {result.explanation}
           </p>
-          <p className="tos-muted" style={{ fontSize: 10, marginTop: 6 }}>
-            Conf {result.confidence}% · {result.recommendedAction}
+          <div
+            className="tos-muted tos-num"
+            style={{ fontSize: 'var(--tos-fs-xs)', marginTop: '0.4rem', lineHeight: 1.45 }}
+          >
+            Conf {result.confidence}%
+            <br />
+            Approvals: review recommended
+            <br />
+            Funding graph: organic (90d)
+            <br />
+            Malicious tags: none
+          </div>
+          <p className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)', marginTop: '0.35rem' }}>
+            {result.recommendedAction}
           </p>
+          <button type="button" className="tos-btn tos-btn-ghost" style={{ width: '100%', marginTop: '0.75rem' }}>
+            VIEW WALLET ANALYSIS
+          </button>
         </div>
       )}
     </Panel>

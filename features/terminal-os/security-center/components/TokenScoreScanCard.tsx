@@ -4,27 +4,44 @@ import { useEffect, useState } from 'react'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { ScoreRing } from '@/features/terminal-os/shared/components/ScoreRing'
 import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
-import { mockSecurityScanProvider } from '@/features/terminal-os/shared/lib/mock-providers'
+import { liveMarketDataProvider } from '@/features/terminal-os/shared/lib/live-providers'
+import { scoreTokenFromMarket } from '@/features/terminal-os/shared/lib/score-from-market'
+import { formatUsd } from '@/features/terminal-os/shared/lib/format'
 import type { TokenScanResult } from '@/features/terminal-os/shared/types'
 
 export function TokenScoreScanCard() {
   const [query, setQuery] = useState('WIF')
   const [result, setResult] = useState<TokenScanResult | null>(null)
+  const [meta, setMeta] = useState<{ price: number; vol: number; liq: number } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const run = (q: string) => {
+  const run = async (q: string) => {
     setLoading(true)
     setError(null)
-    mockSecurityScanProvider
-      .scanToken(q)
-      .then(setResult)
-      .catch((e: Error) => setError(e.message))
-      .finally(() => setLoading(false))
+    try {
+      const tokens = await liveMarketDataProvider.getTopTokens('all')
+      const needle = q.trim().toLowerCase()
+      const hit =
+        tokens.find(
+          (t) =>
+            t.symbol.toLowerCase() === needle ||
+            t.id.toLowerCase() === needle ||
+            t.name.toLowerCase().includes(needle),
+        ) || tokens[0]
+      if (!hit) throw new Error('No live token match')
+      const scored = scoreTokenFromMarket(hit)
+      setResult({ ...scored, symbol: hit.symbol, mintOrAddress: hit.id })
+      setMeta({ price: hit.priceUsd, vol: hit.volume24hUsd, liq: hit.liquidityUsd })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Scan failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
-    run('WIF')
+    void run('WIF')
   }, [])
 
   return (
@@ -32,9 +49,9 @@ export function TokenScoreScanCard() {
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          run(query)
+          void run(query)
         }}
-        style={{ display: 'flex', gap: 6, marginBottom: 12 }}
+        style={{ display: 'flex', gap: '0.375rem', marginBottom: '0.75rem' }}
       >
         <input
           className="tos-input"
@@ -53,30 +70,42 @@ export function TokenScoreScanCard() {
         <PanelSkeleton rows={4} />
       ) : (
         <div>
-          <div style={{ textAlign: 'center', marginBottom: 8 }}>
+          <div style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
             <strong>${result.symbol}</strong>
+            {meta ? (
+              <div className="tos-muted tos-num" style={{ fontSize: 'var(--tos-fs-xs)', marginTop: '0.2rem' }}>
+                {formatUsd(meta.price)} · Vol {formatUsd(meta.vol, true)} · Liq {formatUsd(meta.liq, true)}
+              </div>
+            ) : null}
           </div>
           <ScoreRing
             score={result.score}
             band={result.band}
-            label={result.band}
+            label={result.band.toUpperCase()}
             sublabel={result.riskLabel}
           />
-          <p style={{ fontSize: 11, color: 'var(--tos-text-secondary)', margin: '10px 0 8px', lineHeight: 1.4 }}>
+          <p
+            style={{
+              fontSize: 'var(--tos-fs-sm)',
+              color: 'var(--tos-text-secondary)',
+              margin: '0.65rem 0 0.5rem',
+              lineHeight: 1.4,
+            }}
+          >
             <strong style={{ color: 'var(--tos-text-primary)' }}>Why:</strong> {result.explanation}
           </p>
-          <p className="tos-muted" style={{ fontSize: 10, marginBottom: 10 }}>
-            Conf {result.confidence}% · Action: {result.recommendedAction}
+          <p className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)', marginBottom: '0.65rem' }}>
+            Conf {result.confidence}% · {result.recommendedAction}
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {result.metrics.map((m) => (
               <div key={m.label}>
                 <div
                   style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    fontSize: 11,
-                    marginBottom: 3,
+                    fontSize: 'var(--tos-fs-sm)',
+                    marginBottom: '0.15rem',
                   }}
                 >
                   <span>{m.label}</span>
@@ -84,8 +113,8 @@ export function TokenScoreScanCard() {
                 </div>
                 <div
                   style={{
-                    height: 4,
-                    borderRadius: 2,
+                    height: '0.25rem',
+                    borderRadius: '999px',
                     background: 'var(--tos-border-subtle)',
                     overflow: 'hidden',
                   }}
@@ -98,12 +127,12 @@ export function TokenScoreScanCard() {
                     }}
                   />
                 </div>
-                <div className="tos-muted" style={{ fontSize: 9, marginTop: 2 }}>
-                  {m.why}
-                </div>
               </div>
             ))}
           </div>
+          <button type="button" className="tos-btn tos-btn-ghost" style={{ width: '100%', marginTop: '0.75rem' }}>
+            VIEW FULL SCAN
+          </button>
         </div>
       )}
     </Panel>
