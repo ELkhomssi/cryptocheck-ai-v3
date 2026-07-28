@@ -43,5 +43,6 @@ export function classifyWhaleMovement(event: WhaleClassifyInput): WhaleClassific
   if (action === 'swap' && (event.liquidityDeltaPct ?? 0) > 15) {
     return 'Liquidity Migration'
   }
+  if (action === 'transfer') return 'Liquidity Migration'
   return 'Exit Signal'
 }

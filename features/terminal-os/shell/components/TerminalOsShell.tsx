@@ -6,7 +6,7 @@ import { TopBar } from '@/features/terminal-os/shell/components/TopBar'
 import { PanelErrorBoundary } from '@/features/terminal-os/shared/components/PanelErrorBoundary'
 import { TopTradersTicker } from '@/features/terminal-os/market-intel/components/TopTradersTicker'
 import { TopTokensToday } from '@/features/terminal-os/market-intel/components/TopTokensToday'
-import { TopWhaleMovements } from '@/features/terminal-os/whale-tracking/components/TopWhaleMovements'
+import { WhaleMarqueeTicker } from '@/features/terminal-os/whale-tracking/components/WhaleMarqueeTicker'
 import { MultiChainChartGrid } from '@/features/terminal-os/trading-workspace/components/MultiChainChartGrid'
 import { QuickSwapCard } from '@/features/terminal-os/trading-workspace/components/QuickSwapCard'
 import { PortfolioOverviewPanel } from '@/features/terminal-os/portfolio-os/components/PortfolioOverviewPanel'
@@ -93,9 +93,22 @@ function MainColumn() {
 
   if (nav === 'whale-tracking') {
     return (
-      <Bound title="Whale Tracking">
-        <TopWhaleMovements />
-      </Bound>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <Panel title="Whale Tracking Desk">
+          <p style={{ color: 'var(--tos-text-secondary)', fontSize: 'var(--tos-fs-md)', lineHeight: 1.55 }}>
+            Live high-confidence whale flows stream in the marquee above. Hover any chip for wallet
+            intelligence; click to open the full Whale Intelligence panel. Filters: All · Solana ·
+            Ethereum · BNB · Base · Smart Money.
+          </p>
+          <p
+            className="tos-muted"
+            style={{ marginTop: 10, fontSize: 'var(--tos-fs-xs)' }}
+          >
+            Not financial advice · DYOR · Attribution metrics show “Awaiting on-chain” until wallet
+            graph coverage is wired.
+          </p>
+        </Panel>
+      </div>
     )
   }
 
@@ -116,14 +129,11 @@ function MainColumn() {
     return <SecondaryNavStub nav={nav} />
   }
 
-  {/* Default Terminal home — mockup: traders → whales → tokens → 2×2 charts */}
+  {/* Default Terminal home — traders → tokens → 2×2 charts (whales fixed in top marquee) */}
   return (
     <>
       <Bound title="Top Traders">
         <TopTradersTicker />
-      </Bound>
-      <Bound title="Whale Movements">
-        <TopWhaleMovements />
       </Bound>
       <Bound title="Top Tokens">
         <TopTokensToday />
@@ -232,6 +242,11 @@ export function TerminalOsShell() {
   return (
     <div className="tos-shell" data-tos-shell>
       <TopBar />
+      <div className="tos-whale-slot">
+        <Bound title="Top Whale Movements">
+          <WhaleMarqueeTicker fixed title="Top Whale Movements" />
+        </Bound>
+      </div>
       <LeftRail />
       <main className="tos-main">
         <MainColumn />

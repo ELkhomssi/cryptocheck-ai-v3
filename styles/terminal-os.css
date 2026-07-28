@@ -1,19 +1,21 @@
 /**
  * CryptoCheck AI Terminal OS — dense 3-zone institutional chrome.
  * Hex only here. Spacing/type in rem for 4K legibility.
+ * Premium black + gold theme.
  */
 
 [data-tos] {
-  --tos-bg-app: #0a0e17;
-  --tos-bg-panel: #10141f;
-  --tos-bg-panel-elevated: #151a28;
-  --tos-border-subtle: #1f2536;
-  --tos-text-primary: #f5f7fa;
-  --tos-text-secondary: #8b93a7;
-  --tos-text-muted: #5a6178;
-  --tos-accent-gold: #f0b90b;
-  --tos-accent-gold-dim: color-mix(in srgb, #f0b90b 18%, transparent);
-  --tos-accent-blue: #4c8dff;
+  --tos-bg-app: #050505;
+  --tos-bg-panel: #0a0a0a;
+  --tos-bg-panel-elevated: #121212;
+  --tos-border-subtle: #1c1c1c;
+  --tos-text-primary: #f5f5f2;
+  --tos-text-secondary: #9a9588;
+  --tos-text-muted: #5c584f;
+  --tos-accent-gold: #d4af37;
+  --tos-accent-gold-bright: #f0c14b;
+  --tos-accent-gold-dim: color-mix(in srgb, #d4af37 18%, transparent);
+  --tos-accent-blue: #3d8bfd;
   --tos-accent-purple: #8b5cf6;
   --tos-accent-purple-dim: color-mix(in srgb, #8b5cf6 22%, transparent);
   --tos-positive: #16c784;
@@ -27,8 +29,9 @@
   --tos-radius-sm: 0.5rem;
   --tos-left-rail: 13.75rem; /* 220px */
   --tos-right-rail: 20rem; /* 320px */
-  --tos-topbar: 3.5rem;
-  --tos-max: 160rem; /* 2560px */
+  --tos-topbar: 3.25rem;
+  --tos-whale-bar: 5.75rem;
+  --tos-max: 160rem; /* 2560px — 4K-ready */
   --tos-gap: 0.75rem;
   --tos-card-min: 11.5rem;
   --tos-font: var(--font-geist-sans, var(--font-inter, ui-sans-serif)), system-ui, sans-serif;
@@ -38,6 +41,8 @@
   --tos-fs-md: 0.8125rem;
   --tos-fs-lg: 1.125rem;
   --tos-fs-xl: 1.375rem;
+  --tos-glass: color-mix(in srgb, #0a0a0a 72%, transparent);
+  --tos-glass-border: color-mix(in srgb, var(--tos-accent-gold) 28%, #2a2a2a);
 
   color-scheme: dark;
   background: var(--tos-bg-app);
@@ -58,9 +63,10 @@
 [data-tos] .tos-shell {
   display: grid;
   grid-template-columns: var(--tos-left-rail) minmax(45rem, 1fr) var(--tos-right-rail);
-  grid-template-rows: var(--tos-topbar) minmax(0, 1fr);
+  grid-template-rows: var(--tos-topbar) var(--tos-whale-bar) minmax(0, 1fr);
   grid-template-areas:
     'top top top'
+    'whale whale whale'
     'left main right';
   width: 100%;
   max-width: var(--tos-max);
@@ -69,8 +75,36 @@
   height: 100dvh;
   overflow: hidden;
   background:
-    radial-gradient(ellipse 80% 50% at 50% -20%, color-mix(in srgb, var(--tos-accent-gold) 6%, transparent), transparent),
+    radial-gradient(ellipse 90% 45% at 50% -15%, color-mix(in srgb, var(--tos-accent-gold) 9%, transparent), transparent),
+    radial-gradient(ellipse 40% 30% at 100% 100%, color-mix(in srgb, var(--tos-accent-gold) 4%, transparent), transparent),
     var(--tos-bg-app);
+}
+
+[data-tos] .tos-whale-slot {
+  grid-area: whale;
+  min-height: var(--tos-whale-bar);
+  border-bottom: 1px solid var(--tos-glass-border);
+  background: var(--tos-glass);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  z-index: 30;
+  box-shadow: 0 0 40px color-mix(in srgb, var(--tos-accent-gold) 8%, transparent);
+}
+
+[data-tos] .tos-whale-slot .tos-panel {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  height: 100%;
+}
+
+[data-tos] .tos-whale-slot .tos-panel-header {
+  display: none;
+}
+
+[data-tos] .tos-whale-slot .tos-panel-body {
+  padding: 0;
+  height: 100%;
 }
 
 [data-tos] .tos-topbar {
@@ -649,8 +683,10 @@
 @media (max-width: 80rem) {
   [data-tos] .tos-shell {
     grid-template-columns: 4rem minmax(0, 1fr);
+    grid-template-rows: var(--tos-topbar) var(--tos-whale-bar) minmax(0, 1fr) auto;
     grid-template-areas:
       'top top'
+      'whale whale'
       'left main'
       'right right';
   }
@@ -681,13 +717,19 @@
   [data-tos] .tos-quad-grid {
     grid-template-columns: 1fr;
   }
+
+  [data-tos] {
+    --tos-whale-bar: 6.5rem;
+  }
 }
 
 @media (max-width: 47.5rem) {
   [data-tos] .tos-shell {
     grid-template-columns: 1fr;
+    grid-template-rows: var(--tos-topbar) auto minmax(0, 1fr) auto;
     grid-template-areas:
       'top'
+      'whale'
       'main'
       'right';
   }
@@ -699,4 +741,505 @@
   [data-tos] .tos-chart-split {
     grid-template-columns: 1fr;
   }
+
+  [data-tos] {
+    --tos-whale-bar: auto;
+  }
+
+  [data-tos] .tos-wm-filters {
+    flex-wrap: wrap;
+  }
 }
+
+/* ─── Top Whale Movements marquee (glass black/gold) ─── */
+[data-tos] .tos-wm-ticker {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 4.75rem;
+  overflow: visible;
+}
+
+[data-tos] .tos-wm-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.35rem 0.85rem 0.2rem;
+  flex-wrap: wrap;
+}
+
+[data-tos] .tos-wm-title-block {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+[data-tos] .tos-wm-live {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--tos-text-muted);
+  box-shadow: 0 0 0 0 transparent;
+  flex-shrink: 0;
+}
+
+[data-tos] .tos-wm-live[data-state='live'] {
+  background: var(--tos-positive);
+  animation: tos-wm-pulse 1.8s ease-out infinite;
+}
+
+[data-tos] .tos-wm-live[data-state='polling'] {
+  background: var(--tos-accent-gold);
+  animation: tos-wm-pulse 2.4s ease-out infinite;
+}
+
+[data-tos] .tos-wm-live[data-state='connecting'] {
+  background: var(--tos-accent-blue);
+}
+
+[data-tos] .tos-wm-live[data-state='error'] {
+  background: var(--tos-negative);
+}
+
+@keyframes tos-wm-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--tos-positive) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 0.45rem transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+[data-tos] .tos-wm-title {
+  margin: 0;
+  font-size: var(--tos-fs-sm);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tos-accent-gold-bright);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--tos-accent-gold) 35%, transparent);
+}
+
+[data-tos] .tos-wm-sub {
+  font-size: var(--tos-fs-xs);
+  color: var(--tos-text-muted);
+  white-space: nowrap;
+}
+
+[data-tos] .tos-wm-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: auto;
+}
+
+[data-tos] .tos-wm-filter {
+  appearance: none;
+  border: 1px solid var(--tos-border-subtle);
+  background: color-mix(in srgb, #111 80%, transparent);
+  color: var(--tos-text-secondary);
+  font-size: var(--tos-fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.35rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+[data-tos] .tos-wm-filter:hover {
+  color: var(--tos-text-primary);
+  border-color: color-mix(in srgb, var(--tos-accent-gold) 40%, var(--tos-border-subtle));
+}
+
+[data-tos] .tos-wm-filter.is-active {
+  color: var(--tos-bg-app);
+  background: var(--tos-accent-gold);
+  border-color: var(--tos-accent-gold);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--tos-accent-gold) 40%, transparent);
+}
+
+[data-tos] .tos-wm-track-wrap {
+  position: relative;
+  overflow: hidden;
+  flex: 1;
+  mask-image: linear-gradient(90deg, transparent, #000 2%, #000 98%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 2%, #000 98%, transparent);
+}
+
+[data-tos] .tos-wm-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  animation-name: tos-wm-scroll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  backface-visibility: hidden;
+}
+
+[data-tos] .tos-wm-track.is-paused,
+[data-tos] .tos-wm-track-wrap:hover .tos-wm-track {
+  animation-play-state: paused;
+}
+
+@keyframes tos-wm-scroll {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-tos] .tos-wm-track {
+    animation: none;
+    transform: none;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}
+
+[data-tos] .tos-wm-strip {
+  display: flex;
+  align-items: stretch;
+  gap: 0.55rem;
+  padding: 0.35rem 0.55rem 0.55rem;
+}
+
+[data-tos] .tos-wm-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.55rem;
+  border: 1px solid var(--tos-glass-border);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--tos-accent-gold) 7%, #121212), #0a0a0a);
+  color: var(--tos-text-primary);
+  font-size: var(--tos-fs-xs);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  box-shadow: 0 0 0 0 transparent;
+}
+
+[data-tos] .tos-wm-chip:hover,
+[data-tos] .tos-wm-chip:focus-visible {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--tos-accent-gold) 55%, #333);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--tos-accent-gold) 22%, transparent);
+  z-index: 5;
+  outline: none;
+}
+
+[data-tos] .tos-wm-avatar {
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 0.5rem;
+  font-weight: 800;
+  color: var(--tos-bg-app);
+  background: linear-gradient(135deg, var(--tos-accent-gold-bright), #8a7020);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--tos-accent-gold) 45%, transparent);
+  flex-shrink: 0;
+}
+
+[data-tos] .tos-wm-wallet {
+  font-size: var(--tos-fs-xs);
+  color: var(--tos-text-secondary);
+}
+
+[data-tos] .tos-wm-chain {
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--tos-accent-gold);
+  font-size: 0.5625rem;
+}
+
+[data-tos] .tos-wm-logo {
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 999px;
+  object-fit: cover;
+  background: #1a1a1a;
+}
+
+[data-tos] .tos-wm-logo-fallback {
+  display: grid;
+  place-items: center;
+  font-size: 0.5rem;
+  font-weight: 800;
+  color: var(--tos-accent-gold);
+  border: 1px solid var(--tos-glass-border);
+}
+
+[data-tos] .tos-wm-action {
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  font-size: 0.5625rem;
+}
+
+[data-tos] .tos-wm-buy {
+  color: var(--tos-positive);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--tos-positive) 40%, transparent);
+}
+
+[data-tos] .tos-wm-sell {
+  color: var(--tos-negative);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--tos-negative) 40%, transparent);
+}
+
+[data-tos] .tos-wm-swap {
+  color: var(--tos-accent-blue);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--tos-accent-blue) 40%, transparent);
+}
+
+[data-tos] .tos-wm-alert {
+  color: var(--tos-warning);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--tos-warning) 45%, transparent);
+}
+
+[data-tos] .tos-wm-transfer {
+  color: var(--tos-text-secondary);
+}
+
+[data-tos] .tos-wm-amt {
+  font-size: var(--tos-fs-xs);
+}
+
+[data-tos] .tos-wm-time,
+[data-tos] .tos-wm-conf,
+[data-tos] .tos-wm-impact {
+  color: var(--tos-text-muted);
+  font-size: 0.5625rem;
+}
+
+[data-tos] .tos-wm-conf {
+  color: var(--tos-accent-gold);
+}
+
+[data-tos] .tos-wm-popover {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 0.4rem);
+  width: min(22rem, 80vw);
+  padding: 0.75rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--tos-glass-border);
+  background: color-mix(in srgb, #0c0c0c 88%, transparent);
+  backdrop-filter: blur(18px) saturate(1.25);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.55),
+    0 0 24px color-mix(in srgb, var(--tos-accent-gold) 18%, transparent);
+  z-index: 40;
+  white-space: normal;
+  text-align: left;
+  animation: tos-wm-pop 0.16s ease-out;
+  pointer-events: none;
+}
+
+@keyframes tos-wm-pop {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+[data-tos] .tos-wm-popover-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.4rem;
+}
+
+[data-tos] .tos-wm-sm-pill {
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--tos-bg-app);
+  background: var(--tos-accent-gold);
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.25rem;
+}
+
+[data-tos] .tos-wm-popover-addr {
+  margin: 0 0 0.55rem;
+  font-size: var(--tos-fs-xs);
+  word-break: break-all;
+  color: var(--tos-text-primary);
+}
+
+[data-tos] .tos-wm-popover-dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem 0.75rem;
+  margin: 0 0 0.55rem;
+}
+
+[data-tos] .tos-wm-popover-dl dt {
+  font-size: 0.5625rem;
+  color: var(--tos-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+[data-tos] .tos-wm-popover-dl dd {
+  margin: 0;
+  font-size: var(--tos-fs-sm);
+  font-weight: 700;
+}
+
+[data-tos] .tos-wm-popover-why {
+  margin: 0;
+  font-size: var(--tos-fs-xs);
+  line-height: 1.45;
+  color: var(--tos-text-secondary);
+}
+
+[data-tos] .tos-wm-sample {
+  display: inline-block;
+  margin-left: 0.25rem;
+  font-size: 0.5rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tos-warning);
+  border: 1px solid color-mix(in srgb, var(--tos-warning) 45%, transparent);
+  border-radius: 0.2rem;
+  padding: 0 0.2rem;
+}
+
+/* Whale Intelligence panel */
+[data-tos] .tos-wi-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: color-mix(in srgb, #000 72%, transparent);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  animation: tos-wm-pop 0.18s ease-out;
+}
+
+[data-tos] .tos-wi-panel {
+  width: min(52rem, 96vw);
+  max-height: min(88vh, 44rem);
+  overflow: auto;
+  border-radius: 0.85rem;
+  border: 1px solid var(--tos-glass-border);
+  background:
+    radial-gradient(ellipse 80% 50% at 10% 0%, color-mix(in srgb, var(--tos-accent-gold) 12%, transparent), transparent),
+    #0a0a0a;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.65), 0 0 40px color-mix(in srgb, var(--tos-accent-gold) 15%, transparent);
+  padding: 1.1rem 1.25rem 1.35rem;
+}
+
+[data-tos] .tos-wi-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--tos-border-subtle);
+  padding-bottom: 0.75rem;
+}
+
+[data-tos] .tos-wi-kicker {
+  margin: 0 0 0.25rem;
+  font-size: var(--tos-fs-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tos-accent-gold);
+  font-weight: 800;
+}
+
+[data-tos] .tos-wi-title {
+  margin: 0;
+  font-size: var(--tos-fs-lg);
+  font-weight: 800;
+}
+
+[data-tos] .tos-wi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+[data-tos] .tos-wi-card {
+  border: 1px solid var(--tos-border-subtle);
+  border-radius: 0.65rem;
+  padding: 0.75rem;
+  background: color-mix(in srgb, #111 80%, transparent);
+}
+
+[data-tos] .tos-wi-card h3 {
+  margin: 0 0 0.55rem;
+  font-size: var(--tos-fs-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tos-text-muted);
+}
+
+[data-tos] .tos-wi-addr {
+  margin: 0;
+  font-size: var(--tos-fs-sm);
+  word-break: break-all;
+}
+
+[data-tos] .tos-wi-metrics {
+  display: grid;
+  gap: 0.4rem;
+}
+
+[data-tos] .tos-wi-metric {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: var(--tos-fs-sm);
+}
+
+[data-tos] .tos-wi-metric-label {
+  color: var(--tos-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+[data-tos] .tos-wi-metric-value {
+  font-weight: 700;
+}
+
+[data-tos] .tos-wi-reason {
+  grid-column: 1 / -1;
+}
+
+[data-tos] .tos-wi-reason p {
+  margin: 0;
+  font-size: var(--tos-fs-md);
+  line-height: 1.55;
+  color: var(--tos-text-secondary);
+}
+
+@media (max-width: 40rem) {
+  [data-tos] .tos-wi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

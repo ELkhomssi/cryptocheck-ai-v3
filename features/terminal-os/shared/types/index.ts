@@ -20,7 +20,12 @@ export type WhaleClassification =
   | 'Possible Rug'
   | 'Exit Signal'
 
-export type WhaleAction = 'buy' | 'sell' | 'swap' | 'withdraw' | 'deposit'
+export type WhaleAction = 'buy' | 'sell' | 'swap' | 'withdraw' | 'deposit' | 'transfer'
+
+/** UI display action — ALERT overrides when classification is high-risk */
+export type WhaleDisplayAction = 'BUY' | 'SELL' | 'SWAP' | 'TRANSFER' | 'ALERT'
+
+export type WhaleMarqueeFilter = 'all' | 'solana' | 'ethereum' | 'bnb' | 'base' | 'smart_money'
 
 export interface TickerQuote {
   symbol: string
@@ -50,14 +55,40 @@ export interface TopTrader {
 export interface WhaleMovement {
   id: string
   walletTruncated: string
+  /** Full wallet / pair address when attribution is available */
+  walletFull: string
   chain: ChainId
   action: WhaleAction
   assetSymbol: string
+  /** Optional token icon (DexScreener / CoinGecko) */
+  tokenLogoUrl?: string
   usdValue: number
   amount: number
   occurredAt: string // ISO
   classification: WhaleClassification
   classificationWhy: string
+  /** 0–100 model confidence — high-confidence filter uses this */
+  aiConfidence: number
+  /** 0–100 market impact vs liquidity / notional */
+  impactScore: number
+  /** 0–100 smart-money quality score */
+  smartMoneyScore: number
+  /** True when smart-money heuristics fire */
+  smartMoney: boolean
+  /** Avatar initials derived from wallet */
+  avatarInitials: string
+  /** Popover: prior position size when known (null = not attributed) */
+  previousHoldingsUsd: number | null
+  /** Popover: estimated current book when known */
+  currentPortfolioUsd: number | null
+  /** Popover: historical win rate when known */
+  historicalWinRatePct: number | null
+  /** Popover: attributed PnL when known */
+  pnlUsd: number | null
+  /** AI reasoning for why this flow matters */
+  aiReasoning: string
+  /** When true, non-market attribution fields are illustrative sample */
+  sample?: boolean
 }
 
 export interface TokenRow {

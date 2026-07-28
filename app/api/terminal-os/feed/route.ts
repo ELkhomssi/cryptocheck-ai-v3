@@ -24,7 +24,7 @@ function chainParam(req: NextRequest): ChainId {
 export async function GET(req: NextRequest) {
   const resource = (req.nextUrl.searchParams.get('resource') || 'ticker').toLowerCase()
   const chain = chainParam(req)
-  const limit = Math.min(16, Math.max(1, Number(req.nextUrl.searchParams.get('limit') || 10) || 10))
+  const limit = Math.min(48, Math.max(1, Number(req.nextUrl.searchParams.get('limit') || 24) || 24))
 
   try {
     switch (resource) {

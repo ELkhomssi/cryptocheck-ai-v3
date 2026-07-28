@@ -22,9 +22,11 @@ export function formatPct(n: number, digits = 2): string {
 }
 
 export function timeAgo(iso: string): string {
-  const ms = Date.now() - new Date(iso).getTime()
-  const m = Math.floor(ms / 60_000)
-  if (m < 1) return 'just now'
+  const ms = Math.max(0, Date.now() - new Date(iso).getTime())
+  const s = Math.floor(ms / 1000)
+  if (s < 5) return 'just now'
+  if (s < 60) return `${s}s ago`
+  const m = Math.floor(s / 60)
   if (m < 60) return `${m}m ago`
   const h = Math.floor(m / 60)
   if (h < 24) return `${h}h ago`

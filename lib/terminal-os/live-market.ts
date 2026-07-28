@@ -7,6 +7,7 @@ import 'server-only'
 
 import { cachedJson } from '@/lib/cache/ttl'
 import { classifyWhaleMovement } from '@/features/terminal-os/shared/lib/classify-whale-movement'
+import { enrichWhaleMovement } from '@/features/terminal-os/shared/lib/enrich-whale-movement'
 import { rankAlphaDesks } from '@/features/terminal-os/shared/lib/rank-alpha-desks'
 import type {
   CandleBar,
@@ -305,10 +306,12 @@ export async function fetchLiveChainSnapshots(): Promise<ChainMarketSnapshot[]> 
 /**
  * Whale-scale flows from live DexScreener high-volume pairs + optional Whale Alert.
  * Pair address truncated as flow id when wallet-level attribution isn't available.
+ * Attribution fields (portfolio / win rate) stay null unless sampleAttribution is set —
+ * never fabricate wallet PnL from volume proxies.
  */
-export async function fetchLiveWhaleMovements(limit = 10): Promise<WhaleMovement[]> {
-  const lim = Math.min(Math.max(4, limit), 16)
-  return cachedJson(`tos:whales:v2:${lim}`, WHALE_TTL, async () => {
+export async function fetchLiveWhaleMovements(limit = 24): Promise<WhaleMovement[]> {
+  const lim = Math.min(Math.max(8, limit), 48)
+  return cachedJson(`tos:whales:v3:${lim}`, WHALE_TTL, async () => {
     const whaleKey = process.env.WHALE_ALERT_API_KEY?.trim()
     if (whaleKey) {
       const wa = await fetchJson<{
@@ -334,65 +337,82 @@ export async function fetchLiveWhaleMovements(limit = 10): Promise<WhaleMovement
                 ? ('withdraw' as const)
                 : actionRaw.includes('sell')
                   ? ('sell' as const)
-                  : ('buy' as const)
+                  : actionRaw.includes('swap') || actionRaw.includes('exchange')
+                    ? ('swap' as const)
+                    : actionRaw.includes('transfer')
+                      ? ('transfer' as const)
+                      : ('buy' as const)
           const addr = tx.from?.address || tx.to?.address || `whale-${i}`
-          const truncated =
-            addr.length > 10 ? `${addr.slice(0, 4)}…${addr.slice(-4)}` : addr
           const chain = mapDexChain(tx.blockchain === 'bitcoin' ? 'ethereum' : tx.blockchain)
           const usdValue = num(tx.amount_usd)
-          const classification = classifyWhaleMovement({ action, usdValue })
-          return {
-            id: String(tx.id || `wa-${i}`),
-            walletTruncated: truncated,
-            chain,
-            action,
-            assetSymbol: (tx.symbol || 'USD').toUpperCase(),
-            usdValue,
-            amount: num(tx.amount),
-            occurredAt: new Date((tx.timestamp || Date.now() / 1000) * 1000).toISOString(),
-            classification,
-            classificationWhy: `Whale Alert: ${action} ${usdValue.toLocaleString()} USD on ${chain}.`,
-          } satisfies WhaleMovement
+          return enrichWhaleMovement(
+            {
+              id: String(tx.id || `wa-${i}`),
+              walletFull: addr,
+              chain,
+              action,
+              assetSymbol: (tx.symbol || 'USD').toUpperCase(),
+              usdValue,
+              amount: num(tx.amount),
+              occurredAt: new Date((tx.timestamp || Date.now() / 1000) * 1000).toISOString(),
+              classificationWhy: `Whale Alert: ${action} ${usdValue.toLocaleString()} USD on ${chain}.`,
+              volume24hUsd: usdValue * 4,
+            },
+            classifyWhaleMovement,
+          )
         })
       }
     }
 
     // Fallback: largest live DexScreener pair volume as market flow events (real USD)
-    const [sol, eth, bnb] = await Promise.all([
-      searchDexPairs('SOL', 12),
-      searchDexPairs('ETH', 12),
+    const [sol, eth, bnb, base] = await Promise.all([
+      searchDexPairs('SOL', 14),
+      searchDexPairs('ETH', 14),
       searchDexPairs('BNB', 12),
+      searchDexPairs('DEGEN', 10),
     ])
-    const pairs = [...sol, ...eth, ...bnb]
-      .filter((p) => num(p.volume?.h24) >= 250_000)
+    const pairs = [...sol, ...eth, ...bnb, ...base]
+      .filter((p) => num(p.volume?.h24) >= 200_000)
       .sort((a, b) => num(b.volume?.h24) - num(a.volume?.h24))
       .slice(0, lim)
 
     return pairs.map((p, i) => {
       const change = num(p.priceChange?.h1)
       const vol = num(p.volume?.h24)
-      const action =
-        change <= -4 ? ('sell' as const) : change >= 4 ? ('buy' as const) : ('swap' as const)
+      const liq = num(p.liquidity?.usd)
+      const buys = num(p.txns?.h24?.buys)
+      const sells = num(p.txns?.h24?.sells)
+      let action: WhaleMovement['action'] =
+        change <= -4 ? 'sell' : change >= 4 ? 'buy' : 'swap'
+      if (Math.abs(change) < 1.5 && vol > 2_000_000) action = 'transfer'
+      // Extreme sell pressure on thin liquidity → alert path via classification
       const addr = p.pairAddress || p.baseToken?.address || `flow-${i}`
-      const truncated = addr.length > 10 ? `${addr.slice(0, 4)}…${addr.slice(-4)}` : addr
-      const usdValue = Math.max(vol * 0.08, num(p.liquidity?.usd) * 0.05)
+      const usdValue = Math.max(vol * 0.08, liq * 0.05)
       const classification = classifyWhaleMovement({
         action,
         usdValue,
         liquidityDeltaPct: change,
+        isNewToken: Boolean(p.pairCreatedAt && Date.now() - p.pairCreatedAt < 86_400_000 * 7),
+        isKnownDevWallet: sells > buys * 3 && change < -8,
       })
-      return {
-        id: `${p.pairAddress || i}-${i}`,
-        walletTruncated: truncated,
-        chain: mapDexChain(p.chainId),
-        action,
-        assetSymbol: (p.baseToken?.symbol || '?').toUpperCase(),
-        usdValue,
-        amount: num(p.volume?.h1),
-        occurredAt: new Date(Date.now() - i * 90_000).toISOString(),
-        classification,
-        classificationWhy: `Live DexScreener ${p.chainId} pair volume $${Math.round(vol).toLocaleString()} · 1h ${change.toFixed(1)}%.`,
-      } satisfies WhaleMovement
+      return enrichWhaleMovement(
+        {
+          id: `${p.pairAddress || i}-${i}`,
+          walletFull: addr,
+          chain: mapDexChain(p.chainId),
+          action,
+          assetSymbol: (p.baseToken?.symbol || '?').toUpperCase(),
+          tokenLogoUrl: p.info?.imageUrl,
+          usdValue,
+          amount: num(p.volume?.h1) || vol / 24,
+          occurredAt: new Date(Date.now() - i * 18_000).toISOString(),
+          classification,
+          classificationWhy: `Live DexScreener ${p.chainId} pair volume $${Math.round(vol).toLocaleString()} · 1h ${change.toFixed(1)}%.`,
+          liquidityUsd: liq,
+          volume24hUsd: vol,
+        },
+        classifyWhaleMovement,
+      )
     })
   })
 }

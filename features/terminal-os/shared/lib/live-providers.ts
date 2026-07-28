@@ -49,7 +49,7 @@ export const liveMarketDataProvider: IMarketDataProvider = {
 }
 
 export const liveWhaleFeedProvider: IWhaleFeedProvider = {
-  async getRecentMovements(limit = 10) {
+  async getRecentMovements(limit = 32) {
     const body = await feed<{ items: WhaleMovement[] }>('whales', { limit: String(limit) })
     return body.items ?? []
   },

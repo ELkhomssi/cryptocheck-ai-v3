@@ -22,6 +22,7 @@ import type {
   WhaleMovement,
 } from '../types'
 import { classifyWhaleMovement } from './classify-whale-movement'
+import { enrichWhaleMovement } from './enrich-whale-movement'
 
 function spark(seed: number, n = 16): number[] {
   const out: number[] = []
@@ -110,65 +111,86 @@ export const MOCK_TOP_TRADERS: TopTrader[] = [
   },
 ]
 
-const RAW_WHALES: Omit<WhaleMovement, 'classification' | 'classificationWhy'>[] = [
+const RAW_WHALES: {
+  id: string
+  walletFull: string
+  chain: WhaleMovement['chain']
+  action: WhaleMovement['action']
+  assetSymbol: string
+  usdValue: number
+  amount: number
+  occurredAt: string
+  classification: WhaleMovement['classification']
+}[] = [
   {
     id: 'w1',
-    walletTruncated: '7xK…9f2b',
+    walletFull: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
     chain: 'solana',
-    action: 'withdraw',
+    action: 'transfer',
     assetSymbol: 'SOL',
     usdValue: 23_400_000,
     amount: 125_000,
-    occurredAt: new Date(Date.now() - 2 * 60_000).toISOString(),
+    occurredAt: new Date(Date.now() - 12_000).toISOString(),
+    classification: 'Liquidity Migration',
   },
   {
     id: 'w2',
-    walletTruncated: '0x3a…c81e',
+    walletFull: '0x3a81e8c2f91d4b7c0e9f11aa22bb33cc81ef0012',
     chain: 'ethereum',
     action: 'buy',
     assetSymbol: 'ETH',
     usdValue: 8_200_000,
     amount: 2400,
-    occurredAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+    occurredAt: new Date(Date.now() - 28_000).toISOString(),
+    classification: 'High Conviction Buy',
   },
   {
     id: 'w3',
-    walletTruncated: 'DRq…m4k1',
+    walletFull: 'DRqFm1qKzqG5v9m4k1Hn2Xp7Qw8RtY6UaSbVcNdEfGh',
     chain: 'solana',
     action: 'buy',
     assetSymbol: 'WIF',
     usdValue: 1_850_000,
     amount: 420_000,
-    occurredAt: new Date(Date.now() - 8 * 60_000).toISOString(),
+    occurredAt: new Date(Date.now() - 45_000).toISOString(),
+    classification: 'Accumulation',
   },
   {
     id: 'w4',
-    walletTruncated: '0xb2…11aa',
+    walletFull: '0xb211aabbccddee11223344556677889900aa11bb',
     chain: 'bnb',
     action: 'sell',
     assetSymbol: 'BNB',
     usdValue: 4_100_000,
     amount: 7200,
-    occurredAt: new Date(Date.now() - 12 * 60_000).toISOString(),
+    occurredAt: new Date(Date.now() - 72_000).toISOString(),
+    classification: 'Profit Taking',
+  },
+  {
+    id: 'w5',
+    walletFull: '0xbase99112233445566778899aabbccddeeff0011',
+    chain: 'base',
+    action: 'swap',
+    assetSymbol: 'DEGEN',
+    usdValue: 920_000,
+    amount: 12_400_000,
+    occurredAt: new Date(Date.now() - 95_000).toISOString(),
+    classification: 'Liquidity Migration',
   },
 ]
 
-export const MOCK_WHALES: WhaleMovement[] = RAW_WHALES.map((w, i) => {
-  const preset =
-    i === 0
-      ? ('Liquidity Migration' as const)
-      : i === 1
-        ? ('High Conviction Buy' as const)
-        : i === 2
-          ? ('Accumulation' as const)
-          : ('Profit Taking' as const)
-  const classification = classifyWhaleMovement({ ...w, classification: preset })
-  return {
-    ...w,
-    classification,
-    classificationWhy: `Model labeled ${classification} from action=${w.action} and $${(w.usdValue / 1e6).toFixed(1)}M notional.`,
-  }
-})
+export const MOCK_WHALES: WhaleMovement[] = RAW_WHALES.map((w) =>
+  enrichWhaleMovement(
+    {
+      ...w,
+      sampleAttribution: true,
+      classificationWhy: `Model labeled ${w.classification} from action=${w.action} and $${(w.usdValue / 1e6).toFixed(1)}M notional.`,
+      volume24hUsd: w.usdValue * 8,
+      liquidityUsd: w.usdValue * 3,
+    },
+    classifyWhaleMovement,
+  ),
+)
 
 export const MOCK_TOKENS: TokenRow[] = [
   {
