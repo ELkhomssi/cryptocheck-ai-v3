@@ -1,7 +1,9 @@
 'use client'
 
 /**
- * Phase 18 — after wallet connect, request SIWS signature and establish session.
+ * Phase 18 — SIWS session (Sign-In With Solana).
+ * Wallet connect ≠ SIWS. Connecting must never spam Phantom sign prompts.
+ * SIWS runs only when the user explicitly taps Sign in (Pro / schedules).
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -20,7 +22,6 @@ export function useSiwsSession() {
   const [status, setStatus] = useState<SiwsStatus>('idle')
   const [userId, setUserId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const lastWallet = useRef<string | null>(null)
   const inFlight = useRef(false)
 
   const refreshMe = useCallback(async () => {
@@ -86,7 +87,6 @@ export function useSiwsSession() {
       }
       setUserId(verified.userId)
       setStatus('ready')
-      lastWallet.current = wallet
       return true
     } catch (e) {
       setStatus('error')
@@ -101,7 +101,7 @@ export function useSiwsSession() {
     await fetch('/api/auth/siws/logout', { method: 'POST' })
     setUserId(null)
     setStatus('idle')
-    lastWallet.current = null
+    setError(null)
     try {
       await disconnect()
     } catch {
@@ -109,24 +109,23 @@ export function useSiwsSession() {
     }
   }, [disconnect])
 
+  // Hydrate cookie session on mount.
   useEffect(() => {
     void refreshMe()
   }, [refreshMe])
 
+  // When wallet connects, refresh session if cookie matches — never auto-open sign prompt.
   useEffect(() => {
-    if (!connected || !publicKey) return
-    const wallet = publicKey.toBase58()
-    if (lastWallet.current === wallet && status === 'ready') return
-    if (inFlight.current) return
-    void (async () => {
-      const already = await refreshMe()
-      if (already) {
-        lastWallet.current = wallet
-        return
+    if (!connected || !publicKey) {
+      if (!connected) {
+        setUserId(null)
+        setStatus('idle')
+        setError(null)
       }
-      await signIn()
-    })()
-  }, [connected, publicKey, refreshMe, signIn, status])
+      return
+    }
+    void refreshMe()
+  }, [connected, publicKey, refreshMe])
 
   return {
     status,
