@@ -8,20 +8,26 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { useSolana } from '@/components/SolanaProvider'
+import { AiOsPillars } from '@/components/portfolio-desk/mission/AiOsPillars'
 import { IntelligenceModulesGrid } from '@/components/portfolio-desk/mission/IntelligenceModulesGrid'
 import { MissionFeedPanel } from '@/components/portfolio-desk/mission/MissionFeedPanel'
 import { formatPct, formatUsd } from '@/lib/portfolio-desk/format'
+import type { DeskNav } from '@/lib/portfolio-desk/nav'
 import type { MissionViewModel } from '@/types/intelligence-core'
 import type { ScreenerRow } from '@/lib/providers/types'
 
 export function MissionControlPanel({
   onOpenFeed,
   onOpenMarket,
+  onOpenDesk,
+  onOpenCoach,
   onSelectToken: _onSelectToken,
   onSuggestion: _onSuggestion,
 }: {
   onOpenFeed: () => void
   onOpenMarket: () => void
+  onOpenDesk: (desk: DeskNav) => void
+  onOpenCoach: () => void
   onSelectToken: (row: ScreenerRow) => void
   onSuggestion: (text: string) => void
   showObservationsInline?: boolean
@@ -45,6 +51,8 @@ export function MissionControlPanel({
 
   return (
     <div className="mc-ops">
+      <AiOsPillars onOpenDesk={onOpenDesk} onOpenCoach={onOpenCoach} />
+
       {siwsStatus === 'error' && siwsError ? (
         <p className="mc-ops-banner">
           Sign-in needed for a durable account.{' '}
