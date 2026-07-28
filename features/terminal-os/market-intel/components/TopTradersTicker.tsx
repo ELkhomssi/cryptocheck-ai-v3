@@ -17,48 +17,33 @@ export function TopTradersTicker() {
       ) : traders.length === 0 ? (
         <EmptyState message="No ranked traders yet." />
       ) : (
-        <div className="tos-scroll-x">
+        <div className="tos-scroll-x tos-traders-row">
           {traders.map((t, idx) => (
-            <article key={t.id} className="tos-metric-card">
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <div
-                  style={{
-                    width: '2rem',
-                    height: '2rem',
-                    borderRadius: '0.5rem',
-                    background: 'var(--tos-accent-gold-dim)',
-                    color: 'var(--tos-accent-gold)',
-                    display: 'grid',
-                    placeItems: 'center',
-                    fontWeight: 800,
-                    fontSize: 'var(--tos-fs-xs)',
-                    flexShrink: 0,
-                    backgroundImage: t.logoUrl ? `url(${t.logoUrl})` : undefined,
-                    backgroundSize: 'cover',
-                  }}
-                >
-                  {!t.logoUrl ? t.avatarInitials : null}
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 'var(--tos-fs-md)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    #{idx + 1} {t.handle}
-                  </div>
-                  <div className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)' }}>
-                    WR {t.winRatePct}% · {t.activePositions} pos
-                  </div>
-                </div>
+            <article key={t.id} className="tos-trader-card">
+              <div className="tos-trader-rank">#{idx + 1}</div>
+              <div className="tos-trader-avatar" aria-hidden>
+                {t.logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={t.logoUrl} alt="" />
+                ) : (
+                  t.avatarInitials
+                )}
               </div>
-              <div className={`tos-num ${t.pnlPct >= 0 ? 'tos-pos' : 'tos-neg'}`} style={{ fontSize: 'var(--tos-fs-xl)', fontWeight: 800 }}>
+              <div className="tos-trader-name">{t.handle}</div>
+              <div className={`tos-num tos-trader-pnl ${t.pnlPct >= 0 ? 'tos-pos' : 'tos-neg'}`}>
                 {formatPct(t.pnlPct)}
               </div>
-              <div className="tos-num tos-secondary" style={{ fontSize: 'var(--tos-fs-sm)' }}>
-                {formatUsd(t.pnlUsd, true)} PNL
+              <div className="tos-num tos-trader-usd">{formatUsd(t.pnlUsd, true)} PNL</div>
+              <div className="tos-trader-meta">
+                <span>WR {t.winRatePct}%</span>
+                <span>{t.activePositions} pos</span>
               </div>
-              <div className="tos-muted tos-num" style={{ fontSize: 'var(--tos-fs-xs)', marginTop: '0.35rem' }}>
-                Vol {formatUsd(t.volume24hUsd ?? 0, true)} · Conf {t.aiConfidence}%
+              <div className="tos-trader-meta tos-muted">
+                <span>{t.underlyingSymbol ?? '—'}</span>
+                <span>Conf {t.aiConfidence}%</span>
               </div>
-              <div className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)', marginTop: '0.25rem', lineHeight: 1.35 }}>
-                {t.confidenceWhy}
+              <div className="tos-trader-meta tos-muted tos-num">
+                Vol {formatUsd(t.volume24hUsd ?? 0, true)}
               </div>
             </article>
           ))}

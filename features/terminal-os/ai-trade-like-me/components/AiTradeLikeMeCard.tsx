@@ -12,7 +12,7 @@ export function AiTradeLikeMeCard() {
   const autonomous = useTerminalOsStore((s) => s.featureFlags.autonomousTrading)
 
   return (
-    <div className="tos-panel" style={{ background: 'var(--tos-bg-app)' }}>
+    <div className="tos-panel tos-ai-activate" style={{ background: 'var(--tos-bg-app)' }}>
       <div className="tos-panel-body" style={{ padding: 12 }}>
         <div
           style={{

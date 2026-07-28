@@ -43,6 +43,8 @@ export interface TopTrader {
   priceUsd?: number
   marketCapUsd?: number
   logoUrl?: string
+  /** Live asset the desk is ranked on (algorithmic persona mapping) */
+  underlyingSymbol?: string
 }
 
 export interface WhaleMovement {

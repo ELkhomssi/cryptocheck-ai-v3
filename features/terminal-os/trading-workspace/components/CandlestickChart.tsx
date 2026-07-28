@@ -6,15 +6,23 @@ import {
   type IChartApi,
   type ISeriesApi,
   type CandlestickData,
+  type HistogramData,
   ColorType,
 } from 'lightweight-charts'
 import type { CandleBar } from '@/features/terminal-os/shared/types'
 
-/** TradingView Lightweight Charts candlestick — mock or live candles */
-export function CandlestickChart({ candles, height = 160 }: { candles: CandleBar[]; height?: number }) {
+/** Professional TV Lightweight Charts — candles + volume histogram */
+export function CandlestickChart({
+  candles,
+  height = 180,
+}: {
+  candles: CandleBar[]
+  height?: number
+}) {
   const ref = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
-  const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
+  const candleRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
+  const volRef = useRef<ISeriesApi<'Histogram'> | null>(null)
 
   useEffect(() => {
     if (!ref.current) return
@@ -23,25 +31,41 @@ export function CandlestickChart({ candles, height = 160 }: { candles: CandleBar
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
         textColor: '#8b93a7',
+        fontSize: 10,
       },
       grid: {
-        vertLines: { color: '#1f2536' },
-        horzLines: { color: '#1f2536' },
+        vertLines: { color: 'rgba(31,37,54,0.85)' },
+        horzLines: { color: 'rgba(31,37,54,0.85)' },
       },
-      rightPriceScale: { borderVisible: false },
-      timeScale: { borderVisible: false, timeVisible: true },
-      crosshair: { mode: 0 },
+      rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.08, bottom: 0.22 } },
+      timeScale: { borderVisible: false, timeVisible: true, secondsVisible: false },
+      crosshair: {
+        mode: 1,
+        vertLine: { color: 'rgba(240,185,11,0.35)', width: 1, style: 2 },
+        horzLine: { color: 'rgba(240,185,11,0.35)', width: 1, style: 2 },
+      },
       width: ref.current.clientWidth,
     })
-    const series = chart.addCandlestickSeries({
+
+    const candlesSeries = chart.addCandlestickSeries({
       upColor: '#16c784',
       downColor: '#ea3943',
       borderVisible: false,
       wickUpColor: '#16c784',
       wickDownColor: '#ea3943',
     })
+    const volumeSeries = chart.addHistogramSeries({
+      priceFormat: { type: 'volume' },
+      priceScaleId: 'vol',
+    })
+    chart.priceScale('vol').applyOptions({
+      scaleMargins: { top: 0.78, bottom: 0 },
+      borderVisible: false,
+    })
+
     chartRef.current = chart
-    seriesRef.current = series
+    candleRef.current = candlesSeries
+    volRef.current = volumeSeries
 
     const ro = new ResizeObserver(() => {
       if (ref.current) chart.applyOptions({ width: ref.current.clientWidth })
@@ -52,12 +76,13 @@ export function CandlestickChart({ candles, height = 160 }: { candles: CandleBar
       ro.disconnect()
       chart.remove()
       chartRef.current = null
-      seriesRef.current = null
+      candleRef.current = null
+      volRef.current = null
     }
   }, [height])
 
   useEffect(() => {
-    if (!seriesRef.current) return
+    if (!candleRef.current || !volRef.current) return
     const data: CandlestickData[] = candles.map((c) => ({
       time: c.time as CandlestickData['time'],
       open: c.open,
@@ -65,19 +90,20 @@ export function CandlestickChart({ candles, height = 160 }: { candles: CandleBar
       low: c.low,
       close: c.close,
     }))
-    seriesRef.current.setData(data)
+    const vols: HistogramData[] = candles.map((c) => ({
+      time: c.time as HistogramData['time'],
+      value: c.volume ?? Math.abs(c.close - c.open) * 1000,
+      color:
+        c.close >= c.open ? 'rgba(22,199,132,0.45)' : 'rgba(234,57,67,0.45)',
+    }))
+    candleRef.current.setData(data)
+    volRef.current.setData(vols)
     chartRef.current?.timeScale().fitContent()
   }, [candles])
 
   if (!candles.length) {
-    return (
-      <div
-        className="tos-skeleton"
-        style={{ height, width: '100%' }}
-        aria-label="Chart loading"
-      />
-    )
+    return <div className="tos-skeleton" style={{ height, width: '100%' }} aria-label="Chart loading" />
   }
 
-  return <div ref={ref} style={{ width: '100%', height }} />
+  return <div ref={ref} className="tos-chart-canvas" style={{ width: '100%', height }} />
 }
