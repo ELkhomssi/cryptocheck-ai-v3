@@ -91,7 +91,7 @@ export function MissionControlPanel({
             loading
               ? '…'
               : !isConnected
-                ? 'Connect'
+                ? '—'
                 : view?.portfolio.totalValueUsd != null
                   ? formatUsd(view.portfolio.totalValueUsd)
                   : view?.portfolio.error
@@ -100,13 +100,12 @@ export function MissionControlPanel({
           }
           hint={
             !isConnected
-              ? 'Wallet required'
+              ? 'Connect wallet (top bar)'
               : view?.portfolio.dayChangePct != null
                 ? formatPct(view.portfolio.dayChangePct)
                 : undefined
           }
           tone={pctTone(view?.portfolio.dayChangePct)}
-          onClick={!isConnected ? () => void connect() : undefined}
         />
         <Metric
           label="Running"
