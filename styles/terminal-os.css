@@ -1,0 +1,347 @@
+/**
+ * CryptoCheck AI Terminal OS v6 — design tokens & chrome.
+ * Scoped under [data-tos] so portfolio-desk / global tokens stay untouched.
+ * Hex lives only here (token source of truth for this surface).
+ */
+
+[data-tos] {
+  --tos-bg-app: #0a0e17;
+  --tos-bg-panel: #10141f;
+  --tos-bg-panel-elevated: #151a28;
+  --tos-border-subtle: #1f2536;
+  --tos-text-primary: #f5f7fa;
+  --tos-text-secondary: #8b93a7;
+  --tos-text-muted: #5a6178;
+  --tos-accent-gold: #f0b90b;
+  --tos-accent-gold-dim: color-mix(in srgb, #f0b90b 18%, transparent);
+  --tos-accent-blue: #4c8dff;
+  --tos-positive: #16c784;
+  --tos-negative: #ea3943;
+  --tos-warning: #f5a623;
+  --tos-score-excellent: #16c784;
+  --tos-score-good: #8bc34a;
+  --tos-score-caution: #f5a623;
+  --tos-score-danger: #ea3943;
+  --tos-radius: 12px;
+  --tos-radius-sm: 8px;
+  --tos-left-rail: 220px;
+  --tos-right-rail: 320px;
+  --tos-topbar: 56px;
+  --tos-font: var(--font-geist-sans, var(--font-inter, ui-sans-serif)), system-ui, sans-serif;
+  --tos-mono: var(--font-geist-mono, var(--font-ibm-plex-mono, ui-monospace)), monospace;
+
+  color-scheme: dark;
+  background: var(--tos-bg-app);
+  color: var(--tos-text-primary);
+  font-family: var(--tos-font);
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-tos] *,
+[data-tos] *::before,
+[data-tos] *::after {
+  box-sizing: border-box;
+}
+
+[data-tos] .tos-shell {
+  display: grid;
+  grid-template-columns: var(--tos-left-rail) minmax(0, 1fr) var(--tos-right-rail);
+  grid-template-rows: var(--tos-topbar) minmax(0, 1fr);
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, color-mix(in srgb, var(--tos-accent-gold) 6%, transparent), transparent),
+    var(--tos-bg-app);
+}
+
+[data-tos] .tos-topbar {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--tos-border-subtle);
+  background: color-mix(in srgb, var(--tos-bg-panel) 92%, transparent);
+  backdrop-filter: blur(8px);
+  z-index: 20;
+}
+
+[data-tos] .tos-left-rail {
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--tos-border-subtle);
+  background: var(--tos-bg-panel);
+  overflow: hidden;
+  min-height: 0;
+}
+
+[data-tos] .tos-main {
+  grid-column: 2;
+  grid-row: 2;
+  overflow: auto;
+  padding: 14px 16px 24px;
+  min-width: 0;
+  min-height: 0;
+}
+
+[data-tos] .tos-right-rail {
+  grid-column: 3;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border-left: 1px solid var(--tos-border-subtle);
+  background: var(--tos-bg-panel);
+  overflow: auto;
+  min-height: 0;
+}
+
+[data-tos] .tos-panel {
+  background: var(--tos-bg-panel-elevated);
+  border: 1px solid var(--tos-border-subtle);
+  border-radius: var(--tos-radius);
+  overflow: hidden;
+}
+
+[data-tos] .tos-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--tos-border-subtle);
+}
+
+[data-tos] .tos-panel-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tos-text-secondary);
+}
+
+[data-tos] .tos-panel-body {
+  padding: 12px;
+}
+
+[data-tos] .tos-num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+[data-tos] .tos-mono {
+  font-family: var(--tos-mono);
+  font-size: 0.92em;
+}
+
+[data-tos] .tos-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: var(--tos-radius-sm);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, opacity 120ms ease;
+}
+
+[data-tos] .tos-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+[data-tos] .tos-btn-gold {
+  background: var(--tos-accent-gold);
+  color: #0a0e17;
+  padding: 8px 14px;
+}
+
+[data-tos] .tos-btn-gold:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+[data-tos] .tos-btn-ghost {
+  background: transparent;
+  color: var(--tos-text-secondary);
+  border-color: var(--tos-border-subtle);
+  padding: 6px 10px;
+}
+
+[data-tos] .tos-btn-ghost:hover:not(:disabled) {
+  color: var(--tos-text-primary);
+  border-color: color-mix(in srgb, var(--tos-text-muted) 50%, var(--tos-border-subtle));
+}
+
+[data-tos] .tos-input {
+  width: 100%;
+  background: var(--tos-bg-app);
+  border: 1px solid var(--tos-border-subtle);
+  border-radius: var(--tos-radius-sm);
+  color: var(--tos-text-primary);
+  padding: 8px 10px;
+  font-size: 13px;
+  outline: none;
+}
+
+[data-tos] .tos-input:focus {
+  border-color: color-mix(in srgb, var(--tos-accent-gold) 55%, var(--tos-border-subtle));
+}
+
+[data-tos] .tos-input::placeholder {
+  color: var(--tos-text-muted);
+}
+
+[data-tos] .tos-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--tos-accent-gold);
+  text-transform: uppercase;
+}
+
+[data-tos] .tos-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tos-positive);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--tos-positive) 60%, transparent);
+  animation: tos-pulse 1.6s ease-out infinite;
+}
+
+@keyframes tos-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--tos-positive) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+[data-tos] .tos-tab {
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tos-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+[data-tos] .tos-tab[data-active='true'] {
+  color: var(--tos-accent-gold);
+  background: var(--tos-accent-gold-dim);
+  border-color: color-mix(in srgb, var(--tos-accent-gold) 35%, transparent);
+}
+
+[data-tos] .tos-pos {
+  color: var(--tos-positive);
+}
+
+[data-tos] .tos-neg {
+  color: var(--tos-negative);
+}
+
+[data-tos] .tos-warn {
+  color: var(--tos-warning);
+}
+
+[data-tos] .tos-muted {
+  color: var(--tos-text-muted);
+}
+
+[data-tos] .tos-secondary {
+  color: var(--tos-text-secondary);
+}
+
+[data-tos] .tos-scroll-x {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--tos-border-subtle) transparent;
+}
+
+[data-tos] .tos-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--tos-bg-panel) 0%,
+    var(--tos-bg-panel-elevated) 50%,
+    var(--tos-bg-panel) 100%
+  );
+  background-size: 200% 100%;
+  animation: tos-shimmer 1.2s linear infinite;
+  border-radius: 6px;
+}
+
+@keyframes tos-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+[data-tos] .tos-error {
+  padding: 16px;
+  color: var(--tos-text-secondary);
+  font-size: 13px;
+}
+
+@media (max-width: 1200px) {
+  [data-tos] .tos-shell {
+    grid-template-columns: 64px minmax(0, 1fr);
+    grid-template-rows: var(--tos-topbar) minmax(0, 1fr) auto;
+  }
+
+  [data-tos] .tos-right-rail {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-height: 42vh;
+  }
+
+  [data-tos] .tos-right-rail > * {
+    flex: 1 1 280px;
+  }
+
+  [data-tos] .tos-left-rail [data-tos-label] {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  [data-tos] {
+    --tos-left-rail: 0px;
+  }
+
+  [data-tos] .tos-shell {
+    grid-template-columns: 1fr;
+  }
+
+  [data-tos] .tos-left-rail {
+    display: none;
+  }
+
+  [data-tos] .tos-main {
+    grid-column: 1;
+  }
+}

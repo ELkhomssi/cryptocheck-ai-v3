@@ -19,6 +19,9 @@ const nextConfig = {
       // Phase 10 — portfolio desk is now the canonical /terminal
       { source: '/portfolio', destination: '/terminal', permanent: true },
       { source: '/portfolio/:path*', destination: '/terminal', permanent: true },
+      // Terminal OS v6 — case-insensitive entry to the Bloomberg-style desk
+      { source: '/terminalos', destination: '/terminalOS', permanent: false },
+      { source: '/TerminalOS', destination: '/terminalOS', permanent: false },
     ]
   },
   async headers() {
