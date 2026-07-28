@@ -100,7 +100,7 @@ export const PAGE_META: Record<
   mission: {
     kicker: '// MISSION CONTROL',
     title: 'Mission Control',
-    subtitle: 'Live operating desk — modules, jobs, feed, and metrics.',
+    subtitle: 'AI operating system for traders — five live systems, one desk.',
   },
   market: {
     kicker: '// MARKET INTELLIGENCE',

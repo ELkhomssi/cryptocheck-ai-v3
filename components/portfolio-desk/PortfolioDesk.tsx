@@ -226,6 +226,12 @@ export function PortfolioDesk() {
             <MissionControlPanel
               onOpenFeed={() => setDeskNav('feed')}
               onOpenMarket={() => setDeskNav('market')}
+              onOpenDesk={(desk) => setDeskNav(desk)}
+              onOpenCoach={() => {
+                // Coach lives in the aside rail — keep Mission Control and scroll aside into view.
+                const aside = document.querySelector('.pd-aside')
+                aside?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+              }}
               onSelectToken={(row) => {
                 const p = new URLSearchParams(searchParams.toString())
                 p.set('mint', row.mint)
