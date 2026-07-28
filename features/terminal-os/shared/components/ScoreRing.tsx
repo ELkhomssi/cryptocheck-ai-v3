@@ -1,19 +1,15 @@
 'use client'
 
 import type { ScoreBand } from '../types'
+import { scoreToBand } from '../lib/score-band'
+
+export { scoreToBand }
 
 const BAND_COLOR: Record<ScoreBand, string> = {
   excellent: 'var(--tos-score-excellent)',
   good: 'var(--tos-score-good)',
   caution: 'var(--tos-score-caution)',
   danger: 'var(--tos-score-danger)',
-}
-
-export function scoreToBand(score: number): ScoreBand {
-  if (score >= 85) return 'excellent'
-  if (score >= 70) return 'good'
-  if (score >= 50) return 'caution'
-  return 'danger'
 }
 
 /** SVG stroke-dasharray score ring — color-coded by band */

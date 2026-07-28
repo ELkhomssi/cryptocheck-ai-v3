@@ -10,10 +10,11 @@ import { TopWhaleMovements } from '@/features/terminal-os/whale-tracking/compone
 import { MultiChainChartGrid } from '@/features/terminal-os/trading-workspace/components/MultiChainChartGrid'
 import { QuickSwapCard } from '@/features/terminal-os/trading-workspace/components/QuickSwapCard'
 import { PortfolioOverviewPanel } from '@/features/terminal-os/portfolio-os/components/PortfolioOverviewPanel'
+import { MarketOverviewPanel } from '@/features/terminal-os/market-intel/components/MarketOverviewPanel'
+import { DiscoveryPanel } from '@/features/terminal-os/discovery-engine/components/DiscoveryPanel'
 import { TokenScoreScanCard } from '@/features/terminal-os/security-center/components/TokenScoreScanCard'
 import { WalletScoreScanCard } from '@/features/terminal-os/security-center/components/WalletScoreScanCard'
 import { AiCoachingCard } from '@/features/terminal-os/ai-coach/components/AiCoachingCard'
-import { DiscoveryPanel } from '@/features/terminal-os/discovery-engine/components/DiscoveryPanel'
 import { AiWorkforcePanel } from '@/features/terminal-os/ai-workforce/components/AiWorkforcePanel'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { ComingOnline } from '@/features/terminal-os/shared/components/PanelStates'
@@ -116,9 +117,9 @@ function MainColumn() {
     return <SecondaryNavStub nav={nav} />
   }
 
-  // Default Terminal home — all seven layer panels
+  // Default Terminal home — mockup section order (dense 3-zone center stack)
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <>
       <Bound title="Top Traders">
         <TopTradersTicker />
       </Bound>
@@ -131,13 +132,10 @@ function MainColumn() {
       <Bound title="Multi-Chain Charts">
         <MultiChainChartGrid />
       </Bound>
-      <Bound title="Portfolio Overview">
-        <PortfolioOverviewPanel />
+      <Bound title="Market Overview">
+        <MarketOverviewPanel />
       </Bound>
-      <Bound title="Discovery">
-        <DiscoveryPanel />
-      </Bound>
-    </div>
+    </>
   )
 }
 

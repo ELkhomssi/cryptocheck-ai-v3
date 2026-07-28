@@ -1,7 +1,6 @@
 /**
- * CryptoCheck AI Terminal OS v6 — design tokens & chrome.
- * Scoped under [data-tos] so portfolio-desk / global tokens stay untouched.
- * Hex lives only here (token source of truth for this surface).
+ * CryptoCheck AI Terminal OS — dense 3-zone institutional chrome.
+ * Hex only here. Spacing/type in rem for 4K legibility.
  */
 
 [data-tos] {
@@ -22,18 +21,27 @@
   --tos-score-good: #8bc34a;
   --tos-score-caution: #f5a623;
   --tos-score-danger: #ea3943;
-  --tos-radius: 12px;
-  --tos-radius-sm: 8px;
-  --tos-left-rail: 220px;
-  --tos-right-rail: 320px;
-  --tos-topbar: 56px;
+  --tos-radius: 0.75rem;
+  --tos-radius-sm: 0.5rem;
+  --tos-left-rail: 13.75rem; /* 220px */
+  --tos-right-rail: 20rem; /* 320px */
+  --tos-topbar: 3.5rem;
+  --tos-max: 160rem; /* 2560px */
+  --tos-gap: 0.75rem;
+  --tos-card-min: 11.5rem;
   --tos-font: var(--font-geist-sans, var(--font-inter, ui-sans-serif)), system-ui, sans-serif;
   --tos-mono: var(--font-geist-mono, var(--font-ibm-plex-mono, ui-monospace)), monospace;
+  --tos-fs-xs: 0.625rem;
+  --tos-fs-sm: 0.75rem;
+  --tos-fs-md: 0.8125rem;
+  --tos-fs-lg: 1.125rem;
+  --tos-fs-xl: 1.375rem;
 
   color-scheme: dark;
   background: var(--tos-bg-app);
   color: var(--tos-text-primary);
   font-family: var(--tos-font);
+  font-size: 1rem;
   font-feature-settings: 'tnum' 1, 'lnum' 1;
   -webkit-font-smoothing: antialiased;
 }
@@ -44,10 +52,17 @@
   box-sizing: border-box;
 }
 
+/* Centered 2560px cap — beyond that, side margin, not stretched cards */
 [data-tos] .tos-shell {
   display: grid;
-  grid-template-columns: var(--tos-left-rail) minmax(0, 1fr) var(--tos-right-rail);
+  grid-template-columns: var(--tos-left-rail) minmax(45rem, 1fr) var(--tos-right-rail);
   grid-template-rows: var(--tos-topbar) minmax(0, 1fr);
+  grid-template-areas:
+    'top top top'
+    'left main right';
+  width: 100%;
+  max-width: var(--tos-max);
+  margin-inline: auto;
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
@@ -57,12 +72,11 @@
 }
 
 [data-tos] .tos-topbar {
-  grid-column: 1 / -1;
-  grid-row: 1;
+  grid-area: top;
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 0 16px;
+  gap: 1rem;
+  padding: 0 1rem;
   border-bottom: 1px solid var(--tos-border-subtle);
   background: color-mix(in srgb, var(--tos-bg-panel) 92%, transparent);
   backdrop-filter: blur(8px);
@@ -70,10 +84,12 @@
 }
 
 [data-tos] .tos-left-rail {
-  grid-column: 1;
-  grid-row: 2;
+  grid-area: left;
   display: flex;
   flex-direction: column;
+  width: var(--tos-left-rail);
+  min-width: var(--tos-left-rail);
+  max-width: var(--tos-left-rail);
   border-right: 1px solid var(--tos-border-subtle);
   background: var(--tos-bg-panel);
   overflow: hidden;
@@ -81,21 +97,25 @@
 }
 
 [data-tos] .tos-main {
-  grid-column: 2;
-  grid-row: 2;
+  grid-area: main;
   overflow: auto;
-  padding: 14px 16px 24px;
+  padding: 0.75rem 0.875rem 1.25rem;
   min-width: 0;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tos-gap);
 }
 
 [data-tos] .tos-right-rail {
-  grid-column: 3;
-  grid-row: 2;
+  grid-area: right;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 12px;
+  gap: 0.75rem;
+  width: var(--tos-right-rail);
+  min-width: var(--tos-right-rail);
+  max-width: var(--tos-right-rail);
+  padding: 0.75rem;
   border-left: 1px solid var(--tos-border-subtle);
   background: var(--tos-bg-panel);
   overflow: auto;
@@ -107,27 +127,29 @@
   border: 1px solid var(--tos-border-subtle);
   border-radius: var(--tos-radius);
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 [data-tos] .tos-panel-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
   border-bottom: 1px solid var(--tos-border-subtle);
 }
 
 [data-tos] .tos-panel-title {
-  font-size: 12px;
+  font-size: var(--tos-fs-sm);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--tos-text-secondary);
+  margin: 0;
 }
 
 [data-tos] .tos-panel-body {
-  padding: 12px;
+  padding: 0.75rem;
 }
 
 [data-tos] .tos-num {
@@ -144,11 +166,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 0.375rem;
   border: 1px solid transparent;
   border-radius: var(--tos-radius-sm);
   font-weight: 600;
-  font-size: 12px;
+  font-size: var(--tos-fs-sm);
   letter-spacing: 0.02em;
   cursor: pointer;
   transition: background 120ms ease, border-color 120ms ease, opacity 120ms ease;
@@ -161,8 +183,8 @@
 
 [data-tos] .tos-btn-gold {
   background: var(--tos-accent-gold);
-  color: #0a0e17;
-  padding: 8px 14px;
+  color: var(--tos-bg-app);
+  padding: 0.5rem 0.875rem;
 }
 
 [data-tos] .tos-btn-gold:hover:not(:disabled) {
@@ -173,7 +195,7 @@
   background: transparent;
   color: var(--tos-text-secondary);
   border-color: var(--tos-border-subtle);
-  padding: 6px 10px;
+  padding: 0.375rem 0.625rem;
 }
 
 [data-tos] .tos-btn-ghost:hover:not(:disabled) {
@@ -187,8 +209,8 @@
   border: 1px solid var(--tos-border-subtle);
   border-radius: var(--tos-radius-sm);
   color: var(--tos-text-primary);
-  padding: 8px 10px;
-  font-size: 13px;
+  padding: 0.5rem 0.625rem;
+  font-size: var(--tos-fs-md);
   outline: none;
 }
 
@@ -203,8 +225,8 @@
 [data-tos] .tos-live {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 10px;
+  gap: 0.375rem;
+  font-size: var(--tos-fs-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--tos-accent-gold);
@@ -212,11 +234,10 @@
 }
 
 [data-tos] .tos-live-dot {
-  width: 6px;
-  height: 6px;
+  width: 0.375rem;
+  height: 0.375rem;
   border-radius: 50%;
   background: var(--tos-positive);
-  box-shadow: 0 0 0 0 color-mix(in srgb, var(--tos-positive) 60%, transparent);
   animation: tos-pulse 1.6s ease-out infinite;
 }
 
@@ -225,7 +246,7 @@
     box-shadow: 0 0 0 0 color-mix(in srgb, var(--tos-positive) 55%, transparent);
   }
   70% {
-    box-shadow: 0 0 0 6px transparent;
+    box-shadow: 0 0 0 0.375rem transparent;
   }
   100% {
     box-shadow: 0 0 0 0 transparent;
@@ -233,13 +254,13 @@
 }
 
 [data-tos] .tos-tab {
-  padding: 5px 10px;
-  font-size: 11px;
+  padding: 0.3rem 0.625rem;
+  font-size: var(--tos-fs-xs);
   font-weight: 600;
   color: var(--tos-text-muted);
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 0.375rem;
   cursor: pointer;
 }
 
@@ -252,30 +273,44 @@
 [data-tos] .tos-pos {
   color: var(--tos-positive);
 }
-
 [data-tos] .tos-neg {
   color: var(--tos-negative);
 }
-
 [data-tos] .tos-warn {
   color: var(--tos-warning);
 }
-
 [data-tos] .tos-muted {
   color: var(--tos-text-muted);
 }
-
 [data-tos] .tos-secondary {
   color: var(--tos-text-secondary);
 }
 
+/* Horizontal density row — more cards fit as viewport grows, cards stay capped */
 [data-tos] .tos-scroll-x {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--tos-card-min);
+  gap: 0.625rem;
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding-bottom: 0.25rem;
   scrollbar-width: thin;
   scrollbar-color: var(--tos-border-subtle) transparent;
+}
+
+[data-tos] .tos-metric-card {
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--tos-border-subtle);
+  background: var(--tos-bg-panel);
+  min-width: 0;
+}
+
+[data-tos] .tos-chart-split {
+  display: grid;
+  grid-template-columns: minmax(0, 0.35fr) minmax(0, 0.65fr);
+  gap: 0.75rem;
+  min-height: 11rem;
 }
 
 [data-tos] .tos-skeleton {
@@ -287,7 +322,7 @@
   );
   background-size: 200% 100%;
   animation: tos-shimmer 1.2s linear infinite;
-  border-radius: 6px;
+  border-radius: 0.375rem;
 }
 
 @keyframes tos-shimmer {
@@ -300,48 +335,83 @@
 }
 
 [data-tos] .tos-error {
-  padding: 16px;
+  padding: 1rem;
   color: var(--tos-text-secondary);
-  font-size: 13px;
+  font-size: var(--tos-fs-md);
 }
 
-@media (max-width: 1200px) {
+/* Density steps — more columns of fixed-ish cards, not stretched empties */
+@media (min-width: 90rem) {
+  /* 1440+ */
+  [data-tos] {
+    --tos-card-min: 11rem;
+    --tos-gap: 0.7rem;
+  }
+}
+
+@media (min-width: 120rem) {
+  /* 1920+ */
+  [data-tos] {
+    --tos-card-min: 10.75rem;
+  }
+}
+
+@media (min-width: 160rem) {
+  /* 2560 / 4K path */
+  [data-tos] {
+    --tos-card-min: 10.25rem;
+    --tos-gap: 0.65rem;
+  }
+}
+
+@media (max-width: 80rem) {
+  /* <1280: collapse right rail under main; keep left icons */
   [data-tos] .tos-shell {
-    grid-template-columns: 64px minmax(0, 1fr);
-    grid-template-rows: var(--tos-topbar) minmax(0, 1fr) auto;
+    grid-template-columns: 4rem minmax(0, 1fr);
+    grid-template-areas:
+      'top top'
+      'left main'
+      'right right';
+  }
+
+  [data-tos] .tos-left-rail {
+    width: 4rem;
+    min-width: 4rem;
+    max-width: 4rem;
+  }
+
+  [data-tos] .tos-left-rail [data-tos-label] {
+    display: none;
   }
 
   [data-tos] .tos-right-rail {
-    grid-column: 1 / -1;
-    grid-row: 3;
+    width: auto;
+    min-width: 0;
+    max-width: none;
     flex-direction: row;
     flex-wrap: wrap;
     max-height: 42vh;
   }
 
   [data-tos] .tos-right-rail > * {
-    flex: 1 1 280px;
-  }
-
-  [data-tos] .tos-left-rail [data-tos-label] {
-    display: none;
+    flex: 1 1 18rem;
   }
 }
 
-@media (max-width: 760px) {
-  [data-tos] {
-    --tos-left-rail: 0px;
-  }
-
+@media (max-width: 47.5rem) {
   [data-tos] .tos-shell {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      'top'
+      'main'
+      'right';
   }
 
   [data-tos] .tos-left-rail {
     display: none;
   }
 
-  [data-tos] .tos-main {
-    grid-column: 1;
+  [data-tos] .tos-chart-split {
+    grid-template-columns: 1fr;
   }
 }

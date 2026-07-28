@@ -27,6 +27,7 @@ import {
   MOCK_TOP_TRADERS,
   MOCK_WALLET_SCAN,
   MOCK_WHALES,
+  MOCK_MARKET_OVERVIEW,
   mockChainSnapshots,
 } from './mock-data'
 import type { ChainId } from '../types'
@@ -51,6 +52,10 @@ export const mockMarketDataProvider: IMarketDataProvider = {
     await delay()
     const snap = mockChainSnapshots().find((s) => s.chain === chain)
     return snap?.candles ?? []
+  },
+  async getMarketOverview() {
+    await delay()
+    return { ...MOCK_MARKET_OVERVIEW, fetchedAt: new Date().toISOString() }
   },
 }
 

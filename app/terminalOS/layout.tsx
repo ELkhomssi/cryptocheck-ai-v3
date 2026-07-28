@@ -1,5 +1,6 @@
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
+import { TerminalOsProviders } from '@/features/terminal-os/shell/Providers'
 import '@/styles/terminal-os.css'
 
 export const metadata = {
@@ -19,7 +20,7 @@ export default function TerminalOsLayout({ children }: { children: React.ReactNo
         fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
       }}
     >
-      {children}
+      <TerminalOsProviders>{children}</TerminalOsProviders>
     </div>
   )
 }
