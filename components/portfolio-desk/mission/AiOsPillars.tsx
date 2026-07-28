@@ -41,7 +41,7 @@ const PILLARS: {
   {
     id: 'execution',
     title: 'Autonomous Execution',
-    blurb: 'Automation recipes that run without babysitting charts.',
+    blurb: 'Schedules that wake real agents on a cron — not babysitting charts.',
     desk: 'automation',
   },
   {

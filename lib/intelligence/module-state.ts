@@ -9,6 +9,7 @@
 
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { workerIdsForModule } from '@/lib/intelligence/modules'
+import { AUTOMATION_RECIPES } from '@/lib/portfolio-desk/automation-recipes'
 import type {
   IntelligenceModuleId,
   IntelligenceModuleState,
@@ -16,12 +17,12 @@ import type {
 
 /** Recipes available in AutomationPanel mapped to modules (= automation configured). */
 const MODULE_AUTOMATION_RECIPES: Record<IntelligenceModuleId, string[]> = {
-  market: ['liquidity-watch', 'whale-monitor'],
-  security: [],
-  trading: [],
-  portfolio: ['portfolio-audit'],
-  launch: [],
-  research: ['daily-outlook'],
+  market: AUTOMATION_RECIPES.filter((r) => r.module === 'market').map((r) => r.id),
+  security: AUTOMATION_RECIPES.filter((r) => r.module === 'security').map((r) => r.id),
+  trading: AUTOMATION_RECIPES.filter((r) => r.module === 'trading').map((r) => r.id),
+  portfolio: AUTOMATION_RECIPES.filter((r) => r.module === 'portfolio').map((r) => r.id),
+  launch: AUTOMATION_RECIPES.filter((r) => r.module === 'launch').map((r) => r.id),
+  research: AUTOMATION_RECIPES.filter((r) => r.module === 'research').map((r) => r.id),
 }
 
 export type ModuleStateResult = {
