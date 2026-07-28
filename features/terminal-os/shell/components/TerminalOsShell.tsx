@@ -23,6 +23,7 @@ import {
   AiStatusCard,
   AiTradeLikeMeCard,
 } from '@/features/terminal-os/ai-trade-like-me/components/AiTradeLikeMeCard'
+import { TradeLikeMeWidget } from '@/features/terminal-os/ai-trade-like-me/components/TradeLikeMeWidget'
 
 function Bound({ title, children }: { title: string; children: ReactNode }) {
   return <PanelErrorBoundary title={title}>{children}</PanelErrorBoundary>
@@ -146,49 +147,10 @@ function MainColumn() {
 }
 
 function AiTradingWorkspace() {
-  const flags = useTerminalOsStore((s) => s.featureFlags)
-  const tier = useTerminalOsStore((s) => s.autonomyTier)
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <Bound title="AI Trade Like Me">
-        <div className="tos-panel">
-          <div className="tos-panel-body">
-            <h2 style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>
-              Pause & Teach · Behavioral Engine
-            </h2>
-            <p style={{ fontSize: 13, color: 'var(--tos-text-secondary)', lineHeight: 1.5, marginBottom: 12 }}>
-              Phase 3 will capture trades/scans and derive your TraderProfile. Autonomy stays
-              permissioned and flagged OFF until Phase 6.
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <AiTradeLikeMeCard />
-              <AiStatusCard />
-            </div>
-            <div
-              style={{
-                marginTop: 12,
-                padding: 12,
-                borderRadius: 10,
-                border: '1px solid var(--tos-border-subtle)',
-                background: 'var(--tos-bg-panel)',
-              }}
-            >
-              <div className="tos-muted" style={{ fontSize: 11, marginBottom: 6 }}>
-                Teach the model (preview)
-              </div>
-              <textarea
-                className="tos-input"
-                rows={3}
-                placeholder='e.g. "I always take profit at 2x and never hold through a 30% drawdown"'
-                disabled
-              />
-              <p className="tos-muted" style={{ fontSize: 10, marginTop: 8 }}>
-                Flags: autonomousTrading={String(flags.autonomousTrading)} · tier={tier}
-              </p>
-            </div>
-          </div>
-        </div>
+      <Bound title="Trade Like Me">
+        <TradeLikeMeWidget />
       </Bound>
     </div>
   )

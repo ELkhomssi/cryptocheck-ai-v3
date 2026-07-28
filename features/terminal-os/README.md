@@ -8,10 +8,23 @@ Canonical product desk remains at `/terminal` (Portfolio Desk). This surface is 
 | Phase | Scope | Status |
 |------|--------|--------|
 | 1 | Shell, design system, mock providers, all layer panels | Done |
-| 1.1 | Gap-fix: density, live CoinGecko/DexScreener, 4K layout | **This PR** |
+| 1.1 | Gap-fix: density, live CoinGecko/DexScreener, 4K layout | Done |
+| Whale marquee | Top Whale Movements SSE ticker | Done |
+| **X** | **Trade Like Me** — behavioral DNA + decision engines (advise-only) | **This PR** |
 | 2 | WebSocket streaming + richer Birdeye/Helius wiring | Next |
-| 3 | Behavioral engine, Pause & Teach, predictions | Not started |
-| 4–7 | Security depth, portfolio OS, autonomy, workforce | Not started |
+| 6 | Autonomy execution via risk-gated-swap (flagged OFF) | Gated |
+
+## Trade Like Me
+
+Modular engines under `features/terminal-os/ai-trade-like-me/engines/` (event bus):
+
+1. Behavioral Learning · 2. Trader DNA · 3. Market Intelligence · 4. Prediction · 5. Decision · 6. Explainable AI · 7. Autonomous Execution (blocked by flags) · 8. Performance Analytics
+
+- UI: `TradeLikeMeWidget` on nav **Trade Like Me** (`ai-trading`)
+- API: `GET/POST /api/terminal-os/trade-like-me`
+- Philosophy: learn *why* — never copy trades; AI may disagree to improve the trader
+- Autonomy / real swaps stay OFF (`autonomousTrading`, `realSwapExecution`)
+
 
 ## Live data
 
