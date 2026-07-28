@@ -1,5 +1,6 @@
 'use client'
 
+import { Waves } from 'lucide-react'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
 import { formatUsd, timeAgo } from '@/features/terminal-os/shared/lib/format'
@@ -11,11 +12,11 @@ const ACTION_COLOR: Record<WhaleMovement['action'], string> = {
   deposit: 'var(--tos-positive)',
   sell: 'var(--tos-negative)',
   withdraw: 'var(--tos-warning)',
-  swap: 'var(--tos-accent-blue)',
+  swap: 'var(--tos-accent-purple)',
 }
 
 export function TopWhaleMovements() {
-  const { data: rows, isLoading, isError, error } = useWhaleMovements(10)
+  const { data: rows, isLoading, isError, error } = useWhaleMovements(8)
 
   return (
     <Panel title="Top Whale Movements" live>
@@ -28,50 +29,29 @@ export function TopWhaleMovements() {
       ) : (
         <div className="tos-scroll-x">
           {rows.map((w, i) => (
-            <article key={w.id} className="tos-metric-card">
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  gap: '0.35rem',
-                  marginBottom: '0.35rem',
-                }}
-              >
-                <span className="tos-mono tos-secondary" style={{ fontSize: 'var(--tos-fs-sm)' }}>
-                  Whale #{i + 1}
+            <article key={w.id} className="tos-whale-card">
+              <div className="tos-whale-top">
+                <span className="tos-whale-icon" aria-hidden>
+                  <Waves size={14} />
                 </span>
                 <span className="tos-muted tos-num" style={{ fontSize: 'var(--tos-fs-xs)' }}>
                   {timeAgo(w.occurredAt)}
                 </span>
               </div>
-              <div className="tos-mono" style={{ fontSize: 'var(--tos-fs-md)', fontWeight: 700 }}>
-                {w.walletTruncated}
+              <div className="tos-whale-title">
+                Whale #{i + 1} <span className="tos-mono">{w.walletTruncated}</span>
               </div>
-              <div style={{ marginTop: '0.35rem', fontSize: 'var(--tos-fs-sm)' }}>
-                <span style={{ color: ACTION_COLOR[w.action], fontWeight: 700 }}>
+              <div className="tos-whale-action">
+                <span style={{ color: ACTION_COLOR[w.action], fontWeight: 800 }}>
                   {w.action.toUpperCase()}
                 </span>{' '}
                 <strong>${w.assetSymbol}</strong>
               </div>
-              <div className="tos-num" style={{ fontSize: 'var(--tos-fs-lg)', fontWeight: 800, marginTop: '0.25rem' }}>
-                {formatUsd(w.usdValue, true)}
-              </div>
-              <div className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)', marginTop: '0.35rem' }}>
+              <div className="tos-num tos-whale-usd">{formatUsd(w.usdValue, true)}</div>
+              <div className="tos-whale-meta">
                 {w.chain} · amt {w.amount.toLocaleString()}
               </div>
-              <div
-                style={{
-                  marginTop: '0.4rem',
-                  fontSize: 'var(--tos-fs-xs)',
-                  fontWeight: 700,
-                  color: 'var(--tos-accent-gold)',
-                }}
-              >
-                {w.classification}
-              </div>
-              <div className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)', lineHeight: 1.35, marginTop: '0.2rem' }}>
-                {w.classificationWhy}
-              </div>
+              <div className="tos-whale-badge">{w.classification}</div>
             </article>
           ))}
         </div>

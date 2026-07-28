@@ -10,7 +10,6 @@ import { TopWhaleMovements } from '@/features/terminal-os/whale-tracking/compone
 import { MultiChainChartGrid } from '@/features/terminal-os/trading-workspace/components/MultiChainChartGrid'
 import { QuickSwapCard } from '@/features/terminal-os/trading-workspace/components/QuickSwapCard'
 import { PortfolioOverviewPanel } from '@/features/terminal-os/portfolio-os/components/PortfolioOverviewPanel'
-import { MarketOverviewPanel } from '@/features/terminal-os/market-intel/components/MarketOverviewPanel'
 import { DiscoveryPanel } from '@/features/terminal-os/discovery-engine/components/DiscoveryPanel'
 import { TokenScoreScanCard } from '@/features/terminal-os/security-center/components/TokenScoreScanCard'
 import { WalletScoreScanCard } from '@/features/terminal-os/security-center/components/WalletScoreScanCard'
@@ -117,7 +116,7 @@ function MainColumn() {
     return <SecondaryNavStub nav={nav} />
   }
 
-  // Default Terminal home — mockup section order (dense 3-zone center stack)
+  {/* Default Terminal home — mockup: traders → whales → tokens → 2×2 charts */}
   return (
     <>
       <Bound title="Top Traders">
@@ -131,9 +130,6 @@ function MainColumn() {
       </Bound>
       <Bound title="Multi-Chain Charts">
         <MultiChainChartGrid />
-      </Bound>
-      <Bound title="Market Overview">
-        <MarketOverviewPanel />
       </Bound>
     </>
   )

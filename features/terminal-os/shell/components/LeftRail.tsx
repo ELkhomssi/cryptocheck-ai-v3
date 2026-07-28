@@ -5,15 +5,11 @@ import {
   Bell,
   Bookmark,
   Brain,
-  Compass,
   Copy,
   LayoutGrid,
   LineChart,
   Radar,
   Settings,
-  Shield,
-  Sparkles,
-  Users,
   Wallet,
   Waves,
 } from 'lucide-react'
@@ -33,10 +29,6 @@ const NAV: { id: TerminalNavId; label: string; icon: typeof LayoutGrid; gated?: 
   { id: 'portfolio', label: 'Portfolio', icon: Wallet },
   { id: 'alerts', label: 'Alerts', icon: Bell },
   { id: 'watchlist', label: 'Watchlist', icon: Bookmark },
-  { id: 'discovery', label: 'Discovery', icon: Compass },
-  { id: 'security', label: 'Security', icon: Shield },
-  { id: 'ai-coach', label: 'AI Coach', icon: Sparkles },
-  { id: 'ai-workforce', label: 'AI Workforce', icon: Users },
   { id: 'settings', label: 'Settings', icon: Settings },
 ]
 
@@ -71,7 +63,7 @@ export function LeftRail() {
           padding: '0 8px',
           overflow: 'auto',
           flex: '0 1 auto',
-          maxHeight: '42%',
+          maxHeight: '34%',
         }}
         aria-label="Primary"
       >

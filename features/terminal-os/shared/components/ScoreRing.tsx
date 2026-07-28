@@ -16,7 +16,7 @@ const BAND_COLOR: Record<ScoreBand, string> = {
 export function ScoreRing({
   score,
   band,
-  size = 112,
+  size = 96,
   label,
   sublabel,
 }: {

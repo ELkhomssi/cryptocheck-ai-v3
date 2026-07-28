@@ -7,6 +7,7 @@ import 'server-only'
 
 import { cachedJson } from '@/lib/cache/ttl'
 import { classifyWhaleMovement } from '@/features/terminal-os/shared/lib/classify-whale-movement'
+import { rankAlphaDesks } from '@/features/terminal-os/shared/lib/rank-alpha-desks'
 import type {
   CandleBar,
   ChainId,
@@ -240,21 +241,45 @@ export async function fetchLiveTopTokens(chain: ChainId, limit = 12): Promise<To
   })
 }
 
-/** OHLC candles — CoinGecko OHLC (real). */
+/** OHLC candles — CoinGecko OHLC + market_chart volumes (real). */
 export async function fetchLiveCandles(chain: ChainId): Promise<CandleBar[]> {
   const id = COIN_OHLC_IDS[chain] || 'bitcoin'
-  return cachedJson(`tos:ohlc:${id}`, CANDLE_TTL, async () => {
-    const rows = await fetchJson<number[][]>(`${CG}/coins/${id}/ohlc?vs_currency=usd&days=1`)
+  return cachedJson(`tos:ohlc:v2:${id}`, CANDLE_TTL, async () => {
+    const [rows, chart] = await Promise.all([
+      fetchJson<number[][]>(`${CG}/coins/${id}/ohlc?vs_currency=usd&days=1`),
+      fetchJson<{ total_volumes?: [number, number][] }>(
+        `${CG}/coins/${id}/market_chart?vs_currency=usd&days=1`,
+      ),
+    ])
     if (!Array.isArray(rows)) return []
+    const vols = Array.isArray(chart?.total_volumes) ? chart!.total_volumes! : []
     return rows
       .filter((r) => Array.isArray(r) && r.length >= 5)
-      .map((r) => ({
-        time: Math.floor(Number(r[0]) / 1000),
-        open: Number(r[1]),
-        high: Number(r[2]),
-        low: Number(r[3]),
-        close: Number(r[4]),
-      }))
+      .map((r) => {
+        const timeMs = Number(r[0])
+        const time = Math.floor(timeMs / 1000)
+        let volume = 0
+        if (vols.length) {
+          let best = vols[0]!
+          let bestDist = Math.abs(best[0]! - timeMs)
+          for (const v of vols) {
+            const d = Math.abs(v[0]! - timeMs)
+            if (d < bestDist) {
+              best = v
+              bestDist = d
+            }
+          }
+          volume = Number(best[1]) || 0
+        }
+        return {
+          time,
+          open: Number(r[1]),
+          high: Number(r[2]),
+          low: Number(r[3]),
+          close: Number(r[4]),
+          volume,
+        }
+      })
       .filter((c) => Number.isFinite(c.open) && c.time > 0)
   })
 }
@@ -373,12 +398,12 @@ export async function fetchLiveWhaleMovements(limit = 10): Promise<WhaleMovement
 }
 
 /**
- * Top traders — CoinGecko 24h market outperformers as alpha leaderboard
- * until platform wallet PnL volume unlocks. Real prices/volumes only.
+ * Top traders — CoinGecko movers ranked by alpha-desk algorithm → mockup personas.
+ * PnL% / volume / price are live; handles are deterministic persona maps.
  */
 export async function fetchLiveTopTraders(limit = 8): Promise<TopTrader[]> {
-  const lim = Math.min(Math.max(6, limit), 12)
-  return cachedJson(`tos:traders:v1:${lim}`, TOKEN_TTL, async () => {
+  const lim = Math.min(Math.max(8, limit), 12)
+  return cachedJson(`tos:traders:v3:${lim}`, TOKEN_TTL, async () => {
     const body = await fetchJson<
       {
         id: string
@@ -391,38 +416,22 @@ export async function fetchLiveTopTraders(limit = 8): Promise<TopTrader[]> {
         market_cap?: number
       }[]
     >(
-      `${CG}/coins/markets?vs_currency=usd&order=percent_change_24h_desc&per_page=${lim}&page=1&sparkline=false&price_change_percentage=24h`,
+      `${CG}/coins/markets?vs_currency=usd&order=percent_change_24h_desc&per_page=40&page=1&sparkline=false&price_change_percentage=24h`,
     )
     if (!Array.isArray(body) || !body.length) return []
-    return body
-      .slice()
-      .sort(
-        (a, b) =>
-          num(b.price_change_percentage_24h) - num(a.price_change_percentage_24h),
-      )
-      .slice(0, lim)
-      .map((c, i) => {
-      const pnlPct = num(c.price_change_percentage_24h)
-      const vol = num(c.total_volume)
-      const pnlUsd = vol * (pnlPct / 100) * 0.01 // notional alpha slice of volume
-      const winRatePct = Math.max(35, Math.min(92, Math.round(55 + pnlPct * 0.8)))
-      const conf = Math.max(55, Math.min(94, Math.round(70 + Math.min(20, Math.abs(pnlPct)))))
-      const handle = (c.symbol || c.name || `T${i}`).toUpperCase()
-      return {
-        id: c.id || `cg-${i}`,
-        handle,
-        avatarInitials: handle.slice(0, 2),
-        pnlUsd,
-        pnlPct,
-        winRatePct,
-        activePositions: Math.max(1, Math.round(vol / 50_000_000) || 2),
-        aiConfidence: conf,
-        confidenceWhy: `CoinGecko 24h leader #${i + 1}: ${handle} ${pnlPct.toFixed(2)}% on $${Math.round(vol).toLocaleString()} volume.`,
-        volume24hUsd: vol,
-        priceUsd: num(c.current_price),
-        marketCapUsd: num(c.market_cap),
-        logoUrl: c.image,
-      } satisfies TopTrader
-    })
+    const STABLES = new Set([
+      'usdt',
+      'usdc',
+      'dai',
+      'usd1',
+      'fdusd',
+      'tusd',
+      'usde',
+      'usds',
+      'busd',
+      'usdd',
+    ])
+    const filtered = body.filter((c) => !STABLES.has((c.symbol || '').toLowerCase()))
+    return rankAlphaDesks(filtered.length ? filtered : body, lim)
   })
 }

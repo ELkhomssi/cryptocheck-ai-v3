@@ -14,6 +14,8 @@
   --tos-accent-gold: #f0b90b;
   --tos-accent-gold-dim: color-mix(in srgb, #f0b90b 18%, transparent);
   --tos-accent-blue: #4c8dff;
+  --tos-accent-purple: #8b5cf6;
+  --tos-accent-purple-dim: color-mix(in srgb, #8b5cf6 22%, transparent);
   --tos-positive: #16c784;
   --tos-negative: #ea3943;
   --tos-warning: #f5a623;
@@ -111,15 +113,19 @@
   grid-area: right;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.55rem;
   width: var(--tos-right-rail);
   min-width: var(--tos-right-rail);
   max-width: var(--tos-right-rail);
-  padding: 0.75rem;
+  padding: 0.55rem;
   border-left: 1px solid var(--tos-border-subtle);
   background: var(--tos-bg-panel);
   overflow: auto;
   min-height: 0;
+}
+
+[data-tos] .tos-right-rail .tos-panel-body {
+  padding: 0.55rem 0.65rem;
 }
 
 [data-tos] .tos-panel {
@@ -310,7 +316,274 @@
   display: grid;
   grid-template-columns: minmax(0, 0.35fr) minmax(0, 0.65fr);
   gap: 0.75rem;
-  min-height: 11rem;
+  min-height: 9.5rem;
+}
+
+/* Mockup 2×2 multi-chain grid */
+[data-tos] .tos-quad-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+[data-tos] .tos-quad {
+  border: 1px solid var(--tos-border-subtle);
+  border-radius: 0.75rem;
+  background: var(--tos-bg-panel);
+  padding: 0.65rem;
+  min-width: 0;
+}
+
+[data-tos] .tos-quad-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--tos-fs-sm);
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--tos-text-primary);
+}
+
+[data-tos] .tos-overview-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+[data-tos] .tos-leaderboard {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--tos-fs-xs);
+}
+
+[data-tos] .tos-leaderboard li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--tos-border-subtle);
+}
+
+[data-tos] .tos-lb-sym {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: 700;
+  min-width: 0;
+}
+
+[data-tos] .tos-lb-sym img {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 999px;
+}
+
+[data-tos] .tos-lb-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--tos-accent-gold);
+}
+
+/* Trader persona cards (mockup) */
+[data-tos] .tos-traders-row {
+  --tos-card-min: 9.25rem;
+}
+
+[data-tos] .tos-trader-card {
+  position: relative;
+  text-align: center;
+  padding: 0.75rem 0.6rem 0.65rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--tos-border-subtle);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tos-bg-panel-elevated) 80%, #1a2030), var(--tos-bg-panel));
+}
+
+[data-tos] .tos-trader-rank {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.45rem;
+  font-size: var(--tos-fs-xs);
+  font-weight: 800;
+  color: var(--tos-accent-gold);
+}
+
+[data-tos] .tos-trader-avatar {
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: 0.15rem auto 0.4rem;
+  border-radius: 999px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: var(--tos-fs-sm);
+  color: var(--tos-accent-gold);
+  background: var(--tos-accent-gold-dim);
+  border: 2px solid color-mix(in srgb, var(--tos-accent-gold) 45%, transparent);
+}
+
+[data-tos] .tos-trader-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+[data-tos] .tos-trader-name {
+  font-weight: 700;
+  font-size: var(--tos-fs-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-tos] .tos-trader-pnl {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin-top: 0.2rem;
+}
+
+[data-tos] .tos-trader-usd {
+  font-size: var(--tos-fs-xs);
+  color: var(--tos-text-secondary);
+}
+
+[data-tos] .tos-trader-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.25rem;
+  font-size: 0.5625rem;
+  margin-top: 0.3rem;
+  color: var(--tos-text-secondary);
+}
+
+/* Purple whale cards */
+[data-tos] .tos-whale-card {
+  padding: 0.7rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--tos-accent-purple) 35%, var(--tos-border-subtle));
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--tos-accent-purple) 14%, var(--tos-bg-panel)),
+    var(--tos-bg-panel)
+  );
+}
+
+[data-tos] .tos-whale-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+[data-tos] .tos-whale-icon {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.4rem;
+  color: var(--tos-accent-purple);
+  background: var(--tos-accent-purple-dim);
+}
+
+[data-tos] .tos-whale-title {
+  font-size: var(--tos-fs-sm);
+  font-weight: 700;
+  margin-top: 0.35rem;
+}
+
+[data-tos] .tos-whale-action {
+  font-size: var(--tos-fs-sm);
+  margin-top: 0.25rem;
+}
+
+[data-tos] .tos-whale-usd {
+  font-size: var(--tos-fs-lg);
+  font-weight: 800;
+  margin-top: 0.2rem;
+}
+
+[data-tos] .tos-whale-meta {
+  font-size: var(--tos-fs-xs);
+  color: var(--tos-text-muted);
+  margin-top: 0.2rem;
+}
+
+[data-tos] .tos-whale-badge {
+  display: inline-block;
+  margin-top: 0.45rem;
+  font-size: var(--tos-fs-xs);
+  font-weight: 800;
+  color: var(--tos-accent-purple);
+  border: 1px solid color-mix(in srgb, var(--tos-accent-purple) 40%, transparent);
+  border-radius: 999px;
+  padding: 0.12rem 0.45rem;
+}
+
+/* Token icon cards */
+[data-tos] .tos-token-card {
+  padding: 0.7rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--tos-border-subtle);
+  background: var(--tos-bg-panel);
+}
+
+[data-tos] .tos-token-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+[data-tos] .tos-token-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: var(--tos-accent-gold-dim);
+  color: var(--tos-accent-gold);
+  font-weight: 800;
+  font-size: var(--tos-fs-xs);
+  flex-shrink: 0;
+}
+
+[data-tos] .tos-token-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+[data-tos] .tos-token-sym {
+  font-weight: 800;
+  font-size: var(--tos-fs-md);
+}
+
+[data-tos] .tos-token-price {
+  font-size: var(--tos-fs-lg);
+  font-weight: 800;
+}
+
+[data-tos] .tos-token-spark {
+  margin: 0.35rem 0;
+}
+
+[data-tos] .tos-token-meta {
+  font-size: var(--tos-fs-xs);
+  color: var(--tos-text-muted);
+  line-height: 1.4;
+}
+
+[data-tos] .tos-ai-activate {
+  border: 1px solid color-mix(in srgb, var(--tos-accent-gold) 45%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tos-accent-gold) 12%, transparent);
+}
+
+[data-tos] .tos-chart-canvas {
+  border-radius: 0.5rem;
 }
 
 [data-tos] .tos-skeleton {
@@ -342,30 +615,38 @@
 
 /* Density steps — more columns of fixed-ish cards, not stretched empties */
 @media (min-width: 90rem) {
-  /* 1440+ */
   [data-tos] {
-    --tos-card-min: 11rem;
+    --tos-card-min: 10.75rem;
     --tos-gap: 0.7rem;
+  }
+  [data-tos] .tos-traders-row {
+    --tos-card-min: 8.75rem;
   }
 }
 
 @media (min-width: 120rem) {
-  /* 1920+ */
   [data-tos] {
-    --tos-card-min: 10.75rem;
+    --tos-card-min: 10.5rem;
+  }
+  [data-tos] .tos-traders-row {
+    --tos-card-min: 8.5rem;
   }
 }
 
 @media (min-width: 160rem) {
-  /* 2560 / 4K path */
   [data-tos] {
-    --tos-card-min: 10.25rem;
-    --tos-gap: 0.65rem;
+    --tos-card-min: 10rem;
+    --tos-gap: 0.6rem;
+  }
+  [data-tos] .tos-traders-row {
+    --tos-card-min: 8.15rem;
+  }
+  [data-tos] .tos-quad-grid {
+    gap: 0.65rem;
   }
 }
 
 @media (max-width: 80rem) {
-  /* <1280: collapse right rail under main; keep left icons */
   [data-tos] .tos-shell {
     grid-template-columns: 4rem minmax(0, 1fr);
     grid-template-areas:
@@ -395,6 +676,10 @@
 
   [data-tos] .tos-right-rail > * {
     flex: 1 1 18rem;
+  }
+
+  [data-tos] .tos-quad-grid {
+    grid-template-columns: 1fr;
   }
 }
 
