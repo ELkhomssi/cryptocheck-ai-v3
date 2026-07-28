@@ -403,7 +403,7 @@ export async function fetchLiveWhaleMovements(limit = 10): Promise<WhaleMovement
  */
 export async function fetchLiveTopTraders(limit = 8): Promise<TopTrader[]> {
   const lim = Math.min(Math.max(8, limit), 12)
-  return cachedJson(`tos:traders:v3:${lim}`, TOKEN_TTL, async () => {
+  return cachedJson(`tos:traders:v4:${lim}`, TOKEN_TTL, async () => {
     const body = await fetchJson<
       {
         id: string
@@ -430,8 +430,21 @@ export async function fetchLiveTopTraders(limit = 8): Promise<TopTrader[]> {
       'usds',
       'busd',
       'usdd',
+      'pyusd',
+      'usdg',
+      'usdp',
+      'gusd',
+      'lusd',
+      'frax',
+      'eurs',
+      'eurc',
     ])
-    const filtered = body.filter((c) => !STABLES.has((c.symbol || '').toLowerCase()))
+    const filtered = body.filter((c) => {
+      const sym = (c.symbol || '').toLowerCase()
+      if (STABLES.has(sym)) return false
+      if (sym.includes('usd') && sym.length <= 5) return false
+      return true
+    })
     return rankAlphaDesks(filtered.length ? filtered : body, lim)
   })
 }
