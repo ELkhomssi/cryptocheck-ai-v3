@@ -26,12 +26,16 @@ export function TradeLikeMeWidget({ compact = false }: { compact?: boolean }) {
     refreshOpportunity,
     teach,
     setAutonomyEnabled,
+    setCollectiveConsent,
     flags,
   } = useTradeLikeMeEngine()
   const [teachNote, setTeachNote] = useState('')
 
   return (
-    <section className={`tos-tlm-widget${compact ? ' tos-tlm-widget--compact' : ''}`} aria-label="Trade Like Me">
+    <section
+      className={`tos-tlm-widget${compact ? ' tos-tlm-widget--compact' : ''}`}
+      aria-label="Trade Like Me"
+    >
       <header className="tos-tlm-head">
         <div className="tos-tlm-brand">
           <span className="tos-tlm-orb" aria-hidden>
@@ -39,7 +43,9 @@ export function TradeLikeMeWidget({ compact = false }: { compact?: boolean }) {
           </span>
           <div>
             <h2 className="tos-tlm-title">Trade Like Me</h2>
-            <p className="tos-tlm-sub">Personal AI trader · learns why you trade — never copies</p>
+            <p className="tos-tlm-sub">
+              Personal AI trader · learns why you trade — never copies
+            </p>
           </div>
         </div>
         <div className="tos-tlm-status-pill" data-phase={state.phase}>
@@ -47,6 +53,23 @@ export function TradeLikeMeWidget({ compact = false }: { compact?: boolean }) {
           {state.statusLine}
         </div>
       </header>
+
+      {/* Retention strip — always visible when DNA exists */}
+      {state.dna ? (
+        <div className="tos-tlm-invest-strip">
+          <span>
+            DNA Confidence <strong className="tos-num">{state.dna.confidence}%</strong>
+          </span>
+          <span className="tos-tlm-invest-sep" />
+          <span>
+            Sample size <strong className="tos-num">{state.dna.sampleSize}</strong>
+            <span className="tos-muted">
+              {' '}
+              ({state.dna.tradeCount} trades · {state.dna.rejectionCount} rejections)
+            </span>
+          </span>
+        </div>
+      ) : null}
 
       <div className="tos-tlm-cta-row">
         <button
@@ -69,7 +92,11 @@ export function TradeLikeMeWidget({ compact = false }: { compact?: boolean }) {
         </button>
       </div>
 
-      {error ? <p className="tos-neg" style={{ fontSize: 'var(--tos-fs-sm)' }}>{error}</p> : null}
+      {error ? (
+        <p className="tos-neg" style={{ fontSize: 'var(--tos-fs-sm)' }}>
+          {error}
+        </p>
+      ) : null}
 
       <div className="tos-tlm-progress">
         <div className="tos-tlm-progress-meta">
@@ -80,9 +107,35 @@ export function TradeLikeMeWidget({ compact = false }: { compact?: boolean }) {
           <div style={{ width: `${state.learningProgressPct}%` }} />
         </div>
         <p className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)', marginTop: 6 }}>
-          Analyzing: {state.analyzing.join(' · ')}
+          Analyzing: {state.analyzing.join(' · ')} · wallet read-only (no execute permission)
         </p>
       </div>
+
+      {/* Performance Analytics — retention / autonomy proof */}
+      {state.performance ? (
+        <div className="tos-tlm-perf" data-sample={state.performance.sample ? 'true' : undefined}>
+          <p className="tos-tlm-kicker">Performance Analytics</p>
+          <p className="tos-tlm-perf-proof">{state.performance.proofLine}</p>
+          <div className="tos-tlm-perf-grid">
+            <span>
+              AI ROI <strong className="tos-num">{formatPct(state.performance.aiFollowRoiPct)}</strong>
+            </span>
+            <span>
+              Your baseline{' '}
+              <strong className="tos-num">{formatPct(state.performance.traderBaselineRoiPct)}</strong>
+            </span>
+            <span>
+              Alpha vs self{' '}
+              <strong className="tos-num tos-pos">{formatPct(state.performance.alphaVsSelfPct)}</strong>
+            </span>
+            <span>
+              Drawdown Δ{' '}
+              <strong className="tos-num">−{state.performance.drawdownImprovementPct}%</strong>
+            </span>
+          </div>
+          {state.performance.sample ? <span className="tos-wm-sample">sample model</span> : null}
+        </div>
+      ) : null}
 
       <div className="tos-tlm-body">
         <div className="tos-tlm-col">
@@ -93,18 +146,22 @@ export function TradeLikeMeWidget({ compact = false }: { compact?: boolean }) {
           ) : (
             <div className="tos-tlm-empty">
               <Waves size={20} />
-              <p>Connect wallet permission and train to build your Trader DNA.</p>
+              <p>Grant wallet read permission and train to build your Trader DNA.</p>
             </div>
           )}
         </div>
 
         <div className="tos-tlm-col tos-tlm-decision-col">
-          <div className="tos-tlm-card">
+          <div
+            className={`tos-tlm-card${state.currentOpportunity?.disagreement ? ' tos-tlm-card--disagree' : ''}`}
+          >
             <p className="tos-tlm-kicker">Current Opportunity</p>
             {state.currentOpportunity && narrative ? (
               <>
                 <div className="tos-tlm-decision-head">
-                  <span className={`tos-tlm-action ${ACTION_CLASS[state.currentOpportunity.action]}`}>
+                  <span
+                    className={`tos-tlm-action ${ACTION_CLASS[state.currentOpportunity.action]}`}
+                  >
                     {narrative.headline}
                   </span>
                   <span className="tos-tlm-conf">{narrative.confidenceLine}</span>
@@ -118,12 +175,36 @@ export function TradeLikeMeWidget({ compact = false }: { compact?: boolean }) {
                     <li key={b}>{b}</li>
                   ))}
                 </ul>
+
                 {narrative.disagreementBlock ? (
-                  <div className="tos-tlm-disagree">
-                    <Shield size={14} />
-                    <p>{narrative.disagreementBlock}</p>
+                  <div className="tos-tlm-disagree" role="status">
+                    <Shield size={16} />
+                    <div>
+                      <strong className="tos-tlm-disagree-title">AI Improves You</strong>
+                      <p>{narrative.disagreementBlock}</p>
+                      {state.currentOpportunity.disagreement?.marketDeviationCited.length ? (
+                        <p className="tos-tlm-cite">
+                          Cited:{' '}
+                          {state.currentOpportunity.disagreement.marketDeviationCited.join(' · ')}
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
                 ) : null}
+
+                {narrative.citations.length ? (
+                  <details className="tos-tlm-citations">
+                    <summary>Score citations (inspectable)</summary>
+                    <ul>
+                      {narrative.citations.map((c, i) => (
+                        <li key={`${c.field}-${i}`}>
+                          <code>{c.source}.{c.field}</code> = {String(c.value)} — {c.contribution}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : null}
+
                 <div className="tos-tlm-expect">
                   <span>{narrative.upsideLine}</span>
                   <span>{narrative.downsideLine}</span>
@@ -139,6 +220,26 @@ export function TradeLikeMeWidget({ compact = false }: { compact?: boolean }) {
               <p className="tos-muted">Train AI to score a live opportunity against your DNA.</p>
             )}
           </div>
+
+          {state.collective && state.collectiveConsent.optedIn ? (
+            <div className="tos-tlm-card tos-tlm-collective">
+              <p className="tos-tlm-kicker">Collective Intelligence</p>
+              <p style={{ fontSize: 'var(--tos-fs-sm)', margin: 0, lineHeight: 1.45 }}>
+                {state.collective.similarDnaCount > 0 ? (
+                  <>
+                    Traders with DNA similar to yours ({state.collective.similarDnaCount} anonymized)
+                    averaged{' '}
+                    <strong className="tos-pos">
+                      {formatPct(state.collective.avgOutcomePct)}
+                    </strong>{' '}
+                    on {state.collective.setupLabel} over {state.collective.holdWindowLabel}.
+                  </>
+                ) : (
+                  <>Opted in — awaiting anonymized peer sample for this setup.</>
+                )}
+              </p>
+            </div>
+          ) : null}
 
           <div className="tos-tlm-card tos-tlm-grid-2">
             <div>
@@ -183,7 +284,10 @@ export function TradeLikeMeWidget({ compact = false }: { compact?: boolean }) {
               />
               <span>Arm Autonomous Mode (user config)</span>
             </label>
-            <p className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)', marginTop: 8, lineHeight: 1.45 }}>
+            <p
+              className="tos-muted"
+              style={{ fontSize: 'var(--tos-fs-xs)', marginTop: 8, lineHeight: 1.45 }}
+            >
               {state.autonomy.blockedReason ??
                 (state.autonomy.wouldExecute
                   ? 'Would execute via risk-gated swap path'
@@ -194,8 +298,28 @@ export function TradeLikeMeWidget({ compact = false }: { compact?: boolean }) {
             </p>
             <p className="tos-tlm-next">
               Next action:{' '}
-              <strong>{state.autonomy.plannedAction ?? state.currentOpportunity?.action ?? '—'}</strong>
+              <strong>
+                {state.autonomy.plannedAction ?? state.currentOpportunity?.action ?? '—'}
+              </strong>
             </p>
+            {state.auditLog[0] ? (
+              <p className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)', marginTop: 6 }}>
+                Audit: {state.auditLog[0].at.slice(11, 19)} · {state.auditLog[0].plannedAction} · DNA
+                conf {state.auditLog[0].dnaSnapshot.confidence}%
+              </p>
+            ) : null}
+          </div>
+
+          <div className="tos-tlm-card">
+            <p className="tos-tlm-kicker">Collective Intelligence (opt-in)</p>
+            <label className="tos-tlm-auto-row">
+              <input
+                type="checkbox"
+                checked={state.collectiveConsent.optedIn}
+                onChange={(e) => setCollectiveConsent(e.target.checked)}
+              />
+              <span>Share anonymized style vectors (never wallet / trades)</span>
+            </label>
           </div>
 
           <div className="tos-tlm-card">

@@ -111,6 +111,14 @@ export function useTradeLikeMeEngine() {
     [sync],
   )
 
+  const setCollectiveConsent = useCallback(
+    (optedIn: boolean) => {
+      orchRef.current.setCollectiveConsent(optedIn)
+      sync()
+    },
+    [sync],
+  )
+
   return {
     state,
     narrative,
@@ -120,6 +128,7 @@ export function useTradeLikeMeEngine() {
     refreshOpportunity,
     teach,
     setAutonomyEnabled,
+    setCollectiveConsent,
     flags,
   }
 }

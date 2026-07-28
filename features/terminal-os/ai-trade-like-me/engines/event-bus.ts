@@ -1,11 +1,23 @@
 /**
- * Lightweight in-process event bus for Trade Like Me engines.
- * UI subscribes; engines publish. No business logic here.
+ * Event bus V2 — typed publish/subscribe.
+ * Engines never call each other's internals; only events.
  */
 
 import type { TlmEvent, TlmEventType } from '../types'
 
 type Handler = (event: TlmEvent) => void
+
+const LEGACY_MAP: Partial<Record<TlmEventType, TlmEventType>> = {
+  TradeRecorded: 'tlm.trade.recorded',
+  DNAUpdated: 'tlm.dna.updated',
+  OpportunityScored: 'tlm.opportunity.scored',
+  DecisionMade: 'tlm.decision.made',
+  ExecutionBlocked: 'tlm.autonomy.blocked',
+  SessionStarted: 'tlm.session.started',
+  SessionStopped: 'tlm.session.stopped',
+  TeachNote: 'tlm.teach.note',
+  AnalyticsUpdated: 'tlm.analytics.updated',
+}
 
 export class TlmEventBus {
   private handlers = new Map<TlmEventType | '*', Set<Handler>>()
@@ -17,10 +29,13 @@ export class TlmEventBus {
       payload,
       source,
     }
-    const specific = this.handlers.get(type)
-    const all = this.handlers.get('*')
-    specific?.forEach((h) => h(event as TlmEvent))
-    all?.forEach((h) => h(event as TlmEvent))
+    const deliver = (t: TlmEventType | '*') => {
+      this.handlers.get(t)?.forEach((h) => h(event as TlmEvent))
+    }
+    deliver(type)
+    deliver('*')
+    const legacy = LEGACY_MAP[type]
+    if (legacy) deliver(legacy)
     return event
   }
 

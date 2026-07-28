@@ -1,15 +1,15 @@
 /**
- * Behavioral Learning Engine — records trades + context.
- * Learns WHY entered / exited, HOW risk managed — never copies trades.
+ * Behavioral Learning Engine V2 — records trades + rejected opportunities.
+ * Read-permission only at train stage (never write/execute).
  */
 
 import type { CapturedTrade } from '../types'
 import type { TlmEventBus } from './event-bus'
 
-const MIN_TRADES_FOR_DNA = 8
+const MIN_SAMPLES_FOR_DNA = 8
 
 export function getMinTradesForDna(): number {
-  return MIN_TRADES_FOR_DNA
+  return MIN_SAMPLES_FOR_DNA
 }
 
 export class BehavioralLearningEngine {
@@ -22,14 +22,15 @@ export class BehavioralLearningEngine {
   startRecording(wallet: string) {
     this.wallet = wallet
     this.recording = true
+    this.bus.publish('SessionStarted', { wallet, permission: 'read_only' }, 'BehavioralLearningEngine')
     this.bus.publish('tlm.session.started', { wallet }, 'BehavioralLearningEngine')
   }
 
   stopRecording() {
     this.recording = false
     this.bus.publish(
-      'tlm.session.stopped',
-      { wallet: this.wallet, tradeCount: this.trades.size },
+      'SessionStopped',
+      { wallet: this.wallet, sampleSize: this.trades.size },
       'BehavioralLearningEngine',
     )
   }
@@ -45,7 +46,19 @@ export class BehavioralLearningEngine {
   recordTrade(trade: CapturedTrade) {
     if (this.wallet && trade.wallet !== this.wallet) return
     this.trades.set(trade.id, trade)
-    this.bus.publish('tlm.trade.recorded', { id: trade.id, side: trade.side }, 'BehavioralLearningEngine')
+    if (trade.wasRejectedOpportunity) {
+      this.bus.publish(
+        'RejectionRecorded',
+        { id: trade.id, reason: trade.rejectionReasonInferred ?? null },
+        'BehavioralLearningEngine',
+      )
+    } else {
+      this.bus.publish(
+        'TradeRecorded',
+        { id: trade.id, side: trade.side, symbol: trade.token.symbol },
+        'BehavioralLearningEngine',
+      )
+    }
   }
 
   recordMany(trades: CapturedTrade[]) {
@@ -53,7 +66,7 @@ export class BehavioralLearningEngine {
   }
 
   teachNote(note: string) {
-    this.bus.publish('tlm.teach.note', { note, wallet: this.wallet }, 'BehavioralLearningEngine')
+    this.bus.publish('TeachNote', { note, wallet: this.wallet }, 'BehavioralLearningEngine')
   }
 
   listTrades(): CapturedTrade[] {
@@ -65,11 +78,11 @@ export class BehavioralLearningEngine {
   learningProgressPct(): number {
     const n = this.trades.size
     if (n === 0) return 0
-    return Math.min(100, Math.round((n / MIN_TRADES_FOR_DNA) * 100))
+    return Math.min(100, Math.round((n / MIN_SAMPLES_FOR_DNA) * 100))
   }
 
   hasSufficientHistory(): boolean {
-    return this.trades.size >= MIN_TRADES_FOR_DNA
+    return this.trades.size >= MIN_SAMPLES_FOR_DNA
   }
 
   hydrate(trades: CapturedTrade[], wallet: string | null) {

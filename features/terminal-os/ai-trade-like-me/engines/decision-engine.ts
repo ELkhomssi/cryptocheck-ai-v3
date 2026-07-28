@@ -1,15 +1,20 @@
 /**
- * Decision Engine — combines Trader DNA + Market Intel + Predictions.
- * Philosophy: improve the trader, do not imitate blindly.
+ * Decision Engine V2 — inspectable sub-scores + computeConfidence.
+ * Cosine similarity for behaviorMatch. LLM never generates confidence.
  */
 
 import type {
-  DecisionScores,
+  DisagreementCheck,
   ExplainableDecision,
-  MarketIntelSnapshot,
+  MarketContext,
+  OpportunityScore,
+  ScoreCitation,
   TlmDecisionAction,
   TraderDna,
+  UserWeightPrefs,
 } from '../types'
+import { DEFAULT_WEIGHT_PREFS } from '../types'
+import { computeConfidence, cosineSimilarity } from '../lib/scoring'
 import { predictOpportunity } from './prediction-engine'
 import type { TlmEventBus } from './event-bus'
 
@@ -17,23 +22,22 @@ function clamp(n: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, n))
 }
 
-function behaviorMatch(dna: TraderDna | null, intel: MarketIntelSnapshot): number {
-  if (!dna) return 35
-  let score = 40
-  if (dna.favoriteChains.some((c) => c.chain === intel.chain)) score += 12
-  if (dna.styles.some((s) => s.tag === 'whale_follower') && intel.whaleBias === 'accumulating') {
-    score += 18
+function dnaConditionVector(dna: TraderDna | null): Record<string, number> {
+  if (!dna) return {}
+  const v: Record<string, number> = {}
+  for (const c of dna.entryConditionProfile) {
+    if (c.field === 'whaleActivityScore') v.whaleActivityScore = c.value
+    if (c.field === 'volumeToLiquidityRatio') v.volumeToLiquidityRatio = clamp(c.value * 10, 0, 100)
   }
-  if (dna.styles.some((s) => s.tag === 'momentum') && intel.orderFlowBias === 'buy') score += 14
-  if (dna.styles.some((s) => s.tag === 'liquidity_hunter') && intel.liquidityTrend === 'increasing') {
-    score += 12
-  }
-  if (dna.riskAppetite === 'conservative' && intel.riskScore > 55) score -= 20
-  if (dna.riskAppetite === 'degen' && intel.volatilityPct > 10) score += 8
-  return clamp(score, 5, 98)
+  v.tokenScore = 50 + dna.winRatePct * 0.3
+  v.riskScore = 100 - dna.riskAppetite
+  v.liquidityRising = dna.styleVector.liquidityHunter * 100
+  v.socialMomentum = dna.styleVector.narrativeTrader * 80 + 20
+  v.volatility24h = dna.styleVector.scalper * 40 + dna.styleVector.momentum * 30
+  return v
 }
 
-function marketQuality(intel: MarketIntelSnapshot): number {
+function marketQuality(intel: MarketContext): number {
   return clamp(
     intel.tokenScore * 0.35 +
       intel.smartMoneyScore * 0.25 +
@@ -45,113 +49,247 @@ function marketQuality(intel: MarketIntelSnapshot): number {
   )
 }
 
+function inferUserWouldTypically(dna: TraderDna | null, intel: MarketContext): TlmDecisionAction {
+  if (!dna) return 'DO_NOTHING'
+  const bm = cosineSimilarity(dnaConditionVector(dna), intel.conditionVector)
+  if (dna.styleVector.whaleFollower > 0.2 && intel.whaleBias === 'accumulating') return 'BUY'
+  if (dna.styleVector.momentum > 0.25 && intel.orderFlowBias === 'buy' && bm >= 50) return 'BUY'
+  if (intel.whaleBias === 'distributing' && dna.styleVector.whaleFollower > 0.15) return 'BUY' // habit FOMO
+  if (bm >= 60 && intel.orderFlowBias !== 'sell') return 'BUY'
+  return 'DO_NOTHING'
+}
+
+export function buildDisagreement(
+  userWould: TlmDecisionAction,
+  aiAction: TlmDecisionAction,
+  intel: MarketContext,
+  teachRules: string[] = [],
+): DisagreementCheck | null {
+  if (userWould === aiAction) return null
+  if (userWould === 'DO_NOTHING' && aiAction === 'WAIT') return null
+
+  const deviations: string[] = []
+  if (intel.whaleBias === 'distributing') {
+    deviations.push('MarketContext.whaleBias=distributing')
+  }
+  if (intel.liquidityTrend === 'decreasing') {
+    deviations.push('MarketContext.liquidityTrend=decreasing')
+  }
+  if (intel.securityBand === 'danger' || intel.securityBand === 'caution') {
+    deviations.push(`MarketContext.securityBand=${intel.securityBand}`)
+  }
+
+  if (!deviations.length && userWould === aiAction) return null
+
+  const overrideReason =
+    userWould === 'BUY' && aiAction === 'WAIT'
+      ? `Normally you would BUY here, however live market context shows ${deviations.join(', ') || 'elevated risk'} — AI recommends WAIT.`
+      : userWould === 'SELL' && aiAction === 'WAIT'
+        ? `Normally you might SELL now, however prediction upside remains — AI recommends HOLD/WAIT.`
+        : `AI overrides typical ${userWould} → ${aiAction} citing ${deviations.join(', ') || 'risk engine'}.`
+
+  const requiresAck =
+    teachRules.length > 0 &&
+    teachRules.some((r) => r.toLowerCase().includes('never') || r.toLowerCase().includes('always'))
+
+  return {
+    userWouldTypically: userWould,
+    aiRecommends: aiAction,
+    overrideReason,
+    overrideConfidence: clamp(70 + deviations.length * 8, 60, 95),
+    requiresExplicitUserAck: requiresAck,
+    marketDeviationCited: deviations,
+  }
+}
+
 export function decide(
   dna: TraderDna | null,
-  intel: MarketIntelSnapshot,
-  opts?: { hasOpenPosition?: boolean },
+  intel: MarketContext,
+  opts?: {
+    hasOpenPosition?: boolean
+    weightPrefs?: UserWeightPrefs
+    teachRules?: string[]
+    collectiveBoostPct?: number
+  },
 ): ExplainableDecision {
+  const prefs = opts?.weightPrefs ?? DEFAULT_WEIGHT_PREFS
   const pred = predictOpportunity(dna, intel)
-  const bm = behaviorMatch(dna, intel)
+  const citations: ScoreCitation[] = []
+
+  const behaviorMatch = dna
+    ? cosineSimilarity(dnaConditionVector(dna), intel.conditionVector)
+    : 35
+  citations.push({
+    source: 'TraderDNA',
+    field: 'entryConditionProfile',
+    value: behaviorMatch,
+    contribution: `cosine similarity ${behaviorMatch}% vs entry profile`,
+  })
+
   const mq = marketQuality(intel)
+  citations.push({
+    source: 'MarketContext',
+    field: 'tokenScore+smartMoney+volume',
+    value: Math.round(mq),
+    contribution: 'market quality composite',
+  })
+
   const risk = intel.riskScore
   const executionQuality = clamp(
-    70 -
-      (intel.volatilityPct > 20 ? 15 : 0) +
-      (intel.liquidityTrend === 'increasing' ? 10 : 0),
+    70 - (intel.volatilityPct > 20 ? 15 : 0) + (intel.liquidityTrend === 'increasing' ? 10 : 0),
     20,
     95,
   )
 
-  const scores: DecisionScores = {
-    behaviorMatch: Math.round(bm),
-    marketQuality: Math.round(mq),
-    risk: Math.round(risk),
-    probability: pred.probability,
-    expectedRoiPct: pred.expectedRoiPct,
-    expectedDrawdownPct: pred.expectedDrawdownPct,
-    confidence: Math.round(
-      clamp(bm * 0.35 + mq * 0.35 + pred.probability * 0.2 + (dna?.confidenceScore ?? 30) * 0.1, 8, 97),
-    ),
-    timing: pred.timing,
-    executionQuality: Math.round(executionQuality),
+  let probability = pred.probability
+  if (opts?.collectiveBoostPct != null) {
+    probability = clamp(probability + opts.collectiveBoostPct * 0.3, 18, 92)
+    citations.push({
+      source: 'Collective',
+      field: 'similarDnaAvgOutcome',
+      value: opts.collectiveBoostPct,
+      contribution: 'anonymized peer cluster boost (opt-in)',
+    })
   }
 
+  const confidence = computeConfidence(
+    {
+      behaviorMatch,
+      marketQuality: mq,
+      probability,
+      timing: pred.timing,
+      executionQuality,
+      risk,
+    },
+    prefs,
+  )
+  citations.push({
+    source: 'Weights',
+    field: 'computeConfidence',
+    value: confidence,
+    contribution: `prefs bm=${prefs.behaviorMatch} mq=${prefs.marketQuality} riskPenalty=${prefs.riskPenalty}`,
+  })
+
+  const opportunity: OpportunityScore = {
+    behaviorMatch: Math.round(behaviorMatch),
+    marketQuality: Math.round(mq),
+    risk: Math.round(risk),
+    probability,
+    expectedRoiPct: pred.expectedRoiPct,
+    expectedDrawdownPct: pred.expectedDrawdownPct,
+    timing: pred.timing,
+    executionQuality: Math.round(executionQuality),
+    confidence,
+    action: 'DO_NOTHING',
+    citations,
+  }
+
+  const userWould = inferUserWouldTypically(dna, intel)
   const reasons: string[] = []
-  const disagreements: string[] = []
   let action: TlmDecisionAction = 'DO_NOTHING'
   let improvesTrader = false
+  let disagreement: DisagreementCheck | null = null
 
-  const habitBuy =
-    bm >= 55 ||
-    Boolean(
-      dna?.styles.some((s) => s.tag === 'whale_follower' || s.tag === 'momentum' || s.tag === 'breakout'),
-    )
-
-  // Security veto
   if (intel.securityBand === 'danger' || risk >= 78) {
     action = opts?.hasOpenPosition ? 'EXIT' : 'DO_NOTHING'
-    reasons.push('Security / risk engine flags elevated danger — capital protection first.')
-    improvesTrader = true
-  } else if (intel.whaleBias === 'distributing' && habitBuy) {
-    // Adaptive disagreement: user style says buy, whales distributing
-    action = 'WAIT'
-    disagreements.push(
-      'Normally you would buy here (high behavior match), however whales are distributing and liquidity quality is softening.',
+    reasons.push(
+      `Security band ${intel.securityBand} · riskScore ${risk} — capital protection first (MarketContext.riskScore).`,
     )
-    reasons.push('AI recommends waiting — improve entry, do not imitate FOMO.')
     improvesTrader = true
+  } else if (intel.whaleBias === 'distributing' && userWould === 'BUY') {
+    action = 'WAIT'
+    improvesTrader = true
+    disagreement = buildDisagreement(userWould, action, intel, opts?.teachRules)
+    reasons.push(
+      `Behavior match ${behaviorMatch}% would typically BUY — overridden by MarketContext.whaleBias=distributing.`,
+    )
+    reasons.push('AI recommends waiting — improve the trader, do not imitate FOMO.')
   } else if (
     opts?.hasOpenPosition &&
     pred.expectedRoiPct >= 12 &&
     intel.whaleBias !== 'distributing' &&
-    bm >= 55
+    behaviorMatch >= 55
   ) {
     action = 'WAIT'
-    disagreements.push(
-      `Normally you might sell now. AI predicts another ~+${pred.expectedRoiPct}% upside with acceptable risk.`,
-    )
-    reasons.push('Recommendation: Hold Position — AI improves the trader, not copies exits.')
     improvesTrader = true
+    disagreement = buildDisagreement('SELL', action, intel, opts?.teachRules)
+    reasons.push(
+      `Hold: expectedROI +${pred.expectedRoiPct}% still open (PredictionEngine) vs your typical early exit.`,
+    )
   } else if (
-    scores.confidence >= 72 &&
-    bm >= 65 &&
-    mq >= 58 &&
+    confidence >= 72 &&
+    behaviorMatch >= 60 &&
+    mq >= 55 &&
     risk < 60 &&
     intel.whaleBias !== 'distributing' &&
     pred.expectedRoiPct > 4
   ) {
     action = 'BUY'
+    const holdH = dna ? (dna.avgHoldingMs / 3_600_000).toFixed(1) : '?'
     reasons.push(
-      `This opportunity matches ${bm}% of your historical behavior.`,
+      `Matches ${behaviorMatch}% of your historical high-conviction entries (TraderDNA.entryConditionProfile).`,
     )
-    if (intel.whaleBias === 'accumulating') reasons.push('Whales accumulated.')
-    if (intel.liquidityTrend === 'increasing') reasons.push('Liquidity increasing.')
-    if (intel.walletQuality >= 60) reasons.push('Holder quality improving.')
-    reasons.push('Risk acceptable relative to your loss tolerance.')
+    if (intel.whaleBias === 'accumulating') {
+      reasons.push('Whales accumulated (MarketContext.whaleBias=accumulating).')
+    }
+    if (intel.liquidityTrend === 'increasing') {
+      reasons.push('Liquidity increasing (MarketContext.liquidityTrend).')
+    }
+    reasons.push(
+      `Your typical hold window ~${holdH}h (TraderDNA.avgHoldingMs=${dna?.avgHoldingMs ?? 0}).`,
+    )
+    if (dna && dna.riskAppetite < 50 && risk > 40) {
+      reasons.push(
+        `Deviation flag: risk band ${risk} vs your riskAppetite ${dna.riskAppetite}/100.`,
+      )
+    }
+    citations.push({
+      source: 'TraderDNA',
+      field: 'confidence',
+      value: dna?.confidence ?? 0,
+      contribution: 'DNA retention confidence',
+    })
   } else if (opts?.hasOpenPosition && (intel.whaleBias === 'distributing' || risk >= 65)) {
     action = 'SELL'
-    reasons.push('Exit signal: distribution / risk rising vs your discipline profile.')
+    reasons.push('Exit: distribution / risk rising vs discipline profile.')
   } else if (mq < 45 || risk >= 65) {
     action = 'WAIT'
-    reasons.push('Market quality or risk not yet aligned — patience preserves edge.')
+    reasons.push('Market quality or risk not aligned — patience preserves edge.')
   } else {
     action = 'DO_NOTHING'
-    reasons.push('No clear edge vs your DNA + live intelligence composite.')
+    reasons.push('No clear edge vs TraderDNA × MarketContext composite.')
+  }
+
+  opportunity.action = action
+  if (!disagreement && improvesTrader) {
+    disagreement = buildDisagreement(userWould, action, intel, opts?.teachRules)
   }
 
   const summary =
     action === 'BUY'
-      ? `BUY · Confidence ${scores.confidence}% · Est. upside +${pred.expectedRoiPct}%`
-      : action === 'WAIT' && improvesTrader
-        ? `WAIT · AI overrides typical habit to protect / improve outcome`
-        : `${action} · Confidence ${scores.confidence}%`
+      ? `BUY · Confidence ${confidence}% · Est. upside +${pred.expectedRoiPct}%`
+      : disagreement
+        ? `${action} · AI override · ${disagreement.overrideConfidence}%`
+        : `${action} · Confidence ${confidence}%`
 
-  return {
+  const decision: ExplainableDecision = {
     id: `dec-${intel.tokenSymbol}-${Date.now()}`,
     action,
-    scores,
+    scores: {
+      behaviorMatch: opportunity.behaviorMatch,
+      marketQuality: opportunity.marketQuality,
+      risk: opportunity.risk,
+      probability: opportunity.probability,
+      expectedRoiPct: opportunity.expectedRoiPct,
+      expectedDrawdownPct: opportunity.expectedDrawdownPct,
+      confidence,
+      timing: opportunity.timing,
+      executionQuality: opportunity.executionQuality,
+    },
+    opportunity,
     reasons,
-    disagreements,
+    disagreements: disagreement ? [disagreement.overrideReason] : [],
+    disagreement,
     estimatedUpsidePct: pred.expectedRoiPct,
     estimatedDownsidePct: pred.expectedDrawdownPct,
     tokenSymbol: intel.tokenSymbol,
@@ -159,7 +297,10 @@ export function decide(
     madeAt: new Date().toISOString(),
     improvesTrader,
     summary,
+    citations,
   }
+
+  return decision
 }
 
 export class DecisionEngine {
@@ -167,20 +308,28 @@ export class DecisionEngine {
 
   evaluate(
     dna: TraderDna | null,
-    intel: MarketIntelSnapshot,
-    opts?: { hasOpenPosition?: boolean },
+    intel: MarketContext,
+    opts?: Parameters<typeof decide>[2],
   ): ExplainableDecision {
     const decision = decide(dna, intel, opts)
     this.bus.publish(
-      'tlm.decision.made',
-      { action: decision.action, confidence: decision.scores.confidence, id: decision.id },
+      'OpportunityScored',
+      { token: intel.tokenSymbol, opportunity: decision.opportunity },
       'DecisionEngine',
     )
     this.bus.publish(
-      'tlm.opportunity.scored',
-      { token: intel.tokenSymbol, scores: decision.scores },
+      'DecisionMade',
+      {
+        action: decision.action,
+        confidence: decision.scores.confidence,
+        id: decision.id,
+        improvesTrader: decision.improvesTrader,
+      },
       'DecisionEngine',
     )
+    if (decision.disagreement) {
+      this.bus.publish('DisagreementRaised', decision.disagreement, 'DecisionEngine')
+    }
     return decision
   }
 }

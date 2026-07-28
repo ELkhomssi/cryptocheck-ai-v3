@@ -1671,3 +1671,183 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Trade Like Me V2 — retention, disagreement, analytics */
+[data-tos] .tos-tlm-invest-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--tos-accent-gold) 40%, transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--tos-accent-gold) 12%, transparent), transparent);
+  font-size: var(--tos-fs-sm);
+  color: var(--tos-text-secondary);
+}
+
+[data-tos] .tos-tlm-invest-strip strong {
+  color: var(--tos-accent-gold-bright, var(--tos-accent-gold));
+  font-size: var(--tos-fs-md);
+}
+
+[data-tos] .tos-tlm-invest-sep {
+  width: 1px;
+  height: 1.1rem;
+  background: var(--tos-border-subtle);
+}
+
+[data-tos] .tos-tlm-retention {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+}
+
+[data-tos] .tos-tlm-retention-card {
+  border: 1px solid color-mix(in srgb, var(--tos-accent-gold) 35%, var(--tos-border-subtle));
+  border-radius: 0.55rem;
+  padding: 0.65rem;
+  background: radial-gradient(ellipse at top, color-mix(in srgb, var(--tos-accent-gold) 10%, transparent), #0a0a0a);
+}
+
+[data-tos] .tos-tlm-retention-label {
+  display: block;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tos-accent-gold);
+  margin-bottom: 0.25rem;
+}
+
+[data-tos] .tos-tlm-retention-value {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--tos-accent-gold-bright, var(--tos-accent-gold));
+  text-shadow: 0 0 18px color-mix(in srgb, var(--tos-accent-gold) 35%, transparent);
+}
+
+[data-tos] .tos-tlm-retention-bar {
+  height: 0.35rem;
+  border-radius: 999px;
+  background: var(--tos-border-subtle);
+  overflow: hidden;
+  margin: 0.4rem 0;
+}
+
+[data-tos] .tos-tlm-retention-bar > i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #8a7020, var(--tos-accent-gold));
+}
+
+[data-tos] .tos-tlm-retention-hint {
+  margin: 0;
+  font-size: 0.5625rem;
+  color: var(--tos-text-muted);
+  line-height: 1.35;
+}
+
+[data-tos] .tos-tlm-retention-meta {
+  margin: 0.2rem 0 0.35rem;
+  font-size: var(--tos-fs-xs);
+  color: var(--tos-text-secondary);
+}
+
+[data-tos] .tos-tlm-perf {
+  margin-bottom: 0.85rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 0.55rem;
+  border: 1px solid var(--tos-border-subtle);
+  background: color-mix(in srgb, #111 85%, transparent);
+}
+
+[data-tos] .tos-tlm-perf-proof {
+  margin: 0 0 0.55rem;
+  font-size: var(--tos-fs-sm);
+  line-height: 1.45;
+  color: var(--tos-text-primary);
+  font-weight: 600;
+}
+
+[data-tos] .tos-tlm-perf-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+  font-size: var(--tos-fs-xs);
+  color: var(--tos-text-secondary);
+}
+
+[data-tos] .tos-tlm-card--disagree {
+  border-color: color-mix(in srgb, var(--tos-warning) 55%, var(--tos-border-subtle));
+  box-shadow: 0 0 24px color-mix(in srgb, var(--tos-warning) 18%, transparent);
+}
+
+[data-tos] .tos-tlm-disagree {
+  display: flex;
+  gap: 0.55rem;
+  padding: 0.65rem 0.7rem;
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--tos-warning) 50%, transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--tos-warning) 14%, transparent), transparent);
+  color: var(--tos-warning);
+  font-size: var(--tos-fs-xs);
+  line-height: 1.45;
+  margin-bottom: 0.65rem;
+  animation: tos-tlm-in 0.25s ease-out;
+}
+
+[data-tos] .tos-tlm-disagree-title {
+  display: block;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.5625rem;
+  margin-bottom: 0.25rem;
+}
+
+[data-tos] .tos-tlm-disagree p { margin: 0; }
+
+[data-tos] .tos-tlm-cite {
+  margin-top: 0.35rem !important;
+  opacity: 0.85;
+  font-family: var(--tos-mono);
+  font-size: 0.5rem;
+}
+
+[data-tos] .tos-tlm-citations {
+  margin-bottom: 0.65rem;
+  font-size: var(--tos-fs-xs);
+  color: var(--tos-text-muted);
+}
+
+[data-tos] .tos-tlm-citations summary {
+  cursor: pointer;
+  color: var(--tos-accent-gold);
+  font-weight: 700;
+}
+
+[data-tos] .tos-tlm-citations ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1rem;
+  line-height: 1.4;
+}
+
+[data-tos] .tos-tlm-citations code {
+  font-family: var(--tos-mono);
+  color: var(--tos-text-secondary);
+}
+
+[data-tos] .tos-tlm-collective {
+  border-color: color-mix(in srgb, var(--tos-accent-blue) 35%, var(--tos-border-subtle));
+}
+
+@media (max-width: 64rem) {
+  [data-tos] .tos-tlm-retention {
+    grid-template-columns: 1fr;
+  }
+  [data-tos] .tos-tlm-perf-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

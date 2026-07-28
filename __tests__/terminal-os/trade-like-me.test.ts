@@ -1,147 +1,183 @@
 /**
- * Trade Like Me engine unit tests — pure logic, no UI.
+ * Trade Like Me V2 engine tests.
  * Run: node --import tsx --test __tests__/terminal-os/trade-like-me.test.ts
  */
 
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildTraderDna, classifyTradingStyles } from '../../features/terminal-os/ai-trade-like-me/engines/trader-dna-engine'
+import {
+  buildTraderDna,
+  computeStyleVector,
+} from '../../features/terminal-os/ai-trade-like-me/engines/trader-dna-engine'
 import { decide } from '../../features/terminal-os/ai-trade-like-me/engines/decision-engine'
 import { explainDecision } from '../../features/terminal-os/ai-trade-like-me/engines/explainable-engine'
 import { AutonomousExecutionEngine } from '../../features/terminal-os/ai-trade-like-me/engines/autonomous-execution-engine'
 import { TlmEventBus } from '../../features/terminal-os/ai-trade-like-me/engines/event-bus'
 import { buildSampleTradeHistory } from '../../features/terminal-os/ai-trade-like-me/lib/sample-trade-history'
 import { TradeLikeMeOrchestrator } from '../../features/terminal-os/ai-trade-like-me/engines/orchestrator'
-import type { MarketIntelSnapshot } from '../../features/terminal-os/ai-trade-like-me/types'
+import { computeConfidence, cosineSimilarity } from '../../features/terminal-os/ai-trade-like-me/lib/scoring'
+import {
+  contributeAnonymized,
+  queryCollectiveSignal,
+  __resetCollectiveClustersForTests,
+} from '../../features/terminal-os/ai-trade-like-me/engines/collective-intelligence-engine'
+import { buildPerformanceReport } from '../../features/terminal-os/ai-trade-like-me/engines/performance-analytics-engine'
+import type { MarketContext } from '../../features/terminal-os/ai-trade-like-me/types'
 
-describe('Trade Like Me engines', () => {
-  it('builds Trader DNA with styles and sample tag', () => {
+function baseIntel(over: Partial<MarketContext> = {}): MarketContext {
+  return {
+    tokenSymbol: 'WIF',
+    chain: 'solana',
+    whaleBias: 'accumulating',
+    liquidityTrend: 'increasing',
+    smartMoneyScore: 80,
+    walletQuality: 75,
+    tokenScore: 82,
+    securityBand: 'good',
+    riskScore: 32,
+    newsSentiment: 60,
+    marketSentiment: 62,
+    orderFlowBias: 'buy',
+    volumeScore: 78,
+    volatilityPct: 12,
+    volumeToLiquidityRatio: 5,
+    whaleActivityScore: 78,
+    predictionUpsidePct: 18,
+    conditionVector: {
+      whaleActivityScore: 78,
+      volumeToLiquidityRatio: 50,
+      tokenScore: 82,
+      riskScore: 68,
+      volatility24h: 12,
+      socialMomentum: 70,
+      newsSentiment: 60,
+      liquidityRising: 80,
+    },
+    sources: ['test'],
+    fetchedAt: new Date().toISOString(),
+    ...over,
+  }
+}
+
+describe('Trade Like Me V2', () => {
+  it('builds DNA with style vector summing to ~1 and sampleSize including rejections', () => {
     const trades = buildSampleTradeHistory('wallet-test')
     const dna = buildTraderDna('wallet-test', trades)
     assert.equal(dna.sample, true)
-    assert.ok(dna.tradeCount >= 8)
-    assert.ok(dna.styles.length >= 1)
-    assert.ok(dna.confidenceScore > 0)
-    assert.ok(dna.winRatePct >= 0)
-    const styles = classifyTradingStyles(trades)
-    assert.ok(styles.every((s) => s.weight >= 8))
+    assert.ok(dna.sampleSize >= 10)
+    assert.ok(dna.rejectionCount >= 2)
+    assert.ok(dna.confidence > 0)
+    assert.equal(dna.confidenceScore, dna.confidence)
+    const v = computeStyleVector(trades)
+    const sum = Object.values(v).reduce((a, b) => a + b, 0)
+    assert.ok(Math.abs(sum - 1) < 0.02)
   })
 
-  it('produces explainable BUY/WAIT decisions — never black box', () => {
+  it('computeConfidence is inspectable and not an LLM black box', () => {
+    const c = computeConfidence({
+      behaviorMatch: 90,
+      marketQuality: 80,
+      probability: 75,
+      timing: 70,
+      executionQuality: 80,
+      risk: 30,
+    })
+    assert.ok(c >= 50 && c <= 97)
+    const sim = cosineSimilarity({ a: 1, b: 0 }, { a: 1, b: 0 })
+    assert.equal(sim, 100)
+  })
+
+  it('explanations cite TraderDNA / MarketContext fields', () => {
     const trades = buildSampleTradeHistory('w')
     const dna = buildTraderDna('w', trades)
-    const intel: MarketIntelSnapshot = {
-      tokenSymbol: 'WIF',
-      chain: 'solana',
-      whaleBias: 'accumulating',
-      liquidityTrend: 'increasing',
-      smartMoneyScore: 80,
-      walletQuality: 75,
-      tokenScore: 82,
-      securityBand: 'good',
-      riskScore: 32,
-      newsSentiment: 60,
-      marketSentiment: 62,
-      orderFlowBias: 'buy',
-      volumeScore: 78,
-      volatilityPct: 12,
-      predictionUpsidePct: 18,
-      sources: ['test'],
-      fetchedAt: new Date().toISOString(),
-    }
-    const d = decide(dna, intel)
-    assert.ok(['BUY', 'WAIT', 'SELL', 'EXIT', 'DO_NOTHING'].includes(d.action))
+    const d = decide(dna, baseIntel())
+    assert.ok(d.citations.length >= 1)
     assert.ok(d.reasons.length >= 1)
-    assert.ok(d.scores.confidence > 0)
     const n = explainDecision(d)
-    assert.equal(n.headline, d.action)
+    assert.ok(n.citations.length >= 1)
     assert.match(n.confidenceLine, /Confidence/)
-    assert.ok(n.footer.includes('Not financial advice'))
   })
 
-  it('disagrees with trader when whales distribute despite behavior match', () => {
+  it('raises visually-distinct disagreement when whales distribute', () => {
     const trades = buildSampleTradeHistory('w')
     const dna = buildTraderDna('w', trades)
-    const intel: MarketIntelSnapshot = {
-      tokenSymbol: 'BONK',
-      chain: 'solana',
-      whaleBias: 'distributing',
-      liquidityTrend: 'decreasing',
-      smartMoneyScore: 40,
-      walletQuality: 50,
-      tokenScore: 55,
-      securityBand: 'caution',
-      riskScore: 48,
-      newsSentiment: 40,
-      marketSentiment: 38,
-      orderFlowBias: 'sell',
-      volumeScore: 60,
-      volatilityPct: 20,
-      predictionUpsidePct: -5,
-      sources: ['test'],
-      fetchedAt: new Date().toISOString(),
-    }
-    // Force high behavior match path via whale_follower DNA — still WAIT
-    dna.styles = [{ tag: 'whale_follower', weight: 80 }, { tag: 'momentum', weight: 20 }]
-    dna.favoriteChains = [{ chain: 'solana', weight: 100 }]
-    const d = decide(dna, intel)
+    dna.styleVector.whaleFollower = 0.4
+    dna.styleVector.momentum = 0.3
+    const d = decide(dna, baseIntel({ whaleBias: 'distributing', liquidityTrend: 'decreasing' }))
     assert.equal(d.action, 'WAIT')
     assert.equal(d.improvesTrader, true)
-    assert.ok(d.disagreements.length >= 1)
+    assert.ok(d.disagreement)
+    assert.ok(d.disagreement!.marketDeviationCited.length >= 1)
   })
 
-  it('blocks autonomy when feature flags are OFF', () => {
+  it('blocks autonomy and writes audit log', () => {
     const bus = new TlmEventBus()
     const auto = new AutonomousExecutionEngine(bus)
     auto.updateConfig({ enabled: true, confidenceThreshold: 50 })
     const trades = buildSampleTradeHistory('w')
     const dna = buildTraderDna('w', trades)
-    const intel: MarketIntelSnapshot = {
-      tokenSymbol: 'SOL',
-      chain: 'solana',
-      whaleBias: 'accumulating',
-      liquidityTrend: 'increasing',
-      smartMoneyScore: 70,
-      walletQuality: 80,
-      tokenScore: 90,
-      securityBand: 'excellent',
-      riskScore: 20,
-      newsSentiment: 60,
-      marketSentiment: 65,
-      orderFlowBias: 'buy',
-      volumeScore: 85,
-      volatilityPct: 3,
-      predictionUpsidePct: 8,
-      sources: ['test'],
-      fetchedAt: new Date().toISOString(),
-    }
-    const d = decide(dna, intel)
-    const plan = auto.plan(d, {
-      autonomousTrading: false,
-      copyTrading: false,
-      realSwapExecution: false,
-    })
+    const d = decide(dna, baseIntel())
+    const plan = auto.plan(
+      d,
+      { autonomousTrading: false, copyTrading: false, realSwapExecution: false },
+      dna,
+    )
     assert.equal(plan.wouldExecute, false)
-    assert.ok(plan.blockedReason?.includes('flagged OFF'))
+    assert.ok(plan.audit)
+    assert.ok(auto.getAuditLog().length >= 1)
   })
 
-  it('orchestrator trains and emits DNA via event bus', () => {
+  it('collective intelligence requires opt-in and never stores wallet', () => {
+    __resetCollectiveClustersForTests()
+    const trades = buildSampleTradeHistory('secret-wallet-xyz')
+    const dna = buildTraderDna('secret-wallet-xyz', trades)
+    assert.equal(
+      contributeAnonymized({ optedIn: false, updatedAt: '' }, dna, 12),
+      false,
+    )
+    assert.equal(
+      contributeAnonymized({ optedIn: true, updatedAt: '' }, dna, 12),
+      true,
+    )
+    // Contribute more for cluster query
+    for (let i = 0; i < 4; i++) {
+      contributeAnonymized({ optedIn: true, updatedAt: '' }, dna, 10 + i)
+    }
+    const sig = queryCollectiveSignal(
+      { optedIn: true, updatedAt: '' },
+      dna,
+      baseIntel(),
+    )
+    assert.ok(sig)
+    assert.equal(sig!.anonymized, true)
+    assert.equal(sig!.consentRequired, true)
+    assert.ok(!JSON.stringify(sig).includes('secret-wallet'))
+  })
+
+  it('performance report includes proof line for autonomy upgrade', () => {
+    const trades = buildSampleTradeHistory('w')
+    const dna = buildTraderDna('w', trades)
+    const r = buildPerformanceReport(trades, dna)
+    assert.ok(r.proofLine.length > 20)
+    assert.ok(r.opportunitiesAnalyzed >= trades.length)
+  })
+
+  it('orchestrator trains and emits DNAUpdated', () => {
     const bus = new TlmEventBus()
     const orch = new TradeLikeMeOrchestrator(bus)
     let dnaEvents = 0
-    bus.subscribe('tlm.dna.updated', () => {
+    bus.subscribe('DNAUpdated', () => {
       dnaEvents += 1
     })
-    const trades = buildSampleTradeHistory('orch-w')
-    orch.trainFromWallet('orch-w', trades)
+    orch.trainFromWallet('orch-w', buildSampleTradeHistory('orch-w'))
     const state = orch.getState({
       autonomousTrading: false,
       copyTrading: false,
       realSwapExecution: false,
     })
     assert.ok(state.dna)
-    assert.equal(state.dna!.sample, true)
-    assert.ok(state.learningProgressPct >= 100)
+    assert.ok(state.dna!.sampleSize >= 10)
+    assert.ok(state.performance)
     assert.ok(dnaEvents >= 1)
   })
 })

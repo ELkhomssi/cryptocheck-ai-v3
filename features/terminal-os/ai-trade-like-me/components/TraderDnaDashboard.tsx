@@ -11,6 +11,7 @@ function holdLabel(ms: number): string {
   return `${(h / 24).toFixed(1)}d`
 }
 
+/** Retention hook — confidence + sampleSize must be prominent */
 export function TraderDnaDashboard({ dna }: { dna: TraderDna }) {
   return (
     <div className="tos-tlm-dna">
@@ -22,23 +23,43 @@ export function TraderDnaDashboard({ dna }: { dna: TraderDna }) {
         {dna.sample ? <span className="tos-wm-sample">sample</span> : null}
       </header>
 
+      {/* Retention mechanic — cost of leaving */}
+      <div className="tos-tlm-retention" aria-label="Learning investment">
+        <div className="tos-tlm-retention-card">
+          <span className="tos-tlm-retention-label">DNA Confidence</span>
+          <span className="tos-tlm-retention-value tos-num">{dna.confidence}%</span>
+          <div className="tos-tlm-retention-bar">
+            <i style={{ width: `${dna.confidence}%` }} />
+          </div>
+          <p className="tos-tlm-retention-hint">Grows with every trade &amp; rejection — restarting elsewhere resets this.</p>
+        </div>
+        <div className="tos-tlm-retention-card">
+          <span className="tos-tlm-retention-label">Sample Size</span>
+          <span className="tos-tlm-retention-value tos-num">{dna.sampleSize}</span>
+          <p className="tos-tlm-retention-meta">
+            {dna.tradeCount} trades · {dna.rejectionCount} rejections
+          </p>
+          <p className="tos-tlm-retention-hint">Your edge includes what you walked away from.</p>
+        </div>
+      </div>
+
       <div className="tos-tlm-dna-grid">
-        <Metric label="Risk appetite" value={dna.riskAppetite} />
+        <Metric label="Risk appetite" value={`${dna.riskAppetite} · ${dna.riskAppetiteLabel}`} />
         <Metric label="Win rate" value={`${dna.winRatePct}%`} />
         <Metric label="Avg ROI" value={formatPct(dna.avgRoiPct)} />
         <Metric label="Loss tolerance" value={`${dna.lossTolerancePct}%`} />
         <Metric label="Avg hold" value={holdLabel(dna.avgHoldingMs)} />
         <Metric label="Discipline" value={`${dna.disciplineScore}`} />
         <Metric label="Emotional bias" value={`${dna.emotionalBiasScore}`} />
-        <Metric label="Confidence" value={`${dna.confidenceScore}%`} />
+        <Metric label="Risk score" value={`${dna.riskAppetite}/100`} />
       </div>
 
       <div className="tos-tlm-dna-section">
         <h4>Favorite chains</h4>
         <div className="tos-tlm-chips">
           {dna.favoriteChains.map((c) => (
-            <span key={c.chain} className="tos-tlm-chip">
-              {c.chain} {c.weight}%
+            <span key={c.tag} className="tos-tlm-chip">
+              {c.tag} {c.weight}%
             </span>
           ))}
         </div>
@@ -48,8 +69,8 @@ export function TraderDnaDashboard({ dna }: { dna: TraderDna }) {
         <h4>Sectors</h4>
         <div className="tos-tlm-chips">
           {dna.favoriteSectors.map((s) => (
-            <span key={s} className="tos-tlm-chip">
-              {s}
+            <span key={s.tag} className="tos-tlm-chip">
+              {s.tag} {s.weight}%
             </span>
           ))}
         </div>
@@ -57,9 +78,9 @@ export function TraderDnaDashboard({ dna }: { dna: TraderDna }) {
 
       <div className="tos-tlm-dna-cols">
         <div>
-          <h4>Typical entry</h4>
+          <h4>Entry condition profile</h4>
           <ul>
-            {dna.typicalEntry.map((e) => (
+            {dna.entryConditionProfile.map((e) => (
               <li key={e.label}>
                 <strong>{e.label}</strong>
                 <span className="tos-muted">{e.evidence}</span>
@@ -68,9 +89,9 @@ export function TraderDnaDashboard({ dna }: { dna: TraderDna }) {
           </ul>
         </div>
         <div>
-          <h4>Typical exit</h4>
+          <h4>Exit condition profile</h4>
           <ul>
-            {dna.typicalExit.map((e) => (
+            {dna.exitConditionProfile.map((e) => (
               <li key={e.label}>
                 <strong>{e.label}</strong>
                 <span className="tos-muted">{e.evidence}</span>
@@ -79,11 +100,6 @@ export function TraderDnaDashboard({ dna }: { dna: TraderDna }) {
           </ul>
         </div>
       </div>
-
-      <p className="tos-muted tos-tlm-dna-foot">
-        {dna.tradeCount} trades analyzed · updated {new Date(dna.updatedAt).toLocaleString()} · Not
-        financial advice
-      </p>
     </div>
   )
 }

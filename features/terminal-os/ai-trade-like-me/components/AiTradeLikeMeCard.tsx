@@ -127,7 +127,9 @@ export function AiStatusCard() {
             {state.statusLine}
           </p>
           <p className="tos-muted" style={{ fontSize: 10, lineHeight: 1.4 }}>
-            {why}
+            {state.dna
+              ? `DNA confidence ${state.dna.confidence}% · sample ${state.dna.sampleSize} (${state.dna.tradeCount} trades / ${state.dna.rejectionCount} rejections)`
+              : why}
           </p>
         </div>
       )}

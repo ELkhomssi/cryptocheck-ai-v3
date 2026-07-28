@@ -14,16 +14,13 @@ Canonical product desk remains at `/terminal` (Portfolio Desk). This surface is 
 | 2 | WebSocket streaming + richer Birdeye/Helius wiring | Next |
 | 6 | Autonomy execution via risk-gated-swap (flagged OFF) | Gated |
 
-## Trade Like Me
+## Trade Like Me (Master Spec V2)
 
-Modular engines under `features/terminal-os/ai-trade-like-me/engines/` (event bus):
+Modular engines under `features/terminal-os/ai-trade-like-me/engines/` — **event bus only** (no cross-engine internals):
 
-1. Behavioral Learning · 2. Trader DNA · 3. Market Intelligence · 4. Prediction · 5. Decision · 6. Explainable AI · 7. Autonomous Execution (blocked by flags) · 8. Performance Analytics
+1. Behavioral Learning (trades **+ rejections**) · 2. Trader DNA (style vector Σ=1, `confidence` + `sampleSize` retention) · 3. Market Intelligence (`MarketContext`) · 4. Prediction · 5. Decision (`computeConfidence` inspectable, cosine behaviorMatch) · 6. Explainable AI (field citations) · 7. Autonomous Execution (**audit log** product surface, flags OFF) · 8. Performance Analytics (AI vs baseline proof) · 9. **Collective Intelligence** (opt-in, anonymized)
 
-- UI: `TradeLikeMeWidget` on nav **Trade Like Me** (`ai-trading`)
-- API: `GET/POST /api/terminal-os/trade-like-me`
-- Philosophy: learn *why* — never copy trades; AI may disagree to improve the trader
-- Autonomy / real swaps stay OFF (`autonomousTrading`, `realSwapExecution`)
+Moat rules: leaving costs DNA confidence; every number is traceable; cross-user signal never leaks wallets.
 
 
 ## Live data

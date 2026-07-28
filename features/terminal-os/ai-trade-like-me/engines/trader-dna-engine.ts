@@ -1,14 +1,15 @@
 /**
- * Trader DNA Engine — builds adaptive behavioral profile from captured trades.
- * Pure functions + class; multiple style tags may coexist.
+ * Trader DNA Engine V2 — weighted style vector (sums to 1.0),
+ * ConditionRange profiles, confidence + sampleSize as retention metrics.
  */
 
-import type { ChainId } from '@/features/terminal-os/shared/types'
 import type {
   CapturedTrade,
-  EntryExitCondition,
+  ConditionRange,
+  StyleVector,
+  StyleVectorKey,
   TraderDna,
-  TradingStyleTag,
+  WeightedTag,
 } from '../types'
 import type { TlmEventBus } from './event-bus'
 
@@ -17,226 +18,306 @@ function clamp(n: number, lo: number, hi: number) {
 }
 
 function avg(nums: number[]): number {
-  if (nums.length === 0) return 0
+  if (!nums.length) return 0
   return nums.reduce((a, b) => a + b, 0) / nums.length
 }
 
-export function classifyTradingStyles(
-  trades: CapturedTrade[],
-): { tag: TradingStyleTag; weight: number }[] {
-  if (trades.length === 0) return []
+const STYLE_KEYS: StyleVectorKey[] = [
+  'momentum',
+  'scalper',
+  'swingTrader',
+  'narrativeTrader',
+  'whaleFollower',
+  'meanReversion',
+  'breakoutTrader',
+  'liquidityHunter',
+]
 
-  const holds = trades
+export function emptyStyleVector(): StyleVector {
+  return {
+    momentum: 0,
+    scalper: 0,
+    swingTrader: 0,
+    narrativeTrader: 0,
+    whaleFollower: 0,
+    meanReversion: 0,
+    breakoutTrader: 0,
+    liquidityHunter: 0,
+  }
+}
+
+/** Recompute style vector on every new trade — sums to 1.0 */
+export function computeStyleVector(trades: CapturedTrade[]): StyleVector {
+  const executed = trades.filter((t) => !t.wasRejectedOpportunity)
+  const raw = emptyStyleVector()
+  if (!executed.length) {
+    raw.momentum = 1
+    return raw
+  }
+
+  const holds = executed
     .map((t) => t.holdingDurationMs)
     .filter((h): h is number => h != null && h > 0)
   const avgHold = avg(holds)
-  const vols = trades.map((t) => t.volatilityPct ?? 0)
-  const whale = trades.map((t) => t.whaleActivityScore ?? 0)
-  const mcaps = trades.map((t) => t.marketCapUsd ?? 0)
-  const liqs = trades.map((t) => t.liquidityUsd ?? 0)
-  const pnls = trades.map((t) => t.pnlPct ?? 0)
+  const vols = executed.map((t) => t.contextAtEntry.volatility24h)
+  const whale = executed.map((t) => t.contextAtEntry.whaleActivityScore)
+  const mcaps = executed.map((t) => t.entry.marketCap)
+  const liqs = executed.map((t) => t.entry.liquidity)
+  const ratios = executed.map((t) => t.contextAtEntry.volumeToLiquidityRatio)
 
-  const scores: Record<TradingStyleTag, number> = {
-    momentum: 0,
-    scalper: 0,
-    swing: 0,
-    narrative: 0,
-    whale_follower: 0,
-    mean_reversion: 0,
-    breakout: 0,
-    liquidity_hunter: 0,
+  if (avgHold > 0 && avgHold < 30 * 60_000) raw.scalper += 40
+  if (avgHold >= 30 * 60_000 && avgHold < 12 * 3_600_000) raw.momentum += 28
+  if (avgHold >= 12 * 3_600_000) raw.swingTrader += 35
+  if (avg(vols) > 12) raw.momentum += 18
+  if (avg(whale) > 60) raw.whaleFollower += 32
+  if (avg(mcaps) > 0 && avg(mcaps) < 50_000_000) raw.narrativeTrader += 22
+  if (avg(liqs) > 500_000) raw.liquidityHunter += 26
+  if (avg(ratios) > 8) raw.breakoutTrader += 16
+  if (avg(vols) > 15 && executed.filter((t) => (t.pnlPct ?? 0) > 0).length > executed.length * 0.25) {
+    raw.meanReversion += 18
   }
 
-  if (avgHold > 0 && avgHold < 30 * 60_000) scores.scalper += 40
-  if (avgHold >= 30 * 60_000 && avgHold < 12 * 3_600_000) scores.momentum += 28
-  if (avgHold >= 12 * 3_600_000) scores.swing += 35
-
-  if (avg(vols) > 12) scores.momentum += 18
-  if (avg(whale) > 60) scores.whale_follower += 32
-  if (avg(mcaps) > 0 && avg(mcaps) < 50_000_000) scores.narrative += 22
-  if (
-    avg(liqs) > 500_000 &&
-    trades.filter((t) => (t.liquidityUsd ?? 0) > 1_000_000).length > trades.length * 0.4
-  ) {
-    scores.liquidity_hunter += 26
+  // Rejections dampen overconfidence in aggressive styles
+  const rejects = trades.filter((t) => t.wasRejectedOpportunity).length
+  if (rejects > 0) {
+    raw.scalper *= 0.92
+    raw.narrativeTrader *= 0.9
   }
 
-  const bounce = pnls.filter((p) => p > 0).length
-  if (bounce > trades.length * 0.25 && avg(vols) > 15) scores.mean_reversion += 20
-  if (bounce > trades.length * 0.3 && avg(vols) > 8) scores.breakout += 18
-
-  const total = Object.values(scores).reduce((a, b) => a + b, 0) || 1
-  return (Object.entries(scores) as [TradingStyleTag, number][])
-    .map(([tag, raw]) => ({ tag, weight: Math.round((raw / total) * 100) }))
-    .filter((s) => s.weight >= 8)
-    .sort((a, b) => b.weight - a.weight)
-    .slice(0, 4)
+  const total = STYLE_KEYS.reduce((s, k) => s + raw[k], 0) || 1
+  const out = emptyStyleVector()
+  for (const k of STYLE_KEYS) out[k] = Number((raw[k] / total).toFixed(4))
+  // Fix float drift so sum === 1
+  const sum = STYLE_KEYS.reduce((s, k) => s + out[k], 0)
+  out.momentum = Number((out.momentum + (1 - sum)).toFixed(4))
+  return out
 }
 
-function riskAppetite(trades: CapturedTrade[]): TraderDna['riskAppetite'] {
-  const sizes = trades.map((t) => t.positionSizeUsd)
-  const risks = trades.map((t) => t.riskScore ?? 40)
+function styleSummary(v: StyleVector): string {
+  const labels: Record<StyleVectorKey, string> = {
+    momentum: 'Momentum',
+    scalper: 'Scalper',
+    swingTrader: 'Swing',
+    narrativeTrader: 'Narrative',
+    whaleFollower: 'Whale follower',
+    meanReversion: 'Mean reversion',
+    breakoutTrader: 'Breakout',
+    liquidityHunter: 'Liquidity hunter',
+  }
+  return STYLE_KEYS.map((k) => ({ k, w: v[k] }))
+    .filter((x) => x.w >= 0.08)
+    .sort((a, b) => b.w - a.w)
+    .slice(0, 4)
+    .map((x) => `${labels[x.k]} (${Math.round(x.w * 100)}%)`)
+    .join(' · ')
+}
+
+function riskAppetiteScore(trades: CapturedTrade[]): { score: number; label: TraderDna['riskAppetiteLabel'] } {
+  const executed = trades.filter((t) => !t.wasRejectedOpportunity)
+  const sizes = executed.map((t) => t.positionSizeUsd)
+  const risks = executed.map((t) => t.contextAtEntry.riskScore)
   const avgSize = avg(sizes)
   const avgRisk = avg(risks)
-  if (avgRisk >= 70 || avgSize >= 25_000) return 'degen'
-  if (avgRisk >= 55 || avgSize >= 8_000) return 'aggressive'
-  if (avgRisk <= 35 && avgSize < 2_000) return 'conservative'
-  return 'moderate'
+  // Rejected high-risk scans lower appetite
+  const rejectedHighRisk = trades.filter(
+    (t) => t.wasRejectedOpportunity && t.contextAtEntry.riskScore >= 65,
+  ).length
+  let score = clamp(avgRisk * 0.55 + Math.min(avgSize / 300, 40) - rejectedHighRisk * 4, 5, 98)
+  const label: TraderDna['riskAppetiteLabel'] =
+    score >= 75 ? 'degen' : score >= 55 ? 'aggressive' : score <= 35 ? 'conservative' : 'moderate'
+  return { score: Math.round(score), label }
 }
 
-function favoriteChains(trades: CapturedTrade[]): { chain: ChainId; weight: number }[] {
-  const counts = new Map<ChainId, number>()
-  for (const t of trades) counts.set(t.chain, (counts.get(t.chain) ?? 0) + 1)
-  const total = trades.length || 1
+function favoriteChains(trades: CapturedTrade[]): WeightedTag[] {
+  const counts = new Map<string, number>()
+  for (const t of trades) {
+    if (t.wasRejectedOpportunity) continue
+    counts.set(t.token.chain, (counts.get(t.token.chain) ?? 0) + 1)
+  }
+  const total = Array.from(counts.values()).reduce((a, b) => a + b, 0) || 1
   return Array.from(counts.entries())
-    .map(([chain, n]) => ({ chain, weight: Math.round((n / total) * 100) }))
+    .map(([tag, n]) => ({ tag, weight: Math.round((n / total) * 100) }))
     .sort((a, b) => b.weight - a.weight)
 }
 
-function typicalEntry(trades: CapturedTrade[]): EntryExitCondition[] {
-  const buys = trades.filter((t) => t.side === 'buy')
-  const out: EntryExitCondition[] = []
-  if (buys.length === 0) return out
-  const avgVol = avg(buys.map((t) => t.volume24hUsd ?? 0))
-  const avgWhale = avg(buys.map((t) => t.whaleActivityScore ?? 0))
-  const avgLiq = avg(buys.map((t) => t.liquidityUsd ?? 0))
+function sectors(trades: CapturedTrade[]): WeightedTag[] {
+  const counts = new Map<string, number>()
+  for (const t of trades) {
+    if (t.wasRejectedOpportunity) continue
+    const s = t.token.symbol.toUpperCase()
+    const tag = /WIF|BONK|PEPE|DEGEN|MEME/.test(s)
+      ? 'Memes'
+      : /SOL|ETH|BNB|BTC/.test(s)
+        ? 'Majors'
+        : /AI|GPT|NEURAL/.test(s)
+          ? 'AI'
+          : 'Alt / Midcap'
+    counts.set(tag, (counts.get(tag) ?? 0) + 1)
+  }
+  const total = Array.from(counts.values()).reduce((a, b) => a + b, 0) || 1
+  return Array.from(counts.entries())
+    .map(([tag, n]) => ({ tag, weight: Math.round((n / total) * 100) }))
+    .sort((a, b) => b.weight - a.weight)
+}
+
+function entryProfile(trades: CapturedTrade[]): ConditionRange[] {
+  const buys = trades.filter((t) => !t.wasRejectedOpportunity && t.side === 'buy')
+  const out: ConditionRange[] = []
+  if (!buys.length) return out
+  const avgWhale = avg(buys.map((t) => t.contextAtEntry.whaleActivityScore))
+  const avgLiqTrend = avg(buys.map((t) => t.contextAtEntry.volumeToLiquidityRatio))
+  const avgHold = avg(buys.map((t) => t.holdingDurationMs ?? 0).filter(Boolean))
+
   if (avgWhale >= 55) {
     out.push({
-      label: 'Whale accumulation present',
+      field: 'whaleActivityScore',
+      op: '>',
+      value: Math.max(50, Math.round(avgWhale - 10)),
       weight: 0.82,
+      label: `enters when whaleActivityScore > ${Math.max(50, Math.round(avgWhale - 10))}`,
       evidence: `Avg whale activity ${avgWhale.toFixed(0)}/100 on entries`,
     })
   }
-  if (avgVol >= 500_000) {
+  if (avgLiqTrend >= 2) {
     out.push({
-      label: 'Elevated volume',
+      field: 'volumeToLiquidityRatio',
+      op: '>',
+      value: Number((avgLiqTrend * 0.7).toFixed(2)),
       weight: 0.74,
-      evidence: `Typical entry volume ~$${Math.round(avgVol).toLocaleString()}`,
+      label: 'liquidity / volume rising vs baseline',
+      evidence: `Typical vol/liq ratio ${avgLiqTrend.toFixed(2)}`,
     })
   }
-  if (avgLiq >= 200_000) {
+  if (avgHold > 0) {
+    const hLo = Math.max(0.25, (avgHold / 3_600_000) * 0.4)
+    const hHi = (avgHold / 3_600_000) * 1.6
     out.push({
-      label: 'Adequate liquidity',
-      weight: 0.7,
-      evidence: `Avg liquidity ~$${Math.round(avgLiq).toLocaleString()}`,
+      field: 'hourOfDay',
+      op: 'between',
+      value: hLo,
+      valueHi: hHi,
+      weight: 0.6,
+      label: `typical hold window ~${hLo.toFixed(1)}–${hHi.toFixed(1)}h`,
+      evidence: `Avg hold ${(avgHold / 3_600_000).toFixed(1)}h`,
     })
   }
-  const hours = buys.map((t) => t.hourOfDay)
-  if (hours.length) {
-    const freq = new Map<number, number>()
-    for (const h of hours) freq.set(h, (freq.get(h) ?? 0) + 1)
-    const peakHour = Array.from(freq.entries()).sort((a, b) => b[1] - a[1])[0]?.[0]
-    if (peakHour != null) {
-      out.push({
-        label: `Prefers ~${peakHour}:00 UTC entries`,
-        weight: 0.55,
-        evidence: 'Time-of-day clustering from history',
-      })
-    }
-  }
-  return out.slice(0, 4)
+  return out.slice(0, 5)
 }
 
-function typicalExit(trades: CapturedTrade[]): EntryExitCondition[] {
-  const closed = trades.filter((t) => t.pnlPct != null)
+function exitProfile(trades: CapturedTrade[]): ConditionRange[] {
+  const closed = trades.filter((t) => t.pnlPct != null && !t.wasRejectedOpportunity)
   const wins = closed.filter((t) => (t.pnlPct ?? 0) > 0)
   const losses = closed.filter((t) => (t.pnlPct ?? 0) < 0)
-  const out: EntryExitCondition[] = []
+  const out: ConditionRange[] = []
   if (wins.length) {
+    const tp = avg(wins.map((t) => t.pnlPct!))
     out.push({
-      label: `Take-profit near +${avg(wins.map((t) => t.pnlPct!)).toFixed(1)}%`,
+      field: 'riskScore',
+      op: '>',
+      value: Number(tp.toFixed(1)),
       weight: 0.8,
-      evidence: `${wins.length} winning exits analyzed`,
+      label: `take-profit near +${tp.toFixed(1)}%`,
+      evidence: `${wins.length} winning exits`,
     })
   }
   if (losses.length) {
+    const sl = Math.abs(avg(losses.map((t) => t.pnlPct!)))
     out.push({
-      label: `Cut losses near ${avg(losses.map((t) => t.pnlPct!)).toFixed(1)}%`,
+      field: 'riskScore',
+      op: '<',
+      value: -Number(sl.toFixed(1)),
       weight: 0.78,
-      evidence: `${losses.length} losing exits analyzed`,
+      label: `cut losses near −${sl.toFixed(1)}%`,
+      evidence: `${losses.length} losing exits`,
     })
   }
   return out
 }
 
-function styleSummary(styles: { tag: TradingStyleTag; weight: number }[]): string {
-  if (!styles.length) return 'Insufficient history to classify style'
-  const labels: Record<TradingStyleTag, string> = {
-    momentum: 'Momentum',
-    scalper: 'Scalper',
-    swing: 'Swing',
-    narrative: 'Narrative',
-    whale_follower: 'Whale follower',
-    mean_reversion: 'Mean reversion',
-    breakout: 'Breakout',
-    liquidity_hunter: 'Liquidity hunter',
-  }
-  return styles.map((s) => `${labels[s.tag]} (${s.weight}%)`).join(' · ')
+/**
+ * Retention confidence: grows with sample size (trades + rejections).
+ * Visible everywhere — cost of leaving.
+ */
+export function computeDnaConfidence(sampleSize: number, winRatePct: number, discipline: number): number {
+  const sizeTerm = Math.min(55, sampleSize * 3.2)
+  const qualityTerm = winRatePct * 0.25 + discipline * 0.15
+  return Math.round(clamp(sizeTerm + qualityTerm, 8, 96))
 }
 
-function sectors(trades: CapturedTrade[]): string[] {
-  const tags = new Set<string>()
-  for (const t of trades) {
-    const s = t.tokenSymbol.toUpperCase()
-    if (/WIF|BONK|PEPE|DEGEN|MEME/.test(s)) tags.add('Memes')
-    else if (/SOL|ETH|BNB|BTC/.test(s)) tags.add('Majors')
-    else if (/AI|GPT|NEURAL/.test(s)) tags.add('AI')
-    else tags.add('Alt / Midcap')
-  }
-  return Array.from(tags).slice(0, 4)
-}
+export function buildTraderDna(wallet: string, trades: CapturedTrade[]): TraderDna {
+  const executed = trades.filter((t) => !t.wasRejectedOpportunity)
+  const rejections = trades.filter((t) => t.wasRejectedOpportunity)
+  const closed = executed.filter((t) => t.pnlPct != null)
+  const wins = closed.filter((t) => (t.pnlPct ?? 0) > 0)
+  const losses = closed.filter((t) => (t.pnlPct ?? 0) < 0)
+  const holds = executed.map((t) => t.holdingDurationMs).filter((h): h is number => h != null)
+  const styleVector = computeStyleVector(trades)
+  const winRate = closed.length ? (wins.length / closed.length) * 100 : 0
+  const avgRoi = avg(closed.map((t) => t.pnlPct!))
+  const lossTol = losses.length ? Math.abs(Math.min(...losses.map((t) => t.pnlPct!))) : 8
+  const late = executed.filter((t) => t.hourOfDay >= 22 || t.hourOfDay <= 4)
+  const emotional = clamp(20 + late.length * 4 + (lossTol > 20 ? 15 : 0), 5, 95)
 
-function disciplineScore(trades: CapturedTrade[], winRate: number, stylesLen: number): number {
-  const sizes = trades.map((t) => t.positionSizeUsd)
+  const sizes = executed.map((t) => t.positionSizeUsd)
   let sizeCv = 0
   if (sizes.length >= 2) {
     const m = avg(sizes)
-    const v = avg(sizes.map((s) => (s - m) ** 2))
-    sizeCv = m > 0 ? Math.sqrt(v) / m : 0
+    sizeCv = m > 0 ? Math.sqrt(avg(sizes.map((s) => (s - m) ** 2))) / m : 0
   }
-  return clamp(48 + winRate * 0.35 - sizeCv * 25 + stylesLen * 3, 5, 99)
-}
+  const discipline = clamp(48 + winRate * 0.35 - sizeCv * 25 + rejections.length * 1.5, 5, 99)
+  const sampleSize = trades.length
+  const confidence = computeDnaConfidence(sampleSize, winRate, discipline)
+  const risk = riskAppetiteScore(trades)
+  const entryConditionProfile = entryProfile(trades)
+  const exitConditionProfile = exitProfile(trades)
 
-/**
- * Build Trader DNA from trade history. Marks sample if any input trade is sample.
- */
-export function buildTraderDna(wallet: string, trades: CapturedTrade[]): TraderDna {
-  const closed = trades.filter((t) => t.pnlPct != null)
-  const wins = closed.filter((t) => (t.pnlPct ?? 0) > 0)
-  const losses = closed.filter((t) => (t.pnlPct ?? 0) < 0)
-  const holds = trades.map((t) => t.holdingDurationMs).filter((h): h is number => h != null)
-  const styles = classifyTradingStyles(trades)
-  const winRate = closed.length ? (wins.length / closed.length) * 100 : 0
-  const avgRoi = avg(closed.map((t) => t.pnlPct!))
-  const lossTol = losses.length ? Math.abs(avg(losses.map((t) => t.pnlPct!))) : 8
-  const late = trades.filter((t) => t.hourOfDay >= 22 || t.hourOfDay <= 4)
-  const emotional = clamp(20 + late.length * 4 + (lossTol > 20 ? 15 : 0), 5, 95)
-  const confidence = clamp(
-    trades.length * 4 + winRate * 0.4 + (styles[0]?.weight ?? 0) * 0.25,
-    8,
-    96,
-  )
+  const styles = STYLE_KEYS.map((k) => ({ tag: k, weight: Math.round(styleVector[k] * 100) }))
+    .filter((s) => s.weight >= 8)
+    .sort((a, b) => b.weight - a.weight)
 
   return {
     wallet,
     updatedAt: new Date().toISOString(),
-    tradeCount: trades.length,
-    styles,
-    tradingStyleSummary: styleSummary(styles),
-    riskAppetite: riskAppetite(trades),
+    styleVector,
+    tradingStyleSummary: styleSummary(styleVector) || 'Insufficient history',
+    riskAppetite: risk.score,
+    riskAppetiteLabel: risk.label,
     favoriteSectors: sectors(trades),
     favoriteChains: favoriteChains(trades),
     avgHoldingMs: avg(holds),
-    typicalEntry: typicalEntry(trades),
-    typicalExit: typicalExit(trades),
-    avgRoiPct: Number(avgRoi.toFixed(2)),
+    entryConditionProfile,
+    exitConditionProfile,
     winRatePct: Number(winRate.toFixed(1)),
+    avgRoiPct: Number(avgRoi.toFixed(2)),
     lossTolerancePct: Number(lossTol.toFixed(1)),
-    disciplineScore: Math.round(disciplineScore(trades, winRate, styles.length)),
+    disciplineScore: Math.round(discipline),
     emotionalBiasScore: Math.round(emotional),
-    confidenceScore: Math.round(confidence),
+    confidence,
+    sampleSize,
+    tradeCount: executed.length,
+    rejectionCount: rejections.length,
     sample: trades.some((t) => t.sample) || undefined,
+    confidenceScore: confidence,
+    styles,
+    typicalEntry: entryConditionProfile.map((c) => ({
+      label: c.label,
+      weight: c.weight,
+      evidence: c.evidence,
+    })),
+    typicalExit: exitConditionProfile.map((c) => ({
+      label: c.label,
+      weight: c.weight,
+      evidence: c.evidence,
+    })),
   }
+}
+
+/** @deprecated — use computeStyleVector */
+export function classifyTradingStyles(trades: CapturedTrade[]) {
+  const v = computeStyleVector(trades)
+  return STYLE_KEYS.map((tag) => ({ tag, weight: Math.round(v[tag] * 100) }))
+    .filter((s) => s.weight >= 8)
+    .sort((a, b) => b.weight - a.weight)
 }
 
 export class TraderDnaEngine {
@@ -247,8 +328,13 @@ export class TraderDnaEngine {
   rebuild(wallet: string, trades: CapturedTrade[]): TraderDna {
     this.dna = buildTraderDna(wallet, trades)
     this.bus.publish(
-      'tlm.dna.updated',
-      { tradeCount: this.dna.tradeCount, confidence: this.dna.confidenceScore },
+      'DNAUpdated',
+      {
+        sampleSize: this.dna.sampleSize,
+        confidence: this.dna.confidence,
+        tradeCount: this.dna.tradeCount,
+        rejectionCount: this.dna.rejectionCount,
+      },
       'TraderDnaEngine',
     )
     return this.dna

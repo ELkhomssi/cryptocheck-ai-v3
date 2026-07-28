@@ -1,9 +1,8 @@
 /**
- * Prediction Engine — expected upside / drawdown from DNA + market intel.
- * Advisory only; never executes.
+ * Prediction Engine — expected upside / drawdown from DNA + MarketContext.
  */
 
-import type { MarketIntelSnapshot, TraderDna } from '../types'
+import type { MarketContext, TraderDna } from '../types'
 
 export interface PredictionOutcome {
   expectedRoiPct: number
@@ -15,13 +14,14 @@ export interface PredictionOutcome {
 
 export function predictOpportunity(
   dna: TraderDna | null,
-  intel: MarketIntelSnapshot,
+  intel: MarketContext,
 ): PredictionOutcome {
   const styleBoost =
-    dna?.styles.some((s) => s.tag === 'momentum' || s.tag === 'breakout') &&
-    intel.orderFlowBias === 'buy'
+    dna &&
+    ((dna.styleVector.momentum > 0.2 || dna.styleVector.breakoutTrader > 0.15) &&
+      intel.orderFlowBias === 'buy')
       ? 4
-      : dna?.styles.some((s) => s.tag === 'whale_follower') && intel.whaleBias === 'accumulating'
+      : dna && dna.styleVector.whaleFollower > 0.2 && intel.whaleBias === 'accumulating'
         ? 5
         : 0
 
@@ -39,7 +39,7 @@ export function predictOpportunity(
         48 +
           (intel.whaleBias === 'accumulating' ? 12 : intel.whaleBias === 'distributing' ? -14 : 0) +
           (intel.liquidityTrend === 'increasing' ? 8 : intel.liquidityTrend === 'decreasing' ? -10 : 0) +
-          (dna ? dna.confidenceScore * 0.15 : 0),
+          (dna ? dna.confidence * 0.15 : 0),
       ),
     ),
   )
@@ -56,9 +56,9 @@ export function predictOpportunity(
   )
 
   const horizon =
-    dna?.styles[0]?.tag === 'scalper'
+    dna && dna.styleVector.scalper > 0.3
       ? 'minutes–hours'
-      : dna?.styles[0]?.tag === 'swing'
+      : dna && dna.styleVector.swingTrader > 0.3
         ? 'days'
         : 'hours–day'
 
@@ -72,7 +72,7 @@ export function predictOpportunity(
 }
 
 export class PredictionEngine {
-  predict(dna: TraderDna | null, intel: MarketIntelSnapshot) {
+  predict(dna: TraderDna | null, intel: MarketContext) {
     return predictOpportunity(dna, intel)
   }
 }

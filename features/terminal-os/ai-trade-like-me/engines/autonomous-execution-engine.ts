@@ -1,6 +1,6 @@
 /**
- * Autonomous Execution Engine — plans only while feature flags are OFF.
- * Real swaps must go through risk-gated-swap when Phase 6 enables execution.
+ * Autonomous Execution Engine V2 — plans + audit log only while flags OFF.
+ * Audit log is a product surface (trust artifact), not a hidden table.
  */
 
 import {
@@ -9,9 +9,11 @@ import {
 } from '@/features/terminal-os/shared/lib/feature-flags'
 import type { FeatureFlags } from '@/features/terminal-os/shared/types'
 import type {
+  AutonomyAuditEntry,
   AutonomousPlan,
   AutonomyConfig,
   ExplainableDecision,
+  TraderDna,
 } from '../types'
 import type { TlmEventBus } from './event-bus'
 
@@ -20,12 +22,16 @@ export const DEFAULT_AUTONOMY_CONFIG: AutonomyConfig = {
   confidenceThreshold: 85,
   maxPositionUsd: 500,
   maxDailyLossPct: 3,
+  maxDailyActions: 10,
   allowedChains: ['solana', 'ethereum', 'base', 'bnb'],
   requireConfirmation: true,
+  mandatoryStopLossPct: 12,
 }
 
 export class AutonomousExecutionEngine {
   private config: AutonomyConfig = { ...DEFAULT_AUTONOMY_CONFIG }
+  private auditLog: AutonomyAuditEntry[] = []
+  private dailyActions = 0
 
   constructor(private readonly bus: TlmEventBus) {}
 
@@ -33,17 +39,55 @@ export class AutonomousExecutionEngine {
     return { ...this.config }
   }
 
+  getAuditLog() {
+    return [...this.auditLog]
+  }
+
   updateConfig(patch: Partial<AutonomyConfig>) {
     this.config = { ...this.config, ...patch }
   }
 
-  /**
-   * Plan an autonomous action. Never sends transactions here.
-   * Returns blocked plan when flags/tier/confidence fail.
-   */
+  private writeAudit(
+    decision: ExplainableDecision,
+    dna: TraderDna | null,
+    tier: string,
+    wouldExecute: boolean,
+    blockedReason: string | null,
+  ): AutonomyAuditEntry {
+    const entry: AutonomyAuditEntry = {
+      id: `audit-${decision.id}`,
+      at: new Date().toISOString(),
+      opportunity: decision.opportunity,
+      dnaSnapshot: {
+        confidence: dna?.confidence ?? 0,
+        sampleSize: dna?.sampleSize ?? 0,
+        styleVector: dna?.styleVector ?? {
+          momentum: 0,
+          scalper: 0,
+          swingTrader: 0,
+          narrativeTrader: 0,
+          whaleFollower: 0,
+          meanReversion: 0,
+          breakoutTrader: 0,
+          liquidityHunter: 0,
+        },
+        riskAppetite: dna?.riskAppetite ?? 0,
+      },
+      permissionTier: tier,
+      explanation: decision.summary,
+      plannedAction: decision.action,
+      wouldExecute,
+      blockedReason,
+    }
+    this.auditLog = [entry, ...this.auditLog].slice(0, 100)
+    return entry
+  }
+
   plan(
     decision: ExplainableDecision | null,
     flags: FeatureFlags,
+    dna: TraderDna | null = null,
+    tier = 'advise_only',
   ): AutonomousPlan {
     if (!decision) {
       return {
@@ -52,68 +96,101 @@ export class AutonomousExecutionEngine {
         plannedAction: null,
         wouldExecute: false,
         config: this.getConfig(),
+        audit: null,
       }
     }
 
     if (!isAutonomousAllowed(flags) || !this.config.enabled) {
+      const blocked =
+        'Autonomous Mode flagged OFF — advise-only. Enable autonomousTrading + user toggle for Phase 6.'
+      const audit = this.writeAudit(decision, dna, tier, false, blocked)
       const plan: AutonomousPlan = {
         armed: false,
-        blockedReason:
-          'Autonomous Mode flagged OFF — advise-only. Enable autonomousTrading + user toggle in Phase 6.',
+        blockedReason: blocked,
         plannedAction: decision.action,
         wouldExecute: false,
         config: this.getConfig(),
+        audit,
       }
-      this.bus.publish('tlm.autonomy.blocked', plan, 'AutonomousExecutionEngine')
+      this.bus.publish('ExecutionBlocked', plan, 'AutonomousExecutionEngine')
       return plan
     }
 
     if (!isExecutionAllowed(flags)) {
-      const plan: AutonomousPlan = {
+      const blocked = 'realSwapExecution flagged OFF — no custody / no auto-send.'
+      const audit = this.writeAudit(decision, dna, tier, false, blocked)
+      this.bus.publish('ExecutionBlocked', { blocked }, 'AutonomousExecutionEngine')
+      return {
         armed: false,
-        blockedReason: 'realSwapExecution flagged OFF — no custody / no auto-send.',
+        blockedReason: blocked,
         plannedAction: decision.action,
         wouldExecute: false,
         config: this.getConfig(),
+        audit,
       }
-      this.bus.publish('tlm.autonomy.blocked', plan, 'AutonomousExecutionEngine')
-      return plan
     }
 
     if (decision.scores.confidence < this.config.confidenceThreshold) {
-      const plan: AutonomousPlan = {
+      const blocked = `Confidence ${decision.scores.confidence}% below threshold ${this.config.confidenceThreshold}%`
+      const audit = this.writeAudit(decision, dna, tier, false, blocked)
+      return {
         armed: true,
-        blockedReason: `Confidence ${decision.scores.confidence}% below threshold ${this.config.confidenceThreshold}%`,
+        blockedReason: blocked,
         plannedAction: decision.action,
         wouldExecute: false,
         config: this.getConfig(),
+        audit,
       }
-      this.bus.publish('tlm.autonomy.blocked', plan, 'AutonomousExecutionEngine')
-      return plan
+    }
+
+    if (this.dailyActions >= this.config.maxDailyActions) {
+      const blocked = `Daily action cap ${this.config.maxDailyActions} reached`
+      const audit = this.writeAudit(decision, dna, tier, false, blocked)
+      return {
+        armed: true,
+        blockedReason: blocked,
+        plannedAction: decision.action,
+        wouldExecute: false,
+        config: this.getConfig(),
+        audit,
+      }
     }
 
     if (!this.config.allowedChains.includes(decision.chain as AutonomyConfig['allowedChains'][number])) {
-      const plan: AutonomousPlan = {
+      const blocked = `Chain ${decision.chain} not in allowed set`
+      const audit = this.writeAudit(decision, dna, tier, false, blocked)
+      return {
         armed: true,
-        blockedReason: `Chain ${decision.chain} not in allowed set`,
+        blockedReason: blocked,
         plannedAction: decision.action,
         wouldExecute: false,
         config: this.getConfig(),
+        audit,
       }
-      this.bus.publish('tlm.autonomy.blocked', plan, 'AutonomousExecutionEngine')
-      return plan
     }
 
-    const plan: AutonomousPlan = {
-      armed: true,
-      blockedReason: this.config.requireConfirmation
-        ? 'Would execute after user confirmation (bounded autonomy)'
-        : null,
-      plannedAction: decision.action,
-      wouldExecute: !this.config.requireConfirmation && decision.action !== 'DO_NOTHING' && decision.action !== 'WAIT',
-      config: this.getConfig(),
+    const wouldExecute =
+      !this.config.requireConfirmation &&
+      decision.action !== 'DO_NOTHING' &&
+      decision.action !== 'WAIT'
+
+    const blockedReason = this.config.requireConfirmation
+      ? 'Would execute after user confirmation (bounded autonomy)'
+      : null
+
+    const audit = this.writeAudit(decision, dna, tier, wouldExecute, blockedReason)
+    if (wouldExecute) {
+      this.dailyActions += 1
+      this.bus.publish('ExecutionCompleted', { auditId: audit.id, simulated: true }, 'AutonomousExecutionEngine')
     }
-    this.bus.publish('tlm.autonomy.planned', plan, 'AutonomousExecutionEngine')
-    return plan
+
+    return {
+      armed: true,
+      blockedReason,
+      plannedAction: decision.action,
+      wouldExecute,
+      config: this.getConfig(),
+      audit,
+    }
   }
 }
