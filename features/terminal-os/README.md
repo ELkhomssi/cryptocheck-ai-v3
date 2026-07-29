@@ -24,9 +24,19 @@ Modular engines under `features/terminal-os/ai-trade-like-me/engines/` — **eve
 Moat rules: leaving costs DNA confidence; every number is traceable; cross-user signal never leaks wallets.
 
 
+## Performance & Demo Day
+
+- Feed envelopes: `stale` / `demo` / `ageSec` / `circuit` — UI shows `StaleIndicator`, never red blanks
+- Circuit breaker + last-known-good Redis/memory cache (`lib/terminal-os/resilience.ts`)
+- SSE push: `GET /api/terminal-os/stream` (server polls providers → clients paint &lt;200ms)
+- Token scan: `POST /api/terminal-os/scan` (gateway fast + DexScreener rubric, optimistic UI)
+- Cache warm: `GET /api/terminal-os/feed?resource=warm`
+- Expo insurance: `TERMINAL_OS_DEMO_MODE=true` forces labeled frozen dataset
+- Animated prices (`AnimatedNumber`), TanStack `keepPreviousData`, TLM code-split
+
 ## Live data
 
-`GET /api/terminal-os/feed?resource=ticker|tokens|whales|traders|snapshots|candles|overview`
+`GET /api/terminal-os/feed?resource=ticker|tokens|whales|traders|snapshots|candles|overview|warm`
 
 - CoinGecko (no key): ticker, market overview, OHLC, trader gainers
 - DexScreener (no key): per-chain tokens, whale-scale volume flows

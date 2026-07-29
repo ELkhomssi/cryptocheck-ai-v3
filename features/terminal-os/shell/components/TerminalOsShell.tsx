@@ -1,6 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import type { ReactNode } from 'react'
 import { LeftRail } from '@/features/terminal-os/shell/components/LeftRail'
 import { TopBar } from '@/features/terminal-os/shell/components/TopBar'
 import { PanelErrorBoundary } from '@/features/terminal-os/shared/components/PanelErrorBoundary'
