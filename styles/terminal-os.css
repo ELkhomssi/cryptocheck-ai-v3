@@ -168,6 +168,7 @@
   border-radius: var(--tos-radius);
   overflow: hidden;
   flex-shrink: 0;
+  box-shadow: 0 1px 0 color-mix(in srgb, #fff 3%, transparent), 0 8px 24px color-mix(in srgb, #000 35%, transparent);
 }
 
 [data-tos] .tos-panel-head {
@@ -175,7 +176,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.55rem 0.75rem;
+  padding: 0.45rem 0.65rem;
   border-bottom: 1px solid var(--tos-border-subtle);
 }
 
@@ -189,12 +190,13 @@
 }
 
 [data-tos] .tos-panel-body {
-  padding: 0.75rem;
+  padding: 0.5rem 0.65rem;
 }
 
 [data-tos] .tos-num {
   font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum' 1;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  font-family: var(--tos-mono);
 }
 
 [data-tos] .tos-mono {
@@ -362,10 +364,11 @@
 
 [data-tos] .tos-quad {
   border: 1px solid var(--tos-border-subtle);
-  border-radius: 0.75rem;
+  border-radius: 0.625rem;
   background: var(--tos-bg-panel);
-  padding: 0.65rem;
+  padding: 0.5rem;
   min-width: 0;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 2.5%, transparent);
 }
 
 [data-tos] .tos-quad-head {
@@ -422,76 +425,299 @@
   background: var(--tos-accent-gold);
 }
 
-/* Trader persona cards (mockup) */
-[data-tos] .tos-traders-row {
-  --tos-card-min: 9.25rem;
-}
-
-[data-tos] .tos-trader-card {
+/* Trader / token density ribbons (replaces tall card grids) */
+[data-tos] .tos-density-ribbon {
   position: relative;
-  text-align: center;
-  padding: 0.75rem 0.6rem 0.65rem;
-  border-radius: 0.75rem;
+  overflow: hidden;
+  min-height: 3.5rem;
+  mask-image: linear-gradient(90deg, transparent, #000 1.5%, #000 98.5%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 1.5%, #000 98.5%, transparent);
+}
+
+[data-tos] .tos-traders-ribbon {
+  min-height: 60px; /* reserved before data — ~56–64px band */
+}
+
+[data-tos] .tos-tokens-ribbon {
+  min-height: 52px; /* ~48–56px band */
+}
+
+[data-tos] .tos-ribbon-skeleton {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+}
+
+[data-tos] .tos-ribbon-skeleton--traders {
+  min-height: 60px;
+}
+
+[data-tos] .tos-ribbon-skeleton--tokens {
+  min-height: 52px;
+}
+
+[data-tos] .tos-density-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  animation-name: tos-density-scroll;
+  animation-duration: var(--tos-ribbon-dur, 36s);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  backface-visibility: hidden;
+}
+
+[data-tos] .tos-density-track.is-paused {
+  animation-play-state: paused;
+}
+
+@keyframes tos-density-scroll {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-tos] .tos-density-track {
+    animation: none;
+    transform: none;
+  }
+  [data-tos] .tos-density-ribbon {
+    overflow-x: auto;
+  }
+  [data-tos] .tos-density-track {
+    width: auto;
+  }
+  [data-tos] .tos-density-strip:nth-child(2) {
+    display: none;
+  }
+}
+
+[data-tos] .tos-density-strip {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+[data-tos] .tos-density-item {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
   border: 1px solid var(--tos-border-subtle);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--tos-bg-panel-elevated) 80%, #1a2030), var(--tos-bg-panel));
+  background: var(--tos-bg-panel);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  padding: 0 0.65rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 0 color-mix(in srgb, #fff 2%, transparent);
 }
 
-[data-tos] .tos-trader-rank {
-  position: absolute;
-  top: 0.4rem;
-  left: 0.45rem;
-  font-size: var(--tos-fs-xs);
-  font-weight: 800;
-  color: var(--tos-accent-gold);
+[data-tos] .tos-density-item:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--tos-accent-gold) 70%, transparent);
+  outline-offset: 1px;
 }
 
-[data-tos] .tos-trader-avatar {
-  width: 2.75rem;
-  height: 2.75rem;
-  margin: 0.15rem auto 0.4rem;
+[data-tos] .tos-density-item-btn {
+  cursor: pointer;
+  appearance: none;
+}
+
+[data-tos] .tos-density-item-btn:hover {
+  border-color: color-mix(in srgb, var(--tos-accent-gold) 35%, var(--tos-border-subtle));
+}
+
+/* Top Traders — single-row chip ~56–64px */
+[data-tos] .tos-trader-chip {
+  height: 60px;
+  width: 220px; /* fixed — no reflow on data tick */
+}
+
+[data-tos] .tos-trader-chip-avatar {
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
   overflow: hidden;
   display: grid;
   place-items: center;
+  flex-shrink: 0;
   font-weight: 800;
-  font-size: var(--tos-fs-sm);
+  font-size: var(--tos-fs-xs);
   color: var(--tos-accent-gold);
   background: var(--tos-accent-gold-dim);
-  border: 2px solid color-mix(in srgb, var(--tos-accent-gold) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tos-accent-gold) 40%, transparent);
 }
 
-[data-tos] .tos-trader-avatar img {
+[data-tos] .tos-trader-chip-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-[data-tos] .tos-trader-name {
+[data-tos] .tos-trader-chip-name {
   font-weight: 700;
   font-size: var(--tos-fs-sm);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 4.5rem;
+  color: var(--tos-text-primary);
 }
 
-[data-tos] .tos-trader-pnl {
-  font-size: 1.25rem;
+[data-tos] .tos-trader-chip-pnl {
+  font-size: var(--tos-fs-sm);
   font-weight: 800;
-  margin-top: 0.2rem;
+  white-space: nowrap;
 }
 
-[data-tos] .tos-trader-usd {
+[data-tos] .tos-trader-chip-wr {
   font-size: var(--tos-fs-xs);
   color: var(--tos-text-secondary);
+  white-space: nowrap;
 }
 
-[data-tos] .tos-trader-meta {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.25rem;
+[data-tos] .tos-trader-chip-conf {
   font-size: 0.5625rem;
-  margin-top: 0.3rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--tos-accent-gold);
+  border: 1px solid color-mix(in srgb, var(--tos-accent-gold) 40%, transparent);
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.28rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+[data-tos] .tos-trader-chip-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--tos-text-muted);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+[data-tos] .tos-trader-chip-dot.is-active {
+  background: var(--tos-positive);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--tos-positive) 25%, transparent);
+}
+
+/* Top Tokens — single-row chip ~48–56px; widen before dropping fields */
+[data-tos] .tos-token-chip {
+  height: 52px;
+  width: 360px; /* fits logo+sym+price+%+liq+vol+chain+spark */
+  gap: 0.4rem;
+}
+
+[data-tos] .tos-token-chip-logo {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: var(--tos-accent-gold-dim);
+  color: var(--tos-accent-gold);
+  font-weight: 800;
+  font-size: var(--tos-fs-xs);
+}
+
+[data-tos] .tos-token-chip-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+[data-tos] .tos-token-chip-sym {
+  font-weight: 800;
+  font-size: var(--tos-fs-sm);
+  white-space: nowrap;
+  min-width: 2.75rem;
+}
+
+[data-tos] .tos-token-chip-price {
+  font-size: var(--tos-fs-xs);
+  font-weight: 700;
+  white-space: nowrap;
+  min-width: 3.5rem;
+}
+
+[data-tos] .tos-token-chip-pct {
+  flex-shrink: 0;
+}
+
+[data-tos] .tos-token-chip-liq,
+[data-tos] .tos-token-chip-vol {
+  font-size: 0.5625rem;
   color: var(--tos-text-secondary);
+  white-space: nowrap;
+}
+
+[data-tos] .tos-token-chip-chain {
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 0.25rem;
+  display: grid;
+  place-items: center;
+  font-size: 0.5625rem;
+  font-weight: 800;
+  color: var(--tos-accent-gold);
+  background: var(--tos-accent-gold-dim);
+  flex-shrink: 0;
+}
+
+[data-tos] .tos-token-chip-spark {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Legacy card selectors retained as no-ops for any residual markup */
+[data-tos] .tos-traders-row {
+  --tos-card-min: 13.75rem;
+}
+
+[data-tos] .tos-trader-card {
+  display: none;
+}
+
+[data-tos] .tos-token-card {
+  display: none;
+}
+
+/* Chart OHLC crosshair readout */
+[data-tos] .tos-chart-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+[data-tos] .tos-chart-ohlc {
+  position: absolute;
+  top: 0.15rem;
+  left: 0.25rem;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  font-size: 0.5625rem;
+  color: var(--tos-text-secondary);
+  pointer-events: none;
+  background: color-mix(in srgb, var(--tos-bg-panel) 82%, transparent);
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.25rem;
+}
+
+[data-tos] .tos-chart-canvas {
+  contain: layout paint;
 }
 
 /* Purple whale cards */
@@ -556,60 +782,7 @@
   padding: 0.12rem 0.45rem;
 }
 
-/* Token icon cards */
-[data-tos] .tos-token-card {
-  padding: 0.7rem 0.75rem;
-  border-radius: 0.75rem;
-  border: 1px solid var(--tos-border-subtle);
-  background: var(--tos-bg-panel);
-}
-
-[data-tos] .tos-token-head {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.35rem;
-}
-
-[data-tos] .tos-token-icon {
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 999px;
-  overflow: hidden;
-  display: grid;
-  place-items: center;
-  background: var(--tos-accent-gold-dim);
-  color: var(--tos-accent-gold);
-  font-weight: 800;
-  font-size: var(--tos-fs-xs);
-  flex-shrink: 0;
-}
-
-[data-tos] .tos-token-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-[data-tos] .tos-token-sym {
-  font-weight: 800;
-  font-size: var(--tos-fs-md);
-}
-
-[data-tos] .tos-token-price {
-  font-size: var(--tos-fs-lg);
-  font-weight: 800;
-}
-
-[data-tos] .tos-token-spark {
-  margin: 0.35rem 0;
-}
-
-[data-tos] .tos-token-meta {
-  font-size: var(--tos-fs-xs);
-  color: var(--tos-text-muted);
-  line-height: 1.4;
-}
+/* Token grid cards retired — see .tos-token-chip ribbon */
 
 [data-tos] .tos-ai-activate {
   border: 1px solid color-mix(in srgb, var(--tos-accent-gold) 45%, transparent);
@@ -647,14 +820,11 @@
   font-size: var(--tos-fs-md);
 }
 
-/* Density steps — more columns of fixed-ish cards, not stretched empties */
+/* Density steps — fixed chip widths; more items visible per row on large screens */
 @media (min-width: 90rem) {
   [data-tos] {
     --tos-card-min: 10.75rem;
     --tos-gap: 0.7rem;
-  }
-  [data-tos] .tos-traders-row {
-    --tos-card-min: 8.75rem;
   }
 }
 
@@ -662,18 +832,12 @@
   [data-tos] {
     --tos-card-min: 10.5rem;
   }
-  [data-tos] .tos-traders-row {
-    --tos-card-min: 8.5rem;
-  }
 }
 
 @media (min-width: 160rem) {
   [data-tos] {
     --tos-card-min: 10rem;
     --tos-gap: 0.6rem;
-  }
-  [data-tos] .tos-traders-row {
-    --tos-card-min: 8.15rem;
   }
   [data-tos] .tos-quad-grid {
     gap: 0.65rem;
