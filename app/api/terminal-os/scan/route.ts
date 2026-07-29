@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { assessRiskByMint } from '@/lib/connect/scan-gateway'
+import { resolveTokenByQuery } from '@/lib/terminal-os/live-market'
 import { resilientTokens } from '@/lib/terminal-os/resilient-feed'
 import { scoreTokenFromMarket } from '@/features/terminal-os/shared/lib/score-from-market'
-import type { TokenScanResult } from '@/features/terminal-os/shared/types'
+import type { ChainId, TokenRow, TokenScanResult } from '@/features/terminal-os/shared/types'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -11,21 +12,44 @@ export const dynamic = 'force-dynamic'
  * POST /api/terminal-os/scan
  * Demo-critical token scan: gateway (Solana mint) + DexScreener market rubric fallback.
  * Never returns blank — always a scored result or soft stale demo score.
+ * Never silently scores an unrelated top-list token when the query misses.
  */
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as { query?: string; chain?: string }
     const query = (body.query || 'WIF').trim()
-    const tokensEnv = await resilientTokens('all', 16)
+    const chain = (body.chain as ChainId | undefined) || 'all'
     const needle = query.toLowerCase()
-    const hit =
-      tokensEnv.data.find(
-        (t) =>
-          t.symbol.toLowerCase() === needle ||
-          t.id.toLowerCase() === needle ||
-          t.name.toLowerCase().includes(needle) ||
-          (t.pairAddress && t.pairAddress.toLowerCase() === needle),
-      ) || tokensEnv.data[0]
+
+    const tokensEnv = await resilientTokens(chain === 'all' ? 'all' : chain, 16)
+    const listHit = tokensEnv.data.find(
+      (t) =>
+        t.symbol.toLowerCase() === needle ||
+        t.id.toLowerCase() === needle ||
+        (t.pairAddress && t.pairAddress.toLowerCase() === needle),
+    )
+
+    let hit: TokenRow | null = listHit ?? null
+    let source = tokensEnv.source
+    let stale = tokensEnv.stale
+    let demo = tokensEnv.demo
+    let ageSec = tokensEnv.ageSec
+    let fetchedAt = tokensEnv.fetchedAt
+
+    if (!hit) {
+      try {
+        hit = await resolveTokenByQuery(query, chain)
+        if (hit) {
+          source = 'dexscreener-search'
+          stale = false
+          demo = false
+          ageSec = 0
+          fetchedAt = new Date().toISOString()
+        }
+      } catch {
+        hit = null
+      }
+    }
 
     if (!hit) {
       return NextResponse.json({
@@ -41,8 +65,8 @@ export async function POST(req: NextRequest) {
     let gatewayUsed = false
 
     // Solana-looking mint → scan gateway (fast) — ~sub-200ms assessment target
-    const looksSolMint = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(query) || hit.chain === 'solana'
-    if (looksSolMint && hit.chain === 'solana') {
+    const looksSolMint = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(query)
+    if ((looksSolMint || hit.chain === 'solana') && hit.chain === 'solana') {
       try {
         const mint = query.length >= 32 ? query : hit.id
         // ~150ms estimated when cached / fast depth
@@ -89,11 +113,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       result: { ...result, symbol: hit.symbol },
       meta: { price: hit.priceUsd, vol: hit.volume24hUsd, liq: hit.liquidityUsd },
-      stale: tokensEnv.stale,
-      demo: tokensEnv.demo,
-      source: gatewayUsed ? `scan-gateway+${tokensEnv.source}` : tokensEnv.source,
-      ageSec: tokensEnv.ageSec,
-      fetchedAt: tokensEnv.fetchedAt,
+      stale,
+      demo,
+      source: gatewayUsed ? `scan-gateway+${source}` : source,
+      ageSec,
+      fetchedAt,
     })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Scan failed'

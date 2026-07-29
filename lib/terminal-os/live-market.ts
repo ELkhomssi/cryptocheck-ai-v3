@@ -9,6 +9,7 @@ import { cachedJson } from '@/lib/cache/ttl'
 import { classifyWhaleMovement } from '@/features/terminal-os/shared/lib/classify-whale-movement'
 import { enrichWhaleMovement } from '@/features/terminal-os/shared/lib/enrich-whale-movement'
 import { rankAlphaDesks } from '@/features/terminal-os/shared/lib/rank-alpha-desks'
+import { selectBestTokenMatch } from '@/lib/terminal-os/select-best-token-match'
 import type {
   CandleBar,
   ChainId,
@@ -240,6 +241,129 @@ export async function fetchLiveTopTokens(chain: ChainId, limit = 12): Promise<To
     out.sort((a, b) => b.volume24hUsd - a.volume24hUsd)
     return out
   })
+}
+
+/**
+ * Resolve a user scan query (symbol, name, or mint/address) to a TokenRow.
+ * Prefer exact symbol → exact address → name contains, then highest quality.
+ * Never silently returns an unrelated top-list token.
+ */
+export async function resolveTokenByQuery(
+  query: string,
+  chain: ChainId = 'all',
+): Promise<TokenRow | null> {
+  const q = query.trim()
+  if (!q) return null
+  const needle = q.toLowerCase()
+  const cacheKey = `tos:resolve:v3:${chain}:${needle.slice(0, 64)}`
+  return cachedJson(cacheKey, TOKEN_TTL, async () => {
+    // Mint / contract address → DexScreener tokens endpoint (precise)
+    if (looksLikeTokenAddress(q)) {
+      const byAddr = await fetchTokenByAddress(q, chain)
+      if (byAddr) return byAddr
+    }
+
+    const want = chain === 'all' ? null : CHAIN_TO_DEX[chain]
+    const byKey = new Map<string, TokenRow>()
+
+    const pushPairs = (pairs: DexPair[]) => {
+      for (const p of pairs) {
+        if (want && p.chainId !== want) continue
+        const mapped = pairToToken(p, chain === 'all' ? mapDexChain(p.chainId) : chain)
+        if (!mapped) continue
+        const key = `${mapped.chain}:${mapped.id}`
+        const prev = byKey.get(key)
+        if (!prev || mapped.volume24hUsd > prev.volume24hUsd) {
+          byKey.set(key, mapped)
+        }
+      }
+    }
+
+    // DexScreener search — also try `$TICKER` (dogwifhat lists as $WIF)
+    const searches = [q]
+    if (/^[A-Za-z0-9]{2,12}$/.test(q)) searches.push(`$${q}`)
+    const searchResults = await Promise.all(searches.map((s) => searchDexPairs(s, 40)))
+    for (const pairs of searchResults) pushPairs(pairs)
+
+    // CoinGecko exact-symbol → platform mint → DexScreener tokens (major tickers)
+    if (/^[A-Za-z0-9$]{2,12}$/.test(q)) {
+      const cgPairs = await resolveViaCoinGecko(q, chain)
+      pushPairs(cgPairs)
+    }
+
+    const candidates = [...byKey.values()].map((t) => ({
+      ...t,
+      // Display tickers without DexScreener `$` prefix
+      symbol: t.symbol.replace(/^\$+/, ''),
+    }))
+
+    return selectBestTokenMatch(q, candidates)
+  })
+}
+
+function looksLikeTokenAddress(q: string): boolean {
+  if (/^0x[a-fA-F0-9]{40}$/.test(q)) return true
+  if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(q)) return true
+  return false
+}
+
+async function fetchTokenByAddress(address: string, chain: ChainId): Promise<TokenRow | null> {
+  const body = await fetchJson<{ pairs?: DexPair[] | null }>(
+    `${DEX}/latest/dex/tokens/${encodeURIComponent(address)}`,
+  )
+  const pairs = Array.isArray(body?.pairs) ? body!.pairs! : []
+  if (!pairs.length) return null
+  const want = chain === 'all' ? null : CHAIN_TO_DEX[chain]
+  const candidates: TokenRow[] = []
+  const seen = new Set<string>()
+  for (const p of pairs) {
+    if (want && p.chainId !== want) continue
+    const mapped = pairToToken(p, chain === 'all' ? mapDexChain(p.chainId) : chain)
+    if (!mapped || seen.has(mapped.id)) continue
+    seen.add(mapped.id)
+    candidates.push(mapped)
+  }
+  return selectBestTokenMatch(address, candidates) ?? candidates.sort((a, b) => b.volume24hUsd - a.volume24hUsd)[0] ?? null
+}
+
+async function resolveViaCoinGecko(query: string, chain: ChainId): Promise<DexPair[]> {
+  const needle = query.replace(/^\$+/, '').toLowerCase()
+  const search = await fetchJson<{
+    coins?: { id: string; symbol: string; market_cap_rank?: number | null }[]
+  }>(`${CG}/search?query=${encodeURIComponent(needle)}`)
+  const coins = Array.isArray(search?.coins) ? search!.coins! : []
+  const exact = coins
+    .filter((c) => (c.symbol || '').toLowerCase() === needle)
+    .sort((a, b) => (a.market_cap_rank ?? 99999) - (b.market_cap_rank ?? 99999))
+  const best = exact[0]
+  if (!best?.id) return []
+
+  const detail = await fetchJson<{ platforms?: Record<string, string | undefined> }>(
+    `${CG}/coins/${encodeURIComponent(best.id)}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false`,
+  )
+  const platforms = detail?.platforms || {}
+  const platformKeys =
+    chain === 'solana'
+      ? ['solana']
+      : chain === 'ethereum'
+        ? ['ethereum']
+        : chain === 'bnb'
+          ? ['binance-smart-chain']
+          : chain === 'base'
+            ? ['base']
+            : chain === 'arbitrum'
+              ? ['arbitrum-one']
+              : ['solana', 'ethereum', 'base', 'binance-smart-chain', 'arbitrum-one']
+
+  for (const key of platformKeys) {
+    const addr = platforms[key]
+    if (!addr) continue
+    const body = await fetchJson<{ pairs?: DexPair[] | null }>(
+      `${DEX}/latest/dex/tokens/${encodeURIComponent(addr)}`,
+    )
+    if (Array.isArray(body?.pairs) && body!.pairs!.length) return body!.pairs!
+  }
+  return []
 }
 
 /** OHLC candles — CoinGecko OHLC + market_chart volumes (real). */
