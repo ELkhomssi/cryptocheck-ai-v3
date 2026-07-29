@@ -9,6 +9,7 @@ import { cachedJson } from '@/lib/cache/ttl'
 import { classifyWhaleMovement } from '@/features/terminal-os/shared/lib/classify-whale-movement'
 import { enrichWhaleMovement } from '@/features/terminal-os/shared/lib/enrich-whale-movement'
 import { rankAlphaDesks } from '@/features/terminal-os/shared/lib/rank-alpha-desks'
+import { selectBestTokenMatch } from '@/lib/terminal-os/select-best-token-match'
 import type {
   CandleBar,
   ChainId,
@@ -216,6 +217,42 @@ async function searchDexPairs(query: string, limit: number): Promise<DexPair[]> 
     `${DEX}/latest/dex/search?q=${encodeURIComponent(query)}`,
   )
   return Array.isArray(body?.pairs) ? body!.pairs!.slice(0, limit) : []
+}
+
+/**
+ * Resolve symbol / mint / address via DexScreener search (+ $TICKER variant).
+ * Never returns an unrelated top-list token.
+ */
+export async function resolveTokenByQuery(
+  query: string,
+  chain: ChainId = 'all',
+): Promise<TokenRow | null> {
+  const q = query.trim()
+  if (!q) return null
+  const needle = q.toLowerCase()
+  return cachedJson(`tos:resolve:ic:${chain}:${needle.slice(0, 64)}`, TOKEN_TTL, async () => {
+    const want = chain === 'all' ? null : CHAIN_TO_DEX[chain]
+    const byKey = new Map<string, TokenRow>()
+    const push = (pairs: DexPair[]) => {
+      for (const p of pairs) {
+        if (want && p.chainId !== want) continue
+        const mapped = pairToToken(p, chain === 'all' ? mapDexChain(p.chainId) : chain)
+        if (!mapped) continue
+        const key = `${mapped.chain}:${mapped.id}`
+        const prev = byKey.get(key)
+        if (!prev || mapped.volume24hUsd > prev.volume24hUsd) byKey.set(key, mapped)
+      }
+    }
+    const searches = [q]
+    if (/^[A-Za-z0-9]{2,12}$/.test(q)) searches.push(`$${q}`)
+    const results = await Promise.all(searches.map((s) => searchDexPairs(s, 40)))
+    for (const pairs of results) push(pairs)
+    const candidates = [...byKey.values()].map((t) => ({
+      ...t,
+      symbol: t.symbol.replace(/^\$+/, ''),
+    }))
+    return selectBestTokenMatch(q, candidates)
+  })
 }
 
 /** Top tokens by chain via DexScreener search (no key). */
