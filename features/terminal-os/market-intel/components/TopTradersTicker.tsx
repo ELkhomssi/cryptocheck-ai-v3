@@ -2,9 +2,16 @@
 
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { EmptyState, PanelSkeleton, StaleIndicator } from '@/features/terminal-os/shared/components/PanelStates'
-import { formatPct, formatUsd } from '@/features/terminal-os/shared/lib/format'
+import { DensityRibbon } from '@/features/terminal-os/shared/components/DensityRibbon'
+import { formatPct } from '@/features/terminal-os/shared/lib/format'
 import { useTopTraders } from '@/features/terminal-os/shared/hooks/useTerminalQueries'
+import type { TopTrader } from '@/features/terminal-os/shared/types'
 
+/**
+ * FLAG (refinement pass): No Trader Profile view/click handler exists in Terminal OS.
+ * Items are tab-focusable and pause the ribbon; activate is intentionally unwired
+ * until an existing profile route/handler is available to reuse.
+ */
 export function TopTradersTicker() {
   const { data: traders, isLoading, isError } = useTopTraders()
 
@@ -13,45 +20,53 @@ export function TopTradersTicker() {
       {isError && !traders?.length ? (
         <div>
           <StaleIndicator stale demo source="coingecko" />
-          <PanelSkeleton rows={2} />
+          <PanelSkeleton rows={1} />
         </div>
       ) : isLoading || !traders ? (
-        <PanelSkeleton rows={2} />
+        <div className="tos-ribbon-skeleton tos-ribbon-skeleton--traders" aria-hidden>
+          <PanelSkeleton rows={1} />
+        </div>
       ) : traders.length === 0 ? (
         <EmptyState message="No ranked traders yet." />
       ) : (
-        <div className="tos-scroll-x tos-traders-row">
-          {traders.map((t, idx) => (
-            <article key={t.id} className="tos-trader-card">
-              <div className="tos-trader-rank">#{idx + 1}</div>
-              <div className="tos-trader-avatar" aria-hidden>
-                {t.logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={t.logoUrl} alt="" />
-                ) : (
-                  t.avatarInitials
-                )}
-              </div>
-              <div className="tos-trader-name">{t.handle}</div>
-              <div className={`tos-num tos-trader-pnl ${t.pnlPct >= 0 ? 'tos-pos' : 'tos-neg'}`}>
-                {formatPct(t.pnlPct)}
-              </div>
-              <div className="tos-num tos-trader-usd">{formatUsd(t.pnlUsd, true)} PNL</div>
-              <div className="tos-trader-meta">
-                <span>WR {t.winRatePct}%</span>
-                <span>{t.activePositions} pos</span>
-              </div>
-              <div className="tos-trader-meta tos-muted">
-                <span>{t.underlyingSymbol ?? '—'}</span>
-                <span>Conf {t.aiConfidence}%</span>
-              </div>
-              <div className="tos-trader-meta tos-muted tos-num">
-                Vol {formatUsd(t.volume24hUsd ?? 0, true)}
-              </div>
-            </article>
-          ))}
-        </div>
+        <DensityRibbon
+          items={traders}
+          ariaLabel="Top traders today, scrolling ribbon"
+          className="tos-traders-ribbon"
+          itemClassName="tos-trader-chip"
+          itemKey={(t) => t.id}
+          renderItem={(t) => <TraderChip trader={t} />}
+        />
       )}
     </Panel>
+  )
+}
+
+function TraderChip({ trader: t }: { trader: TopTrader }) {
+  const active = t.activePositions > 0
+  return (
+    <>
+      <span className="tos-trader-chip-avatar" aria-hidden>
+        {t.logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={t.logoUrl} alt="" />
+        ) : (
+          t.avatarInitials
+        )}
+      </span>
+      <span className="tos-trader-chip-name">{t.handle}</span>
+      <span className={`tos-num tos-trader-chip-pnl ${t.pnlPct >= 0 ? 'tos-pos' : 'tos-neg'}`}>
+        {formatPct(t.pnlPct)}
+      </span>
+      <span className="tos-num tos-trader-chip-wr">WR {t.winRatePct}%</span>
+      <span className="tos-trader-chip-conf" title={t.confidenceWhy}>
+        {t.aiConfidence}%
+      </span>
+      <span
+        className={`tos-trader-chip-dot${active ? ' is-active' : ''}`}
+        title={active ? `${t.activePositions} active positions` : 'No active positions'}
+        aria-label={active ? `${t.activePositions} active positions` : 'No active positions'}
+      />
+    </>
   )
 }

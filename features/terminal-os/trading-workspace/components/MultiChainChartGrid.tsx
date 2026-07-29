@@ -1,8 +1,8 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
-import { CandlestickChart } from './CandlestickChart'
 import { Pct } from '@/features/terminal-os/shared/components/Pct'
 import { formatUsd } from '@/features/terminal-os/shared/lib/format'
 import {
@@ -10,6 +10,15 @@ import {
   useMarketOverview,
 } from '@/features/terminal-os/shared/hooks/useTerminalQueries'
 import type { ChainId, ChainMarketSnapshot, MarketOverview } from '@/features/terminal-os/shared/types'
+
+/** Lazy-load Lightweight Charts — home route paints without chart JS until grid mounts */
+const CandlestickChart = dynamic(
+  () => import('./CandlestickChart').then((m) => m.CandlestickChart),
+  {
+    ssr: false,
+    loading: () => <div className="tos-skeleton" style={{ height: 148, width: '100%' }} aria-label="Chart loading" />,
+  },
+)
 
 const QUADS: { chain: ChainId; label: string }[] = [
   { chain: 'solana', label: 'Solana' },
