@@ -11,7 +11,8 @@ export function TerminalOsProviders({ children }: { children: ReactNode }) {
           queries: {
             staleTime: 12_000,
             refetchOnWindowFocus: true,
-            retry: 1,
+            retry: 2,
+            placeholderData: (prev: unknown) => prev,
           },
         },
       }),

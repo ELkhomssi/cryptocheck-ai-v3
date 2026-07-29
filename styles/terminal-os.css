@@ -1851,3 +1851,30 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* Demo-day soft staleness — never red error banners */
+[data-tos] .tos-stale {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--tos-fs-xs);
+  color: var(--tos-text-muted);
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.3rem;
+  border: 1px solid var(--tos-border-subtle);
+  background: color-mix(in srgb, #111 80%, transparent);
+  white-space: nowrap;
+  margin: 0.25rem 0;
+}
+
+[data-tos] .tos-stale-dot {
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: var(--tos-warning);
+  flex-shrink: 0;
+}
+
+[data-tos] .tos-skeleton-card {
+  min-height: 4rem;
+}

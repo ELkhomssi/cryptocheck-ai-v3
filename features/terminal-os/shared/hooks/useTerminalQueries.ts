@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import {
   liveMarketDataProvider,
   liveTraderLeaderboardProvider,
@@ -17,6 +17,8 @@ export function useTickerQuotes() {
     queryFn: () => liveMarketDataProvider.getTickerQuotes(),
     staleTime: STALE_PRICE,
     refetchInterval: STALE_PRICE,
+    placeholderData: keepPreviousData,
+    retry: 2,
   })
 }
 
@@ -26,6 +28,8 @@ export function useTopTokens(chain: ChainId) {
     queryFn: () => liveMarketDataProvider.getTopTokens(chain),
     staleTime: STALE_PRICE,
     refetchInterval: 20_000,
+    placeholderData: keepPreviousData,
+    retry: 2,
   })
 }
 
@@ -35,6 +39,8 @@ export function useWhaleMovements(limit = 10) {
     queryFn: () => liveWhaleFeedProvider.getRecentMovements(limit),
     staleTime: 20_000,
     refetchInterval: 25_000,
+    placeholderData: keepPreviousData,
+    retry: 2,
   })
 }
 
@@ -44,6 +50,8 @@ export function useTopTraders() {
     queryFn: () => liveTraderLeaderboardProvider.getTopTradersToday(),
     staleTime: STALE_PRICE,
     refetchInterval: 30_000,
+    placeholderData: keepPreviousData,
+    retry: 2,
   })
 }
 
@@ -53,6 +61,8 @@ export function useChainSnapshots() {
     queryFn: () => liveMarketDataProvider.getChainSnapshots(),
     staleTime: STALE_SLOW,
     refetchInterval: STALE_SLOW,
+    placeholderData: keepPreviousData,
+    retry: 2,
   })
 }
 
@@ -62,5 +72,7 @@ export function useMarketOverview() {
     queryFn: () => liveMarketDataProvider.getMarketOverview(),
     staleTime: 30_000,
     refetchInterval: 30_000,
+    placeholderData: keepPreviousData,
+    retry: 2,
   })
 }

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { ScoreRing } from '@/features/terminal-os/shared/components/ScoreRing'
-import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
+import { PanelSkeleton, StaleIndicator } from '@/features/terminal-os/shared/components/PanelStates'
 import { mockSecurityScanProvider } from '@/features/terminal-os/shared/lib/mock-providers'
 import type { WalletScanResult } from '@/features/terminal-os/shared/types'
 
@@ -48,7 +48,10 @@ export function WalletScoreScanCard() {
         </button>
       </form>
       {error ? (
-        <EmptyState message={error} />
+        <div>
+          <StaleIndicator stale demo source="wallet-scan-fallback" />
+          <PanelSkeleton rows={3} />
+        </div>
       ) : loading || !result ? (
         <PanelSkeleton rows={3} />
       ) : (

@@ -10,7 +10,8 @@ Canonical product desk remains at `/terminal` (Portfolio Desk). This surface is 
 | 1 | Shell, design system, mock providers, all layer panels | Done |
 | 1.1 | Gap-fix: density, live CoinGecko/DexScreener, 4K layout | Done |
 | Whale marquee | Top Whale Movements SSE ticker | Done |
-| **X** | **Trade Like Me** — behavioral DNA + decision engines (advise-only) | **This PR** |
+| **Perf / Demo** | Real-data resilience: circuit breaker, LKG cache, SSE push, Demo Mode | **This PR** |
+| **X** | **Trade Like Me** — behavioral DNA + decision engines (advise-only) | Done |
 | 2 | WebSocket streaming + richer Birdeye/Helius wiring | Next |
 | 6 | Autonomy execution via risk-gated-swap (flagged OFF) | Gated |
 

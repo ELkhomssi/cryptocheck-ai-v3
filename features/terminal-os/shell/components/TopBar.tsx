@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState, startTransition } from 'react'
 import { Bell, LayoutTemplate, Search, Star } from 'lucide-react'
 import { useTerminalOsStore } from '@/stores/terminal-os'
 import { useTickerQuotes } from '@/features/terminal-os/shared/hooks/useTerminalQueries'
+import { useTerminalMarketStream } from '@/features/terminal-os/shared/hooks/useTerminalMarketStream'
 import { formatPct, formatUsd } from '@/features/terminal-os/shared/lib/format'
-import { PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
+import { PanelSkeleton, StaleIndicator } from '@/features/terminal-os/shared/components/PanelStates'
+import { AnimatedNumber } from '@/features/terminal-os/shared/components/AnimatedNumber'
 
 export function TopBar() {
   const notificationCount = useTerminalOsStore((s) => s.notificationCount)
@@ -16,7 +18,14 @@ export function TopBar() {
   const searchQuery = useTerminalOsStore((s) => s.searchQuery)
   const setSearchQuery = useTerminalOsStore((s) => s.setSearchQuery)
 
-  const { data: quotes, isError } = useTickerQuotes()
+  const { data: quotes } = useTickerQuotes()
+  const stream = useTerminalMarketStream()
+  // Keep last good quotes — never blank on refetch
+  const [lkg, setLkg] = useState(quotes)
+  useEffect(() => {
+    if (quotes?.length) setLkg(quotes)
+  }, [quotes])
+  const shown = quotes?.length ? quotes : lkg
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -76,35 +85,43 @@ export function TopBar() {
         style={{ flex: 1, minWidth: 0, alignItems: 'center', gridAutoColumns: 'max-content' }}
         aria-label="Live ticker"
       >
-        {isError ? (
-          <span className="tos-neg" style={{ fontSize: 'var(--tos-fs-sm)' }}>
-            Ticker offline
-          </span>
-        ) : !quotes ? (
+        {!shown ? (
           <div style={{ width: '15rem' }}>
             <PanelSkeleton rows={1} />
           </div>
         ) : (
-          quotes.map((q) => (
-            <div
-              key={q.symbol}
-              style={{
-                display: 'flex',
-                alignItems: 'baseline',
-                gap: '0.35rem',
-                whiteSpace: 'nowrap',
-                fontSize: 'var(--tos-fs-sm)',
-                paddingRight: '0.75rem',
-                borderRight: '1px solid var(--tos-border-subtle)',
-              }}
-            >
-              <strong>{q.symbol}</strong>
-              <span className="tos-num">{formatUsd(q.priceUsd)}</span>
-              <span className={`tos-num ${q.change24hPct >= 0 ? 'tos-pos' : 'tos-neg'}`}>
-                ({formatPct(q.change24hPct)})
-              </span>
-            </div>
-          ))
+          <>
+            {shown.map((q) => (
+              <div
+                key={q.symbol}
+                style={{
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  gap: '0.35rem',
+                  whiteSpace: 'nowrap',
+                  fontSize: 'var(--tos-fs-sm)',
+                  paddingRight: '0.75rem',
+                  borderRight: '1px solid var(--tos-border-subtle)',
+                }}
+              >
+                <strong>{q.symbol}</strong>
+                <AnimatedNumber
+                  value={q.priceUsd}
+                  format={(n) => formatUsd(n)}
+                  className="tos-num"
+                />
+                <span className={`tos-num ${q.change24hPct >= 0 ? 'tos-pos' : 'tos-neg'}`}>
+                  (<AnimatedNumber value={q.change24hPct} format={(n) => formatPct(n)} />)
+                </span>
+              </div>
+            ))}
+            <StaleIndicator
+              stale={stream.ticker?.stale}
+              demo={stream.ticker?.demo}
+              ageSec={stream.ticker?.ageSec}
+              source={stream.ticker?.source}
+            />
+          </>
         )}
       </div>
 
@@ -147,9 +164,12 @@ export function TopBar() {
         <button
           type="button"
           className="tos-btn tos-btn-gold"
-          onClick={() =>
-            setWalletConnected(!walletConnected, walletConnected ? null : '7a8x…9f2b')
-          }
+          onClick={() => {
+            startTransition(() => {
+              // Optimistic connect — reconcile label immediately for demo feel
+              setWalletConnected(!walletConnected, walletConnected ? null : '7a8x…9f2b')
+            })
+          }}
         >
           {walletConnected ? walletLabel ?? 'Connected' : 'Connect Wallet'}
         </button>

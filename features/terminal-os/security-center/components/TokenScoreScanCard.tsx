@@ -1,24 +1,28 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, startTransition } from 'react'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { ScoreRing } from '@/features/terminal-os/shared/components/ScoreRing'
-import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
-import { liveMarketDataProvider } from '@/features/terminal-os/shared/lib/live-providers'
-import { scoreTokenFromMarket } from '@/features/terminal-os/shared/lib/score-from-market'
+import { PanelSkeleton, StaleIndicator } from '@/features/terminal-os/shared/components/PanelStates'
 import { formatUsd } from '@/features/terminal-os/shared/lib/format'
+import { scoreTokenFromMarket } from '@/features/terminal-os/shared/lib/score-from-market'
+import { liveMarketDataProvider } from '@/features/terminal-os/shared/lib/live-providers'
 import type { TokenScanResult } from '@/features/terminal-os/shared/types'
+
+type ScanMeta = { price: number; vol: number; liq: number }
 
 export function TokenScoreScanCard() {
   const [query, setQuery] = useState('WIF')
   const [result, setResult] = useState<TokenScanResult | null>(null)
-  const [meta, setMeta] = useState<{ price: number; vol: number; liq: number } | null>(null)
+  const [meta, setMeta] = useState<ScanMeta | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [stale, setStale] = useState(false)
+  const [demo, setDemo] = useState(false)
+  const [ageSec, setAgeSec] = useState(0)
+  const [source, setSource] = useState<string | undefined>()
 
-  const run = async (q: string) => {
+  const run = useCallback(async (q: string) => {
     setLoading(true)
-    setError(null)
     try {
       const tokens = await liveMarketDataProvider.getTopTokens('all')
       const needle = q.trim().toLowerCase()
@@ -29,23 +33,54 @@ export function TokenScoreScanCard() {
             t.id.toLowerCase() === needle ||
             t.name.toLowerCase().includes(needle),
         ) || tokens[0]
-      if (!hit) throw new Error('No live token match')
-      const scored = scoreTokenFromMarket(hit)
-      setResult({ ...scored, symbol: hit.symbol, mintOrAddress: hit.id })
-      setMeta({ price: hit.priceUsd, vol: hit.volume24hUsd, liq: hit.liquidityUsd })
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Scan failed')
-    } finally {
+      if (hit) {
+        const optimistic = scoreTokenFromMarket(hit)
+        startTransition(() => {
+          setResult({ ...optimistic, symbol: hit.symbol, mintOrAddress: hit.id })
+          setMeta({ price: hit.priceUsd, vol: hit.volume24hUsd, liq: hit.liquidityUsd })
+          setLoading(false)
+        })
+      }
+    } catch {
+      /* continue to API */
+    }
+
+    try {
+      const res = await fetch('/api/terminal-os/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: q }),
+      })
+      const body = (await res.json()) as {
+        result: TokenScanResult
+        meta: ScanMeta
+        stale?: boolean
+        demo?: boolean
+        ageSec?: number
+        source?: string
+      }
+      startTransition(() => {
+        setResult(body.result)
+        setMeta(body.meta)
+        setStale(Boolean(body.stale))
+        setDemo(Boolean(body.demo))
+        setAgeSec(body.ageSec ?? 0)
+        setSource(body.source)
+        setLoading(false)
+      })
+    } catch {
+      setStale(true)
+      setDemo(true)
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     void run('WIF')
-  }, [])
+  }, [run])
 
   return (
-    <Panel title="Token Score & Scan">
+    <Panel title="Token Score & Scan" live>
       <form
         onSubmit={(e) => {
           e.preventDefault()
@@ -64,9 +99,10 @@ export function TokenScoreScanCard() {
           Scan
         </button>
       </form>
-      {error ? (
-        <EmptyState message={error} />
-      ) : loading || !result ? (
+      <StaleIndicator stale={stale} demo={demo} ageSec={ageSec} source={source} />
+      {loading && !result ? (
+        <PanelSkeleton rows={4} />
+      ) : !result ? (
         <PanelSkeleton rows={4} />
       ) : (
         <div>
@@ -124,15 +160,13 @@ export function TokenScoreScanCard() {
                       width: `${m.value}%`,
                       height: '100%',
                       background: 'var(--tos-positive)',
+                      transition: 'width 280ms ease',
                     }}
                   />
                 </div>
               </div>
             ))}
           </div>
-          <button type="button" className="tos-btn tos-btn-ghost" style={{ width: '100%', marginTop: '0.75rem' }}>
-            VIEW FULL SCAN
-          </button>
         </div>
       )}
     </Panel>

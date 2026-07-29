@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import dynamic from 'next/dynamic'
 import { LeftRail } from '@/features/terminal-os/shell/components/LeftRail'
 import { TopBar } from '@/features/terminal-os/shell/components/TopBar'
 import { PanelErrorBoundary } from '@/features/terminal-os/shared/components/PanelErrorBoundary'
@@ -16,14 +16,22 @@ import { WalletScoreScanCard } from '@/features/terminal-os/security-center/comp
 import { AiCoachingCard } from '@/features/terminal-os/ai-coach/components/AiCoachingCard'
 import { AiWorkforcePanel } from '@/features/terminal-os/ai-workforce/components/AiWorkforcePanel'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
-import { ComingOnline } from '@/features/terminal-os/shared/components/PanelStates'
+import { ComingOnline, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
 import { useTerminalOsStore } from '@/stores/terminal-os'
 import type { TerminalNavId } from '@/features/terminal-os/shared/types'
 import {
   AiStatusCard,
   AiTradeLikeMeCard,
 } from '@/features/terminal-os/ai-trade-like-me/components/AiTradeLikeMeCard'
-import { TradeLikeMeWidget } from '@/features/terminal-os/ai-trade-like-me/components/TradeLikeMeWidget'
+
+/** Code-split flagship widget — home JS shouldn't pay for TLM until visited */
+const TradeLikeMeWidget = dynamic(
+  () =>
+    import('@/features/terminal-os/ai-trade-like-me/components/TradeLikeMeWidget').then(
+      (m) => m.TradeLikeMeWidget,
+    ),
+  { ssr: false, loading: () => <PanelSkeleton rows={6} /> },
+)
 
 function Bound({ title, children }: { title: string; children: ReactNode }) {
   return <PanelErrorBoundary title={title}>{children}</PanelErrorBoundary>

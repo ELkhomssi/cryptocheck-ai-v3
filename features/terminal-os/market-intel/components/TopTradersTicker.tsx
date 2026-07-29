@@ -1,17 +1,20 @@
 'use client'
 
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
-import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
+import { EmptyState, PanelSkeleton, StaleIndicator } from '@/features/terminal-os/shared/components/PanelStates'
 import { formatPct, formatUsd } from '@/features/terminal-os/shared/lib/format'
 import { useTopTraders } from '@/features/terminal-os/shared/hooks/useTerminalQueries'
 
 export function TopTradersTicker() {
-  const { data: traders, isLoading, isError, error } = useTopTraders()
+  const { data: traders, isLoading, isError } = useTopTraders()
 
   return (
     <Panel title="Top Traders Today" live>
-      {isError ? (
-        <EmptyState message={error instanceof Error ? error.message : 'Traders feed offline'} />
+      {isError && !traders?.length ? (
+        <div>
+          <StaleIndicator stale demo source="coingecko" />
+          <PanelSkeleton rows={2} />
+        </div>
       ) : isLoading || !traders ? (
         <PanelSkeleton rows={2} />
       ) : traders.length === 0 ? (
