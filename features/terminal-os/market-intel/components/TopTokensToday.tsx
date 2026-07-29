@@ -31,6 +31,7 @@ const CHAIN_ICON: Record<string, string> = {
 export function TopTokensToday() {
   const tab = useTerminalOsStore((s) => s.tokenChainTab)
   const setTab = useTerminalOsStore((s) => s.setTokenChainTab)
+  const setFocusedToken = useTerminalOsStore((s) => s.setFocusedToken)
   const { data: rows, isLoading, isError, isFetching } = useTopTokens(tab)
 
   return (
@@ -77,6 +78,16 @@ export function TopTokensToday() {
           itemClassName="tos-token-chip"
           itemKey={(t) => t.id}
           renderItem={(t) => <TokenChip token={t} />}
+          onItemActivate={(t) =>
+            setFocusedToken({
+              id: t.id,
+              symbol: t.symbol,
+              name: t.name,
+              chain: t.chain,
+              priceUsd: t.priceUsd,
+              logoUrl: t.logoUrl,
+            })
+          }
         />
       )}
     </Panel>
