@@ -840,7 +840,7 @@ function VerdictTab({
               <span className="text-emerald-400 text-[0.58rem] font-mono">● Live Chart</span>
               <span className="text-[#484f58] text-[0.52rem]">{sym}/SOL · Solana Mainnet</span>
             </div>
-            <div className="ic-root" data-tos style={{ minHeight: 420, height: '100%', overflow: 'auto', background: '#0d1117' }}>
+          <div style={{ minHeight: 420, height: '100%', overflow: 'auto', background: '#0d1117' }}>
               <IntelligenceChart query={data.mint || sym} chain="solana" />
             </div>
           </div>
@@ -1098,7 +1098,7 @@ function TransfersTab({ data }: { data: ScanData }) {
 
 // ── Intelligence Chart + Jupiter Price Chart Tab ──
 // 60% Intelligence Chart | 40% Jupiter (in-page; jup.ag blocks third-party iframes)
-function DexChartTab({
+function IntelligenceChartTab({
   mint,
   chartKey,
   onConnectWallet,
@@ -1158,7 +1158,7 @@ function DexChartTab({
           <div style={{ fontSize:'0.54rem', color:'#6e7681', padding:'4px 10px', background:'#161b22', flexShrink:0 }}>
             <span style={{ color:'#10b981' }}>●</span> Intelligence Chart · {mint.slice(0,8)}…
           </div>
-          <div className="ic-root" data-tos style={{ overflow:'auto', flex:1, position:'relative', minHeight:'460px', background:'#0d1117', padding:8 }}>
+          <div style={{ overflow:'auto', flex:1, position:'relative', minHeight:'460px', background:'#0d1117', padding:8 }}>
             <IntelligenceChart key={`ic-${chartKey}-${mint}`} query={mint || currentSymbol} chain="solana" />
           </div>
         </div>
@@ -2161,8 +2161,8 @@ export default function Dashboard() {
   const [showSwap,    setShowSwap]    = useState(false)     // Jupiter swap modal
   const [swapMint,    setSwapMint]    = useState('')        // token to swap
   const [swapSym,     setSwapSym]     = useState('???')     // symbol for swap modal
-  const [dexInput,    setDexInput]    = useState('')        // DexScreener dedicated search
-  const [dexMint,     setDexMint]     = useState('')        // active chart mint address
+  const [chartInput,  setChartInput]  = useState('')        // Intelligence Chart mint search
+  const [chartMintSel, setChartMintSel] = useState('')      // active chart mint address
   const [currentMint, setCurrentMint] = useState('')        // unified mint for chart+Jupiter
   const [chartKey,    setChartKey]    = useState(0)         // increment to force iframe remount
   const feedIdRef  = useRef(0)
@@ -2397,7 +2397,7 @@ export default function Dashboard() {
           setCredits(consumeJson.credits)
         }
       }
-      setDexMint(mint)
+      setChartMintSel(mint)
       setCurrentMint(mint)   // sync chart + Jupiter to scanned token
       setChartKey(k => k + 1)  // force iframe remount
       const risk = computeRisk(data)
@@ -2452,7 +2452,7 @@ export default function Dashboard() {
     // Set unified currentMint + increment chartKey to force iframe remount
     setCurrentMint(mint)
     setChartKey(k => k + 1)
-    setDexMint(mint)
+    setChartMintSel(mint)
     setMintInput(mint)
     setView('scanner')
     setScanTab('verdict')
@@ -2629,13 +2629,13 @@ export default function Dashboard() {
       )
     }
 
-    // Chart tab can show even without a full scan if we have a dexMint
+    // Chart tab can show even without a full scan if we have a chartMintSel
     if (scanTab === 'chart') {
-      const chartMint = (scanData?.mint ?? dexMint).trim()
+      const chartMint = (scanData?.mint ?? chartMintSel).trim()
       if (chartMint.length >= 32) {
         return (
           <motion.div key={`chart-${chartMint}`} {...motionProps}>
-            <DexChartTab
+            <IntelligenceChartTab
               mint={chartMint}
               chartKey={chartKey}
               swapModalOpen={showSwap}
@@ -2693,7 +2693,7 @@ export default function Dashboard() {
                 setShowSwap(true)
               }}
               onChartClick={(m) => {
-                setDexMint(m)
+                setChartMintSel(m)
                 setScanTab('chart')
               }}
               aiSummary={aiSummary}
@@ -2993,11 +2993,11 @@ export default function Dashboard() {
             </div>
             <div className="flex gap-1.5">
               <input
-                value={dexInput}
-                onChange={e => setDexInput(e.target.value)}
+                value={chartInput}
+                onChange={e => setChartInput(e.target.value)}
                 onKeyDown={e => {
-                  if (e.key === 'Enter' && dexInput.trim().length >= 32) {
-                    setDexMint(dexInput.trim())
+                  if (e.key === 'Enter' && chartInput.trim().length >= 32) {
+                    setChartMintSel(chartInput.trim())
                     setScanTab('chart')
                     setView('scanner')
                   }
@@ -3008,8 +3008,8 @@ export default function Dashboard() {
               />
               <button
                 onClick={() => {
-                  const m = dexInput.trim()
-                  if (m.length >= 32) { setDexMint(m); setScanTab('chart'); setView('scanner') }
+                  const m = chartInput.trim()
+                  if (m.length >= 32) { setChartMintSel(m); setScanTab('chart'); setView('scanner') }
                 }}
                 className="flex-shrink-0 px-2.5 py-1.5 rounded-[4px] text-[0.62rem] font-bold font-mono text-white border-none cursor-pointer transition-all"
                 style={{ background: 'linear-gradient(135deg,#10b981,#059669)', boxShadow: '0 0 10px rgba(16,185,129,0.25)' }}
@@ -3022,7 +3022,7 @@ export default function Dashboard() {
               Paste a Solana mint to load the Intelligence Chart.
             </div>
             {/* Quick links for current scan */}
-            {dexMint && (
+            {chartMintSel && (
               <div className="mt-2 flex gap-1.5">
                 <button
                   onClick={() => { setScanTab('chart'); setView('scanner') }}
@@ -3090,11 +3090,11 @@ export default function Dashboard() {
               <div className="md:hidden flex items-center gap-1.5 px-3 py-2 bg-[#161b22] border-b border-[rgba(16,185,129,0.2)]">
                 <span className="text-emerald-400 text-sm flex-shrink-0">📈</span>
                 <input
-                  value={dexInput}
-                  onChange={e => setDexInput(e.target.value)}
+                  value={chartInput}
+                  onChange={e => setChartInput(e.target.value)}
                   onKeyDown={e => {
-                    if (e.key === 'Enter' && dexInput.trim().length >= 32) {
-                      setDexMint(dexInput.trim())
+                    if (e.key === 'Enter' && chartInput.trim().length >= 32) {
+                      setChartMintSel(chartInput.trim())
                       setScanTab('chart')
                     }
                   }}
@@ -3104,15 +3104,15 @@ export default function Dashboard() {
                 />
                 <button
                   onClick={() => {
-                    const m = dexInput.trim()
-                    if (m.length >= 32) { setDexMint(m); setScanTab('chart') }
+                    const m = chartInput.trim()
+                    if (m.length >= 32) { setChartMintSel(m); setScanTab('chart') }
                   }}
                   className="flex-shrink-0 px-2 py-1 rounded-[3px] text-[0.6rem] font-bold font-mono text-white border-none cursor-pointer"
                   style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}
                 >
                   GO
                 </button>
-                {(dexMint || scanData?.mint) && (
+                {(chartMintSel || scanData?.mint) && (
                   <button
                     onClick={() => { setScanTab('chart'); setView('scanner') }}
                     className="flex-shrink-0 px-2 py-1 rounded-[3px] text-emerald-400 text-[0.58rem] font-bold font-mono cursor-pointer"

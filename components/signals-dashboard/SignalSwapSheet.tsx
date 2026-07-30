@@ -263,7 +263,7 @@ export function SignalSwapSheet({ signal, open, onClose, variant = 'sheet' }: Pr
         </div>
 
         {mint.length >= 32 ? (
-          <div className="ic-root mb-4 overflow-hidden rounded-rd-sm border border-white/10 bg-black/40 p-1">
+          <div className="mb-4 overflow-hidden rounded-rd-sm border border-white/10 bg-black/40 p-1">
             <IntelligenceChart query={mint} chain="solana" />
           </div>
         ) : null}

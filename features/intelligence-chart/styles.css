@@ -1,7 +1,131 @@
 /**
  * Intelligence Chart — instrument chrome (Linear / Arc / Cursor — not Binance).
- * Scoped under .ic-root / [data-tos]; sole chart surface.
+ * Self-contained under .ic-root (works outside Terminal OS).
+ * Also matches when nested under [data-tos].
  */
+
+.ic-root {
+  --tos-bg-app: #050505;
+  --tos-bg-panel: #0a0a0a;
+  --tos-bg-panel-elevated: #121212;
+  --tos-border-subtle: #1c1c1c;
+  --tos-text-primary: #f5f5f2;
+  --tos-text-secondary: #9a9588;
+  --tos-text-muted: #5c584f;
+  --tos-accent-gold: #d4af37;
+  --tos-accent-gold-bright: #f0c14b;
+  --tos-accent-blue: #3d8bfd;
+  --tos-positive: #16c784;
+  --tos-negative: #ea3943;
+  --tos-warning: #f5a623;
+  --tos-radius: 0.75rem;
+  --tos-radius-sm: 0.5rem;
+  --tos-mono: ui-monospace, "IBM Plex Mono", Menlo, monospace;
+  --tos-fs-xs: 0.625rem;
+  --tos-fs-sm: 0.75rem;
+  --tos-fs-md: 0.8125rem;
+  --tos-fs-lg: 1.125rem;
+  color: var(--tos-text-primary);
+  background: var(--tos-bg-panel);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  min-width: 0;
+}
+
+/* Host chrome when Panel/tos-* classes are used outside Terminal OS */
+.ic-root .tos-panel {
+  background: var(--tos-bg-panel-elevated);
+  border: 1px solid var(--tos-border-subtle);
+  border-radius: var(--tos-radius);
+  overflow: hidden;
+}
+
+.ic-root .tos-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  border-bottom: 1px solid var(--tos-border-subtle);
+}
+
+.ic-root .tos-panel-title {
+  font-size: var(--tos-fs-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tos-text-secondary);
+  margin: 0;
+}
+
+.ic-root .tos-panel-body {
+  padding: 0.5rem 0.65rem;
+}
+
+.ic-root .tos-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.5625rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--tos-positive);
+}
+
+.ic-root .tos-live-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--tos-positive);
+}
+
+.ic-root .tos-tab {
+  appearance: none;
+  border: 1px solid var(--tos-border-subtle);
+  background: transparent;
+  color: var(--tos-text-secondary);
+  font-size: var(--tos-fs-xs);
+  font-weight: 700;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--tos-radius-sm);
+  cursor: pointer;
+}
+
+.ic-root .tos-skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.ic-root .tos-skeleton {
+  border-radius: 0.3rem;
+  background: linear-gradient(90deg, #121212 0%, #1a1a1a 50%, #121212 100%);
+  background-size: 200% 100%;
+  animation: ic-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes ic-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.ic-root .tos-stale {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.5625rem;
+  color: var(--tos-warning);
+}
+
+.ic-root .tos-stale-dot {
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: var(--tos-warning);
+}
+
+.ic-root .tos-pos { color: var(--tos-positive); }
+.ic-root .tos-neg { color: var(--tos-negative); }
 
 .ic-root.ic-shell,
 :is(.ic-root, [data-tos]) .ic-shell {

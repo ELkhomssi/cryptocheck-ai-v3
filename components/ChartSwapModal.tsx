@@ -55,10 +55,8 @@ export default function ChartSwapModal({ mint, symbol, onClose, initialTab }: Ch
 
         <div style={{flex:1,overflow:'hidden',position:'relative'}}>
           <div style={{position:'absolute',inset:0,display:tab==='chart'?'block':'none', overflow:'auto', padding:8}}>
-            <div className="ic-root" data-tos>
               <IntelligenceChart query={mint || symbol} chain="solana" />
             </div>
-          </div>
           <div style={{ position: 'absolute', inset: 0, display: tab === 'swap' ? 'block' : 'none', overflow: 'auto', background: '#0d0f1a' }}>
             <JupiterTerminalEmbed mint={mint} minHeight={480} />
           </div>

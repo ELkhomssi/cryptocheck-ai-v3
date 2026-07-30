@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState, startTransition } from 'react'
+import { useCallback, useMemo, useState, startTransition, type ReactNode } from 'react'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { PanelSkeleton, EmptyState, StaleIndicator } from '@/features/terminal-os/shared/components/PanelStates'
 import { useIntelligenceChart } from '../hooks/useIntelligenceChart'
@@ -13,6 +13,10 @@ import { getStateAtTimestamp } from '../lib/get-state-at-timestamp'
 import type { ChartEvent, ChartTool, LayerId } from '../types'
 import { DEFAULT_LAYER_VISIBILITY } from '../types'
 import '../styles.css'
+
+function ChartHost({ children }: { children: ReactNode }) {
+  return <div className="ic-root">{children}</div>
+}
 
 /**
  * CryptoCheckAI Intelligence Chart — sole chart surface.
@@ -76,26 +80,30 @@ export function IntelligenceChart({
 
   if (isLoading && !bundle) {
     return (
-      <Panel title="Intelligence Chart" live>
-        <PanelSkeleton rows={8} />
-      </Panel>
+      <ChartHost>
+        <Panel title="Intelligence Chart" live>
+          <PanelSkeleton rows={8} />
+        </Panel>
+      </ChartHost>
     )
   }
 
   if (isError || !bundle) {
     return (
-      <Panel
-        title="Intelligence Chart"
-        action={
-          onClose ? (
-            <button type="button" className="tos-tab" onClick={onClose}>
-              Clear focus
-            </button>
-          ) : null
-        }
-      >
-        <EmptyState message="Could not resolve token for Intelligence Chart." />
-      </Panel>
+      <ChartHost>
+        <Panel
+          title="Intelligence Chart"
+          action={
+            onClose ? (
+              <button type="button" className="tos-tab" onClick={onClose}>
+                Clear focus
+              </button>
+            ) : null
+          }
+        >
+          <EmptyState message="Could not resolve token for Intelligence Chart." />
+        </Panel>
+      </ChartHost>
     )
   }
 
@@ -110,62 +118,64 @@ export function IntelligenceChart({
   const replayMin = bundle.candles[0]?.time ?? 0
 
   return (
-    <Panel
-      title={`Intelligence · $${bundle.token.symbol}`}
-      live
-      action={
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {(bundle.stale || isFetching) && (
-            <StaleIndicator stale={bundle.stale} demo={bundle.demo} source={bundle.source} />
-          )}
-          {onClose ? (
-            <button type="button" className="tos-tab" onClick={onClose}>
-              Clear focus
-            </button>
-          ) : null}
-        </div>
-      }
-    >
-      <div className="ic-root ic-shell">
-        <LeftTools tool={tool} onTool={onTool} />
-        <div className="ic-main">
-          <LayerToggles layers={layersForToggle} onToggle={onToggle} />
-          <IntelligenceChartCanvas
-            bundle={bundle}
-            visibility={visibility}
-            playhead={tool === 'replay' ? playhead : null}
-            highlightEventId={highlightId}
-            onCrosshairTime={setCrosshairTs}
+    <ChartHost>
+      <Panel
+        title={`Intelligence · $${bundle.token.symbol}`}
+        live
+        action={
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {(bundle.stale || isFetching) && (
+              <StaleIndicator stale={bundle.stale} demo={bundle.demo} source={bundle.source} />
+            )}
+            {onClose ? (
+              <button type="button" className="tos-tab" onClick={onClose}>
+                Clear focus
+              </button>
+            ) : null}
+          </div>
+        }
+      >
+        <div className="ic-shell">
+          <LeftTools tool={tool} onTool={onTool} />
+          <div className="ic-main">
+            <LayerToggles layers={layersForToggle} onToggle={onToggle} />
+            <IntelligenceChartCanvas
+              bundle={bundle}
+              visibility={visibility}
+              playhead={tool === 'replay' ? playhead : null}
+              highlightEventId={highlightId}
+              onCrosshairTime={setCrosshairTs}
+            />
+            {tool === 'replay' ? (
+              <div className="ic-replay">
+                <label>
+                  Replay
+                  <input
+                    type="range"
+                    min={replayMin}
+                    max={replayMax}
+                    value={playhead ?? replayMax}
+                    onChange={(e) => setPlayhead(Number(e.target.value))}
+                  />
+                </label>
+              </div>
+            ) : null}
+            <BottomTimeline
+              events={timelineEvents}
+              onJump={onJump}
+              activeId={highlightId}
+            />
+          </div>
+          <IntelligenceSidebar
+            state={sidebarState}
+            symbol={bundle.token.symbol}
+            live={tool !== 'replay' || playhead == null}
           />
-          {tool === 'replay' ? (
-            <div className="ic-replay">
-              <label>
-                Replay
-                <input
-                  type="range"
-                  min={replayMin}
-                  max={replayMax}
-                  value={playhead ?? replayMax}
-                  onChange={(e) => setPlayhead(Number(e.target.value))}
-                />
-              </label>
-            </div>
-          ) : null}
-          <BottomTimeline
-            events={timelineEvents}
-            onJump={onJump}
-            activeId={highlightId}
-          />
         </div>
-        <IntelligenceSidebar
-          state={sidebarState}
-          symbol={bundle.token.symbol}
-          live={tool !== 'replay' || playhead == null}
-        />
-      </div>
-      <p className="ic-disclaimer">
-        Not financial advice · DYOR · Layers without engine data stay disabled — never synthetic.
-      </p>
-    </Panel>
+        <p className="ic-disclaimer">
+          Not financial advice · DYOR · Layers without engine data stay disabled — never synthetic.
+        </p>
+      </Panel>
+    </ChartHost>
   )
 }
