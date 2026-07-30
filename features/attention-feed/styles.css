@@ -1,0 +1,373 @@
+/**
+ * Simple Mode (AI OS) — presentation only.
+ * Scoped under .sm-shell / .sm-mode-toggle. Does not alter Pro Terminal CSS.
+ */
+
+.sm-mode-toggle {
+  position: fixed;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 10050;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, #0a0a0a 88%, transparent);
+  border: 1px solid color-mix(in srgb, #d4af37 35%, #2a2a2a);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.sm-mode-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #9a9588;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.sm-mode-btn[data-active='true'] {
+  background: #d4af37;
+  color: #050505;
+}
+
+.sm-mode-forced {
+  font-size: 0.5625rem;
+  color: #d4af37;
+  padding-right: 0.5rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sm-shell {
+  --sm-bg: #050505;
+  --sm-panel: #0c0c0c;
+  --sm-border: #1c1c1c;
+  --sm-text: #f5f5f2;
+  --sm-muted: #9a9588;
+  --sm-lo: #5c584f;
+  --sm-gold: #d4af37;
+  --sm-pos: #16c784;
+  --sm-neg: #ea3943;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background:
+    radial-gradient(ellipse 80% 40% at 50% -10%, color-mix(in srgb, var(--sm-gold) 10%, transparent), transparent),
+    var(--sm-bg);
+  color: var(--sm-text);
+  font-family: var(--font-geist-sans, ui-sans-serif), system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.sm-top {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 3.5rem 1.25rem 1.25rem;
+  width: 100%;
+}
+
+.sm-brand {
+  margin: 0 0 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sm-gold);
+}
+
+.sm-title {
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.sm-sub {
+  margin: 0.5rem 0 0;
+  color: var(--sm-muted);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  max-width: 36rem;
+}
+
+.sm-main {
+  flex: 1;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 0 1.25rem 2rem;
+  width: 100%;
+}
+
+.sm-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.sm-card {
+  background: var(--sm-panel);
+  border: 1px solid var(--sm-border);
+  border-radius: 0.85rem;
+  padding: 1rem 1.1rem 1.05rem;
+  box-shadow: 0 1px 0 color-mix(in srgb, #fff 3%, transparent);
+}
+
+.sm-card[data-urgency='now'] {
+  border-color: color-mix(in srgb, var(--sm-gold) 45%, var(--sm-border));
+}
+
+.sm-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+}
+
+.sm-urgency {
+  font-size: 0.5625rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sm-muted);
+}
+
+.sm-urgency[data-urgency='now'] {
+  color: var(--sm-gold);
+}
+
+.sm-engine {
+  font-size: 0.5625rem;
+  color: var(--sm-lo);
+  letter-spacing: 0.04em;
+}
+
+.sm-headline {
+  appearance: none;
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--sm-text);
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.35;
+  cursor: pointer;
+  padding: 0;
+}
+
+.sm-headline:hover {
+  color: var(--sm-gold);
+}
+
+.sm-label {
+  display: block;
+  font-size: 0.5625rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sm-lo);
+  margin-bottom: 0.25rem;
+}
+
+.sm-body {
+  margin-top: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sm-reality,
+.sm-analysis {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--sm-muted);
+}
+
+.sm-rec {
+  margin-top: 0.9rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--sm-border);
+}
+
+.sm-rec-action {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--sm-text);
+}
+
+.sm-rec-conf {
+  margin: 0.25rem 0 0.65rem;
+  font-size: 0.75rem;
+  color: var(--sm-gold);
+}
+
+.sm-rec-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.sm-btn {
+  appearance: none;
+  border-radius: 0.45rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.45rem 0.85rem;
+  cursor: pointer;
+}
+
+.sm-btn-primary {
+  border: 0;
+  background: var(--sm-gold);
+  color: #050505;
+}
+
+.sm-btn-ghost {
+  border: 1px solid var(--sm-border);
+  background: transparent;
+  color: var(--sm-muted);
+}
+
+.sm-evidence-toggle {
+  appearance: none;
+  margin-top: 0.75rem;
+  border: 0;
+  background: transparent;
+  color: var(--sm-gold);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.sm-evidence {
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--sm-border);
+}
+
+.sm-evidence ul {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.sm-evidence li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+  font-size: 0.75rem;
+  color: var(--sm-muted);
+}
+
+.sm-evidence strong {
+  color: var(--sm-text);
+  font-weight: 600;
+}
+
+.sm-ev-val {
+  font-variant-numeric: tabular-nums;
+  color: var(--sm-gold);
+}
+
+.sm-ev-detail {
+  flex-basis: 100%;
+  color: var(--sm-lo);
+}
+
+.sm-hint {
+  margin: 0.65rem 0 0;
+  font-size: 0.75rem;
+  color: var(--sm-lo);
+}
+
+.sm-footer {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 0 1.25rem 2rem;
+  width: 100%;
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(180deg, transparent, var(--sm-bg) 28%);
+  padding-top: 1.5rem;
+}
+
+.sm-ask {
+  border: 1px solid var(--sm-border);
+  background: var(--sm-panel);
+  border-radius: 0.85rem;
+  padding: 0.75rem 0.85rem;
+}
+
+.sm-ask-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.sm-ask-label {
+  font-size: 0.5625rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sm-gold);
+  width: 100%;
+}
+
+.sm-ask-input {
+  flex: 1;
+  min-width: 12rem;
+  appearance: none;
+  border: 1px solid var(--sm-border);
+  background: #080808;
+  color: var(--sm-text);
+  border-radius: 0.45rem;
+  padding: 0.55rem 0.7rem;
+  font-size: 0.875rem;
+}
+
+.sm-ask-input:focus {
+  outline: 1px solid color-mix(in srgb, var(--sm-gold) 50%, transparent);
+}
+
+.sm-ask-echo {
+  margin: 0.55rem 0 0;
+  font-size: 0.75rem;
+  color: var(--sm-muted);
+  line-height: 1.45;
+}
+
+.sm-disclaimer {
+  margin: 0.65rem 0 0;
+  font-size: 0.625rem;
+  color: var(--sm-lo);
+  text-align: center;
+}
+
+@media (max-width: 40rem) {
+  .sm-mode-toggle {
+    top: auto;
+    bottom: 5.5rem;
+    right: 0.75rem;
+  }
+}

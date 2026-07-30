@@ -1,8 +1,13 @@
 'use client'
 
 import { Suspense } from 'react'
-import { TerminalOsShell } from '@/features/terminal-os/shell/components/TerminalOsShell'
+import { ModeRouter } from '@/features/attention-feed'
 
+/**
+ * Terminal OS entry — dual presentation modes over the same engines.
+ * Pro Mode shell is unchanged; Simple Mode is additive via ModeRouter.
+ * Force Pro for Dubai: /terminalOS?mode=pro
+ */
 export default function TerminalOsPage() {
   return (
     <Suspense
@@ -12,7 +17,7 @@ export default function TerminalOsPage() {
         </div>
       }
     >
-      <TerminalOsShell />
+      <ModeRouter />
     </Suspense>
   )
 }
