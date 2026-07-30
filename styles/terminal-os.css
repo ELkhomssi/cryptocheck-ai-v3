@@ -348,39 +348,6 @@
   min-width: 0;
 }
 
-[data-tos] .tos-chart-split {
-  display: grid;
-  grid-template-columns: minmax(0, 0.35fr) minmax(0, 0.65fr);
-  gap: 0.75rem;
-  min-height: 9.5rem;
-}
-
-/* Mockup 2×2 multi-chain grid */
-[data-tos] .tos-quad-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-}
-
-[data-tos] .tos-quad {
-  border: 1px solid var(--tos-border-subtle);
-  border-radius: 0.625rem;
-  background: var(--tos-bg-panel);
-  padding: 0.5rem;
-  min-width: 0;
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 2.5%, transparent);
-}
-
-[data-tos] .tos-quad-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: var(--tos-fs-sm);
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-  color: var(--tos-text-primary);
-}
-
 [data-tos] .tos-overview-metrics {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -694,32 +661,6 @@
   display: none;
 }
 
-/* Chart OHLC crosshair readout */
-[data-tos] .tos-chart-wrap {
-  position: relative;
-  min-width: 0;
-}
-
-[data-tos] .tos-chart-ohlc {
-  position: absolute;
-  top: 0.15rem;
-  left: 0.25rem;
-  z-index: 2;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  font-size: 0.5625rem;
-  color: var(--tos-text-secondary);
-  pointer-events: none;
-  background: color-mix(in srgb, var(--tos-bg-panel) 82%, transparent);
-  padding: 0.1rem 0.35rem;
-  border-radius: 0.25rem;
-}
-
-[data-tos] .tos-chart-canvas {
-  contain: layout paint;
-}
-
 /* Purple whale cards */
 [data-tos] .tos-whale-card {
   padding: 0.7rem 0.75rem;
@@ -789,10 +730,6 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tos-accent-gold) 12%, transparent);
 }
 
-[data-tos] .tos-chart-canvas {
-  border-radius: 0.5rem;
-}
-
 [data-tos] .tos-skeleton {
   background: linear-gradient(
     90deg,
@@ -839,9 +776,6 @@
     --tos-card-min: 10rem;
     --tos-gap: 0.6rem;
   }
-  [data-tos] .tos-quad-grid {
-    gap: 0.65rem;
-  }
 }
 
 @media (max-width: 80rem) {
@@ -878,9 +812,6 @@
     flex: 1 1 18rem;
   }
 
-  [data-tos] .tos-quad-grid {
-    grid-template-columns: 1fr;
-  }
 
   [data-tos] {
     --tos-whale-bar: 6.5rem;
@@ -902,9 +833,6 @@
     display: none;
   }
 
-  [data-tos] .tos-chart-split {
-    grid-template-columns: 1fr;
-  }
 
   [data-tos] {
     --tos-whale-bar: auto;

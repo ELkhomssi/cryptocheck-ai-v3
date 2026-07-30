@@ -20,6 +20,7 @@ import RugForensicsLab from '@/components/RugForensicsLab'
 import SignupTrialModal from '@/components/SignupTrialModal'
 import ChartSwapModal from '@/components/ChartSwapModal'
 import { JupiterTerminalEmbed } from '@/components/JupiterTerminalEmbed'
+import { IntelligenceChart } from '@/features/intelligence-chart'
 import AuthModal from '@/components/AuthModal'
 import TokenListDashboard from '@/components/TokenListDashboard'
 import NeuralScanV4 from '@/components/NeuralScanV4'
@@ -666,8 +667,6 @@ function VerdictTab({
     { metric:'Token Standard', value: meta?.tokenStandard ?? 'Fungible', status:'OK', ok:true, warn:false, src:'Helius DAS' },
   ]
 
-  const dexUrl = `https://dexscreener.com/solana/${data.mint}?embed=1&theme=dark&trades=0&info=0`
-
   return (
     <div>
       {/* ── Source badges ── */}
@@ -820,14 +819,14 @@ function VerdictTab({
 
       {/* ═══════════════════════════════════════════════
           INTEGRATED TRADING TERMINAL — two-column
-          Left: DexScreener chart  |  Right: Jupiter swap
+          Left: Intelligence Chart  |  Right: Jupiter swap
       ═══════════════════════════════════════════════ */}
       <div className="term-card mb-3 overflow-hidden">
         {/* Section header */}
         <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-[rgba(0,212,130,0.15)]">
           <div className="s-hdr mb-0" style={{ fontSize:'0.6rem' }}>Integrated Trading Terminal</div>
           <div className="flex gap-1.5">
-            <span className="ds-badge ds-badge-rpc text-[0.5rem]"><span className="w-1 h-1 rounded-full bg-cyan-400 inline-block dot-pulse" />DexScreener</span>
+            <span className="ds-badge ds-badge-rpc text-[0.5rem]"><span className="w-1 h-1 rounded-full bg-cyan-400 inline-block dot-pulse" />Intelligence Chart</span>
             <span className="ds-badge ds-badge-net text-[0.5rem]">Jupiter</span>
           </div>
         </div>
@@ -835,20 +834,14 @@ function VerdictTab({
         {/* Two-column layout — stacks on mobile */}
         <div className="verdict-trade-grid">
 
-          {/* LEFT — DexScreener Iframe */}
+          {/* LEFT — Intelligence Chart (sole renderer) */}
           <div className="verdict-chart-col">
             <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-[rgba(33,38,45,0.5)]">
               <span className="text-emerald-400 text-[0.58rem] font-mono">● Live Chart</span>
               <span className="text-[#484f58] text-[0.52rem]">{sym}/SOL · Solana Mainnet</span>
             </div>
-            <div className="dex-iframe-verdict">
-              <iframe
-                src={dexUrl}
-                allow="clipboard-write"
-                sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                title={`${sym} price chart`}
-                style={{ width:'100%', height:'100%', border:0, background:'#0d1117', display:'block' }}
-              />
+          <div style={{ minHeight: 420, height: '100%', overflow: 'auto', background: '#0d1117' }}>
+              <IntelligenceChart query={data.mint || sym} chain="solana" />
             </div>
           </div>
 
@@ -1103,9 +1096,9 @@ function TransfersTab({ data }: { data: ScanData }) {
   )
 }
 
-// ── DexScreener + Jupiter Price Chart Tab ──
-// 60% DexScreener chart (iframe OK) | 40% Jupiter: link panel only (jup.ag blocks third-party iframes)
-function DexChartTab({
+// ── Intelligence Chart + Jupiter Price Chart Tab ──
+// 60% Intelligence Chart | 40% Jupiter (in-page; jup.ag blocks third-party iframes)
+function IntelligenceChartTab({
   mint,
   chartKey,
   onConnectWallet,
@@ -1129,7 +1122,6 @@ function DexChartTab({
   onUpgrade?: () => void
 }) {
   const [rightTab, setRightTab] = useState<'trade'|'sniper'>('trade')
-  const dexUrl = `https://dexscreener.com/solana/${mint}?embed=1&theme=dark&trades=0&info=0`
 
   return (
     <div className="flex flex-col h-full" style={{ minHeight: 0 }}>
@@ -1140,7 +1132,7 @@ function DexChartTab({
           <span className="text-emerald-400 text-[0.6rem] font-mono font-bold">● Live Chart + Swap</span>
           <span className="ds-badge ds-badge-rpc text-[0.5rem]">
             <span className="w-1 h-1 rounded-full bg-cyan-400 inline-block dot-pulse" />
-            DexScreener · Jupiter
+            Intelligence Chart · Jupiter
           </span>
           <span className="text-[0.52rem] text-[#484f58] font-mono">{mint.slice(0,8)}…{mint.slice(-6)}</span>
         </div>
@@ -1161,24 +1153,13 @@ function DexChartTab({
       {/* ── 60/40 split ── */}
       <div style={{ display:'grid', gridTemplateColumns:'60% 40%', flex:1, minHeight:0, overflow:'hidden' }}>
 
-        {/* LEFT 60% — DexScreener native chart (header hidden by negative margin) */}
+        {/* LEFT 60% — Intelligence Chart (sole renderer) */}
         <div style={{ display:'flex', flexDirection:'column', borderRight:'1px solid rgba(33,38,45,0.8)', overflow:'hidden' }}>
           <div style={{ fontSize:'0.54rem', color:'#6e7681', padding:'4px 10px', background:'#161b22', flexShrink:0 }}>
-            <span style={{ color:'#10b981' }}>●</span> Price Chart · {mint.slice(0,8)}…
+            <span style={{ color:'#10b981' }}>●</span> Intelligence Chart · {mint.slice(0,8)}…
           </div>
-          <div style={{ overflow:'hidden', flex:1, position:'relative', minHeight:'460px' }}>
-            <div style={{ marginTop:'-52px', height:'calc(100% + 52px)' }}>
-              <iframe
-                key={`dex-${chartKey}-${mint}`}
-                src={dexUrl}
-                allow="clipboard-write"
-                sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation"
-                title="Live price chart"
-                style={{ width:'100%', height:'100%', border:0, background:'#0d1117', display:'block' }}
-              />
-            </div>
-            <div style={{ position:'absolute', top:0, left:0, right:0, height:'6px',
-              background:'#161b22', zIndex:3, pointerEvents:'none' }} />
+          <div style={{ overflow:'auto', flex:1, position:'relative', minHeight:'460px', background:'#0d1117', padding:8 }}>
+            <IntelligenceChart key={`ic-${chartKey}-${mint}`} query={mint || currentSymbol} chain="solana" />
           </div>
         </div>
 
@@ -2180,8 +2161,8 @@ export default function Dashboard() {
   const [showSwap,    setShowSwap]    = useState(false)     // Jupiter swap modal
   const [swapMint,    setSwapMint]    = useState('')        // token to swap
   const [swapSym,     setSwapSym]     = useState('???')     // symbol for swap modal
-  const [dexInput,    setDexInput]    = useState('')        // DexScreener dedicated search
-  const [dexMint,     setDexMint]     = useState('')        // active chart mint address
+  const [chartInput,  setChartInput]  = useState('')        // Intelligence Chart mint search
+  const [chartMintSel, setChartMintSel] = useState('')      // active chart mint address
   const [currentMint, setCurrentMint] = useState('')        // unified mint for chart+Jupiter
   const [chartKey,    setChartKey]    = useState(0)         // increment to force iframe remount
   const feedIdRef  = useRef(0)
@@ -2416,7 +2397,7 @@ export default function Dashboard() {
           setCredits(consumeJson.credits)
         }
       }
-      setDexMint(mint)
+      setChartMintSel(mint)
       setCurrentMint(mint)   // sync chart + Jupiter to scanned token
       setChartKey(k => k + 1)  // force iframe remount
       const risk = computeRisk(data)
@@ -2471,7 +2452,7 @@ export default function Dashboard() {
     // Set unified currentMint + increment chartKey to force iframe remount
     setCurrentMint(mint)
     setChartKey(k => k + 1)
-    setDexMint(mint)
+    setChartMintSel(mint)
     setMintInput(mint)
     setView('scanner')
     setScanTab('verdict')
@@ -2648,13 +2629,13 @@ export default function Dashboard() {
       )
     }
 
-    // Chart tab can show even without a full scan if we have a dexMint
+    // Chart tab can show even without a full scan if we have a chartMintSel
     if (scanTab === 'chart') {
-      const chartMint = (scanData?.mint ?? dexMint).trim()
+      const chartMint = (scanData?.mint ?? chartMintSel).trim()
       if (chartMint.length >= 32) {
         return (
           <motion.div key={`chart-${chartMint}`} {...motionProps}>
-            <DexChartTab
+            <IntelligenceChartTab
               mint={chartMint}
               chartKey={chartKey}
               swapModalOpen={showSwap}
@@ -2679,7 +2660,7 @@ export default function Dashboard() {
             <div className="text-4xl">📈</div>
             <div className="text-sm font-bold text-[#e2e8f0] font-sans">No Token Selected</div>
             <div className="text-[0.68rem] text-[#8b949e] max-w-xs leading-relaxed">
-              Scan a token or paste a mint address into the DexScreener search bar in the sidebar to load the live price chart.
+              Scan a token or paste a mint address into the chart search bar in the sidebar to load the Intelligence Chart.
             </div>
           </div>
         </motion.div>
@@ -2712,7 +2693,7 @@ export default function Dashboard() {
                 setShowSwap(true)
               }}
               onChartClick={(m) => {
-                setDexMint(m)
+                setChartMintSel(m)
                 setScanTab('chart')
               }}
               aiSummary={aiSummary}
@@ -3004,19 +2985,19 @@ export default function Dashboard() {
             }
           </div>
 
-          {/* DexScreener search */}
+          {/* Intelligence Chart mint search */}
           <div className="p-3.5 border-b border-[rgba(0,212,130,0.15)] flex-shrink-0">
             <div className="panel-label" style={{ color: '#10b981' }}>
               <span style={{ background: 'linear-gradient(#10b981, #059669)', width: 2, height: 8, borderRadius: 1, display: 'inline-block', flexShrink: 0, marginRight: 5 }} />
-              DexScreener Chart
+              Intelligence Chart
             </div>
             <div className="flex gap-1.5">
               <input
-                value={dexInput}
-                onChange={e => setDexInput(e.target.value)}
+                value={chartInput}
+                onChange={e => setChartInput(e.target.value)}
                 onKeyDown={e => {
-                  if (e.key === 'Enter' && dexInput.trim().length >= 32) {
-                    setDexMint(dexInput.trim())
+                  if (e.key === 'Enter' && chartInput.trim().length >= 32) {
+                    setChartMintSel(chartInput.trim())
                     setScanTab('chart')
                     setView('scanner')
                   }
@@ -3027,21 +3008,21 @@ export default function Dashboard() {
               />
               <button
                 onClick={() => {
-                  const m = dexInput.trim()
-                  if (m.length >= 32) { setDexMint(m); setScanTab('chart'); setView('scanner') }
+                  const m = chartInput.trim()
+                  if (m.length >= 32) { setChartMintSel(m); setScanTab('chart'); setView('scanner') }
                 }}
                 className="flex-shrink-0 px-2.5 py-1.5 rounded-[4px] text-[0.62rem] font-bold font-mono text-white border-none cursor-pointer transition-all"
                 style={{ background: 'linear-gradient(135deg,#10b981,#059669)', boxShadow: '0 0 10px rgba(16,185,129,0.25)' }}
-                title="Open DexScreener chart"
+                title="Open Intelligence Chart"
               >
                 📈
               </button>
             </div>
             <div className="mt-1.5 text-[0.52rem] text-[#484f58] leading-relaxed">
-              Paste a Solana mint to embed the live DexScreener chart.
+              Paste a Solana mint to load the Intelligence Chart.
             </div>
             {/* Quick links for current scan */}
-            {dexMint && (
+            {chartMintSel && (
               <div className="mt-2 flex gap-1.5">
                 <button
                   onClick={() => { setScanTab('chart'); setView('scanner') }}
@@ -3109,29 +3090,29 @@ export default function Dashboard() {
               <div className="md:hidden flex items-center gap-1.5 px-3 py-2 bg-[#161b22] border-b border-[rgba(16,185,129,0.2)]">
                 <span className="text-emerald-400 text-sm flex-shrink-0">📈</span>
                 <input
-                  value={dexInput}
-                  onChange={e => setDexInput(e.target.value)}
+                  value={chartInput}
+                  onChange={e => setChartInput(e.target.value)}
                   onKeyDown={e => {
-                    if (e.key === 'Enter' && dexInput.trim().length >= 32) {
-                      setDexMint(dexInput.trim())
+                    if (e.key === 'Enter' && chartInput.trim().length >= 32) {
+                      setChartMintSel(chartInput.trim())
                       setScanTab('chart')
                     }
                   }}
-                  placeholder="DexScreener — paste token address…"
+                  placeholder="Chart — paste token address…"
                   className="flex-1 min-w-0 bg-transparent border-none outline-none font-mono text-[0.62rem] text-[#c9d1d9] placeholder:text-[#484f58]"
                   autoComplete="off" spellCheck={false}
                 />
                 <button
                   onClick={() => {
-                    const m = dexInput.trim()
-                    if (m.length >= 32) { setDexMint(m); setScanTab('chart') }
+                    const m = chartInput.trim()
+                    if (m.length >= 32) { setChartMintSel(m); setScanTab('chart') }
                   }}
                   className="flex-shrink-0 px-2 py-1 rounded-[3px] text-[0.6rem] font-bold font-mono text-white border-none cursor-pointer"
                   style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}
                 >
                   GO
                 </button>
-                {(dexMint || scanData?.mint) && (
+                {(chartMintSel || scanData?.mint) && (
                   <button
                     onClick={() => { setScanTab('chart'); setView('scanner') }}
                     className="flex-shrink-0 px-2 py-1 rounded-[3px] text-emerald-400 text-[0.58rem] font-bold font-mono cursor-pointer"

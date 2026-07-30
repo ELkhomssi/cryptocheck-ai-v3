@@ -17,6 +17,7 @@ import { simulateSerializedSwapTransaction } from '@/lib/services/swap-simulatio
 import { PlatformFeeConfirmRows } from '@/components/launchpad/PlatformFeeConfirmRows'
 import { computePlatformFeeDisclosure } from '@/lib/launchpad/platform-fee'
 import { sendSignedSwap } from '@/lib/execution/client-submit'
+import { IntelligenceChart } from '@/features/intelligence-chart'
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112'
 
@@ -261,27 +262,9 @@ export function SignalSwapSheet({ signal, open, onClose, variant = 'sheet' }: Pr
           ) : null}
         </div>
 
-        {/* Mini chart — DexScreener embed (read-only). Swap still uses Jupiter risk-gated path below. */}
         {mint.length >= 32 ? (
-          <div className="mb-4 overflow-hidden rounded-rd-sm border border-white/10 bg-black/40">
-            <div className="flex items-center justify-between border-b border-white/10 px-2 py-1">
-              <span className="font-rd-mono text-[0.55rem] uppercase tracking-wider text-rd-lo">Chart</span>
-              <a
-                href={`https://dexscreener.com/solana/${mint}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-rd-mono text-[0.55rem] text-rd-mid hover:text-rd-hi"
-              >
-                DexScreener ↗
-              </a>
-            </div>
-            <iframe
-              title={`${tokenSignal?.tokenSymbol ?? 'Token'} chart`}
-              src={`https://dexscreener.com/solana/${mint}?embed=1&theme=dark&trades=0&info=0`}
-              className="h-[180px] w-full border-0"
-              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-              loading="lazy"
-            />
+          <div className="mb-4 overflow-hidden rounded-rd-sm border border-white/10 bg-black/40 p-1">
+            <IntelligenceChart query={mint} chain="solana" />
           </div>
         ) : null}
 
