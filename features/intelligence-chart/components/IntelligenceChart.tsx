@@ -19,8 +19,8 @@ function ChartHost({ children }: { children: ReactNode }) {
 }
 
 /**
- * CryptoCheckAI Intelligence Chart — sole chart surface.
- * Candles via lightweight-charts; every overlay traces to a real engine.
+ * CryptoCheckAI Intelligence Visualization System — sole chart surface.
+ * Price via Apache ECharts; every overlay traces to a real engine.
  */
 export function IntelligenceChart({
   query,
