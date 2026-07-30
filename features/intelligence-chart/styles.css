@@ -212,11 +212,32 @@
 
 :is(.ic-root, [data-tos]) .ic-canvas-wrap {
   position: relative;
-  height: 22rem;
+  height: 26rem;
   border: 1px solid var(--tos-border-subtle);
   border-radius: 0.4rem;
   background: #070707;
   overflow: hidden;
+}
+
+/* Signature motion 1 — cognition ripple when AI notices something */
+:is(.ic-root, [data-tos]) .ic-canvas-wrap[data-iv-noticed='true']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  background: radial-gradient(
+    ellipse 55% 40% at 50% 18%,
+    rgba(212, 175, 55, 0.14),
+    transparent 70%
+  );
+  animation: iv-cognition-ripple 0.9s ease-out forwards;
+}
+
+@keyframes iv-cognition-ripple {
+  0% { opacity: 0; transform: scale(0.96); }
+  35% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1); }
 }
 
 :is(.ic-root, [data-tos]) .ic-canvas {
@@ -309,23 +330,81 @@
   pointer-events: none;
 }
 
-:is(.ic-root, [data-tos]) .ic-ai-strip {
+/* AI instrument strip — readout from an instrument, not a dashboard card */
+:is(.ic-root, [data-tos]) .ic-ai-instrument {
   position: absolute;
-  bottom: 0.25rem;
-  left: 0;
-  right: 0;
-  z-index: 3;
-  display: flex;
-  gap: 0.75rem;
-  justify-content: center;
-  font-size: 0.5625rem;
-  font-family: var(--tos-mono);
-  font-variant-numeric: tabular-nums;
-  color: var(--tos-text-secondary);
-  background: color-mix(in srgb, #050505 88%, transparent);
-  padding: 0.15rem 0.4rem;
-  border-top: 1px solid var(--tos-border-subtle);
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 1.55rem;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.35rem;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  background: linear-gradient(180deg, #0c0c0c 0%, #070707 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(240, 193, 75, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+:is(.ic-root, [data-tos]) .ic-ai-instrument-glow {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(212, 175, 55, 0.07) 45%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: iv-instrument-scan 2.8s linear infinite;
   pointer-events: none;
+}
+
+/* Signature motion 2 — live instrument scan line */
+@keyframes iv-instrument-scan {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+:is(.ic-root, [data-tos]) .ic-ai-metric {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+:is(.ic-root, [data-tos]) .ic-ai-metric-label {
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #5c584f;
+}
+
+:is(.ic-root, [data-tos]) .ic-ai-metric-value {
+  font-family: var(--tos-mono, ui-monospace, monospace);
+  font-variant-numeric: tabular-nums;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+}
+
+/* Signature motion 3 — marker ignition when security/critical lands (CSS hook) */
+:is(.ic-root, [data-tos]) .ic-canvas-wrap[data-iv-noticed='true'] .ic-ai-metric-value {
+  animation: iv-metric-ignite 0.7s ease-out;
+}
+
+@keyframes iv-metric-ignite {
+  0% { text-shadow: 0 0 0 transparent; }
+  40% { text-shadow: 0 0 12px rgba(240, 193, 75, 0.55); }
+  100% { text-shadow: 0 0 0 transparent; }
 }
 
 :is(.ic-root, [data-tos]) .ic-replay {
