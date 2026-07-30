@@ -2,14 +2,12 @@
 
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
-import { CandlestickChart } from '@/features/terminal-os/trading-workspace/components/CandlestickChart'
+import { IntelligenceChart } from '@/features/intelligence-chart'
 import { formatPct, formatUsd } from '@/features/terminal-os/shared/lib/format'
-import { useChainSnapshots, useMarketOverview } from '@/features/terminal-os/shared/hooks/useTerminalQueries'
+import { useMarketOverview } from '@/features/terminal-os/shared/hooks/useTerminalQueries'
 
 export function MarketOverviewPanel() {
   const { data: overview, isLoading, isError, error } = useMarketOverview()
-  const { data: snaps } = useChainSnapshots()
-  const candles = snaps?.find((s) => s.chain === 'all')?.candles ?? []
 
   return (
     <Panel title="Market Overview" live>
@@ -18,7 +16,7 @@ export function MarketOverviewPanel() {
       ) : isLoading || !overview ? (
         <PanelSkeleton rows={3} />
       ) : (
-        <div className="tos-chart-split">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <div
             style={{
               display: 'grid',
@@ -37,12 +35,7 @@ export function MarketOverviewPanel() {
             />
             <Stat label="Source" value={overview.source} />
           </div>
-          <div>
-            <CandlestickChart candles={candles} height={160} />
-            <div className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)', marginTop: '0.35rem' }}>
-              BTC proxy chart · updated {new Date(overview.fetchedAt).toLocaleTimeString()}
-            </div>
-          </div>
+          <IntelligenceChart query="BTC" chain="all" />
         </div>
       )}
     </Panel>

@@ -359,45 +359,6 @@ body::after {
 }
 
 /* ════════════════════════════════════════════════
-   DEXSCREENER IFRAME — RESPONSIVE
-════════════════════════════════════════════════ */
-
-/* Desktop: fill flex container */
-.dex-iframe-wrap {
-  flex: 1;
-  position: relative;
-  min-height: 480px;
-}
-.dex-iframe-wrap iframe {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  border: 0;
-  background: #030308;
-  display: block;
-}
-
-/* Mobile: 70vh so always usable without horizontal scroll */
-@media (max-width: 768px) {
-  .dex-iframe-wrap {
-    min-height: 70vh;
-    height: 70vh;
-  }
-  .dex-iframe-wrap iframe {
-    position: relative;
-    inset: unset;
-    height: 70vh;
-    width: 100%;
-  }
-}
-
-@media (max-width: 380px) {
-  .dex-iframe-wrap { min-height: 60vh; height: 60vh; }
-  .dex-iframe-wrap iframe { height: 60vh; }
-}
-
-/* ════════════════════════════════════════════════
    JUPITER TERMINAL MODAL
 ════════════════════════════════════════════════ */
 

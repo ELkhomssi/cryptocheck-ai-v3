@@ -8,7 +8,6 @@ import { PanelErrorBoundary } from '@/features/terminal-os/shared/components/Pan
 import { TopTradersTicker } from '@/features/terminal-os/market-intel/components/TopTradersTicker'
 import { TopTokensToday } from '@/features/terminal-os/market-intel/components/TopTokensToday'
 import { WhaleMarqueeTicker } from '@/features/terminal-os/whale-tracking/components/WhaleMarqueeTicker'
-import { MultiChainChartGrid } from '@/features/terminal-os/trading-workspace/components/MultiChainChartGrid'
 import { IntelligenceChart } from '@/features/intelligence-chart'
 import { QuickSwapCard } from '@/features/terminal-os/trading-workspace/components/QuickSwapCard'
 import { PortfolioOverviewPanel } from '@/features/terminal-os/portfolio-os/components/PortfolioOverviewPanel'
@@ -39,23 +38,19 @@ function Bound({ title, children }: { title: string; children: ReactNode }) {
   return <PanelErrorBoundary title={title}>{children}</PanelErrorBoundary>
 }
 
+/** Sole chart surface — IntelligenceChart only (no MultiChain / Candlestick legacy). */
 function ChartSurface() {
   const focused = useTerminalOsStore((s) => s.focusedToken)
   const setFocused = useTerminalOsStore((s) => s.setFocusedToken)
-  if (focused) {
-    return (
-      <Bound title="Intelligence Chart">
-        <IntelligenceChart
-          query={focused.id || focused.symbol}
-          chain={focused.chain}
-          onClose={() => setFocused(null)}
-        />
-      </Bound>
-    )
-  }
+  const query = focused?.id || focused?.symbol || 'SOL'
+  const chain = focused?.chain || 'solana'
   return (
-    <Bound title="Multi-Chain Charts">
-      <MultiChainChartGrid />
+    <Bound title="Intelligence Chart">
+      <IntelligenceChart
+        query={query}
+        chain={chain}
+        onClose={focused ? () => setFocused(null) : undefined}
+      />
     </Bound>
   )
 }

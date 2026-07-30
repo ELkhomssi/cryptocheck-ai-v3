@@ -12,10 +12,11 @@ import { eventsForTimeline } from '../composition'
 import { getStateAtTimestamp } from '../lib/get-state-at-timestamp'
 import type { ChartEvent, ChartTool, LayerId } from '../types'
 import { DEFAULT_LAYER_VISIBILITY } from '../types'
+import '../styles.css'
 
 /**
- * CryptoCheckAI Intelligence Chart — signature surface.
- * Lightweight Charts renders candles only; every overlay traces to a real engine.
+ * CryptoCheckAI Intelligence Chart — sole chart surface.
+ * Candles via lightweight-charts; every overlay traces to a real engine.
  */
 export function IntelligenceChart({
   query,
@@ -88,7 +89,7 @@ export function IntelligenceChart({
         action={
           onClose ? (
             <button type="button" className="tos-tab" onClick={onClose}>
-              Back to multi-chain
+              Clear focus
             </button>
           ) : null
         }
@@ -119,13 +120,13 @@ export function IntelligenceChart({
           )}
           {onClose ? (
             <button type="button" className="tos-tab" onClick={onClose}>
-              Multi-chain
+              Clear focus
             </button>
           ) : null}
         </div>
       }
     >
-      <div className="ic-shell">
+      <div className="ic-root ic-shell">
         <LeftTools tool={tool} onTool={onTool} />
         <div className="ic-main">
           <LayerToggles layers={layersForToggle} onToggle={onToggle} />
