@@ -3,7 +3,7 @@
  * Interpolates from sparse sidebarTimeline samples (never fabricates metrics).
  */
 
-import type { IntelligenceSidebarState } from './types'
+import type { IntelligenceSidebarState } from '../types'
 
 export function getStateAtTimestamp(
   timeline: IntelligenceSidebarState[],
