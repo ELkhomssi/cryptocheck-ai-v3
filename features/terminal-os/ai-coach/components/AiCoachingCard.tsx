@@ -92,7 +92,7 @@ export function AiCoachingCard() {
   const [ask, setAsk] = useState('')
   const [answer, setAnswer] = useState<string | null>(null)
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     if (!walletConnected || !wallet) {
       setInsights([])
       setInsufficient(true)
@@ -100,16 +100,53 @@ export function AiCoachingCard() {
       setAnswer(null)
       return
     }
-    const next = buildInsights(wallet)
-    setInsights(next.insights)
-    setInsufficient(next.insufficient)
-    setMessage(next.message)
+    const local = buildInsights(wallet)
+    if (!local.insufficient) {
+      setInsights(local.insights)
+      setInsufficient(false)
+      setMessage(null)
+      return
+    }
+    // Fall back to server (Redis-persisted DNA) when client session is cold
+    try {
+      const res = await fetch(`/api/terminal-os/coach?wallet=${encodeURIComponent(wallet)}`)
+      if (!res.ok) throw new Error('Coach offline')
+      const body = (await res.json()) as {
+        insights?: CoachInsight[]
+        insufficientData?: boolean
+        message?: string
+      }
+      if (body.insufficientData || !(body.insights?.length)) {
+        setInsights([])
+        setInsufficient(true)
+        setMessage(body.message ?? INSUFFICIENT)
+        return
+      }
+      setInsights(body.insights)
+      setInsufficient(false)
+      setMessage(null)
+    } catch {
+      setInsights(local.insights)
+      setInsufficient(local.insufficient)
+      setMessage(local.message)
+    }
   }, [wallet, walletConnected])
 
   useEffect(() => {
-    load()
-    const id = window.setInterval(load, 4_000)
-    return () => window.clearInterval(id)
+    let cancelled = false
+    const tick = () => {
+      void load().catch(() => {
+        if (!cancelled) {
+          /* soft */
+        }
+      })
+    }
+    tick()
+    const id = window.setInterval(tick, 4_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(id)
+    }
   }, [load])
 
   const askCoach = async () => {
@@ -122,45 +159,50 @@ export function AiCoachingCard() {
       realSwapExecution: false,
     })
 
-    if (!state.wallet || state.wallet !== wallet || !state.dna || state.dna.sampleSize < 3) {
-      setAnswer(INSUFFICIENT)
-      load()
+    const q = ask.trim() || 'What should I focus on?'
+    const localDna = state.wallet === wallet ? state.dna : null
+
+    if (localDna && localDna.sampleSize >= 3) {
+      if (q.length > 20) orch.teach(q)
+      void fetch('/api/terminal-os/coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet,
+          question: q,
+          dna: {
+            sampleSize: localDna.sampleSize,
+            confidence: localDna.confidence,
+            tradingStyleSummary: localDna.tradingStyleSummary,
+            riskAppetiteLabel: localDna.riskAppetiteLabel,
+            winRatePct: localDna.winRatePct,
+          },
+        }),
+      })
+      const opp = state.currentOpportunity
+      const narrative = opp ? explainDecision(opp) : null
+      setAnswer(
+        [
+          `Context: ${localDna.tradingStyleSummary} (confidence ${localDna.confidence}%).`,
+          narrative
+            ? `Live opportunity: ${narrative.headline} — ${narrativeBlurb(narrative)}`
+            : 'No live opportunity scored yet — activate AI Trading and refresh the desk.',
+          `Risk band: ${localDna.riskAppetiteLabel}. Sample size ${localDna.sampleSize}.`,
+          `You asked: “${q.slice(0, 160)}”`,
+        ].join(' '),
+      )
+      await load()
       return
     }
 
-    const q = ask.trim() || 'What should I focus on?'
-    if (q.length > 20) orch.teach(q)
-
-    const dna = state.dna
-    void fetch('/api/terminal-os/coach', {
+    const res = await fetch('/api/terminal-os/coach', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        wallet,
-        question: q,
-        dna: {
-          sampleSize: dna.sampleSize,
-          confidence: dna.confidence,
-          tradingStyleSummary: dna.tradingStyleSummary,
-          riskAppetiteLabel: dna.riskAppetiteLabel,
-          winRatePct: dna.winRatePct,
-        },
-      }),
+      body: JSON.stringify({ wallet, question: q }),
     })
-
-    const opp = state.currentOpportunity
-    const narrative = opp ? explainDecision(opp) : null
-    setAnswer(
-      [
-        `Context: ${dna.tradingStyleSummary} (confidence ${dna.confidence}%).`,
-        narrative
-          ? `Live opportunity: ${narrative.headline} — ${narrativeBlurb(narrative)}`
-          : 'No live opportunity scored yet — activate AI Trading and refresh the desk.',
-        `Risk band: ${dna.riskAppetiteLabel}. Sample size ${dna.sampleSize}.`,
-        `You asked: “${q.slice(0, 160)}”`,
-      ].join(' '),
-    )
-    load()
+    const body = (await res.json()) as { answer?: string; insufficientData?: boolean }
+    setAnswer(body.answer ?? INSUFFICIENT)
+    await load()
   }
 
   const top = insights?.[0]

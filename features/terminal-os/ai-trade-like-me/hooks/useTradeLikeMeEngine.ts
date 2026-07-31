@@ -11,7 +11,7 @@ import { explainDecision } from '@/features/terminal-os/ai-trade-like-me/engines
 import { liveMarketDataProvider, liveWhaleFeedProvider } from '@/features/terminal-os/shared/lib/live-providers'
 import { useTerminalOsStore } from '@/stores/terminal-os'
 import type { ExplainedNarrative } from '@/features/terminal-os/ai-trade-like-me/engines/explainable-engine'
-import type { CapturedTrade, TradeLikeMeState } from '@/features/terminal-os/ai-trade-like-me/types'
+import type { CapturedTrade, TradeLikeMeState, TraderDna } from '@/features/terminal-os/ai-trade-like-me/types'
 
 export function useTradeLikeMeEngine() {
   const flags = useTerminalOsStore((s) => s.featureFlags)
@@ -52,6 +52,36 @@ export function useTradeLikeMeEngine() {
     }
   }, [walletConnected, walletAddress, flags, sync])
 
+  // Hydrate DNA from Redis when wallet connects (survives reload)
+  useEffect(() => {
+    if (!walletConnected || !walletAddress) return
+    let cancelled = false
+    void fetch(`/api/terminal-os/dna?wallet=${encodeURIComponent(walletAddress)}`)
+      .then((r) => r.json())
+      .then((body: { dna?: TraderDna | null }) => {
+        if (cancelled || !body.dna || body.dna.wallet !== walletAddress) return
+        if (body.dna.sampleSize < 1) return
+        orchRef.current.dnaEngine.hydrate(body.dna)
+        // Mark behavioral wallet so getState.wallet matches for coach
+        orchRef.current.behavioral.hydrate([], walletAddress)
+        startTransition(() => sync())
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [walletConnected, walletAddress, sync])
+
+  const persistDna = useCallback(async () => {
+    const dna = orchRef.current.dnaEngine.getDna()
+    if (!dna || dna.sampleSize < 1) return
+    await fetch('/api/terminal-os/dna', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dna }),
+    })
+  }, [])
+
   const trainAiFromMyTrading = useCallback(async () => {
     setBusy(true)
     setError(null)
@@ -72,6 +102,9 @@ export function useTradeLikeMeEngine() {
       }
       const seeds = histBody.trades ?? []
       orchRef.current.trainFromWallet(walletAddress, seeds)
+      // Force DNA rebuild even below min samples so coach has a wallet-specific profile
+      orchRef.current.refreshDna()
+      await persistDna()
       startTransition(() => sync())
 
       const [tokens, whales] = await Promise.all([
@@ -87,7 +120,7 @@ export function useTradeLikeMeEngine() {
     } finally {
       setBusy(false)
     }
-  }, [walletConnected, walletAddress, walletChainFamily, chain, flags, sync])
+  }, [walletConnected, walletAddress, walletChainFamily, chain, flags, sync, persistDna])
 
   const refreshOpportunity = useCallback(async () => {
     setBusy(true)

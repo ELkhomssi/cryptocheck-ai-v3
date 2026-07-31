@@ -3,7 +3,7 @@
  */
 
 import type { FeatureFlags, TokenRow, WhaleMovement } from '@/features/terminal-os/shared/types'
-import { BehavioralLearningEngine, getMinTradesForDna } from './behavioral-learning-engine'
+import { BehavioralLearningEngine, getMinTradesForDna, learningProgressFromSampleSize } from './behavioral-learning-engine'
 import { TraderDnaEngine } from './trader-dna-engine'
 import { MarketIntelligenceEngine } from './market-intelligence-engine'
 import { PredictionEngine } from './prediction-engine'
@@ -205,7 +205,10 @@ export class TradeLikeMeOrchestrator {
     return {
       phase,
       wallet: this.behavioral.getWallet(),
-      learningProgressPct: this.behavioral.learningProgressPct(),
+      learningProgressPct: Math.max(
+        this.behavioral.learningProgressPct(),
+        learningProgressFromSampleSize(dna?.sampleSize ?? 0),
+      ),
       analyzing: [
         'Entry / exit why',
         'Rejected opportunities',

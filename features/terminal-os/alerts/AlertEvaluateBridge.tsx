@@ -1,8 +1,8 @@
 'use client'
 
 /**
- * Continuously evaluates active alert rules against live ticker prices
- * while a wallet session is connected (not only on the Alerts nav).
+ * Continuously evaluates active alert rules.
+ * Prefers SSE (/api/terminal-os/alerts/stream) for real-time push; falls back to POST poll.
  */
 
 import { useEffect } from 'react'
@@ -18,7 +18,18 @@ export function AlertEvaluateBridge() {
   useEffect(() => {
     if (!wallet) return
 
-    const tick = async () => {
+    let es: EventSource | null = null
+    let poll: ReturnType<typeof setInterval> | null = null
+    let stopped = false
+
+    const emit = (fired: FiredAlert[]) => {
+      for (const f of fired) {
+        window.dispatchEvent(new CustomEvent('ccai:tos:alert', { detail: f }))
+      }
+    }
+
+    const pollOnce = async () => {
+      if (stopped) return
       const prices: Record<string, number> = {}
       for (const q of quotes ?? []) {
         prices[q.symbol] = q.priceUsd
@@ -26,7 +37,6 @@ export function AlertEvaluateBridge() {
       if (focused?.priceUsd && focused.id) prices[focused.id] = focused.priceUsd
       if (focused?.symbol && focused.priceUsd) prices[focused.symbol] = focused.priceUsd
       if (Object.keys(prices).length === 0) return
-
       try {
         const res = await fetch('/api/terminal-os/alerts/evaluate', {
           method: 'POST',
@@ -35,17 +45,45 @@ export function AlertEvaluateBridge() {
         })
         if (!res.ok) return
         const body = (await res.json()) as { fired?: FiredAlert[] }
-        for (const f of body.fired ?? []) {
-          window.dispatchEvent(new CustomEvent('ccai:tos:alert', { detail: f }))
-        }
+        emit(body.fired ?? [])
       } catch {
         /* best-effort */
       }
     }
 
-    void tick()
-    const id = window.setInterval(() => void tick(), 15_000)
-    return () => window.clearInterval(id)
+    const startPoll = () => {
+      void pollOnce()
+      poll = setInterval(() => void pollOnce(), 15_000)
+    }
+
+    try {
+      es = new EventSource(
+        `/api/terminal-os/alerts/stream?wallet=${encodeURIComponent(wallet)}`,
+      )
+      es.addEventListener('alert', (ev) => {
+        try {
+          const body = JSON.parse((ev as MessageEvent).data) as { fired?: FiredAlert[] }
+          emit(body.fired ?? [])
+        } catch {
+          /* ignore */
+        }
+      })
+      es.onerror = () => {
+        if (es?.readyState === EventSource.CLOSED) {
+          es.close()
+          es = null
+          if (!stopped) startPoll()
+        }
+      }
+    } catch {
+      startPoll()
+    }
+
+    return () => {
+      stopped = true
+      es?.close()
+      if (poll) clearInterval(poll)
+    }
   }, [wallet, quotes, focused])
 
   return null
