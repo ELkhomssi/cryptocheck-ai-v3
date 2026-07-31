@@ -141,6 +141,12 @@ export function TopBar() {
         {walletConnected && walletBalances ? (
           <span className="tos-muted tos-num" style={{ fontSize: 'var(--tos-fs-xs)' }}>
             {walletBalances.nativeAmount.toFixed(4)} {walletBalances.nativeSymbol}
+            {walletBalances.totalValueUsd != null
+              ? ` · $${walletBalances.totalValueUsd.toFixed(0)}`
+              : ''}
+            {walletBalances.tokens.length
+              ? ` · ${walletBalances.tokens.length} tokens`
+              : ''}
             {walletChainFamily ? ` · ${walletChainFamily}` : ''}
           </span>
         ) : null}

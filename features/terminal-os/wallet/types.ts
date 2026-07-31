@@ -5,10 +5,20 @@
 
 export type WalletChainFamily = 'solana' | 'evm'
 
+export type TerminalTokenBalance = {
+  mint: string
+  symbol: string
+  amount: number
+  valueUsd: number
+}
+
 export type TerminalWalletBalances = {
   nativeSymbol: string
   nativeAmount: number
   nativeUsd: number | null
+  /** Token holdings when available (Solana via /api/portfolio/holdings). */
+  tokens: TerminalTokenBalance[]
+  totalValueUsd: number | null
   updatedAt: string
 }
 
