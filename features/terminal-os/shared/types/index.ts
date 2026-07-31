@@ -60,6 +60,8 @@ export interface WhaleMovement {
   chain: ChainId
   action: WhaleAction
   assetSymbol: string
+  /** Base-token mint/contract when known (DexScreener) — preferred OS focus id */
+  tokenMint?: string
   /** Optional token icon (DexScreener / CoinGecko) */
   tokenLogoUrl?: string
   usdValue: number
@@ -89,6 +91,11 @@ export interface WhaleMovement {
   aiReasoning: string
   /** When true, non-market attribution fields are illustrative sample */
   sample?: boolean
+  /**
+   * False when walletFull is a pair/flow id (DexScreener volume events), not a trader wallet.
+   * Panels skip holdings attribution when false.
+   */
+  walletAttributed?: boolean
 }
 
 export interface TokenRow {

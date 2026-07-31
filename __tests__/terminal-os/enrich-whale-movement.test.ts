@@ -64,6 +64,28 @@ describe('enrich-whale-movement', () => {
     assert.equal(w.sample, undefined)
   })
 
+  it('passes through tokenMint and walletAttributed for focus/attribution', () => {
+    const mint = 'EKpQGSJjmomWhNFrqyJiqrVtVvL5nUUs8GaLpbNHK8s'
+    const w = enrichWhaleMovement(
+      {
+        id: 'pair-1',
+        walletFull: 'SomePairAddress111111111111111111111111111',
+        chain: 'solana',
+        action: 'buy',
+        assetSymbol: 'WIF',
+        tokenMint: mint,
+        usdValue: 500_000,
+        amount: 1_000,
+        occurredAt: new Date().toISOString(),
+        walletAttributed: false,
+      },
+      classifyWhaleMovement,
+    )
+    assert.equal(w.tokenMint, mint)
+    assert.equal(w.walletAttributed, false)
+    assert.equal(w.previousHoldingsUsd, null)
+  })
+
   it('tags sample attribution when requested', () => {
     const w = enrichWhaleMovement(
       {

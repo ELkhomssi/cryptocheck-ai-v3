@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { formatUsd, timeAgo } from '@/features/terminal-os/shared/lib/format'
 import {
@@ -7,6 +8,7 @@ import {
   whaleDisplayAction,
 } from '@/features/terminal-os/shared/lib/enrich-whale-movement'
 import type { WhaleMovement } from '@/features/terminal-os/shared/types'
+import type { HoldingsResponse } from '@/types/portfolio-desk'
 
 const CHAIN_LABEL: Record<string, string> = {
   solana: 'Solana',
@@ -15,6 +17,94 @@ const CHAIN_LABEL: Record<string, string> = {
   base: 'Base',
   arbitrum: 'Arbitrum',
   all: 'Multi',
+}
+
+function looksLikeSolanaAddress(addr: string): boolean {
+  return addr.trim().length >= 32 && !addr.startsWith('0x') && !addr.includes('-')
+}
+
+type LiveAttr = {
+  loading: boolean
+  portfolioUsd: number | null
+  positionUsd: number | null
+  error?: string
+}
+
+function useLiveWalletAttribution(whale: WhaleMovement): LiveAttr {
+  const [state, setState] = useState<LiveAttr>({
+    loading: false,
+    portfolioUsd: null,
+    positionUsd: null,
+  })
+
+  useEffect(() => {
+    const canFetch =
+      whale.walletAttributed !== false &&
+      whale.chain === 'solana' &&
+      looksLikeSolanaAddress(whale.walletFull)
+
+    if (!canFetch) {
+      setState({ loading: false, portfolioUsd: null, positionUsd: null })
+      return
+    }
+
+    let cancelled = false
+    setState({ loading: true, portfolioUsd: null, positionUsd: null })
+
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/portfolio/holdings?wallet=${encodeURIComponent(whale.walletFull)}`,
+        )
+        if (!res.ok) {
+          if (!cancelled) {
+            setState({
+              loading: false,
+              portfolioUsd: null,
+              positionUsd: null,
+              error: 'Holdings unavailable',
+            })
+          }
+          return
+        }
+        const body = (await res.json()) as HoldingsResponse
+        const mint = whale.tokenMint?.trim()
+        const position = mint
+          ? body.holdings.find((h) => h.mint === mint)
+          : body.holdings.find(
+              (h) => h.symbol.toUpperCase() === whale.assetSymbol.toUpperCase(),
+            )
+        if (!cancelled) {
+          setState({
+            loading: false,
+            portfolioUsd: body.totalValueUsd ?? null,
+            positionUsd: position?.valueUsd ?? null,
+          })
+        }
+      } catch {
+        if (!cancelled) {
+          setState({
+            loading: false,
+            portfolioUsd: null,
+            positionUsd: null,
+            error: 'Holdings unavailable',
+          })
+        }
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    whale.walletAttributed,
+    whale.chain,
+    whale.walletFull,
+    whale.tokenMint,
+    whale.assetSymbol,
+  ])
+
+  return state
 }
 
 function Metric({
@@ -37,6 +127,12 @@ function Metric({
   )
 }
 
+function fmtMoneyOrStatus(n: number | null, loading: boolean, fallback: string): string {
+  if (loading) return 'Loading…'
+  if (n != null) return formatUsd(n, true)
+  return fallback
+}
+
 export function WhaleIntelligencePanel({
   whale,
   onClose,
@@ -46,6 +142,13 @@ export function WhaleIntelligencePanel({
 }) {
   const display = whaleDisplayAction(whale.action, whale.classification)
   const attrSample = Boolean(whale.sample)
+  const live = useLiveWalletAttribution(whale)
+  const isPairFlow = whale.walletAttributed === false
+
+  const positionUsd =
+    live.positionUsd != null ? live.positionUsd : whale.previousHoldingsUsd
+  const portfolioUsd =
+    live.portfolioUsd != null ? live.portfolioUsd : whale.currentPortfolioUsd
 
   return (
     <div className="tos-wi-backdrop" role="dialog" aria-modal="true" aria-label="Whale Intelligence">
@@ -66,10 +169,16 @@ export function WhaleIntelligencePanel({
 
         <div className="tos-wi-grid">
           <section className="tos-wi-card">
-            <h3>Wallet</h3>
+            <h3>{isPairFlow ? 'Pair / flow' : 'Wallet'}</h3>
             <p className="tos-mono tos-wi-addr">{whale.walletFull}</p>
+            {whale.tokenMint ? (
+              <p className="tos-mono tos-muted" style={{ fontSize: 'var(--tos-fs-xs)', marginTop: 6 }}>
+                Mint {whale.tokenMint}
+              </p>
+            ) : null}
             <p className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)', marginTop: 6 }}>
               Seen {timeAgo(whale.occurredAt)} · {whale.classification}
+              {isPairFlow ? ' · Market flow (not a trader wallet)' : ''}
             </p>
           </section>
 
@@ -91,22 +200,22 @@ export function WhaleIntelligencePanel({
             <h3>Attribution</h3>
             <div className="tos-wi-metrics">
               <Metric
-                label="Previous holdings"
-                value={
-                  whale.previousHoldingsUsd != null
-                    ? formatUsd(whale.previousHoldingsUsd, true)
-                    : 'Unavailable'
-                }
-                sample={attrSample && whale.previousHoldingsUsd != null}
+                label={live.positionUsd != null ? 'Token position' : 'Previous holdings'}
+                value={fmtMoneyOrStatus(
+                  positionUsd,
+                  live.loading && !isPairFlow,
+                  isPairFlow ? 'N/A (pair flow)' : 'Unavailable',
+                )}
+                sample={attrSample && positionUsd != null && live.positionUsd == null}
               />
               <Metric
                 label="Portfolio value"
-                value={
-                  whale.currentPortfolioUsd != null
-                    ? formatUsd(whale.currentPortfolioUsd, true)
-                    : 'Unavailable'
-                }
-                sample={attrSample && whale.currentPortfolioUsd != null}
+                value={fmtMoneyOrStatus(
+                  portfolioUsd,
+                  live.loading && !isPairFlow,
+                  isPairFlow ? 'N/A (pair flow)' : 'Unavailable',
+                )}
+                sample={attrSample && portfolioUsd != null && live.portfolioUsd == null}
               />
               <Metric
                 label="Win rate"

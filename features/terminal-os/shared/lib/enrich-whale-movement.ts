@@ -20,6 +20,8 @@ export type WhaleEnrichInput = {
   chain: WhaleMovement['chain']
   action: WhaleAction
   assetSymbol: string
+  /** Base-token mint/contract when known */
+  tokenMint?: string
   tokenLogoUrl?: string
   usdValue: number
   amount: number
@@ -32,6 +34,8 @@ export type WhaleEnrichInput = {
   volume24hUsd?: number
   /** When true, fill attribution fields with deterministic sample values */
   sampleAttribution?: boolean
+  /** False for pair/flow events that are not trader wallets */
+  walletAttributed?: boolean
 }
 
 function clamp(n: number, lo: number, hi: number): number {
@@ -232,6 +236,7 @@ export function enrichWhaleMovement(
     chain: input.chain,
     action: input.action,
     assetSymbol: input.assetSymbol.toUpperCase(),
+    tokenMint: input.tokenMint?.trim() || undefined,
     tokenLogoUrl: input.tokenLogoUrl,
     usdValue: input.usdValue,
     amount: input.amount,
@@ -249,6 +254,7 @@ export function enrichWhaleMovement(
     pnlUsd,
     aiReasoning: why,
     sample: sample || undefined,
+    walletAttributed: input.walletAttributed,
   }
 }
 

@@ -120,9 +120,10 @@ export function WhaleMarqueeTicker({
   const openPanel = (w: WhaleMovement) => {
     startTransition(() => {
       setSelected(w)
-      // Sync OS focus → chart, scanner, quick swap, execution desk
+      // Prefer mint/contract so chart + Secure Execution resolve the real asset
+      const focusId = (w.tokenMint || w.assetSymbol).trim()
       setFocusedToken({
-        id: w.assetSymbol,
+        id: focusId,
         symbol: w.assetSymbol,
         name: w.assetSymbol,
         chain: w.chain === 'all' ? 'solana' : w.chain,
