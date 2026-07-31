@@ -1,4 +1,4 @@
--- Public Telegram channel allowlist for signal ingestion (Railway telegram-monitor).
+-- Public Telegram channel allowlist for signal ingestion (telegram-monitor worker).
 -- Workers read enabled rows on boot + every 5 min; no redeploy needed to add channels.
 
 CREATE TABLE IF NOT EXISTS telegram_channels (

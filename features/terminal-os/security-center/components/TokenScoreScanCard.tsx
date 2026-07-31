@@ -7,12 +7,14 @@ import { PanelSkeleton, StaleIndicator } from '@/features/terminal-os/shared/com
 import { formatUsd } from '@/features/terminal-os/shared/lib/format'
 import { scoreTokenFromMarket } from '@/features/terminal-os/shared/lib/score-from-market'
 import { liveMarketDataProvider } from '@/features/terminal-os/shared/lib/live-providers'
+import { useTerminalOsStore } from '@/stores/terminal-os'
 import type { TokenScanResult } from '@/features/terminal-os/shared/types'
 
 type ScanMeta = { price: number; vol: number; liq: number }
 
 export function TokenScoreScanCard() {
-  const [query, setQuery] = useState('WIF')
+  const focused = useTerminalOsStore((s) => s.focusedToken)
+  const [query, setQuery] = useState(focused?.symbol || focused?.id || 'SOL')
   const [result, setResult] = useState<TokenScanResult | null>(null)
   const [meta, setMeta] = useState<ScanMeta | null>(null)
   const [loading, setLoading] = useState(true)
@@ -22,16 +24,18 @@ export function TokenScoreScanCard() {
   const [source, setSource] = useState<string | undefined>()
 
   const run = useCallback(async (q: string) => {
+    const needle = q.trim()
+    if (!needle) return
     setLoading(true)
     try {
       const tokens = await liveMarketDataProvider.getTopTokens('all')
-      const needle = q.trim().toLowerCase()
+      const lower = needle.toLowerCase()
       const hit =
         tokens.find(
           (t) =>
-            t.symbol.toLowerCase() === needle ||
-            t.id.toLowerCase() === needle ||
-            t.name.toLowerCase().includes(needle),
+            t.symbol.toLowerCase() === lower ||
+            t.id.toLowerCase() === lower ||
+            t.name.toLowerCase().includes(lower),
         ) || tokens[0]
       if (hit) {
         const optimistic = scoreTokenFromMarket(hit)
@@ -49,7 +53,7 @@ export function TokenScoreScanCard() {
       const res = await fetch('/api/terminal-os/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: q }),
+        body: JSON.stringify({ query: needle }),
       })
       const body = (await res.json()) as {
         result: TokenScanResult
@@ -70,14 +74,24 @@ export function TokenScoreScanCard() {
       })
     } catch {
       setStale(true)
-      setDemo(true)
       setLoading(false)
     }
   }, [])
 
+  // Keep scanner synchronized with OS-focused token
   useEffect(() => {
-    void run('WIF')
-  }, [run])
+    const next = focused?.id || focused?.symbol
+    if (!next) return
+    setQuery(focused?.symbol || next)
+    void run(next)
+  }, [focused?.id, focused?.symbol, run])
+
+  useEffect(() => {
+    if (focused?.id || focused?.symbol) return
+    void run(query || 'SOL')
+    // initial only when nothing focused
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <Panel title="Token Score & Scan" live>

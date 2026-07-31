@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim()
   const userId = req.nextUrl.searchParams.get('userId')?.trim() || undefined
 
-  // Default on Vercel: read signal_normalized directly — no Railway/realtime worker required.
+  // Default on Vercel: read signal_normalized directly via Supabase.
   if (!signalRealtimeIsExternal()) {
     try {
       const { tier, signals } = await fetchSignalHistoryForRequest({

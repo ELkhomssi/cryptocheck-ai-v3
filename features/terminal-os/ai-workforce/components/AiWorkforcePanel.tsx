@@ -1,7 +1,7 @@
 'use client'
 
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
-import { ComingOnline } from '@/features/terminal-os/shared/components/PanelStates'
+import { EmptyState } from '@/features/terminal-os/shared/components/PanelStates'
 import { useTerminalOsStore } from '@/stores/terminal-os'
 
 const EMPLOYEES = [
@@ -17,9 +17,10 @@ const EMPLOYEES = [
   'News Intelligence',
 ] as const
 
-/** Phase 7 will flesh this out — Phase 1 ships roster shell */
+/** Roster shell — agents map to live engines already wired (scan, whales, coach, execution). */
 export function AiWorkforcePanel() {
   const autonomy = useTerminalOsStore((s) => s.featureFlags.autonomousTrading)
+  const walletConnected = useTerminalOsStore((s) => s.walletConnected)
 
   return (
     <Panel title="AI Workforce">
@@ -27,12 +28,14 @@ export function AiWorkforcePanel() {
         {EMPLOYEES.map((name) => (
           <div key={name} className="tos-card-tile">
             <div className="tos-card-tile-title">{name}</div>
-            <div className="tos-card-tile-meta">Status: standby · Conf — · Health —</div>
+            <div className="tos-card-tile-meta">
+              Status: {walletConnected ? 'listening' : 'standby'} · Conf — · Health —
+            </div>
           </div>
         ))}
       </div>
       <div style={{ marginTop: 'var(--tos-space-3)' }}>
-        <ComingOnline label="Full telemetry dashboard (Phase 7)" />
+        <EmptyState message="Agents consume the same live scan, whale, coach, and execution engines — open those desks for telemetry." />
       </div>
       {!autonomy ? (
         <p className="tos-muted tos-tlm-rail-note">

@@ -95,7 +95,7 @@ export function WhaleIntelligencePanel({
                 value={
                   whale.previousHoldingsUsd != null
                     ? formatUsd(whale.previousHoldingsUsd, true)
-                    : 'Awaiting on-chain'
+                    : 'Unavailable'
                 }
                 sample={attrSample && whale.previousHoldingsUsd != null}
               />
@@ -104,7 +104,7 @@ export function WhaleIntelligencePanel({
                 value={
                   whale.currentPortfolioUsd != null
                     ? formatUsd(whale.currentPortfolioUsd, true)
-                    : 'Awaiting on-chain'
+                    : 'Unavailable'
                 }
                 sample={attrSample && whale.currentPortfolioUsd != null}
               />
@@ -113,7 +113,7 @@ export function WhaleIntelligencePanel({
                 value={
                   whale.historicalWinRatePct != null
                     ? `${whale.historicalWinRatePct}%`
-                    : 'Awaiting on-chain'
+                    : 'Unavailable'
                 }
                 sample={attrSample && whale.historicalWinRatePct != null}
               />
@@ -122,7 +122,7 @@ export function WhaleIntelligencePanel({
                 value={
                   whale.pnlUsd != null
                     ? formatUsd(whale.pnlUsd, true)
-                    : 'Awaiting on-chain'
+                    : 'Unavailable'
                 }
                 sample={attrSample && whale.pnlUsd != null}
               />
