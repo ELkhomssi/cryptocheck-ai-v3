@@ -16,6 +16,10 @@ import type { CoachInsight } from '@/features/terminal-os/shared/types'
 const INSUFFICIENT =
   'Not enough data yet — connect and make a few trades, or use Pause & Teach to describe your strategy.'
 
+function narrativeBlurb(d: ReturnType<typeof explainDecision>): string {
+  return [d.confidenceLine, d.upsideLine, d.downsideLine, ...d.bullets.slice(0, 2)].join(' · ')
+}
+
 function buildInsights(wallet: string): {
   insights: CoachInsight[]
   insufficient: boolean
@@ -41,9 +45,10 @@ function buildInsights(wallet: string): {
     {
       id: `dna-${dna.wallet.slice(0, 8)}`,
       headline: `Your edge: ${dna.tradingStyleSummary}`,
+      reasoning: `Built from ${dna.sampleSize} captured trades/rejections for this wallet.`,
       statistic: `Risk appetite ${dna.riskAppetite}/100 · ${dna.riskAppetiteLabel}`,
+      expectedImpact: 'Align size and entry filters to your DNA before the next fill.',
       confidence: dna.confidence,
-      createdAt: dna.updatedAt,
     },
   ]
 
@@ -52,9 +57,10 @@ function buildInsights(wallet: string): {
     insights.push({
       id: state.currentOpportunity.id,
       headline: narrative.headline,
-      statistic: narrative.summary.slice(0, 120),
+      reasoning: narrativeBlurb(narrative).slice(0, 280),
+      statistic: narrative.confidenceLine,
+      expectedImpact: `${narrative.upsideLine} · ${narrative.downsideLine}`,
       confidence: Math.round(state.currentOpportunity.scores.confidence),
-      createdAt: state.currentOpportunity.madeAt,
     })
   }
 
@@ -64,9 +70,13 @@ function buildInsights(wallet: string): {
       dna.emotionalBiasScore > 55
         ? 'Emotional bias elevated — size down until discipline recovers'
         : 'Discipline holding — stick to your DNA entry filters',
+    reasoning:
+      dna.emotionalBiasScore > 55
+        ? 'Late-session and loss-tolerance patterns are elevating emotional bias in your DNA.'
+        : 'Your sample shows discipline within your historical entry profile.',
     statistic: `Win rate ${dna.winRatePct.toFixed(1)}% · sample ${dna.sampleSize}`,
+    expectedImpact: 'Protect edge by sizing only when DNA confidence and market quality align.',
     confidence: dna.confidence,
-    createdAt: new Date().toISOString(),
   })
 
   return { insights, insufficient: false, message: null }
@@ -121,7 +131,6 @@ export function AiCoachingCard() {
     const q = ask.trim() || 'What should I focus on?'
     if (q.length > 20) orch.teach(q)
 
-    // Sync DNA to server coach route for audit / multi-instance, then prefer local explainable path
     const dna = state.dna
     void fetch('/api/terminal-os/coach', {
       method: 'POST',
@@ -145,7 +154,7 @@ export function AiCoachingCard() {
       [
         `Context: ${dna.tradingStyleSummary} (confidence ${dna.confidence}%).`,
         narrative
-          ? `Live opportunity: ${narrative.headline} — ${narrative.summary}`
+          ? `Live opportunity: ${narrative.headline} — ${narrativeBlurb(narrative)}`
           : 'No live opportunity scored yet — activate AI Trading and refresh the desk.',
         `Risk band: ${dna.riskAppetiteLabel}. Sample size ${dna.sampleSize}.`,
         `You asked: “${q.slice(0, 160)}”`,

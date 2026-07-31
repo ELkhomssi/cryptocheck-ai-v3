@@ -17,6 +17,10 @@ type DnaHint = {
   winRatePct?: number
 }
 
+function narrativeBlurb(d: ReturnType<typeof explainDecision>): string {
+  return [d.confidenceLine, d.upsideLine, d.downsideLine, ...d.bullets.slice(0, 2)].join(' · ')
+}
+
 /**
  * GET /api/terminal-os/coach?wallet=
  * Prefer client-side AiCoachingCard (shares TLM orchestrator DNA).
@@ -50,9 +54,10 @@ export async function GET(req: NextRequest) {
     {
       id: `dna-${dna.wallet.slice(0, 8)}`,
       headline: `Your edge: ${dna.tradingStyleSummary}`,
+      reasoning: `Built from ${dna.sampleSize} captured trades/rejections for this wallet.`,
       statistic: `Risk appetite ${dna.riskAppetite}/100 · ${dna.riskAppetiteLabel}`,
+      expectedImpact: 'Align size and entry filters to your DNA before the next fill.',
       confidence: dna.confidence,
-      createdAt: dna.updatedAt,
     },
   ]
 
@@ -61,9 +66,10 @@ export async function GET(req: NextRequest) {
     insights.push({
       id: state.currentOpportunity.id,
       headline: narrative.headline,
-      statistic: narrative.summary.slice(0, 120),
+      reasoning: narrativeBlurb(narrative).slice(0, 280),
+      statistic: narrative.confidenceLine,
+      expectedImpact: `${narrative.upsideLine} · ${narrative.downsideLine}`,
       confidence: Math.round(state.currentOpportunity.scores.confidence),
-      createdAt: state.currentOpportunity.madeAt,
     })
   }
 
@@ -129,7 +135,7 @@ export async function POST(req: NextRequest) {
   const answer = [
     `Context: ${style} (confidence ${confidence}%).`,
     narrative
-      ? `Live opportunity: ${narrative.headline} — ${narrative.summary}`
+      ? `Live opportunity: ${narrative.headline} — ${narrativeBlurb(narrative)}`
       : 'No live opportunity scored yet — refresh Trade Like Me desk.',
     `Risk band: ${risk}. Sample size ${sample}.`,
     `You asked: “${q.slice(0, 160)}”`,

@@ -63,7 +63,8 @@ export async function appendFiredAlert(alert: FiredAlert): Promise<void> {
 
 export async function clearAlertStateForWallet(wallet: string): Promise<void> {
   try {
-    await redis.del(rulesKey(wallet), firedKey(wallet))
+    await redis.del(rulesKey(wallet))
+    await redis.del(firedKey(wallet))
   } catch {
     /* best-effort */
   }
