@@ -3,6 +3,7 @@ import { GeistMono } from 'geist/font/mono'
 import { TerminalOsProviders } from '@/features/terminal-os/shell/Providers'
 import '@/styles/terminal-os.css'
 import '@/features/intelligence-chart/styles.css'
+import '@/features/execution-desk/styles.css'
 
 export const metadata = {
   title: 'Terminal OS v6 · CryptoCheck AI',
