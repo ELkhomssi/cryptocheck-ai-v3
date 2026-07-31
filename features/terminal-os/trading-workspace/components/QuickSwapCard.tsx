@@ -1,106 +1,50 @@
 'use client'
 
+/**
+ * Compact Quick Swap — same Secure Execution engine (no second swap path).
+ * Presentation-only wrapper around Execution Desk SecureExecutionPanel.
+ */
+
 import { useEffect, useState } from 'react'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
-import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
-import { liveMarketDataProvider } from '@/features/terminal-os/shared/lib/live-providers'
+import { EmptyState } from '@/features/terminal-os/shared/components/PanelStates'
+import { SecureExecutionPanel } from '@/features/execution-desk/components/SecureExecutionPanel'
+import { ExecutionBuilder } from '@/features/execution-desk/components/ExecutionBuilder'
+import type { ExecutionBuilderState } from '@/features/execution-desk/types'
 import { useTerminalOsStore } from '@/stores/terminal-os'
-import type { SwapQuotePreview } from '@/features/terminal-os/shared/types'
 
 export function QuickSwapCard() {
-  const realExec = useTerminalOsStore((s) => s.featureFlags.realSwapExecution)
-  const [fromAmount, setFromAmount] = useState('1')
-  const [fromSymbol] = useState('SOL')
-  const [toSymbol] = useState('USDC')
-  const [quote, setQuote] = useState<SwapQuotePreview | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const focused = useTerminalOsStore((s) => s.focusedToken)
+  const walletConnected = useTerminalOsStore((s) => s.walletConnected)
+  const walletChainFamily = useTerminalOsStore((s) => s.walletChainFamily)
+  const query = focused?.id || focused?.symbol || 'SOL'
+  const [builder, setBuilder] = useState<ExecutionBuilderState | null>(null)
 
   useEffect(() => {
-    let c = false
-    setLoading(true)
-    ;(async () => {
-      try {
-        const ticker = await liveMarketDataProvider.getTickerQuotes()
-        const sol = ticker.find((t) => t.symbol === 'SOL')
-        const amount = Number(fromAmount) || 0
-        const price = sol?.priceUsd ?? 0
-        const next: SwapQuotePreview = {
-          fromSymbol,
-          toSymbol,
-          fromAmount: amount,
-          toAmount: amount * price,
-          priceImpactPct: amount > 50 ? 0.35 : 0.08,
-          platformFeeBps: 30,
-          executable: false,
-        }
-        if (!c) setQuote(next)
-      } catch (e) {
-        if (!c) setError(e instanceof Error ? e.message : 'Quote failed')
-      } finally {
-        if (!c) setLoading(false)
-      }
-    })()
-    return () => {
-      c = true
-    }
-  }, [fromAmount, fromSymbol, toSymbol])
+    /* builder updates via onBuilderChange */
+  }, [query])
 
-  const canSwap = realExec && quote?.executable
+  if (walletConnected && walletChainFamily === 'evm') {
+    return (
+      <Panel title="Quick Swap">
+        <EmptyState message="Secure Execution is Solana-routed today. Switch to a Solana wallet to execute." />
+      </Panel>
+    )
+  }
 
   return (
-    <Panel title="Quick Swap">
-      {error ? (
-        <EmptyState message={error} />
-      ) : loading || !quote ? (
-        <PanelSkeleton rows={3} />
+    <Panel title="Quick Swap · Secure Execution">
+      {!walletConnected ? (
+        <EmptyState message="Connect a Solana wallet to quote and execute securely." />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-          <label style={{ fontSize: 'var(--tos-fs-xs)', color: 'var(--tos-text-muted)' }}>
-            From {quote.fromSymbol}
-            <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.25rem' }}>
-              <input
-                className="tos-input tos-num"
-                value={fromAmount}
-                onChange={(e) => setFromAmount(e.target.value)}
-                inputMode="decimal"
-              />
-              <button
-                type="button"
-                className="tos-btn tos-btn-ghost"
-                onClick={() => setFromAmount('1')}
-              >
-                MAX
-              </button>
-            </div>
-          </label>
-          <div style={{ fontSize: 'var(--tos-fs-xs)', color: 'var(--tos-text-muted)' }}>
-            To {quote.toSymbol}
-            <div className="tos-input tos-num" style={{ marginTop: '0.25rem', opacity: 0.9 }}>
-              {quote.toAmount.toFixed(2)}
-            </div>
-          </div>
-          <div
-            style={{ fontSize: 'var(--tos-fs-sm)', color: 'var(--tos-text-secondary)', lineHeight: 1.45 }}
-          >
-            Rate: <span className="tos-num">1 {quote.fromSymbol} ≈ {(quote.toAmount / (quote.fromAmount || 1)).toFixed(2)} {quote.toSymbol}</span>
-            <br />
-            Impact: <span className="tos-num">{quote.priceImpactPct}%</span>
-            <br />
-            Platform fee: <span className="tos-num">{(quote.platformFeeBps / 100).toFixed(2)}%</span>
-            <br />
-            Slippage limit: <span className="tos-num">1.00%</span>
-          </div>
-          <button type="button" className="tos-btn tos-btn-gold" style={{ width: '100%' }} disabled={!canSwap}>
-            {canSwap ? 'SWAP NOW' : 'SWAP NOW'}
-          </button>
-          {!realExec ? (
-            <p className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)', lineHeight: 1.35 }}>
-              Live SOL price · execution flagged OFF. Not financial advice · DYOR.
-            </p>
-          ) : null}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <ExecutionBuilder query={query} onBuilderChange={setBuilder} />
+          <SecureExecutionPanel query={query} builder={builder} />
         </div>
       )}
+      <p className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)', marginTop: 8, lineHeight: 1.35 }}>
+        Same engine as Execution Desk · simulate before sign · Not financial advice · DYOR.
+      </p>
     </Panel>
   )
 }

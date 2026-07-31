@@ -12,6 +12,14 @@ export function getMinTradesForDna(): number {
   return MIN_SAMPLES_FOR_DNA
 }
 
+/** Pure progress helper — sampleSize vs threshold for baseline DNA confidence. */
+export function learningProgressFromSampleSize(sampleSize: number): number {
+  if (sampleSize <= 0) return 0
+  return Math.min(100, Math.round((sampleSize / MIN_SAMPLES_FOR_DNA) * 100))
+}
+
+export { MIN_SAMPLES_FOR_DNA }
+
 export class BehavioralLearningEngine {
   private trades = new Map<string, CapturedTrade>()
   private recording = false
@@ -76,9 +84,7 @@ export class BehavioralLearningEngine {
   }
 
   learningProgressPct(): number {
-    const n = this.trades.size
-    if (n === 0) return 0
-    return Math.min(100, Math.round((n / MIN_SAMPLES_FOR_DNA) * 100))
+    return learningProgressFromSampleSize(this.trades.size)
   }
 
   hasSufficientHistory(): boolean {

@@ -8,19 +8,31 @@ import { useTerminalMarketStream } from '@/features/terminal-os/shared/hooks/use
 import { formatPct, formatUsd } from '@/features/terminal-os/shared/lib/format'
 import { PanelSkeleton, StaleIndicator } from '@/features/terminal-os/shared/components/PanelStates'
 import { AnimatedNumber } from '@/features/terminal-os/shared/components/AnimatedNumber'
+import { useTerminalWallet } from '@/features/terminal-os/wallet/useTerminalWallet'
 
 export function TopBar() {
   const notificationCount = useTerminalOsStore((s) => s.notificationCount)
-  const walletConnected = useTerminalOsStore((s) => s.walletConnected)
-  const walletLabel = useTerminalOsStore((s) => s.walletLabel)
-  const setWalletConnected = useTerminalOsStore((s) => s.setWalletConnected)
+  const setActiveNav = useTerminalOsStore((s) => s.setActiveNav)
   const setSearchOpen = useTerminalOsStore((s) => s.setSearchOpen)
   const searchQuery = useTerminalOsStore((s) => s.searchQuery)
   const setSearchQuery = useTerminalOsStore((s) => s.setSearchQuery)
+  const walletBalances = useTerminalOsStore((s) => s.walletBalances)
+  const walletChainFamily = useTerminalOsStore((s) => s.walletChainFamily)
+
+  const {
+    walletConnected,
+    walletLabel,
+    isConnecting,
+    connectSolana,
+    connectEvm,
+    disconnect,
+    evmError,
+  } = useTerminalWallet()
+
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const { data: quotes } = useTickerQuotes()
   const stream = useTerminalMarketStream()
-  // Keep last good quotes — never blank on refetch
   const [lkg, setLkg] = useState(quotes)
   useEffect(() => {
     if (quotes?.length) setLkg(quotes)
@@ -125,12 +137,25 @@ export function TopBar() {
         )}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto', position: 'relative' }}>
+        {walletConnected && walletBalances ? (
+          <span className="tos-muted tos-num" style={{ fontSize: 'var(--tos-fs-xs)' }}>
+            {walletBalances.nativeAmount.toFixed(4)} {walletBalances.nativeSymbol}
+            {walletBalances.totalValueUsd != null
+              ? ` · $${walletBalances.totalValueUsd.toFixed(0)}`
+              : ''}
+            {walletBalances.tokens.length
+              ? ` · ${walletBalances.tokens.length} tokens`
+              : ''}
+            {walletChainFamily ? ` · ${walletChainFamily}` : ''}
+          </span>
+        ) : null}
         <button
           type="button"
           className="tos-btn tos-btn-ghost"
-          aria-label="Notifications"
+          aria-label="Alerts"
           style={{ position: 'relative', padding: '0.5rem' }}
+          onClick={() => setActiveNav('alerts')}
         >
           <Bell size={16} />
           {notificationCount > 0 ? (
@@ -161,18 +186,77 @@ export function TopBar() {
         <button type="button" className="tos-btn tos-btn-ghost" aria-label="Layout" style={{ padding: '0.5rem' }}>
           <LayoutTemplate size={16} />
         </button>
-        <button
-          type="button"
-          className="tos-btn tos-btn-gold"
-          onClick={() => {
-            startTransition(() => {
-              // Optimistic connect — reconcile label immediately for demo feel
-              setWalletConnected(!walletConnected, walletConnected ? null : '7a8x…9f2b')
-            })
-          }}
-        >
-          {walletConnected ? walletLabel ?? 'Connected' : 'Connect Wallet'}
-        </button>
+        {walletConnected ? (
+          <button
+            type="button"
+            className="tos-btn tos-btn-gold"
+            disabled={isConnecting}
+            onClick={() => {
+              startTransition(() => {
+                void disconnect()
+              })
+            }}
+          >
+            {walletLabel ?? 'Connected'} · Disconnect
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="tos-btn tos-btn-gold"
+              disabled={isConnecting}
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              {isConnecting ? 'Connecting…' : 'Connect Wallet'}
+            </button>
+            {menuOpen ? (
+              <div
+                role="menu"
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: '100%',
+                  marginTop: 4,
+                  zIndex: 50,
+                  background: 'var(--tos-bg-panel-elevated)',
+                  border: '1px solid var(--tos-border-subtle)',
+                  borderRadius: 8,
+                  padding: 8,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                  minWidth: 180,
+                }}
+              >
+                <button
+                  type="button"
+                  className="tos-btn tos-btn-ghost"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    void connectSolana()
+                  }}
+                >
+                  Solana (Phantom / Solflare)
+                </button>
+                <button
+                  type="button"
+                  className="tos-btn tos-btn-ghost"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    void connectEvm()
+                  }}
+                >
+                  EVM (injected)
+                </button>
+                {evmError ? (
+                  <p className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)', margin: 0 }}>
+                    {evmError}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </>
+        )}
       </div>
     </header>
   )

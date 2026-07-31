@@ -5,31 +5,95 @@ import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
 import { formatUsd } from '@/features/terminal-os/shared/lib/format'
 import { Pct } from '@/features/terminal-os/shared/components/Pct'
-import { mockPortfolioOsProvider } from '@/features/terminal-os/shared/lib/mock-providers'
+import { useTerminalOsStore } from '@/stores/terminal-os'
+import type { HoldingsResponse } from '@/types/portfolio-desk'
 import type { PortfolioHealthSummary } from '@/features/terminal-os/shared/types'
 
+function summaryFromHoldings(h: HoldingsResponse): PortfolioHealthSummary {
+  const n = h.holdings.length
+  const topShare = n ? Math.max(...h.holdings.map((x) => x.allocationPct)) : 0
+  const diversificationScore = Math.max(5, Math.min(95, Math.round(100 - topShare * 0.7 + Math.min(n, 12) * 2)))
+  const avgAbsChg =
+    n > 0
+      ? h.holdings.reduce((s, x) => s + Math.abs(x.change24hPct ?? 0), 0) / n
+      : 0
+  const pnl24hPct =
+    h.totalValueUsd > 0
+      ? h.holdings.reduce((s, x) => s + ((x.change24hPct ?? 0) * x.valueUsd) / h.totalValueUsd, 0)
+      : 0
+  const pnl24hUsd = (pnl24hPct / 100) * h.totalValueUsd
+  const stabilityScore = Math.max(5, Math.min(95, Math.round(80 - avgAbsChg)))
+  const aiHealthScore = Math.round((diversificationScore + stabilityScore) / 2)
+
+  return {
+    totalAssetsUsd: h.totalValueUsd,
+    pnl24hUsd,
+    pnl24hPct,
+    diversificationScore,
+    aiHealthScore,
+    stabilityScore,
+    healthWhy:
+      n === 0
+        ? 'No token holdings detected for this wallet yet.'
+        : `Derived from ${n} live holdings via portfolio holdings API.`,
+    stabilityWhy:
+      avgAbsChg > 12
+        ? '24h price swings are elevated across holdings.'
+        : 'Holdings show moderate 24h movement vs peers.',
+  }
+}
+
 export function PortfolioOverviewPanel() {
+  const wallet = useTerminalOsStore((s) => s.walletAddress)
+  const walletConnected = useTerminalOsStore((s) => s.walletConnected)
+  const chainFamily = useTerminalOsStore((s) => s.walletChainFamily)
   const [data, setData] = useState<PortfolioHealthSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [tokenCount, setTokenCount] = useState(0)
 
   useEffect(() => {
     let c = false
-    mockPortfolioOsProvider
-      .getHealthSummary()
-      .then((d) => {
-        if (!c) setData(d)
+    setData(null)
+    setError(null)
+
+    if (!walletConnected || !wallet) {
+      setError(null)
+      setData(null)
+      return
+    }
+
+    if (chainFamily === 'evm') {
+      setError('Portfolio health uses Solana holdings today — connect a Solana wallet.')
+      return
+    }
+
+    void fetch(`/api/portfolio/holdings?wallet=${encodeURIComponent(wallet)}`, { cache: 'no-store' })
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = (await res.json().catch(() => ({}))) as { error?: string }
+          throw new Error(body.error || 'Holdings unavailable')
+        }
+        return (await res.json()) as HoldingsResponse
+      })
+      .then((h) => {
+        if (c) return
+        setTokenCount(h.holdings.length)
+        setData(summaryFromHoldings(h))
       })
       .catch((e: Error) => {
         if (!c) setError(e.message)
       })
+
     return () => {
       c = true
     }
-  }, [])
+  }, [wallet, walletConnected, chainFamily])
 
   return (
     <Panel title="Market Overview · Portfolio Health">
-      {error ? (
+      {!walletConnected ? (
+        <EmptyState message="Connect a Solana wallet to load live portfolio health." />
+      ) : error ? (
         <EmptyState message={error} />
       ) : !data ? (
         <PanelSkeleton rows={3} />
@@ -50,17 +114,13 @@ export function PortfolioOverviewPanel() {
               </>
             }
           />
+          <Metric label="AI Health" value={`${data.aiHealthScore}`} why={data.healthWhy} />
+          <Metric label="Stability" value={`${data.stabilityScore}`} why={data.stabilityWhy} />
           <Metric
-            label="AI Health"
-            value={`${data.aiHealthScore}`}
-            why={data.healthWhy}
+            label="Diversification"
+            value={`${data.diversificationScore}`}
+            why={tokenCount ? `${tokenCount} holdings` : undefined}
           />
-          <Metric
-            label="Stability"
-            value={`${data.stabilityScore}`}
-            why={data.stabilityWhy}
-          />
-          <Metric label="Diversification" value={`${data.diversificationScore}`} />
         </div>
       )}
     </Panel>
