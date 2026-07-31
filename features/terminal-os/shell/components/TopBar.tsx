@@ -9,6 +9,67 @@ import { formatPct, formatUsd } from '@/features/terminal-os/shared/lib/format'
 import { PanelSkeleton, StaleIndicator } from '@/features/terminal-os/shared/components/PanelStates'
 import { AnimatedNumber } from '@/features/terminal-os/shared/components/AnimatedNumber'
 import { useTerminalWallet } from '@/features/terminal-os/wallet/useTerminalWallet'
+import type { ChainId, TokenRow } from '@/features/terminal-os/shared/types'
+
+function looksLikeMintOrAddress(q: string): boolean {
+  const t = q.trim()
+  if (t.startsWith('0x') && t.length >= 42) return true
+  // Solana base58 mint / wallet
+  return t.length >= 32 && /^[1-9A-HJ-NP-Za-km-z]+$/.test(t)
+}
+
+async function resolveSearchFocus(raw: string): Promise<{
+  id: string
+  symbol: string
+  name: string
+  chain: ChainId
+  priceUsd: number
+  logoUrl?: string
+}> {
+  const q = raw.trim()
+  if (!q) {
+    return { id: 'SOL', symbol: 'SOL', name: 'SOL', chain: 'solana', priceUsd: 0 }
+  }
+
+  if (looksLikeMintOrAddress(q)) {
+    return {
+      id: q,
+      symbol: q.slice(0, 6),
+      name: q,
+      chain: q.startsWith('0x') ? 'ethereum' : 'solana',
+      priceUsd: 0,
+    }
+  }
+
+  try {
+    const res = await fetch('/api/terminal-os/feed?resource=tokens&chain=all&limit=48')
+    if (res.ok) {
+      const body = (await res.json()) as { items?: TokenRow[] }
+      const lower = q.toLowerCase().replace(/^\$/, '')
+      const hit = (body.items || []).find(
+        (t) =>
+          t.symbol.toLowerCase() === lower ||
+          t.id.toLowerCase() === lower ||
+          t.name.toLowerCase().includes(lower),
+      )
+      if (hit) {
+        return {
+          id: hit.id,
+          symbol: hit.symbol,
+          name: hit.name,
+          chain: hit.chain === 'all' ? 'solana' : hit.chain,
+          priceUsd: hit.priceUsd,
+          logoUrl: hit.logoUrl,
+        }
+      }
+    }
+  } catch {
+    /* fall through */
+  }
+
+  const symbol = q.replace(/^\$/, '').toUpperCase()
+  return { id: symbol, symbol, name: symbol, chain: 'solana', priceUsd: 0 }
+}
 
 export function TopBar() {
   const notificationCount = useTerminalOsStore((s) => s.notificationCount)
@@ -16,8 +77,11 @@ export function TopBar() {
   const setSearchOpen = useTerminalOsStore((s) => s.setSearchOpen)
   const searchQuery = useTerminalOsStore((s) => s.searchQuery)
   const setSearchQuery = useTerminalOsStore((s) => s.setSearchQuery)
+  const setFocusedToken = useTerminalOsStore((s) => s.setFocusedToken)
+  const setChartChainTab = useTerminalOsStore((s) => s.setChartChainTab)
   const walletBalances = useTerminalOsStore((s) => s.walletBalances)
   const walletChainFamily = useTerminalOsStore((s) => s.walletChainFamily)
+  const [searchBusy, setSearchBusy] = useState(false)
 
   const {
     walletConnected,
@@ -59,11 +123,29 @@ export function TopBar() {
           id="tos-global-search"
           className="tos-input"
           style={{ paddingLeft: 'var(--tos-space-6)', paddingRight: 'var(--tos-space-8)' }}
-          placeholder="Search token, wallet, pair…"
+          placeholder="Search token, mint, pair… (Enter to focus)"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onFocus={() => setSearchOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter') return
+            e.preventDefault()
+            const q = searchQuery.trim()
+            if (!q || searchBusy) return
+            setSearchBusy(true)
+            void resolveSearchFocus(q)
+              .then((token) => {
+                startTransition(() => {
+                  setFocusedToken(token)
+                  setChartChainTab(token.chain === 'all' ? 'solana' : token.chain)
+                  setSearchOpen(false)
+                  setActiveNav('terminal')
+                })
+              })
+              .finally(() => setSearchBusy(false))
+          }}
           aria-label="Global search"
+          disabled={searchBusy}
         />
         <kbd className="tos-search-kbd">⌘K</kbd>
       </div>

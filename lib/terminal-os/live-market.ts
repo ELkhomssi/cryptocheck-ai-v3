@@ -348,7 +348,7 @@ export async function fetchLiveChainSnapshots(): Promise<ChainMarketSnapshot[]> 
  */
 export async function fetchLiveWhaleMovements(limit = 24): Promise<WhaleMovement[]> {
   const lim = Math.min(Math.max(8, limit), 48)
-  return cachedJson(`tos:whales:v3:${lim}`, WHALE_TTL, async () => {
+  return cachedJson(`tos:whales:v4:${lim}`, WHALE_TTL, async () => {
     const whaleKey = process.env.WHALE_ALERT_API_KEY?.trim()
     if (whaleKey) {
       const wa = await fetchJson<{
@@ -394,6 +394,7 @@ export async function fetchLiveWhaleMovements(limit = 24): Promise<WhaleMovement
               occurredAt: new Date((tx.timestamp || Date.now() / 1000) * 1000).toISOString(),
               classificationWhy: `Whale Alert: ${action} ${usdValue.toLocaleString()} USD on ${chain}.`,
               volume24hUsd: usdValue * 4,
+              walletAttributed: true,
             },
             classifyWhaleMovement,
           )
@@ -423,7 +424,8 @@ export async function fetchLiveWhaleMovements(limit = 24): Promise<WhaleMovement
         change <= -4 ? 'sell' : change >= 4 ? 'buy' : 'swap'
       if (Math.abs(change) < 1.5 && vol > 2_000_000) action = 'transfer'
       // Extreme sell pressure on thin liquidity → alert path via classification
-      const addr = p.pairAddress || p.baseToken?.address || `flow-${i}`
+      const tokenMint = p.baseToken?.address?.trim() || undefined
+      const addr = p.pairAddress || tokenMint || `flow-${i}`
       const usdValue = Math.max(vol * 0.08, liq * 0.05)
       const classification = classifyWhaleMovement({
         action,
@@ -439,6 +441,7 @@ export async function fetchLiveWhaleMovements(limit = 24): Promise<WhaleMovement
           chain: mapDexChain(p.chainId),
           action,
           assetSymbol: (p.baseToken?.symbol || '?').toUpperCase(),
+          tokenMint,
           tokenLogoUrl: p.info?.imageUrl,
           usdValue,
           amount: num(p.volume?.h1) || vol / 24,
@@ -447,6 +450,8 @@ export async function fetchLiveWhaleMovements(limit = 24): Promise<WhaleMovement
           classificationWhy: `Live DexScreener ${p.chainId} pair volume $${Math.round(vol).toLocaleString()} · 1h ${change.toFixed(1)}%.`,
           liquidityUsd: liq,
           volume24hUsd: vol,
+          // pairAddress is not a trader wallet — skip holdings attribution
+          walletAttributed: false,
         },
         classifyWhaleMovement,
       )
