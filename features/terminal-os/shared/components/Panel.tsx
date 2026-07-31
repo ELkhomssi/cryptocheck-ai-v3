@@ -18,7 +18,7 @@ export function Panel({
   return (
     <section className={`tos-panel ${className}`.trim()}>
       <header className="tos-panel-head">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="tos-panel-head-main">
           <h2 className="tos-panel-title">{title}</h2>
           {live ? (
             <span className="tos-live">

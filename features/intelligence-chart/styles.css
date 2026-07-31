@@ -101,7 +101,7 @@
   border-radius: 0.3rem;
   background: linear-gradient(90deg, #121212 0%, #1a1a1a 50%, #121212 100%);
   background-size: 200% 100%;
-  animation: ic-shimmer 1.2s ease-in-out infinite;
+  animation: ic-shimmer var(--tos-motion-loop-slow, 1.2s) var(--tos-ease-panel, ease-in-out) infinite;
 }
 
 @keyframes ic-shimmer {
@@ -231,7 +231,7 @@
     rgba(212, 175, 55, 0.14),
     transparent 70%
   );
-  animation: iv-cognition-ripple 0.9s ease-out forwards;
+  animation: iv-cognition-ripple var(--tos-motion-state, 320ms) var(--tos-ease-state, ease-out) forwards;
 }
 
 @keyframes iv-cognition-ripple {
@@ -360,7 +360,7 @@
     transparent 100%
   );
   background-size: 200% 100%;
-  animation: iv-instrument-scan 2.8s linear infinite;
+  animation: iv-instrument-scan var(--tos-motion-loop-scan, 2.8s) linear infinite;
   pointer-events: none;
 }
 
@@ -398,7 +398,7 @@
 
 /* Signature motion 3 — marker ignition when security/critical lands (CSS hook) */
 :is(.ic-root, [data-tos]) .ic-canvas-wrap[data-iv-noticed='true'] .ic-ai-metric-value {
-  animation: iv-metric-ignite 0.7s ease-out;
+  animation: iv-metric-ignite var(--tos-motion-state, 320ms) var(--tos-ease-state, ease-out);
 }
 
 @keyframes iv-metric-ignite {

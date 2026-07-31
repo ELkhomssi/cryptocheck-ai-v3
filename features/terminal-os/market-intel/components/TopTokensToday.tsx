@@ -42,7 +42,7 @@ export function TopTokensToday() {
       title="Top Tokens Today"
       live
       action={
-        <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="tos-tab-row">
           {(isError || (isFetching && !rows?.length)) && (
             <StaleIndicator stale demo={isError} ageSec={0} source="dexscreener" />
           )}

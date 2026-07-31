@@ -9,6 +9,7 @@ import { useEffect, useRef } from 'react'
 import * as echarts from 'echarts'
 import type { EChartsType } from 'echarts'
 import { useIntelligenceChart } from '@/features/intelligence-chart/hooks/useIntelligenceChart'
+import { IV } from '@/features/intelligence-chart/visual-tokens'
 import { PanelSkeleton, EmptyState } from '@/features/terminal-os/shared/components/PanelStates'
 
 function toMs(sec: number): number {
@@ -52,9 +53,9 @@ export function ExecutionTradingChart({
         tooltip: {
           trigger: 'axis',
           axisPointer: { type: 'cross' },
-          backgroundColor: 'rgba(10,10,10,0.94)',
-          borderColor: '#1c1c1c',
-          textStyle: { color: '#f5f5f2', fontSize: 11 },
+          backgroundColor: IV.tooltipBg,
+          borderColor: IV.instrumentEdge,
+          textStyle: { color: IV.chromeText, fontSize: 11 },
         },
         grid: [
           { left: 48, right: 56, top: 24, height: '62%' },
@@ -71,7 +72,7 @@ export function ExecutionTradingChart({
           {
             type: 'time',
             gridIndex: 1,
-            axisLabel: { color: '#8a8678', fontSize: 10 },
+            axisLabel: { color: IV.axisText, fontSize: 10 },
             axisLine: { show: false },
             splitLine: { show: false },
           },
@@ -82,8 +83,8 @@ export function ExecutionTradingChart({
             gridIndex: 0,
             scale: true,
             position: 'right',
-            axisLabel: { color: '#8a8678', fontSize: 10 },
-            splitLine: { lineStyle: { color: 'rgba(40,38,32,0.9)' } },
+            axisLabel: { color: IV.axisText, fontSize: 10 },
+            splitLine: { lineStyle: { color: IV.gridLine } },
             axisLine: { show: false },
           },
           {
@@ -103,10 +104,10 @@ export function ExecutionTradingChart({
             yAxisIndex: 0,
             data: candles.map((c) => [toMs(c.time), c.open, c.close, c.low, c.high]),
             itemStyle: {
-              color: '#16c784',
-              color0: '#ea3943',
-              borderColor: '#16c784',
-              borderColor0: '#ea3943',
+              color: IV.priceUp,
+              color0: IV.priceDown,
+              borderColor: IV.priceUp,
+              borderColor0: IV.priceDown,
             },
           },
           {
@@ -116,7 +117,7 @@ export function ExecutionTradingChart({
             data: candles.map((c) => ({
               value: [toMs(c.time), c.volume ?? Math.abs(c.close - c.open) * 1000],
               itemStyle: {
-                color: c.close >= c.open ? 'rgba(22,199,132,0.35)' : 'rgba(234,57,67,0.35)',
+                color: c.close >= c.open ? IV.volumeUp : IV.volumeDown,
               },
             })),
             barWidth: '60%',

@@ -16,14 +16,8 @@ export function MarketOverviewPanel() {
       ) : isLoading || !overview ? (
         <PanelSkeleton rows={3} />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '0.75rem',
-            }}
-          >
+        <div className="tos-stack">
+          <div className="tos-stat-grid">
             <Stat label="Market Cap" value={formatUsd(overview.marketCapUsd, true)} />
             <Stat label="Volume 24h" value={formatUsd(overview.volume24hUsd, true)} />
             <Stat label="BTC Dominance" value={`${overview.btcDominancePct.toFixed(2)}%`} />
@@ -52,13 +46,10 @@ function Stat({
   tone?: 'pos' | 'neg'
 }) {
   return (
-    <div className="tos-metric-card" style={{ padding: '0.5rem 0.65rem' }}>
-      <div className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)', marginBottom: '0.2rem' }}>
-        {label}
-      </div>
+    <div className="tos-metric-card">
+      <div className="tos-metric-label">{label}</div>
       <div
-        className={`tos-num ${tone === 'pos' ? 'tos-pos' : tone === 'neg' ? 'tos-neg' : ''}`}
-        style={{ fontSize: 'var(--tos-fs-md)', fontWeight: 800 }}
+        className={`tos-num tos-stat-value ${tone === 'pos' ? 'tos-pos' : tone === 'neg' ? 'tos-neg' : ''}`}
       >
         {value}
       </div>

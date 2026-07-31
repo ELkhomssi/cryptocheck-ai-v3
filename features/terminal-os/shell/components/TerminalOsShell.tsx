@@ -60,7 +60,7 @@ function MainColumn() {
 
   if (nav === 'discovery') {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="tos-stack">
         <Bound title="Discovery">
           <DiscoveryPanel />
         </Bound>
@@ -110,7 +110,7 @@ function MainColumn() {
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: 12,
+          gap: 'var(--tos-space-3)',
         }}
       >
         <Bound title="Token Scan">
@@ -128,7 +128,7 @@ function MainColumn() {
 
   if (nav === 'whale-tracking') {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="tos-stack">
         <Panel title="Whale Tracking Desk">
           <p style={{ color: 'var(--tos-text-secondary)', fontSize: 'var(--tos-fs-md)', lineHeight: 1.55 }}>
             Live high-confidence whale flows stream in the marquee above. Hover any chip for wallet
@@ -149,7 +149,7 @@ function MainColumn() {
 
   if (nav === 'market-intel') {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="tos-stack">
         <Bound title="Top Tokens">
           <TopTokensToday />
         </Bound>
@@ -186,7 +186,7 @@ function MainColumn() {
 
 function AiTradingWorkspace() {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div className="tos-stack">
       <Bound title="Trade Like Me">
         <TradeLikeMeWidget />
       </Bound>
@@ -196,7 +196,7 @@ function AiTradingWorkspace() {
 
 function AiCoachWorkspace() {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 640 }}>
+    <div className="tos-stack" style={{ maxWidth: '40rem' }}>
       <AiCoachingCard />
     </div>
   )

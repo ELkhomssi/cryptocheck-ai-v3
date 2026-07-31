@@ -53,43 +53,19 @@ export function TopBar() {
 
   return (
     <header className="tos-topbar">
-      <div style={{ position: 'relative', flex: '0 1 17.5rem', minWidth: '10rem' }}>
-        <Search
-          size={14}
-          style={{
-            position: 'absolute',
-            left: '0.625rem',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            color: 'var(--tos-text-muted)',
-          }}
-        />
+      <div className="tos-search-wrap">
+        <Search size={14} className="tos-search-icon" aria-hidden />
         <input
           id="tos-global-search"
           className="tos-input"
-          style={{ paddingLeft: '2rem', paddingRight: '3rem' }}
+          style={{ paddingLeft: 'var(--tos-space-6)', paddingRight: 'var(--tos-space-8)' }}
           placeholder="Search token, wallet, pair…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onFocus={() => setSearchOpen(true)}
           aria-label="Global search"
         />
-        <kbd
-          style={{
-            position: 'absolute',
-            right: '0.5rem',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            fontSize: 'var(--tos-fs-xs)',
-            color: 'var(--tos-text-muted)',
-            border: '1px solid var(--tos-border-subtle)',
-            borderRadius: '0.25rem',
-            padding: '0.125rem 0.3rem',
-            fontFamily: 'var(--tos-mono)',
-          }}
-        >
-          ⌘K
-        </kbd>
+        <kbd className="tos-search-kbd">⌘K</kbd>
       </div>
 
       <div
@@ -137,7 +113,7 @@ export function TopBar() {
         )}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto', position: 'relative' }}>
+      <div className="tos-topbar-actions" style={{ position: 'relative' }}>
         {walletConnected && walletBalances ? (
           <span className="tos-muted tos-num" style={{ fontSize: 'var(--tos-fs-xs)' }}>
             {walletBalances.nativeAmount.toFixed(4)} {walletBalances.nativeSymbol}
@@ -152,44 +128,25 @@ export function TopBar() {
         ) : null}
         <button
           type="button"
-          className="tos-btn tos-btn-ghost"
+          className="tos-btn tos-btn-ghost tos-icon-btn"
           aria-label="Alerts"
-          style={{ position: 'relative', padding: '0.5rem' }}
           onClick={() => setActiveNav('alerts')}
         >
           <Bell size={16} />
           {notificationCount > 0 ? (
-            <span
-              style={{
-                position: 'absolute',
-                top: '0.125rem',
-                right: '0.125rem',
-                minWidth: '0.875rem',
-                height: '0.875rem',
-                borderRadius: '999px',
-                background: 'var(--tos-accent-gold)',
-                color: 'var(--tos-bg-app)',
-                fontSize: '0.5625rem',
-                fontWeight: 800,
-                display: 'grid',
-                placeItems: 'center',
-                padding: '0 0.2rem',
-              }}
-            >
-              {notificationCount}
-            </span>
+            <span className="tos-notif-dot">{notificationCount}</span>
           ) : null}
         </button>
-        <button type="button" className="tos-btn tos-btn-ghost" aria-label="Favorites" style={{ padding: '0.5rem' }}>
+        <button type="button" className="tos-btn tos-btn-ghost tos-icon-btn" aria-label="Favorites">
           <Star size={16} />
         </button>
-        <button type="button" className="tos-btn tos-btn-ghost" aria-label="Layout" style={{ padding: '0.5rem' }}>
+        <button type="button" className="tos-btn tos-btn-ghost tos-icon-btn" aria-label="Layout">
           <LayoutTemplate size={16} />
         </button>
         {walletConnected ? (
           <button
             type="button"
-            className="tos-btn tos-btn-gold"
+            className="tos-btn tos-btn-gold tos-wallet-btn"
             disabled={isConnecting}
             onClick={() => {
               startTransition(() => {
@@ -203,7 +160,7 @@ export function TopBar() {
           <>
             <button
               type="button"
-              className="tos-btn tos-btn-gold"
+              className="tos-btn tos-btn-gold tos-wallet-btn"
               disabled={isConnecting}
               onClick={() => setMenuOpen((v) => !v)}
             >
@@ -212,6 +169,7 @@ export function TopBar() {
             {menuOpen ? (
               <div
                 role="menu"
+                className="tos-wallet-menu"
                 style={{
                   position: 'absolute',
                   right: 0,
@@ -220,11 +178,11 @@ export function TopBar() {
                   zIndex: 50,
                   background: 'var(--tos-bg-panel-elevated)',
                   border: '1px solid var(--tos-border-subtle)',
-                  borderRadius: 8,
-                  padding: 8,
+                  borderRadius: 'var(--tos-radius-md, 8px)',
+                  padding: 'var(--tos-space-2, 8px)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 6,
+                  gap: 'var(--tos-space-2)',
                   minWidth: 180,
                 }}
               >

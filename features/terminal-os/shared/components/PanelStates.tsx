@@ -1,30 +1,43 @@
 'use client'
 
+import { Inbox } from 'lucide-react'
+
 export function PanelSkeleton({ rows = 3 }: { rows?: number }) {
   return (
     <div
       className="tos-skeleton-card"
-      style={{ display: 'flex', flexDirection: 'column', gap: 8, minHeight: rows * 36 }}
+      style={{ minHeight: `calc(${rows} * 2.25rem)` }}
       aria-hidden
     >
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="tos-skeleton" style={{ height: 28, width: i === rows - 1 ? '70%' : '100%' }} />
+        <div
+          key={i}
+          className="tos-skeleton"
+          style={{ height: '1.75rem', width: i === rows - 1 ? '70%' : '100%' }}
+        />
       ))}
     </div>
   )
 }
 
-export function EmptyState({ message }: { message: string }) {
+export function EmptyState({
+  message,
+  actionLabel,
+  onAction,
+}: {
+  message: string
+  actionLabel?: string
+  onAction?: () => void
+}) {
   return (
-    <div
-      style={{
-        padding: '18px 8px',
-        textAlign: 'center',
-        color: 'var(--tos-text-muted)',
-        fontSize: 13,
-      }}
-    >
-      {message}
+    <div className="tos-empty">
+      <Inbox className="tos-empty-icon" size={18} aria-hidden />
+      <p className="tos-empty-copy">{message}</p>
+      {actionLabel && onAction ? (
+        <button type="button" className="tos-btn tos-btn-ghost" onClick={onAction}>
+          {actionLabel}
+        </button>
+      ) : null}
     </div>
   )
 }
