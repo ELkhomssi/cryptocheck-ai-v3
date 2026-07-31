@@ -50,6 +50,10 @@ export const IV = {
   instrumentFace: '#070707',
   instrumentEdge: '#1c1c1c',
   instrumentGlow: 'rgba(212,175,55,0.22)',
+  tooltipBg: 'rgba(10,10,10,0.94)',
+  chromeText: '#f5f5f2',
+  volumeUp: 'rgba(22,199,132,0.35)',
+  volumeDown: 'rgba(234,57,67,0.35)',
 } as const
 
 export type IvToken = keyof typeof IV

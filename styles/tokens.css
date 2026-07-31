@@ -195,6 +195,40 @@
 [data-theme='signal-light'],
 [data-theme='brass'],
 [data-theme='brass-light'] {
+  /* Spacing / radius / elevation / motion — theme-invariant */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-8: 3rem;
+
+  --radius-xs: 0.1875rem;
+  --radius-sm: 0.25rem;
+  /* --radius-md kept from theme (6px) for portfolio-desk compat */
+  --radius-lg: 0.75rem;
+  --radius-full: 999px;
+
+  --shadow-1: var(--shadow);
+  --shadow-2: 0 8px 24px color-mix(in srgb, #000 35%, transparent);
+  --shadow-3: 0 24px 80px color-mix(in srgb, #000 55%, transparent);
+  --shadow-focus: 0 0 0 2px var(--accent-bright);
+
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-extrabold: 800;
+  --fw-black: 900;
+
+  --motion-micro: 150ms;
+  --motion-panel: 240ms;
+  --motion-state: 320ms;
+  --motion-loop-slow: 1.2s;
+  --motion-loop-scan: 2.8s;
+  --ease-micro: ease-out;
+  --ease-panel: ease-in-out;
+  --ease-state: cubic-bezier(0.22, 1, 0.36, 1);
+
   --pd-bg: var(--bg);
   --pd-bg-elevated: var(--bg-elevated);
   --pd-surface: var(--surface);

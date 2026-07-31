@@ -41,34 +41,15 @@ export function LeftRail() {
 
   return (
     <aside className="tos-left-rail" aria-label="Terminal navigation">
-      <div style={{ padding: '14px 14px 10px' }}>
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 800,
-            letterSpacing: '0.06em',
-            color: 'var(--tos-accent-gold)',
-            lineHeight: 1.35,
-          }}
-        >
+      <div className="tos-nav-brand">
+        <div className="tos-nav-brand-mark">
           CRYPTOCHECK AI
           <br />
           <span data-tos-label>TERMINAL</span> v6.0
         </div>
       </div>
 
-      <nav
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 2,
-          padding: '0 8px',
-          overflow: 'auto',
-          flex: '0 1 auto',
-          maxHeight: '34%',
-        }}
-        aria-label="Primary"
-      >
+      <nav className="tos-nav-primary" aria-label="Primary">
         {NAV.map((item) => {
           const Icon = item.icon
           const disabled = item.gated && !flags.copyTrading
@@ -80,21 +61,8 @@ export function LeftRail() {
               disabled={disabled}
               onClick={() => setActiveNav(item.id)}
               title={disabled ? 'Copy Trading gated (feature flag OFF)' : item.label}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '8px 10px',
-                borderRadius: 8,
-                border: 'none',
-                background: active ? 'var(--tos-accent-gold-dim)' : 'transparent',
-                color: active ? 'var(--tos-accent-gold)' : 'var(--tos-text-secondary)',
-                cursor: disabled ? 'not-allowed' : 'pointer',
-                opacity: disabled ? 0.4 : 1,
-                textAlign: 'left',
-                fontSize: 12,
-                fontWeight: active ? 700 : 500,
-              }}
+              className="tos-nav-item"
+              data-active={active ? 'true' : 'false'}
             >
               <Icon size={16} strokeWidth={2} />
               <span data-tos-label>{item.label}</span>
@@ -103,33 +71,13 @@ export function LeftRail() {
         })}
       </nav>
 
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          overflow: 'auto',
-          padding: 10,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 10,
-        }}
-      >
+      <div className="tos-nav-aside-stack">
         <AiTradeLikeMeCard />
         <AiStatusCard />
         <AiAlertsFeed />
       </div>
 
-      <div
-        style={{
-          padding: '10px 12px',
-          borderTop: '1px solid var(--tos-border-subtle)',
-          fontSize: 11,
-          color: 'var(--tos-text-muted)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-        }}
-      >
+      <div className="tos-nav-footer">
         <Activity size={14} color="var(--tos-accent-gold)" />
         <span data-tos-label>Pro · Institutional</span>
       </div>
