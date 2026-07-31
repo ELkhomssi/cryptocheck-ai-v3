@@ -94,7 +94,7 @@ export function DataSourcesStrip() {
         <p className="mt-1.5 text-[10px] leading-relaxed text-dash-tmid">
           Channel list is loaded ({count}). Live Alpha needs the{' '}
           <span className="font-dash-mono text-dash-thi">telegram-monitor</span> worker running
-          (Railway / droplet).
+          (VPS / Docker — see docker-compose.signals.yml).
         </p>
       ) : null}
     </section>

@@ -3,10 +3,9 @@
 import { useEffect, useState } from 'react'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
-import { mockAiTradeLikeMeProvider } from '@/features/terminal-os/shared/lib/mock-providers'
 import { useTerminalOsStore } from '@/stores/terminal-os'
 import { useTradeLikeMeEngine } from '@/features/terminal-os/ai-trade-like-me/hooks/useTradeLikeMeEngine'
-import type { AiLearningStatus } from '@/features/terminal-os/shared/types'
+import type { AiAlertItem } from '@/features/terminal-os/shared/types'
 
 /** Compact left-rail activator — opens full Trade Like Me workspace */
 export function AiTradeLikeMeCard() {
@@ -55,34 +54,25 @@ export function AiTradeLikeMeCard() {
 
 export function AiStatusCard() {
   const { state } = useTradeLikeMeEngine()
-  const [fallback, setFallback] = useState<AiLearningStatus | null>(null)
+  const walletConnected = useTerminalOsStore((s) => s.walletConnected)
 
-  useEffect(() => {
-    if (state.dna) return
-    let c = false
-    mockAiTradeLikeMeProvider.getLearningStatus().then((s) => {
-      if (!c) setFallback(s)
-    })
-    return () => {
-      c = true
-    }
-  }, [state.dna])
-
-  const progress = state.dna ? state.learningProgressPct : fallback?.progressPct
-  const phase = state.dna ? state.phase : fallback?.phase
+  const progress = state.learningProgressPct
+  const phase = state.phase
   const why = state.dna
-    ? `DNA confidence ${state.dna.confidenceScore}% · ${state.dna.tradingStyleSummary}`
-    : fallback?.why
+    ? `DNA confidence ${state.dna.confidence}% · ${state.dna.tradingStyleSummary}`
+    : walletConnected
+      ? 'Connect complete — activate Train AI to capture on-chain history.'
+      : 'Connect a Solana wallet to begin learning.'
 
   return (
     <Panel title="AI Status">
-      {progress == null ? (
-        <PanelSkeleton rows={2} />
+      {!walletConnected && !state.dna ? (
+        <EmptyState message="Connect a wallet to show live learning status." />
       ) : (
         <div>
           <div className="tos-tlm-status-row">
             <span style={{ fontWeight: 'var(--tos-fw-bold)', color: 'var(--tos-accent-gold)' }}>
-              {(phase ?? 'idle').toString().toUpperCase()}
+              {phase.replace(/_/g, ' ').toUpperCase()}
             </span>
             <span className="tos-num">{progress}%</span>
           </div>
@@ -107,18 +97,34 @@ export function AiStatusCard() {
 }
 
 export function AiAlertsFeed() {
-  const [items, setItems] = useState<Awaited<
-    ReturnType<typeof mockAiTradeLikeMeProvider.getAlerts>
-  > | null>(null)
   const [error, setError] = useState<string | null>(null)
   const { state } = useTradeLikeMeEngine()
+  const wallet = useTerminalOsStore((s) => s.walletAddress)
+  const [fired, setFired] = useState<AiAlertItem[] | null>(null)
 
   useEffect(() => {
+    if (!wallet) {
+      setFired([])
+      return
+    }
     let c = false
-    mockAiTradeLikeMeProvider
-      .getAlerts(5)
-      .then((a) => {
-        if (!c) setItems(a)
+    void fetch(`/api/terminal-os/alerts?wallet=${encodeURIComponent(wallet)}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Alerts unavailable')
+        const body = (await res.json()) as {
+          fired?: { id: string; summary: string; firedAt: string; triggerValue: unknown }[]
+        }
+        if (c) return
+        setFired(
+          (body.fired ?? []).slice(0, 5).map((f) => ({
+            id: f.id,
+            kind: 'risk' as const,
+            title: 'Alert fired',
+            body: f.summary,
+            occurredAt: f.firedAt,
+            confidence: 70,
+          })),
+        )
       })
       .catch((e: Error) => {
         if (!c) setError(e.message)
@@ -126,9 +132,9 @@ export function AiAlertsFeed() {
     return () => {
       c = true
     }
-  }, [])
+  }, [wallet])
 
-  const live =
+  const live: AiAlertItem[] =
     state.lastDecision != null
       ? [
           {
@@ -139,26 +145,25 @@ export function AiAlertsFeed() {
             occurredAt: state.lastDecision.madeAt,
             confidence: state.lastDecision.scores.confidence,
           },
-          ...(items ?? []),
+          ...(fired ?? []),
         ].slice(0, 5)
-      : items
+      : fired ?? []
 
   return (
     <Panel title="AI Alerts" live>
       {error ? (
         <EmptyState message={error} />
-      ) : !live ? (
-        <PanelSkeleton rows={3} />
+      ) : fired == null && !state.lastDecision ? (
+        <PanelSkeleton rows={2} />
       ) : live.length === 0 ? (
-        <EmptyState message="No alerts yet — monitoring markets." />
+        <EmptyState message="No live AI alerts yet — train DNA or create an alert rule." />
       ) : (
-        <ul className="tos-alert-list">
+        <ul className="tos-stack-sm" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
           {live.map((a) => (
-            <li key={a.id} className="tos-alert-item">
-              <div className="tos-alert-item-title">{a.title}</div>
-              <div className="tos-secondary">{a.body}</div>
-              <div className="tos-muted tos-num" style={{ marginTop: '0.125rem' }}>
-                conf {a.confidence}%
+            <li key={a.id} style={{ fontSize: 'var(--tos-fs-sm)' }}>
+              <strong>{a.title}</strong>
+              <div className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)' }}>
+                {a.body}
               </div>
             </li>
           ))}

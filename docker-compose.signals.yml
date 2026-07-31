@@ -1,4 +1,5 @@
-# Signal Aggregator workers — run on a VPS / Railway / Fly (not Vercel).
+# Signal Aggregator workers — run on a VPS / Fly / Docker host (not Vercel serverless).
+# CryptoCheckAI production runtime is Vercel + Supabase + Upstash Redis + Helius/Jupiter.
 # Copy services/*/.env.example values into .env.signals at repo root, then:
 #   docker compose -f docker-compose.signals.yml up -d --build
 

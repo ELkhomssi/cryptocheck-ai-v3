@@ -194,7 +194,7 @@ export function TopBar() {
                     void connectSolana()
                   }}
                 >
-                  Solana (Phantom / Solflare)
+                  Solana (Phantom / Solflare / Backpack)
                 </button>
                 <button
                   type="button"

@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
     }
     if (text.includes('requested path is invalid')) {
       historyProbe.error =
-        'SIGNAL_REALTIME_URL likely points to Upstash Redis REST — must be your Railway realtime-gateway HTTP URL.'
+        'SIGNAL_REALTIME_URL likely points to Upstash Redis REST — must be your realtime-gateway HTTP URL (or leave unset for Supabase-native history).'
     }
   } catch (e) {
     historyProbe.error = e instanceof Error ? e.message : 'History probe failed'

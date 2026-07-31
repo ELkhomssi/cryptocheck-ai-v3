@@ -10,7 +10,7 @@ import {
   rowToUnifiedSignal,
 } from '@/lib/signal-aggregator/feed-filters'
 
-/** Vercel-native history — reads `signal_normalized` via Supabase (no Railway gateway). */
+/** Vercel-native history — reads `signal_normalized` via Supabase. */
 export async function fetchSignalHistory(params: {
   tier: SignalSubscriptionTier
   filter: SignalFeedFilter

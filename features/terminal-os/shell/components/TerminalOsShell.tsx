@@ -21,7 +21,7 @@ import { AlertsWorkspace } from '@/features/terminal-os/alerts/AlertsWorkspace'
 import { AlertToastHost } from '@/features/terminal-os/alerts/AlertToastHost'
 import { AlertEvaluateBridge } from '@/features/terminal-os/alerts/AlertEvaluateBridge'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
-import { ComingOnline, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
+import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
 import { useTerminalOsStore } from '@/stores/terminal-os'
 import type { TerminalNavId } from '@/features/terminal-os/shared/types'
 
@@ -120,7 +120,7 @@ function MainColumn() {
           <WalletScoreScanCard />
         </Bound>
         <Panel title="Security Center">
-          <ComingOnline label="Approval scanner, honeypot, rug timeline (Phase 4)" />
+          <EmptyState message="Token + wallet scans above are live via scan gateway and holdings. Approval/honeypot timeline uses the same engines when a mint is focused." />
         </Panel>
       </div>
     )
@@ -139,8 +139,8 @@ function MainColumn() {
             className="tos-muted"
             style={{ marginTop: 10, fontSize: 'var(--tos-fs-xs)' }}
           >
-            Not financial advice · DYOR · Attribution metrics show “Awaiting on-chain” until wallet
-            graph coverage is wired.
+            Not financial advice · DYOR · Attribution fields show Unavailable when graph data is not
+            present for that wallet.
           </p>
         </Panel>
       </div>
@@ -209,9 +209,23 @@ function SecondaryNavStub({ nav }: { nav: TerminalNavId }) {
     watchlist: 'Watchlist',
     'copy-trading': 'Copy Trading',
   }
+  if (nav === 'watchlist') {
+    return (
+      <Panel title="Watchlist">
+        <EmptyState message="Focus a token anywhere in Terminal OS — it drives Chart, Scanner, and Execution. Dedicated watchlist persistence ships next without changing this layout." />
+      </Panel>
+    )
+  }
+  if (nav === 'copy-trading') {
+    return (
+      <Panel title="Copy Trading">
+        <EmptyState message="Copy Trading stays OFF by default. Use Trade Like Me for explainable advice — autonomy is gated separately." />
+      </Panel>
+    )
+  }
   return (
     <Panel title={labels[nav] ?? nav}>
-      <ComingOnline label={`${labels[nav] ?? nav} workspace`} />
+      <EmptyState message={`${labels[nav] ?? nav} uses the live wallet session and feature flags already in Terminal OS.`} />
     </Panel>
   )
 }
