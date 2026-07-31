@@ -174,7 +174,7 @@ export function SecureExecutionPanel({
 
   const executeSecurely = async () => {
     if (!quote || !wallet.publicKey || !wallet.signTransaction || !builder) return
-    if (decision?.verdict === 'BLOCKED' || (decision && !decision.allowed && decision.verdict === 'BLOCKED')) {
+    if (decision?.verdict === 'BLOCKED') {
       setError(decision.blockedReason ?? 'Blocked by Security Scanner')
       return
     }
