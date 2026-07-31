@@ -182,7 +182,7 @@ export function TopBar() {
                   padding: 'var(--tos-space-2, 8px)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 6,
+                  gap: 'var(--tos-space-2)',
                   minWidth: 180,
                 }}
               >
