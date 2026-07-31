@@ -98,13 +98,7 @@ export function PortfolioOverviewPanel() {
       ) : !data ? (
         <PanelSkeleton rows={3} />
       ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-            gap: 12,
-          }}
-        >
+        <div className="tos-metric-grid">
           <Metric label="Total assets" value={formatUsd(data.totalAssetsUsd, true)} />
           <Metric
             label="24h PNL"
@@ -116,11 +110,15 @@ export function PortfolioOverviewPanel() {
           />
           <Metric label="AI Health" value={`${data.aiHealthScore}`} why={data.healthWhy} />
           <Metric label="Stability" value={`${data.stabilityScore}`} why={data.stabilityWhy} />
+<<<<<<< HEAD
           <Metric
             label="Diversification"
             value={`${data.diversificationScore}`}
             why={tokenCount ? `${tokenCount} holdings` : undefined}
           />
+=======
+          <Metric label="Diversification" value={`${data.diversificationScore}`} />
+>>>>>>> b99a880 (polish: normalize Priority 2 TOS panels onto shared tokens)
         </div>
       )}
     </Panel>
@@ -138,17 +136,9 @@ function Metric({
 }) {
   return (
     <div>
-      <div className="tos-muted" style={{ fontSize: 10, marginBottom: 4 }}>
-        {label}
-      </div>
-      <div className="tos-num" style={{ fontSize: 18, fontWeight: 800 }}>
-        {value}
-      </div>
-      {why ? (
-        <div className="tos-muted" style={{ fontSize: 10, marginTop: 4, lineHeight: 1.35 }}>
-          Why: {why}
-        </div>
-      ) : null}
+      <div className="tos-metric-label">{label}</div>
+      <div className="tos-metric-value">{value}</div>
+      {why ? <div className="tos-metric-why">Why: {why}</div> : null}
     </div>
   )
 }

@@ -35,12 +35,8 @@ export function ScoreRing({
 
   return (
     <div
-      style={{
-        position: 'relative',
-        width: size,
-        height: size,
-        margin: '0 auto',
-      }}
+      className="tos-score-ring"
+      style={{ width: size, height: size }}
       role="img"
       aria-label={`Score ${score} out of 100, ${band}`}
     >
@@ -54,6 +50,7 @@ export function ScoreRing({
           strokeWidth={stroke}
         />
         <circle
+          className="tos-score-ring-arc"
           cx={size / 2}
           cy={size / 2}
           r={r}
@@ -63,44 +60,19 @@ export function ScoreRing({
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={offset}
-          style={{ transition: 'stroke-dashoffset 400ms ease' }}
         />
       </svg>
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textAlign: 'center',
-          padding: 8,
-        }}
-      >
-        <div className="tos-num" style={{ fontSize: size * 0.22, fontWeight: 800, lineHeight: 1 }}>
+      <div className="tos-score-ring-center">
+        <div className="tos-num" style={{ fontSize: size * 0.22, fontWeight: 'var(--tos-fw-extrabold)', lineHeight: 1 }}>
           {Math.round(score)}
           <span style={{ fontSize: size * 0.1, color: 'var(--tos-text-muted)' }}>/100</span>
         </div>
         {label ? (
-          <div
-            style={{
-              marginTop: 4,
-              fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: '0.06em',
-              color,
-              textTransform: 'uppercase',
-            }}
-          >
+          <div className="tos-score-ring-label" style={{ color }}>
             {label}
           </div>
         ) : null}
-        {sublabel ? (
-          <div style={{ fontSize: 10, color: 'var(--tos-text-secondary)', marginTop: 2 }}>
-            {sublabel}
-          </div>
-        ) : null}
+        {sublabel ? <div className="tos-score-ring-sub">{sublabel}</div> : null}
       </div>
     </div>
   )

@@ -113,8 +113,7 @@ export function TopBar() {
         )}
       </div>
 
-<<<<<<< HEAD
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto', position: 'relative' }}>
+      <div className="tos-topbar-actions" style={{ position: 'relative' }}>
         {walletConnected && walletBalances ? (
           <span className="tos-muted tos-num" style={{ fontSize: 'var(--tos-fs-xs)' }}>
             {walletBalances.nativeAmount.toFixed(4)} {walletBalances.nativeSymbol}
@@ -129,17 +128,9 @@ export function TopBar() {
         ) : null}
         <button
           type="button"
-          className="tos-btn tos-btn-ghost"
-          aria-label="Alerts"
-          style={{ position: 'relative', padding: '0.5rem' }}
-          onClick={() => setActiveNav('alerts')}
-=======
-      <div className="tos-topbar-actions">
-        <button
-          type="button"
           className="tos-btn tos-btn-ghost tos-icon-btn"
-          aria-label="Notifications"
->>>>>>> 948eb2c (polish: canonicalize spacing, motion, and Priority 1 chrome)
+          aria-label="Alerts"
+          onClick={() => setActiveNav('alerts')}
         >
           <Bell size={16} />
           {notificationCount > 0 ? (
@@ -152,11 +143,10 @@ export function TopBar() {
         <button type="button" className="tos-btn tos-btn-ghost tos-icon-btn" aria-label="Layout">
           <LayoutTemplate size={16} />
         </button>
-<<<<<<< HEAD
         {walletConnected ? (
           <button
             type="button"
-            className="tos-btn tos-btn-gold"
+            className="tos-btn tos-btn-gold tos-wallet-btn"
             disabled={isConnecting}
             onClick={() => {
               startTransition(() => {
@@ -170,7 +160,7 @@ export function TopBar() {
           <>
             <button
               type="button"
-              className="tos-btn tos-btn-gold"
+              className="tos-btn tos-btn-gold tos-wallet-btn"
               disabled={isConnecting}
               onClick={() => setMenuOpen((v) => !v)}
             >
@@ -179,6 +169,7 @@ export function TopBar() {
             {menuOpen ? (
               <div
                 role="menu"
+                className="tos-wallet-menu"
                 style={{
                   position: 'absolute',
                   right: 0,
@@ -187,8 +178,8 @@ export function TopBar() {
                   zIndex: 50,
                   background: 'var(--tos-bg-panel-elevated)',
                   border: '1px solid var(--tos-border-subtle)',
-                  borderRadius: 8,
-                  padding: 8,
+                  borderRadius: 'var(--tos-radius-md, 8px)',
+                  padding: 'var(--tos-space-2, 8px)',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 6,
@@ -224,20 +215,6 @@ export function TopBar() {
             ) : null}
           </>
         )}
-=======
-        <button
-          type="button"
-          className="tos-btn tos-btn-gold tos-wallet-btn"
-          onClick={() => {
-            startTransition(() => {
-              // Optimistic connect — reconcile label immediately for demo feel
-              setWalletConnected(!walletConnected, walletConnected ? null : '7a8x…9f2b')
-            })
-          }}
-        >
-          {walletConnected ? walletLabel ?? 'Connected' : 'Connect Wallet'}
-        </button>
->>>>>>> 948eb2c (polish: canonicalize spacing, motion, and Priority 1 chrome)
       </div>
     </header>
   )

@@ -30,13 +30,29 @@ const COLOR_SCOPES = [
   'features/execution-desk',
   'features/terminal-os/shell',
   'features/terminal-os/shared',
+  'features/terminal-os/portfolio-os',
+  'features/terminal-os/security-center',
+  'features/terminal-os/market-intel',
+  'features/terminal-os/whale-tracking',
+  'features/terminal-os/ai-trade-like-me',
+  'features/terminal-os/discovery-engine',
+  'features/terminal-os/ai-workforce',
+  'features/terminal-os/ai-coach',
 ]
 
-/** Priority 1 presentation — no raw px shadows / prefer token spacing */
+/** Priority 1–2 presentation — no raw px shadows / prefer token spacing */
 const POLISH_SCOPES = [
   'features/execution-desk',
   'features/terminal-os/shell',
   'features/terminal-os/shared',
+  'features/terminal-os/portfolio-os',
+  'features/terminal-os/security-center',
+  'features/terminal-os/market-intel',
+  'features/terminal-os/whale-tracking',
+  'features/terminal-os/ai-trade-like-me',
+  'features/terminal-os/discovery-engine',
+  'features/terminal-os/ai-workforce',
+  'features/terminal-os/ai-coach',
   'app/terminalOS',
 ]
 
@@ -133,5 +149,5 @@ if (findings.length) {
   process.exit(1)
 }
 
-console.log('lint:tokens OK — Priority 1 scopes clean (colors + spacing/shadow drift).')
+console.log('lint:tokens OK — Priority 1–2 scopes clean (colors + spacing/shadow drift).')
 process.exit(0)

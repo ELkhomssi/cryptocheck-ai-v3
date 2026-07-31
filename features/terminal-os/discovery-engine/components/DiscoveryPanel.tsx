@@ -34,18 +34,10 @@ export function DiscoveryPanel() {
       ) : rows.length === 0 ? (
         <EmptyState message="No opportunities scored yet." />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="tos-stack-sm">
           {rows.map((o) => (
-            <article
-              key={o.id}
-              style={{
-                border: '1px solid var(--tos-border-subtle)',
-                borderRadius: 10,
-                padding: 10,
-                background: 'var(--tos-bg-panel)',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+            <article key={o.id} className="tos-card-tile">
+              <div className="tos-row-between">
                 <strong>
                   ${o.symbol} <span className="tos-secondary">{o.name}</span>
                 </strong>
@@ -53,10 +45,10 @@ export function DiscoveryPanel() {
                   Opp {o.opportunityScore}
                 </span>
               </div>
-              <div className="tos-muted" style={{ fontSize: 11, marginTop: 4 }}>
+              <div className="tos-card-tile-meta">
                 {o.narrative} · Risk {o.risk} · {o.timeHorizon}
               </div>
-              <p style={{ fontSize: 11, marginTop: 6, color: 'var(--tos-text-secondary)', lineHeight: 1.4 }}>
+              <p className="tos-card-tile-meta" style={{ color: 'var(--tos-text-secondary)' }}>
                 Catalyst: {o.catalyst}. Why: {o.why} (conf {o.confidence}%)
               </p>
             </article>

@@ -16,21 +16,12 @@ export function AiTradeLikeMeCard() {
 
   return (
     <div className="tos-panel tos-ai-activate tos-tlm-rail-card">
-      <div className="tos-panel-body" style={{ padding: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 800,
-              letterSpacing: '0.04em',
-              color: 'var(--tos-accent-gold)',
-            }}
-          >
-            Trade Like Me
-          </span>
+      <div className="tos-panel-body">
+        <div className="tos-tlm-rail-head">
+          <span className="tos-tlm-rail-title">Trade Like Me</span>
           <span className="tos-tlm-beta">AI</span>
         </div>
-        <p style={{ fontSize: 11, color: 'var(--tos-text-secondary)', lineHeight: 1.45, marginBottom: 10 }}>
+        <p className="tos-tlm-rail-copy">
           Adaptive AI that learns <em>why</em> you trade — not copy-trading.
         </p>
         <div className="tos-tlm-rail-meta">
@@ -40,7 +31,7 @@ export function AiTradeLikeMeCard() {
         <button
           type="button"
           className="tos-btn tos-btn-gold"
-          style={{ width: '100%', marginBottom: 6 }}
+          style={{ width: '100%', marginBottom: 'var(--tos-space-1)' }}
           disabled={busy}
           onClick={() => void trainAiFromMyTrading()}
         >
@@ -55,9 +46,7 @@ export function AiTradeLikeMeCard() {
           Open Desk
         </button>
         {!autonomous ? (
-          <p className="tos-muted" style={{ fontSize: 10, marginTop: 8, lineHeight: 1.35 }}>
-            Autonomy OFF — explainable advice only.
-          </p>
+          <p className="tos-muted tos-tlm-rail-note">Autonomy OFF — explainable advice only.</p>
         ) : null}
       </div>
     </div>
@@ -91,42 +80,22 @@ export function AiStatusCard() {
         <PanelSkeleton rows={2} />
       ) : (
         <div>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              marginBottom: 6,
-              fontSize: 11,
-            }}
-          >
-            <span style={{ fontWeight: 700, color: 'var(--tos-accent-gold)' }}>
+          <div className="tos-tlm-status-row">
+            <span style={{ fontWeight: 'var(--tos-fw-bold)', color: 'var(--tos-accent-gold)' }}>
               {(phase ?? 'idle').toString().toUpperCase()}
             </span>
             <span className="tos-num">{progress}%</span>
           </div>
-          <div
-            style={{
-              height: 6,
-              borderRadius: 3,
-              background: 'var(--tos-border-subtle)',
-              overflow: 'hidden',
-              marginBottom: 8,
-            }}
-          >
+          <div className="tos-progress tos-progress--md">
             <div
-              style={{
-                width: `${progress}%`,
-                height: '100%',
-                background: 'var(--tos-accent-gold)',
-                transition: 'width 400ms ease',
-                boxShadow: '0 0 12px color-mix(in srgb, var(--tos-accent-gold) 50%, transparent)',
-              }}
+              className="tos-progress-fill tos-progress-fill--gold"
+              style={{ width: `${progress}%` }}
             />
           </div>
-          <p style={{ fontSize: 11, color: 'var(--tos-text-secondary)', marginBottom: 4 }}>
+          <p className="tos-tlm-rail-copy" style={{ marginBottom: 'var(--tos-space-1)' }}>
             {state.statusLine}
           </p>
-          <p className="tos-muted" style={{ fontSize: 10, lineHeight: 1.4 }}>
+          <p className="tos-muted tos-tlm-rail-note">
             {state.dna
               ? `DNA confidence ${state.dna.confidence}% · sample ${state.dna.sampleSize} (${state.dna.tradeCount} trades / ${state.dna.rejectionCount} rejections)`
               : why}
@@ -183,29 +152,12 @@ export function AiAlertsFeed() {
       ) : live.length === 0 ? (
         <EmptyState message="No alerts yet — monitoring markets." />
       ) : (
-        <ul
-          style={{
-            listStyle: 'none',
-            margin: 0,
-            padding: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-          }}
-        >
+        <ul className="tos-alert-list">
           {live.map((a) => (
-            <li
-              key={a.id}
-              style={{
-                fontSize: 11,
-                lineHeight: 1.4,
-                borderLeft: '2px solid var(--tos-accent-gold)',
-                paddingLeft: 8,
-              }}
-            >
-              <div style={{ fontWeight: 700, color: 'var(--tos-text-primary)' }}>{a.title}</div>
+            <li key={a.id} className="tos-alert-item">
+              <div className="tos-alert-item-title">{a.title}</div>
               <div className="tos-secondary">{a.body}</div>
-              <div className="tos-muted tos-num" style={{ marginTop: 2 }}>
+              <div className="tos-muted tos-num" style={{ marginTop: '0.125rem' }}>
                 conf {a.confidence}%
               </div>
             </li>

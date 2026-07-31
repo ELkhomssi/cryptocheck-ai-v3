@@ -1,0 +1,165 @@
+{
+  "hex": [],
+  "space": [
+    {
+      "v": "gap:12",
+      "files": [
+        "features/terminal-os/portfolio-os/components/PortfolioOverviewPanel.tsx"
+      ]
+    },
+    {
+      "v": "fontSize:10",
+      "files": [
+        "features/terminal-os/portfolio-os/components/PortfolioOverviewPanel.tsx",
+        "features/terminal-os/ai-trade-like-me/components/AiTradeLikeMeCard.tsx",
+        "features/terminal-os/ai-workforce/components/AiWorkforcePanel.tsx"
+      ]
+    },
+    {
+      "v": "fontSize:18",
+      "files": [
+        "features/terminal-os/portfolio-os/components/PortfolioOverviewPanel.tsx"
+      ]
+    },
+    {
+      "v": "gap:0.375rem",
+      "files": [
+        "features/terminal-os/security-center/components/TokenScoreScanCard.tsx",
+        "features/terminal-os/security-center/components/WalletScoreScanCard.tsx"
+      ]
+    },
+    {
+      "v": "margin:0.65rem 0 0.5rem",
+      "files": [
+        "features/terminal-os/security-center/components/TokenScoreScanCard.tsx"
+      ]
+    },
+    {
+      "v": "gap:0.5rem",
+      "files": [
+        "features/terminal-os/security-center/components/TokenScoreScanCard.tsx",
+        "features/terminal-os/ai-coach/components/AiCoachingCard.tsx"
+      ]
+    },
+    {
+      "v": "borderRadius:999px",
+      "files": [
+        "features/terminal-os/security-center/components/TokenScoreScanCard.tsx",
+        "features/terminal-os/ai-coach/components/AiCoachingCard.tsx"
+      ]
+    },
+    {
+      "v": "gap:0.75rem",
+      "files": [
+        "features/terminal-os/market-intel/components/MarketOverviewPanel.tsx"
+      ]
+    },
+    {
+      "v": "padding:0.5rem 0.65rem",
+      "files": [
+        "features/terminal-os/market-intel/components/MarketOverviewPanel.tsx"
+      ]
+    },
+    {
+      "v": "gap:0.25rem",
+      "files": [
+        "features/terminal-os/market-intel/components/TopTokensToday.tsx"
+      ]
+    },
+    {
+      "v": "padding:12",
+      "files": [
+        "features/terminal-os/ai-trade-like-me/components/AiTradeLikeMeCard.tsx"
+      ]
+    },
+    {
+      "v": "fontSize:11",
+      "files": [
+        "features/terminal-os/ai-trade-like-me/components/AiTradeLikeMeCard.tsx",
+        "features/terminal-os/discovery-engine/components/DiscoveryPanel.tsx"
+      ]
+    },
+    {
+      "v": "borderRadius:3",
+      "files": [
+        "features/terminal-os/ai-trade-like-me/components/AiTradeLikeMeCard.tsx"
+      ]
+    },
+    {
+      "v": "margin:0",
+      "files": [
+        "features/terminal-os/ai-trade-like-me/components/AiTradeLikeMeCard.tsx",
+        "features/terminal-os/ai-trade-like-me/components/TradeLikeMeWidget.tsx"
+      ]
+    },
+    {
+      "v": "padding:0",
+      "files": [
+        "features/terminal-os/ai-trade-like-me/components/AiTradeLikeMeCard.tsx"
+      ]
+    },
+    {
+      "v": "gap:8",
+      "files": [
+        "features/terminal-os/ai-trade-like-me/components/AiTradeLikeMeCard.tsx",
+        "features/terminal-os/discovery-engine/components/DiscoveryPanel.tsx",
+        "features/terminal-os/ai-workforce/components/AiWorkforcePanel.tsx"
+      ]
+    },
+    {
+      "v": "gap:10",
+      "files": [
+        "features/terminal-os/discovery-engine/components/DiscoveryPanel.tsx"
+      ]
+    },
+    {
+      "v": "borderRadius:10",
+      "files": [
+        "features/terminal-os/discovery-engine/components/DiscoveryPanel.tsx"
+      ]
+    },
+    {
+      "v": "padding:10",
+      "files": [
+        "features/terminal-os/discovery-engine/components/DiscoveryPanel.tsx",
+        "features/terminal-os/ai-workforce/components/AiWorkforcePanel.tsx"
+      ]
+    },
+    {
+      "v": "borderRadius:8",
+      "files": [
+        "features/terminal-os/ai-workforce/components/AiWorkforcePanel.tsx"
+      ]
+    },
+    {
+      "v": "fontSize:12",
+      "files": [
+        "features/terminal-os/ai-workforce/components/AiWorkforcePanel.tsx"
+      ]
+    },
+    {
+      "v": "fontSize:0.5625rem",
+      "files": [
+        "features/terminal-os/ai-coach/components/AiCoachingCard.tsx"
+      ]
+    },
+    {
+      "v": "borderRadius:4",
+      "files": [
+        "features/terminal-os/ai-coach/components/AiCoachingCard.tsx"
+      ]
+    },
+    {
+      "v": "padding:1px 5px",
+      "files": [
+        "features/terminal-os/ai-coach/components/AiCoachingCard.tsx"
+      ]
+    },
+    {
+      "v": "margin:0 0 0.5rem",
+      "files": [
+        "features/terminal-os/ai-coach/components/AiCoachingCard.tsx"
+      ]
+    }
+  ]
+}

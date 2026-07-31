@@ -110,3 +110,12 @@ Priority 1 violation hotspot: `features/execution-desk/styles.css` + chart canva
 - [x] Wallet connect control (TopBar)
 - [x] Search (TopBar)
 - [x] Primary navigation (LeftRail)
+
+## Priority 2 checklist
+
+- [x] Portfolio Overview metrics
+- [x] Scanner (Token / Wallet score cards + ScoreRing)
+- [x] Market Intel (overview + top tokens tabs)
+- [x] Whale Tracking (already on TOS CSS chrome)
+- [x] Trade Like Me rail / status / alerts
+- [x] Discovery + Workforce + Coach chrome (high-visit adjacent)

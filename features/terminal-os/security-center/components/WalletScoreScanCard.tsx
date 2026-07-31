@@ -34,7 +34,7 @@ export function WalletScoreScanCard() {
           e.preventDefault()
           run(query)
         }}
-        style={{ display: 'flex', gap: '0.375rem', marginBottom: '0.75rem' }}
+        className="tos-scan-form"
       >
         <input
           className="tos-input tos-mono"

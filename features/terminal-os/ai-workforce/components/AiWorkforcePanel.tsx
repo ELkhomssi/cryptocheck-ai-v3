@@ -23,35 +23,19 @@ export function AiWorkforcePanel() {
 
   return (
     <Panel title="AI Workforce">
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-          gap: 8,
-        }}
-      >
+      <div className="tos-workforce-grid">
         {EMPLOYEES.map((name) => (
-          <div
-            key={name}
-            style={{
-              border: '1px solid var(--tos-border-subtle)',
-              borderRadius: 8,
-              padding: 10,
-              background: 'var(--tos-bg-panel)',
-            }}
-          >
-            <div style={{ fontWeight: 700, fontSize: 12 }}>{name}</div>
-            <div className="tos-muted" style={{ fontSize: 10, marginTop: 4 }}>
-              Status: standby · Conf — · Health —
-            </div>
+          <div key={name} className="tos-card-tile">
+            <div className="tos-card-tile-title">{name}</div>
+            <div className="tos-card-tile-meta">Status: standby · Conf — · Health —</div>
           </div>
         ))}
       </div>
-      <div style={{ marginTop: 12 }}>
+      <div style={{ marginTop: 'var(--tos-space-3)' }}>
         <ComingOnline label="Full telemetry dashboard (Phase 7)" />
       </div>
       {!autonomy ? (
-        <p className="tos-muted" style={{ fontSize: 10, marginTop: 8 }}>
+        <p className="tos-muted tos-tlm-rail-note">
           Execution Agent cannot act while autonomousTrading flag is OFF.
         </p>
       ) : null}

@@ -86,7 +86,7 @@ export function TokenScoreScanCard() {
           e.preventDefault()
           void run(query)
         }}
-        style={{ display: 'flex', gap: '0.375rem', marginBottom: '0.75rem' }}
+        className="tos-scan-form"
       >
         <input
           className="tos-input"
@@ -133,36 +133,15 @@ export function TokenScoreScanCard() {
           <p className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)', marginBottom: '0.65rem' }}>
             Conf {result.confidence}% · {result.recommendedAction}
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div className="tos-stack-sm">
             {result.metrics.map((m) => (
               <div key={m.label}>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    fontSize: 'var(--tos-fs-sm)',
-                    marginBottom: '0.15rem',
-                  }}
-                >
+                <div className="tos-row-between" style={{ fontSize: 'var(--tos-fs-sm)', marginBottom: '0.125rem' }}>
                   <span>{m.label}</span>
                   <span className="tos-num">{m.value}</span>
                 </div>
-                <div
-                  style={{
-                    height: '0.25rem',
-                    borderRadius: '999px',
-                    background: 'var(--tos-border-subtle)',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: `${m.value}%`,
-                      height: '100%',
-                      background: 'var(--tos-positive)',
-                      transition: 'width 280ms ease',
-                    }}
-                  />
+                <div className="tos-progress">
+                  <div className="tos-progress-fill" style={{ width: `${m.value}%` }} />
                 </div>
               </div>
             ))}

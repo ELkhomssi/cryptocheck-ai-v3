@@ -210,6 +210,7 @@ export function AiCoachingCard() {
   return (
     <Panel
       title="AI Coaching"
+<<<<<<< HEAD
       action={
         <span
           style={{
@@ -224,6 +225,9 @@ export function AiCoachingCard() {
           LIVE
         </span>
       }
+=======
+      action={<span className="tos-beta-chip">BETA</span>}
+>>>>>>> b99a880 (polish: normalize Priority 2 TOS panels onto shared tokens)
     >
       {insights == null ? (
         <PanelSkeleton rows={2} />
@@ -231,29 +235,8 @@ export function AiCoachingCard() {
         <EmptyState message={message ?? INSUFFICIENT} />
       ) : (
         <div>
-          <div
-            style={{
-              display: 'flex',
-              gap: '0.5rem',
-              alignItems: 'center',
-              marginBottom: '0.45rem',
-            }}
-          >
-            <div
-              style={{
-                width: '1.75rem',
-                height: '1.75rem',
-                borderRadius: '999px',
-                background: 'var(--tos-accent-gold-dim)',
-                color: 'var(--tos-accent-gold)',
-                display: 'grid',
-                placeItems: 'center',
-                fontWeight: 800,
-                fontSize: 'var(--tos-fs-xs)',
-              }}
-            >
-              C
-            </div>
+          <div className="tos-row" style={{ marginBottom: 'var(--tos-space-2)' }}>
+            <div className="tos-coach-avatar">C</div>
             <strong style={{ fontSize: 'var(--tos-fs-sm)' }}>Coach</strong>
           </div>
           <p style={{ fontSize: 'var(--tos-fs-sm)', fontWeight: 700, marginBottom: '0.35rem' }}>
