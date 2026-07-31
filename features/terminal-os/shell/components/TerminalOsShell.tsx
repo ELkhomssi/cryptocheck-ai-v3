@@ -8,6 +8,7 @@ import { PanelErrorBoundary } from '@/features/terminal-os/shared/components/Pan
 import { TopTradersTicker } from '@/features/terminal-os/market-intel/components/TopTradersTicker'
 import { TopTokensToday } from '@/features/terminal-os/market-intel/components/TopTokensToday'
 import { WhaleMarqueeTicker } from '@/features/terminal-os/whale-tracking/components/WhaleMarqueeTicker'
+import { MoneyLifecycleRibbon } from '@/features/terminal-os/money-lifecycle'
 import { IntelligenceChart } from '@/features/intelligence-chart'
 import { ExecutionDeskShell } from '@/features/execution-desk'
 import { QuickSwapCard } from '@/features/terminal-os/trading-workspace/components/QuickSwapCard'
@@ -259,6 +260,9 @@ export function TerminalOsShell() {
         <Bound title="Top Whale Movements">
           <WhaleMarqueeTicker fixed title="Top Whale Movements" />
         </Bound>
+      </div>
+      <div className="tos-lifecycle-slot">
+        <MoneyLifecycleRibbon />
       </div>
       <LeftRail />
       <main className="tos-main">

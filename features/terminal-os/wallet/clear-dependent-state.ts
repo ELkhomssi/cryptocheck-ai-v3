@@ -4,10 +4,16 @@
  */
 
 import { getTradeLikeMeOrchestrator } from '@/features/terminal-os/ai-trade-like-me/engines/orchestrator'
+import { useExecutionLifecycleBridge } from '@/features/terminal-os/money-lifecycle/execution-lifecycle-bridge'
 
 export function clearWalletDependentClientState() {
   try {
     getTradeLikeMeOrchestrator().resetSession()
+  } catch {
+    /* ignore */
+  }
+  try {
+    useExecutionLifecycleBridge.getState().reset()
   } catch {
     /* ignore */
   }
