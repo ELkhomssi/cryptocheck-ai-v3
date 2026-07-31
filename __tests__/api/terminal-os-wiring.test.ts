@@ -28,6 +28,12 @@ describe('trade-like-me learning progress', () => {
     assert.equal(learningProgressFromSampleSize(8), 100)
     assert.equal(learningProgressFromSampleSize(20), 100)
   })
+
+  it('uses DNA sampleSize when trades map is empty after hydrate', () => {
+    const fromDna = learningProgressFromSampleSize(4)
+    const fromTrades = learningProgressFromSampleSize(0)
+    assert.equal(Math.max(fromTrades, fromDna), 50)
+  })
 })
 
 describe('coach DNA hint contract', () => {

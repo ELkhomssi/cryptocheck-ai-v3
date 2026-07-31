@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getTradeLikeMeOrchestrator } from '@/features/terminal-os/ai-trade-like-me/engines/orchestrator'
 import { explainDecision } from '@/features/terminal-os/ai-trade-like-me/engines/explainable-engine'
+import { getPersistedDna } from '@/lib/terminal-os/dna-store'
 import type { CoachInsight } from '@/features/terminal-os/shared/types'
+import type { TraderDna } from '@/features/terminal-os/ai-trade-like-me/types'
+import { learningProgressFromSampleSize } from '@/features/terminal-os/ai-trade-like-me/engines/behavioral-learning-engine'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -21,10 +24,47 @@ function narrativeBlurb(d: ReturnType<typeof explainDecision>): string {
   return [d.confidenceLine, d.upsideLine, d.downsideLine, ...d.bullets.slice(0, 2)].join(' · ')
 }
 
+function insightsFromDna(dna: TraderDna, oppSummary?: ReturnType<typeof explainDecision> | null): CoachInsight[] {
+  const insights: CoachInsight[] = [
+    {
+      id: `dna-${dna.wallet.slice(0, 8)}`,
+      headline: `Your edge: ${dna.tradingStyleSummary}`,
+      reasoning: `Built from ${dna.sampleSize} captured trades/rejections for this wallet.`,
+      statistic: `Risk appetite ${dna.riskAppetite}/100 · ${dna.riskAppetiteLabel}`,
+      expectedImpact: 'Align size and entry filters to your DNA before the next fill.',
+      confidence: dna.confidence,
+    },
+  ]
+  if (oppSummary) {
+    insights.push({
+      id: `opp-${dna.wallet.slice(0, 6)}`,
+      headline: oppSummary.headline,
+      reasoning: narrativeBlurb(oppSummary).slice(0, 280),
+      statistic: oppSummary.confidenceLine,
+      expectedImpact: `${oppSummary.upsideLine} · ${oppSummary.downsideLine}`,
+      confidence: dna.confidence,
+    })
+  }
+  insights.push({
+    id: `discipline-${dna.sampleSize}`,
+    headline:
+      dna.emotionalBiasScore > 55
+        ? 'Emotional bias elevated — size down until discipline recovers'
+        : 'Discipline holding — stick to your DNA entry filters',
+    reasoning:
+      dna.emotionalBiasScore > 55
+        ? 'Late-session and loss-tolerance patterns are elevating emotional bias in your DNA.'
+        : 'Your sample shows discipline within your historical entry profile.',
+    statistic: `Win rate ${dna.winRatePct.toFixed(1)}% · sample ${dna.sampleSize}`,
+    expectedImpact: 'Protect edge by sizing only when DNA confidence and market quality align.',
+    confidence: dna.confidence,
+  })
+  return insights
+}
+
 /**
  * GET /api/terminal-os/coach?wallet=
- * Prefer client-side AiCoachingCard (shares TLM orchestrator DNA).
- * This route reflects the in-process server orchestrator when hydrated.
+ * Uses in-process orchestrator DNA, then falls back to Redis-persisted DNA.
  */
 export async function GET(req: NextRequest) {
   const wallet = req.nextUrl.searchParams.get('wallet')?.trim() ?? ''
@@ -39,45 +79,34 @@ export async function GET(req: NextRequest) {
     realSwapExecution: false,
   })
 
-  if (!state.wallet || state.wallet !== wallet || !state.dna || state.dna.sampleSize < 3) {
+  let dna: TraderDna | null =
+    state.wallet === wallet && state.dna && state.dna.sampleSize >= 3 ? state.dna : null
+
+  if (!dna) {
+    const persisted = await getPersistedDna(wallet)
+    if (persisted && persisted.sampleSize >= 3) {
+      dna = persisted
+      orch.dnaEngine.hydrate(persisted)
+    }
+  }
+
+  if (!dna || dna.sampleSize < 3) {
     return NextResponse.json({
       insights: [] as CoachInsight[],
       insufficientData: true,
       message: INSUFFICIENT,
-      sampleSize: state.dna?.sampleSize ?? 0,
-      learningProgressPct: state.learningProgressPct,
+      sampleSize: dna?.sampleSize ?? 0,
+      learningProgressPct: learningProgressFromSampleSize(dna?.sampleSize ?? 0),
     })
   }
 
-  const dna = state.dna
-  const insights: CoachInsight[] = [
-    {
-      id: `dna-${dna.wallet.slice(0, 8)}`,
-      headline: `Your edge: ${dna.tradingStyleSummary}`,
-      reasoning: `Built from ${dna.sampleSize} captured trades/rejections for this wallet.`,
-      statistic: `Risk appetite ${dna.riskAppetite}/100 · ${dna.riskAppetiteLabel}`,
-      expectedImpact: 'Align size and entry filters to your DNA before the next fill.',
-      confidence: dna.confidence,
-    },
-  ]
-
-  if (state.currentOpportunity) {
-    const narrative = explainDecision(state.currentOpportunity)
-    insights.push({
-      id: state.currentOpportunity.id,
-      headline: narrative.headline,
-      reasoning: narrativeBlurb(narrative).slice(0, 280),
-      statistic: narrative.confidenceLine,
-      expectedImpact: `${narrative.upsideLine} · ${narrative.downsideLine}`,
-      confidence: Math.round(state.currentOpportunity.scores.confidence),
-    })
-  }
+  const oppNarrative = state.currentOpportunity ? explainDecision(state.currentOpportunity) : null
 
   return NextResponse.json({
-    insights,
+    insights: insightsFromDna(dna, oppNarrative),
     insufficientData: false,
     sampleSize: dna.sampleSize,
-    learningProgressPct: state.learningProgressPct,
+    learningProgressPct: learningProgressFromSampleSize(dna.sampleSize),
     dna: {
       tradingStyleSummary: dna.tradingStyleSummary,
       confidence: dna.confidence,
@@ -87,8 +116,7 @@ export async function GET(req: NextRequest) {
 }
 
 /**
- * POST /api/terminal-os/coach — ask coach with optional client DNA hint.
- * When DNA hint has sampleSize ≥ 3, answers without requiring server-side training.
+ * POST /api/terminal-os/coach — ask coach with optional client DNA hint + Redis fallback.
  */
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as {
@@ -111,7 +139,12 @@ export async function POST(req: NextRequest) {
   const hasServerDna =
     state.wallet === wallet && state.dna != null && state.dna.sampleSize >= 3
 
+  let persisted: TraderDna | null = null
   if (!hasHint && !hasServerDna) {
+    persisted = await getPersistedDna(wallet)
+  }
+
+  if (!hasHint && !hasServerDna && (!persisted || persisted.sampleSize < 3)) {
     return NextResponse.json({
       answer: INSUFFICIENT,
       insufficientData: true,
@@ -123,9 +156,11 @@ export async function POST(req: NextRequest) {
     orch.teach(q)
   }
 
-  const dna = state.dna
+  const dna = state.dna ?? persisted
   const style =
-    hint?.tradingStyleSummary ?? dna?.tradingStyleSummary ?? 'Emerging trader profile'
+    hint?.tradingStyleSummary ??
+    dna?.tradingStyleSummary ??
+    'Emerging trader profile'
   const confidence = hint?.confidence ?? dna?.confidence ?? 0
   const risk = hint?.riskAppetiteLabel ?? dna?.riskAppetiteLabel ?? 'moderate'
   const sample = hint?.sampleSize ?? dna?.sampleSize ?? 0

@@ -344,6 +344,11 @@ export class TraderDnaEngine {
     return this.dna
   }
 
+  /** Hydrate from persisted Redis / server snapshot without rebuilding from trades. */
+  hydrate(dna: TraderDna | null) {
+    this.dna = dna
+  }
+
   clear() {
     this.dna = null
   }
