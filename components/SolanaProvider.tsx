@@ -3,7 +3,6 @@ import { ReactNode, useMemo, useCallback, type ComponentType } from 'react'
 import { ConnectionProvider, WalletProvider, useWallet } from '@solana/wallet-adapter-react'
 import { WalletModalProvider, useWalletModal } from '@solana/wallet-adapter-react-ui'
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets'
-import { useStandardWalletAdapters } from '@solana/wallet-standard-wallet-adapter-react'
 import { createContext, useContext } from 'react'
 import '@solana/wallet-adapter-react-ui/styles.css'
 import { getClientSolanaRpcUrl } from '@/lib/helius'
@@ -48,6 +47,7 @@ function SolanaInner({ children }: { children: ReactNode }) {
   const walletAddress = publicKey?.toString() ?? null
 
   const connect = useCallback(async () => {
+    // Open the official wallet-adapter modal (Phantom / Solflare / Wallet Standard).
     setVisible(true)
   }, [setVisible])
 
@@ -83,23 +83,16 @@ function SolanaInner({ children }: { children: ReactNode }) {
   )
 }
 
-/**
- * Registers Wallet Standard wallets (Backpack, etc.) alongside Phantom/Solflare adapters.
- * Must run outside WalletProvider so adapters are ready before connect modal opens.
- */
-function SolanaWalletTree({
-  endpoint,
-  children,
-}: {
-  endpoint: string
-  children: ReactNode
-}) {
-  const adapters = useMemo(
+export function SolanaProvider({ children }: { children: ReactNode }) {
+  // Route wallet-adapter through our clean in-origin proxy so no CryptoCheck
+  // auth headers or cookies can leak to an external Solana RPC.
+  // Phantom + Solflare explicit. Backpack and other Wallet Standard wallets
+  // appear in the modal when installed (adapter UI discovers them).
+  const endpoint = useMemo(() => getClientSolanaRpcUrl(), [])
+  const wallets = useMemo(
     () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
     [],
   )
-  const wallets = useStandardWalletAdapters(adapters)
-
   const Conn = ConnectionProvider as ComponentType<{ endpoint: string; children?: ReactNode }>
   const Wallets = WalletProvider as ComponentType<{
     wallets: unknown[]
@@ -107,7 +100,6 @@ function SolanaWalletTree({
     children?: ReactNode
   }>
   const Modal = WalletModalProvider as ComponentType<{ children?: ReactNode }>
-
   return (
     <Conn endpoint={endpoint}>
       <Wallets wallets={wallets} autoConnect>
@@ -117,13 +109,6 @@ function SolanaWalletTree({
       </Wallets>
     </Conn>
   )
-}
-
-export function SolanaProvider({ children }: { children: ReactNode }) {
-  // Route wallet-adapter through our clean in-origin proxy so no CryptoCheck
-  // auth headers or cookies can leak to an external Solana RPC.
-  const endpoint = useMemo(() => getClientSolanaRpcUrl(), [])
-  return <SolanaWalletTree endpoint={endpoint}>{children}</SolanaWalletTree>
 }
 
 export function useSolana() {

@@ -410,3 +410,11 @@ body::after {
     min-height: 480px !important;
   }
 }
+
+/* Wallet adapter modal above Terminal OS overlays */
+.wallet-adapter-modal-wrapper {
+  z-index: 10000 !important;
+}
+.wallet-adapter-modal {
+  z-index: 10001 !important;
+}

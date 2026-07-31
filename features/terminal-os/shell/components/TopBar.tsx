@@ -162,9 +162,23 @@ export function TopBar() {
               type="button"
               className="tos-btn tos-btn-gold tos-wallet-btn"
               disabled={isConnecting}
-              onClick={() => setMenuOpen((v) => !v)}
+              onClick={() => {
+                // Primary path: open Solana wallet-adapter modal immediately (Phantom / Solflare / Backpack).
+                setMenuOpen(false)
+                void connectSolana()
+              }}
             >
               {isConnecting ? 'Connecting…' : 'Connect Wallet'}
+            </button>
+            <button
+              type="button"
+              className="tos-btn tos-btn-ghost"
+              style={{ fontSize: 'var(--tos-fs-xs)' }}
+              disabled={isConnecting}
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="More wallet options"
+            >
+              ▾
             </button>
             {menuOpen ? (
               <div
@@ -175,7 +189,6 @@ export function TopBar() {
                   right: 0,
                   top: '100%',
                   marginTop: 4,
-                  zIndex: 50,
                   background: 'var(--tos-bg-panel-elevated)',
                   border: '1px solid var(--tos-border-subtle)',
                   borderRadius: 'var(--tos-radius-md, 8px)',
