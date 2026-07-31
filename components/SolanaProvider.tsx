@@ -51,8 +51,10 @@ function SolanaInner({ children }: { children: ReactNode }) {
   }, [setVisible])
 
   const disconnect = useCallback(() => {
-    void siws.signOut()
-  }, [siws])
+    void siws.signOut().finally(() => {
+      void walletDisconnect()
+    })
+  }, [siws, walletDisconnect])
 
   const shortAddr = walletAddress
     ? `${walletAddress.slice(0, 4)}…${walletAddress.slice(-4)}`

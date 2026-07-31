@@ -343,4 +343,8 @@ export class TraderDnaEngine {
   getDna() {
     return this.dna
   }
+
+  clear() {
+    this.dna = null
+  }
 }

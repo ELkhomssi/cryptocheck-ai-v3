@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+import type { MouseEvent } from 'react'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { EmptyState, PanelSkeleton, StaleIndicator } from '@/features/terminal-os/shared/components/PanelStates'
 import { DensityRibbon } from '@/features/terminal-os/shared/components/DensityRibbon'
@@ -9,6 +11,7 @@ import { formatUsd } from '@/features/terminal-os/shared/lib/format'
 import { AnimatedNumber } from '@/features/terminal-os/shared/components/AnimatedNumber'
 import { useTopTokens } from '@/features/terminal-os/shared/hooks/useTerminalQueries'
 import { useTerminalOsStore } from '@/stores/terminal-os'
+import { createPriceAlertFromToken } from '@/features/terminal-os/alerts/create-price-alert'
 import type { ChainId, TokenRow } from '@/features/terminal-os/shared/types'
 
 const TABS: { id: ChainId; label: string }[] = [
@@ -95,6 +98,26 @@ export function TopTokensToday() {
 }
 
 function TokenChip({ token: t }: { token: TokenRow }) {
+  const wallet = useTerminalOsStore((s) => s.walletAddress)
+  const [notifyBusy, setNotifyBusy] = useState(false)
+
+  const onNotify = async (e: MouseEvent) => {
+    e.stopPropagation()
+    if (!wallet) return
+    setNotifyBusy(true)
+    try {
+      // Threshold slightly above current price so it can fire when price moves
+      const threshold = Number((t.priceUsd * 1.02).toFixed(8))
+      await createPriceAlertFromToken({
+        wallet,
+        token: { id: t.id, symbol: t.symbol, chain: t.chain },
+        thresholdUsd: threshold,
+      })
+    } finally {
+      setNotifyBusy(false)
+    }
+  }
+
   return (
     <>
       <span className="tos-token-chip-logo" aria-hidden>
@@ -120,6 +143,18 @@ function TokenChip({ token: t }: { token: TokenRow }) {
       <span className="tos-token-chip-spark">
         <Sparkline values={t.sparkline} positive={t.change24hPct >= 0} width={40} height={18} />
       </span>
+      {wallet ? (
+        <button
+          type="button"
+          className="tos-btn tos-btn-ghost"
+          style={{ fontSize: 'var(--tos-fs-xs)', padding: '2px 6px', marginLeft: 4 }}
+          disabled={notifyBusy}
+          title={`Notify when ${t.symbol} rises ~2%`}
+          onClick={(e) => void onNotify(e)}
+        >
+          Notify
+        </button>
+      ) : null}
     </>
   )
 }

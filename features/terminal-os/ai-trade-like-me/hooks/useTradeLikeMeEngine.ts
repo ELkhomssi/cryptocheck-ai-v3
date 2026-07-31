@@ -2,22 +2,22 @@
 
 /**
  * Client hook — UI reads state; orchestrator owns business logic.
+ * Train uses real connected wallet + on-chain signature capture (read-only).
  */
 
 import { useCallback, useEffect, useRef, useState, startTransition } from 'react'
 import { getTradeLikeMeOrchestrator } from '@/features/terminal-os/ai-trade-like-me/engines/orchestrator'
-import { buildSampleTradeHistory } from '@/features/terminal-os/ai-trade-like-me/lib/sample-trade-history'
 import { explainDecision } from '@/features/terminal-os/ai-trade-like-me/engines/explainable-engine'
 import { liveMarketDataProvider, liveWhaleFeedProvider } from '@/features/terminal-os/shared/lib/live-providers'
 import { useTerminalOsStore } from '@/stores/terminal-os'
 import type { ExplainedNarrative } from '@/features/terminal-os/ai-trade-like-me/engines/explainable-engine'
-import type { TradeLikeMeState } from '@/features/terminal-os/ai-trade-like-me/types'
+import type { CapturedTrade, TradeLikeMeState } from '@/features/terminal-os/ai-trade-like-me/types'
 
 export function useTradeLikeMeEngine() {
   const flags = useTerminalOsStore((s) => s.featureFlags)
   const walletConnected = useTerminalOsStore((s) => s.walletConnected)
-  const walletLabel = useTerminalOsStore((s) => s.walletLabel)
-  const setWalletConnected = useTerminalOsStore((s) => s.setWalletConnected)
+  const walletAddress = useTerminalOsStore((s) => s.walletAddress)
+  const walletChainFamily = useTerminalOsStore((s) => s.walletChainFamily)
   const chain = useTerminalOsStore((s) => s.tokenChainTab)
 
   const orchRef = useRef(getTradeLikeMeOrchestrator())
@@ -38,23 +38,42 @@ export function useTradeLikeMeEngine() {
     sync()
   }, [sync])
 
+  // Clear TLM when wallet disconnects or switches
+  useEffect(() => {
+    if (!walletConnected) {
+      orchRef.current.resetSession()
+      startTransition(() => sync())
+      return
+    }
+    const current = orchRef.current.getState(flags).wallet
+    if (current && walletAddress && current !== walletAddress) {
+      orchRef.current.resetSession()
+      startTransition(() => sync())
+    }
+  }, [walletConnected, walletAddress, flags, sync])
+
   const trainAiFromMyTrading = useCallback(async () => {
     setBusy(true)
     setError(null)
     try {
-      let wallet = walletLabel
-      if (!walletConnected || !wallet) {
-        // Request wallet permission (terminal wallet connect — non-custodial label)
-        wallet = '7a8x…TrainAI'
-        setWalletConnected(true, wallet)
+      if (!walletConnected || !walletAddress) {
+        throw new Error('Connect a wallet first (read-only) to start learning.')
       }
-      const fullWallet = wallet.length < 32 ? `Train${wallet.replace(/[^a-zA-Z0-9]/g, '')}Sol111111111111111111111111` : wallet
-      // Seed with tagged sample history until on-chain indexer lands
-      const seeds = buildSampleTradeHistory(fullWallet)
-      orchRef.current.trainFromWallet(fullWallet, seeds)
+      if (walletChainFamily === 'evm') {
+        throw new Error('Trade Like Me capture is Solana-first — connect a Solana wallet.')
+      }
+
+      const histRes = await fetch(
+        `/api/terminal-os/trade-history?wallet=${encodeURIComponent(walletAddress)}`,
+      )
+      const histBody = (await histRes.json()) as { trades?: CapturedTrade[]; error?: string }
+      if (!histRes.ok) {
+        throw new Error(histBody.error ?? 'Failed to capture on-chain history')
+      }
+      const seeds = histBody.trades ?? []
+      orchRef.current.trainFromWallet(walletAddress, seeds)
       startTransition(() => sync())
 
-      // Immediately score a live opportunity
       const [tokens, whales] = await Promise.all([
         liveMarketDataProvider.getTopTokens(chain === 'all' ? 'solana' : chain),
         liveWhaleFeedProvider.getRecentMovements(16),
@@ -68,7 +87,7 @@ export function useTradeLikeMeEngine() {
     } finally {
       setBusy(false)
     }
-  }, [walletConnected, walletLabel, setWalletConnected, chain, flags, sync])
+  }, [walletConnected, walletAddress, walletChainFamily, chain, flags, sync])
 
   const refreshOpportunity = useCallback(async () => {
     setBusy(true)

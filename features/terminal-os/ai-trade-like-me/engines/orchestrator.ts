@@ -81,6 +81,20 @@ export class TradeLikeMeOrchestrator {
     this.statusLine = 'Paused'
   }
 
+  /** Disconnect — wipe session-bound learning/coach-adjacent state. */
+  resetSession() {
+    this.behavioral.stopRecording()
+    this.behavioral.hydrate([], null)
+    this.dnaEngine.clear()
+    this.phase = 'idle'
+    this.lastDecision = null
+    this.currentOpportunity = null
+    this.openPosition = null
+    this.teachRules = []
+    this.recentEvents = []
+    this.statusLine = 'Idle — connect wallet (read-only) to train'
+  }
+
   recordTrade(trade: CapturedTrade) {
     this.behavioral.recordTrade(trade)
     if (this.behavioral.hasSufficientHistory()) {

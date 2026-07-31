@@ -17,14 +17,13 @@ import { TokenScoreScanCard } from '@/features/terminal-os/security-center/compo
 import { WalletScoreScanCard } from '@/features/terminal-os/security-center/components/WalletScoreScanCard'
 import { AiCoachingCard } from '@/features/terminal-os/ai-coach/components/AiCoachingCard'
 import { AiWorkforcePanel } from '@/features/terminal-os/ai-workforce/components/AiWorkforcePanel'
+import { AlertsWorkspace } from '@/features/terminal-os/alerts/AlertsWorkspace'
+import { AlertToastHost } from '@/features/terminal-os/alerts/AlertToastHost'
+import { AlertEvaluateBridge } from '@/features/terminal-os/alerts/AlertEvaluateBridge'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { ComingOnline, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
 import { useTerminalOsStore } from '@/stores/terminal-os'
 import type { TerminalNavId } from '@/features/terminal-os/shared/types'
-import {
-  AiStatusCard,
-  AiTradeLikeMeCard,
-} from '@/features/terminal-os/ai-trade-like-me/components/AiTradeLikeMeCard'
 
 /** Code-split flagship widget — home JS shouldn't pay for TLM until visited */
 const TradeLikeMeWidget = dynamic(
@@ -159,7 +158,15 @@ function MainColumn() {
     )
   }
 
-  if (nav === 'settings' || nav === 'alerts' || nav === 'watchlist' || nav === 'copy-trading') {
+  if (nav === 'alerts') {
+    return (
+      <Bound title="Alerts">
+        <AlertsWorkspace />
+      </Bound>
+    )
+  }
+
+  if (nav === 'settings' || nav === 'watchlist' || nav === 'copy-trading') {
     return <SecondaryNavStub nav={nav} />
   }
 
@@ -191,9 +198,6 @@ function AiCoachWorkspace() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 640 }}>
       <AiCoachingCard />
-      <Panel title="Coach chat">
-        <ComingOnline label="Conversational Pause & Teach + proactive insights (Phase 3–4)" />
-      </Panel>
     </div>
   )
 }
@@ -235,6 +239,8 @@ export function TerminalOsShell() {
   return (
     <div className="tos-shell" data-tos-shell>
       <TopBar />
+      <AlertEvaluateBridge />
+      <AlertToastHost />
       <div className="tos-whale-slot">
         <Bound title="Top Whale Movements">
           <WhaleMarqueeTicker fixed title="Top Whale Movements" />
