@@ -110,15 +110,11 @@ export function PortfolioOverviewPanel() {
           />
           <Metric label="AI Health" value={`${data.aiHealthScore}`} why={data.healthWhy} />
           <Metric label="Stability" value={`${data.stabilityScore}`} why={data.stabilityWhy} />
-<<<<<<< HEAD
           <Metric
             label="Diversification"
             value={`${data.diversificationScore}`}
             why={tokenCount ? `${tokenCount} holdings` : undefined}
           />
-=======
-          <Metric label="Diversification" value={`${data.diversificationScore}`} />
->>>>>>> b99a880 (polish: normalize Priority 2 TOS panels onto shared tokens)
         </div>
       )}
     </Panel>

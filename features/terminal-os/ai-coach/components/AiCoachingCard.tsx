@@ -210,24 +210,7 @@ export function AiCoachingCard() {
   return (
     <Panel
       title="AI Coaching"
-<<<<<<< HEAD
-      action={
-        <span
-          style={{
-            fontSize: '0.5625rem',
-            fontWeight: 700,
-            color: 'var(--tos-accent-gold)',
-            border: '1px solid color-mix(in srgb, var(--tos-accent-gold) 40%, transparent)',
-            borderRadius: 4,
-            padding: '1px 5px',
-          }}
-        >
-          LIVE
-        </span>
-      }
-=======
-      action={<span className="tos-beta-chip">BETA</span>}
->>>>>>> b99a880 (polish: normalize Priority 2 TOS panels onto shared tokens)
+      action={<span className="tos-beta-chip">LIVE</span>}
     >
       {insights == null ? (
         <PanelSkeleton rows={2} />
