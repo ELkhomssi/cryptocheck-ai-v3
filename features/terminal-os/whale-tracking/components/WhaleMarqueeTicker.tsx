@@ -12,6 +12,7 @@ import {
   WhaleHoverPopover,
   WhaleIntelligencePanel,
 } from '@/features/terminal-os/whale-tracking/components/WhaleIntelligencePanel'
+import { useTerminalOsStore } from '@/stores/terminal-os'
 import type { WhaleMarqueeFilter, WhaleMovement } from '@/features/terminal-os/shared/types'
 
 const FILTERS: { id: WhaleMarqueeFilter; label: string }[] = [
@@ -101,6 +102,7 @@ export function WhaleMarqueeTicker({
   const [filter, setFilter] = useState<WhaleMarqueeFilter>('all')
   const [selected, setSelected] = useState<WhaleMovement | null>(null)
   const [paused, setPaused] = useState(false)
+  const setFocusedToken = useTerminalOsStore((s) => s.setFocusedToken)
 
   const visible = useMemo(() => {
     const filtered = applyFilter(events, filter)
@@ -116,7 +118,18 @@ export function WhaleMarqueeTicker({
   }, [visible])
 
   const openPanel = (w: WhaleMovement) => {
-    startTransition(() => setSelected(w))
+    startTransition(() => {
+      setSelected(w)
+      // Sync OS focus → chart, scanner, quick swap, execution desk
+      setFocusedToken({
+        id: w.assetSymbol,
+        symbol: w.assetSymbol,
+        name: w.assetSymbol,
+        chain: w.chain === 'all' ? 'solana' : w.chain,
+        priceUsd: 0,
+        logoUrl: w.tokenLogoUrl,
+      })
+    })
   }
 
   return (

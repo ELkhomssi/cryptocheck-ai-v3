@@ -5,15 +5,15 @@ import { EmptyState, PanelSkeleton, StaleIndicator } from '@/features/terminal-o
 import { DensityRibbon } from '@/features/terminal-os/shared/components/DensityRibbon'
 import { formatPct } from '@/features/terminal-os/shared/lib/format'
 import { useTopTraders } from '@/features/terminal-os/shared/hooks/useTerminalQueries'
+import { useTerminalOsStore } from '@/stores/terminal-os'
 import type { TopTrader } from '@/features/terminal-os/shared/types'
 
 /**
- * FLAG (refinement pass): No Trader Profile view/click handler exists in Terminal OS.
- * Items are tab-focusable and pause the ribbon; activate is intentionally unwired
- * until an existing profile route/handler is available to reuse.
+ * Click a ranked desk chip to focus its underlying asset across Chart / Scan / Swap.
  */
 export function TopTradersTicker() {
   const { data: traders, isLoading, isError } = useTopTraders()
+  const setFocusedToken = useTerminalOsStore((s) => s.setFocusedToken)
 
   return (
     <Panel title="Top Traders Today" live>
@@ -36,6 +36,17 @@ export function TopTradersTicker() {
           itemClassName="tos-trader-chip"
           itemKey={(t) => t.id}
           renderItem={(t) => <TraderChip trader={t} />}
+          onItemActivate={(t) => {
+            if (!t.underlyingSymbol) return
+            setFocusedToken({
+              id: t.underlyingSymbol,
+              symbol: t.underlyingSymbol,
+              name: t.underlyingSymbol,
+              chain: 'solana',
+              priceUsd: t.priceUsd ?? 0,
+              logoUrl: t.logoUrl,
+            })
+          }}
         />
       )}
     </Panel>

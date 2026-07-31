@@ -141,7 +141,9 @@
   border-bottom: 1px solid var(--tos-border-subtle);
   background: color-mix(in srgb, var(--tos-bg-panel) 92%, transparent);
   backdrop-filter: blur(8px);
-  z-index: 20;
+  /* Above whale marquee / panels so Connect menu + wallet modal stack correctly */
+  z-index: 90;
+  overflow: visible;
 }
 
 [data-tos] .tos-left-rail {
@@ -2154,6 +2156,13 @@
   align-items: center;
   gap: var(--tos-space-2);
   margin-left: auto;
+  position: relative;
+  z-index: 91;
+  overflow: visible;
+}
+
+[data-tos] .tos-wallet-menu {
+  z-index: 100;
 }
 
 [data-tos] .tos-icon-btn {
