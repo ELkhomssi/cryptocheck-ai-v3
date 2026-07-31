@@ -243,6 +243,7 @@ export type TerminalNavId =
   | 'ai-scanner'
   | 'market-intel'
   | 'whale-tracking'
+  | 'execution'
   | 'ai-trading'
   | 'copy-trading'
   | 'portfolio'

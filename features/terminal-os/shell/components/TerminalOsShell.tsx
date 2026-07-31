@@ -9,6 +9,7 @@ import { TopTradersTicker } from '@/features/terminal-os/market-intel/components
 import { TopTokensToday } from '@/features/terminal-os/market-intel/components/TopTokensToday'
 import { WhaleMarqueeTicker } from '@/features/terminal-os/whale-tracking/components/WhaleMarqueeTicker'
 import { IntelligenceChart } from '@/features/intelligence-chart'
+import { ExecutionDeskShell } from '@/features/execution-desk'
 import { QuickSwapCard } from '@/features/terminal-os/trading-workspace/components/QuickSwapCard'
 import { PortfolioOverviewPanel } from '@/features/terminal-os/portfolio-os/components/PortfolioOverviewPanel'
 import { DiscoveryPanel } from '@/features/terminal-os/discovery-engine/components/DiscoveryPanel'
@@ -80,6 +81,14 @@ function MainColumn() {
     return (
       <Bound title="Portfolio OS">
         <PortfolioOverviewPanel />
+      </Bound>
+    )
+  }
+
+  if (nav === 'execution') {
+    return (
+      <Bound title="Execution Desk">
+        <ExecutionDeskShell />
       </Bound>
     )
   }
