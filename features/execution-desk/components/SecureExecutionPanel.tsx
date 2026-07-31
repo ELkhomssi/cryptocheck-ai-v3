@@ -18,6 +18,7 @@ import { sendSignedSwap } from '@/lib/execution/client-submit'
 import { useIntelligenceChart } from '@/features/intelligence-chart/hooks/useIntelligenceChart'
 import { computeMevProtection } from '../lib/mev-score'
 import type { ExecutionAuditPayload, ExecutionBuilderState, ExecutionState } from '../types'
+import { useExecutionLifecycleBridge } from '@/features/terminal-os/money-lifecycle/execution-lifecycle-bridge'
 import { LARGE_TRADE_PHRASE, LARGE_TRADE_USD_THRESHOLD, OVERRIDE_PHRASE } from '../types'
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112'
@@ -78,12 +79,22 @@ export function SecureExecutionPanel({
   const slippageBps = builder?.slippageToleranceBps ?? 100
 
   const [execState, setExecState] = useState<ExecutionState>('building')
+  const publishExecState = useExecutionLifecycleBridge((s) => s.setExecutionState)
+  const publishSignature = useExecutionLifecycleBridge((s) => s.setLastSignature)
   const [decision, setDecision] = useState<SwapDecision | null>(null)
   const [quote, setQuote] = useState<SwapQuote | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [signature, setSignature] = useState<string | null>(null)
   const [pendingSince, setPendingSince] = useState<number | null>(null)
   const [elapsed, setElapsed] = useState(0)
+
+  // Money Lifecycle Stage 6 — mirror real ExecutionState (no second swap path)
+  useEffect(() => {
+    publishExecState(execState)
+  }, [execState, publishExecState])
+  useEffect(() => {
+    publishSignature(signature)
+  }, [signature, publishSignature])
 
   const [dangerOpen, setDangerOpen] = useState(false)
   const [dangerTyped, setDangerTyped] = useState('')

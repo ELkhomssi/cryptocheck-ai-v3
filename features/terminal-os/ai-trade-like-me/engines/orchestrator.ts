@@ -20,6 +20,7 @@ import type {
   AutonomyConfig,
   CapturedTrade,
   ExplainableDecision,
+  MarketContext,
   TradeLikeMeState,
   TlmEnginePhase,
   TlmEvent,
@@ -41,6 +42,8 @@ export class TradeLikeMeOrchestrator {
   private recentEvents: TlmEvent[] = []
   private lastDecision: ExplainableDecision | null = null
   private currentOpportunity: ExplainableDecision | null = null
+  /** Last MarketContext produced by evaluateOpportunity — lifecycle Stage 4 reads this (no recompute). */
+  private lastMarketContext: MarketContext | null = null
   private openPosition: TradeLikeMeState['openPosition'] = null
   private statusLine = 'Idle — connect wallet (read-only) to train'
   private teachRules: string[] = []
@@ -89,10 +92,16 @@ export class TradeLikeMeOrchestrator {
     this.phase = 'idle'
     this.lastDecision = null
     this.currentOpportunity = null
+    this.lastMarketContext = null
     this.openPosition = null
     this.teachRules = []
     this.recentEvents = []
     this.statusLine = 'Idle — connect wallet (read-only) to train'
+  }
+
+  /** Lifecycle ribbon Stage 4 — same object the Decision Engine just consumed. */
+  getLastMarketContext(): MarketContext | null {
+    return this.lastMarketContext
   }
 
   recordTrade(trade: CapturedTrade) {
@@ -127,6 +136,7 @@ export class TradeLikeMeOrchestrator {
   ) {
     const dna = this.dnaEngine.getDna() ?? this.refreshDna()
     const intel = this.market.snapshot({ token, whales })
+    this.lastMarketContext = intel
     this.prediction.predict(dna, intel)
 
     const collectiveSig = this.collective.signal(dna, intel)
