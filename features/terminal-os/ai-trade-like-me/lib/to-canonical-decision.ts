@@ -23,7 +23,10 @@ export function toCanonicalDecision(
     tokenAddress?: string
   },
 ): Decision {
-  const degraded = Boolean(opts?.degraded || opts?.degradedInputs?.length)
+  const fromDecision = (d.degradedInputs ?? []) as EngineId[]
+  const fromOpts = opts?.degradedInputs ?? []
+  const degradedInputs = [...new Set([...fromDecision, ...fromOpts])]
+  const degraded = Boolean(opts?.degraded || d.degraded || degradedInputs.length)
   const factors = d.citations.slice(0, 8).map((c) => ({
     engine: citationEngine(c),
     summary: c.contribution,
@@ -56,7 +59,7 @@ export function toCanonicalDecision(
     expectedROI: d.scores.expectedRoiPct,
     expectedDrawdown: d.scores.expectedDrawdownPct,
     degraded,
-    degradedInputs: opts?.degradedInputs?.length ? opts.degradedInputs : undefined,
+    degradedInputs: degradedInputs.length ? degradedInputs : undefined,
     computedAt,
     staleAfter,
   }

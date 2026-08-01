@@ -2,6 +2,7 @@
  * Trade Like Me Orchestrator V2 — wires engines via event bus only.
  */
 
+import type { EngineId } from '@cryptocheck/decision-contracts'
 import type { FeatureFlags, TokenRow, WhaleMovement } from '@/features/terminal-os/shared/types'
 import { BehavioralLearningEngine, getMinTradesForDna, learningProgressFromSampleSize } from './behavioral-learning-engine'
 import { TraderDnaEngine } from './trader-dna-engine'
@@ -9,6 +10,7 @@ import { MarketIntelligenceEngine } from './market-intelligence-engine'
 import { PredictionEngine } from './prediction-engine'
 import { DecisionEngine } from './decision-engine'
 import { ExplainableAiEngine } from './explainable-engine'
+import { toCanonicalDecision } from '../lib/to-canonical-decision'
 import {
   AutonomousExecutionEngine,
   DEFAULT_AUTONOMY_CONFIG,
@@ -156,16 +158,25 @@ export class TradeLikeMeOrchestrator {
     const collectiveBoost =
       collectiveSig && collectiveSig.similarDnaCount > 0 ? collectiveSig.avgOutcomePct : undefined
 
+    const unavailable: EngineId[] = []
+    if (!dna) unavailable.push('trader-dna')
+    if (!whales.length) unavailable.push('whale-intelligence')
+    // Portfolio Intelligence is per-wallet and not attached on token evaluate path
+    unavailable.push('portfolio-intelligence')
+
     const decision = this.decision.evaluate(dna, intel, {
       hasOpenPosition: opts?.hasOpenPosition ?? Boolean(this.openPosition),
       teachRules: this.teachRules,
       collectiveBoostPct: collectiveBoost,
+      unavailableEngines: unavailable,
     })
 
     this.currentOpportunity = decision
     this.lastDecision = decision
     this.phase = 'watching'
-    this.statusLine = `Watching Markets… · ${decision.summary}`
+    this.statusLine = decision.degraded
+      ? `Watching Markets… · ${decision.summary} · degraded: ${(decision.degradedInputs ?? []).join(', ')}`
+      : `Watching Markets… · ${decision.summary}`
     this.autonomy.plan(decision, flags, dna)
     this.analytics.report(this.behavioral.listTrades(), dna)
 
@@ -243,6 +254,10 @@ export class TradeLikeMeOrchestrator {
       dna,
       currentOpportunity: this.currentOpportunity,
       lastDecision: this.lastDecision,
+      canonicalDecision: (() => {
+        const src = this.currentOpportunity ?? this.lastDecision
+        return src ? toCanonicalDecision(src) : null
+      })(),
       openPosition: this.openPosition,
       autonomy,
       performance,

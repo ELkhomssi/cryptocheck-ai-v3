@@ -321,6 +321,8 @@ export function decide(
     improvesTrader,
     summary,
     citations,
+    degraded: unavailable.length > 0,
+    degradedInputs: unavailable.length ? unavailable : undefined,
   }
 
   return decision

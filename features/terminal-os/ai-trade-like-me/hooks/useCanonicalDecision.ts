@@ -20,6 +20,10 @@ export function useCanonicalDecision(): Decision | null {
         copyTrading: false,
         realSwapExecution: false,
       })
+      if (state.canonicalDecision) {
+        setDecision(state.canonicalDecision)
+        return
+      }
       const src = state.currentOpportunity ?? state.lastDecision
       setDecision(src ? toCanonicalDecision(src) : null)
     }

@@ -13,9 +13,10 @@ export function adaptDecisionToAttention(
   narrative: ExplainedNarrative | null,
 ): AttentionItem[] {
   const opp = state.currentOpportunity
-  if (!opp) return []
+  if (!opp && !state.canonicalDecision) return []
 
-  const decision = toCanonicalDecision(opp)
+  const decision = state.canonicalDecision ?? (opp ? toCanonicalDecision(opp) : null)
+  if (!decision) return []
   const action = decision.action
   const conf = decision.confidence
   const symbol = decision.subject.kind === 'token' ? decision.subject.symbol : opp.tokenSymbol

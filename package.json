@@ -27,6 +27,7 @@
     "lint:intelligence-core": "node scripts/check-intelligence-core-boundary.cjs",
     "lint:intelligence-chart": "node scripts/check-intelligence-chart-no-mocks.cjs",
     "lint:decision-boundary": "node scripts/check-decision-boundary.cjs",
+    "lint:boundaries": "npm run lint:intelligence-core && npm run lint:intelligence-chart && npm run lint:decision-boundary",
     "test:decision-boundary": "node --import tsx --test __tests__/api/decision-engine-degraded.test.ts __tests__/api/decision-boundary-lint.test.ts",
     "test:intelligence-modules": "node --import tsx --test __tests__/api/intelligence-modules.test.ts",
     "test:intelligence-core": "node --import tsx --test __tests__/api/intelligence-core.test.ts",

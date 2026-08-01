@@ -82,4 +82,15 @@ describe('Decision Engine degraded inputs', () => {
     assert.equal(canonical.degradedInputs?.length, 4)
     assert.ok(canonical.confidence <= 60)
   })
+
+  it('preserves degraded flags on ExplainableDecision without remapping opts', () => {
+    const explained = decide(null, sampleIntel(), {
+      unavailableEngines: ['security-scanner', 'whale-intelligence'],
+    })
+    assert.equal(explained.degraded, true)
+    assert.ok(explained.degradedInputs?.includes('security-scanner'))
+    const canonical = toCanonicalDecision(explained)
+    assert.equal(canonical.degraded, true)
+    assert.ok(canonical.degradedInputs?.includes('whale-intelligence'))
+  })
 })

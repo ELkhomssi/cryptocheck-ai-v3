@@ -28,7 +28,9 @@ Engines remain independently deployable — no merge.
 |------|--------|-------|
 | Schema | `ExplainableDecision` / `OpportunityScore` ad hoc | Canonical `Decision` in `@cryptocheck/decision-contracts` + `toCanonicalDecision` |
 | Degraded inputs | Silent / full confidence | `unavailableEngines` penalty; `Decision.degraded` + `degradedInputs` |
-| Entry for consumers | Direct `decide` + `buildMarketIntel` in Layer 4 | `decideForToken` / `useCanonicalDecision` |
+| Entry for consumers | Direct `decide` + `buildMarketIntel` in Layer 4 | `decideForToken` / `useCanonicalDecision` / `TradeLikeMeState.canonicalDecision` |
+| Orchestrator | No unavailable-engine accounting | Passes `trader-dna` / `whale-intelligence` / `portfolio-intelligence` degradation; status line notes degraded |
+| Persistence | Degraded lost when remapping from ExplainableDecision | `ExplainableDecision.degraded` + `degradedInputs` survive → `toCanonicalDecision` |
 
 ---
 
@@ -44,7 +46,7 @@ Engines remain independently deployable — no merge.
 
 ### Gateway / Money Lifecycle — `features/terminal-os/money-lifecycle`
 - **Found:** No violation — Stage 5 reads `currentOpportunity` / `lastDecision`.
-- **Fixed:** n/a (documented clean).
+- **Follow-up:** Stage 5 headline/detail surfaces `Decision.degraded` when present (still no independent scoring).
 
 ### Swap / Execution — `features/execution-desk` + Simple Execution workspace
 - **Found:** VIOLATION — Secure Execution unbound from Decision (`SwapDecision` risk gate only).
