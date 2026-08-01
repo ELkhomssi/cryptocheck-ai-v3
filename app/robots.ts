@@ -1,8 +1,9 @@
 import type { MetadataRoute } from 'next'
-import { getSiteUrl } from '@/lib/seo/site'
+
+/** Production sitemap URL for Google Search Console (must be absolute). */
+const PRODUCTION_SITEMAP = 'https://www.cryptocheckai.com/sitemap.xml'
 
 export default function robots(): MetadataRoute.Robots {
-  const site = getSiteUrl()
   const allowAiScrapers = process.env.AI_SCRAPER_ALLOW === '1'
 
   const rules: MetadataRoute.Robots['rules'] = [
@@ -27,16 +28,13 @@ export default function robots(): MetadataRoute.Robots {
   ]
 
   for (const userAgent of aiAgents) {
-    rules.push(
-      allowAiScrapers
-        ? { userAgent, allow: '/' }
-        : { userAgent, disallow: '/' },
-    )
+    rules.push(allowAiScrapers ? { userAgent, allow: '/' } : { userAgent, disallow: '/' })
   }
 
   return {
     rules,
-    sitemap: `${site}/sitemap.xml`,
-    host: site.replace(/^https?:\/\//, ''),
+    // Always advertise the production sitemap — never localhost from preview env bleed.
+    sitemap: PRODUCTION_SITEMAP,
+    host: 'www.cryptocheckai.com',
   }
 }

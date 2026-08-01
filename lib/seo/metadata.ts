@@ -51,7 +51,16 @@ export function buildPageMetadata(input: BuildPageMetadataInput): Metadata {
 }
 
 export function buildRootMetadata(): Metadata {
-  const siteUrl = getSiteUrl()
+  // Prefer production host for canonicals/OG when Vercel Production, or when
+  // SITE_URL is unset/localhost — avoids shipping localhost canonicals.
+  const raw = getSiteUrl()
+  const siteUrl =
+    process.env.VERCEL_ENV === 'production' ||
+    !raw ||
+    raw.includes('localhost') ||
+    raw.includes('127.0.0.1')
+      ? `https://www.cryptocheckai.com`
+      : raw
   const title = 'CryptoCheckAI — AI Operating System for Crypto Traders'
   const description =
     'AI-powered crypto trading platform with Intelligence Charts, Security Scanner, Wallet Analysis, Smart Money Tracking, AI Coaching and Autonomous Execution.'

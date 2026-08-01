@@ -13,12 +13,21 @@ describe('bot intelligence API route', () => {
 })
 
 describe('robots + root metadata wiring', () => {
-  it('robots.ts disallows private surfaces and points at sitemap', () => {
+  it('robots.ts disallows private surfaces and points at production sitemap', () => {
     const src = readFileSync(join(process.cwd(), 'app/robots.ts'), 'utf8')
     assert.match(src, /\/api\//)
     assert.match(src, /\/admin\//)
     assert.match(src, /\/auth\//)
-    assert.match(src, /sitemap\.xml/)
+    assert.match(src, /https:\/\/www\.cryptocheckai\.com\/sitemap\.xml/)
+  })
+
+  it('uses official app/sitemap.ts Metadata API (not sitemap.xml/route.ts)', () => {
+    const src = readFileSync(join(process.cwd(), 'app/sitemap.ts'), 'utf8')
+    assert.match(src, /MetadataRoute\.Sitemap/)
+    assert.match(src, /export default async function sitemap/)
+    assert.throws(() => {
+      readFileSync(join(process.cwd(), 'app/sitemap.xml/route.ts'), 'utf8')
+    }, /ENOENT/)
   })
 
   it('root layout uses buildRootMetadata with verification hook', () => {
