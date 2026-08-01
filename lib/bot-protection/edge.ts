@@ -198,6 +198,27 @@ export async function runEdgeBotProtection(req: NextRequest): Promise<EdgeBotRes
   }
 
   if (result.decision === 'js_challenge' || result.decision === 'challenge') {
+    if (isApi) {
+      return {
+        response: NextResponse.json(
+          {
+            error: 'browser_challenge_required',
+            reason: result.reasons[0] ?? 'bot_score',
+            botScore: result.botScore,
+            stage: result.stage,
+          },
+          {
+            status: 403,
+            headers: {
+              'Cache-Control': 'no-store',
+              'X-CCAI-BotScore': String(result.botScore),
+              'X-CCAI-Defense': result.decision,
+            },
+          },
+        ),
+        result,
+      }
+    }
     return {
       response: new NextResponse(challengeHtml(result.stage, result.botScore), {
         status: 403,
