@@ -19,7 +19,10 @@ export function adaptDecisionToAttention(
   if (!decision) return []
   const action = decision.action
   const conf = decision.confidence
-  const symbol = decision.subject.kind === 'token' ? decision.subject.symbol : opp.tokenSymbol
+  const symbol =
+    decision.subject.kind === 'token'
+      ? decision.subject.symbol
+      : opp?.tokenSymbol ?? 'TOKEN'
   const reality = decision.reasoning
   const analysis =
     narrative?.bullets?.slice(0, 3).join(' ') ||

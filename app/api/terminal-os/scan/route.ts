@@ -76,10 +76,10 @@ export async function POST(req: NextRequest) {
           explanation: `Scan gateway (fast) · safety ${safety} · verdict ${assess.verdict}. Blended with live DexScreener liquidity/volume.`,
           recommendedAction:
             assess.verdict === 'BLOCKED' || assess.verdict === 'HIGH_RISK'
-              ? 'Avoid or micro-size — confirm rug heuristics before any swap.'
+              ? `Risk band: ${assess.verdict} (scan gateway) — Decision Engine synthesizes act.`
               : assess.verdict === 'CAUTION'
-                ? 'Proceed only with tight size and hard slippage limits.'
-                : 'Eligible for normal swap flow — still verify size vs. liquidity.',
+                ? 'Risk band: caution (scan gateway) — Decision Engine synthesizes act.'
+                : 'Risk band: acceptable (scan gateway) — Decision Engine synthesizes act.',
         }
       } catch {
         // keep market rubric — never blank
@@ -117,7 +117,7 @@ function softFailScan(symbol: string): TokenScanResult {
     riskLabel: 'Elevated Risk',
     confidence: 40,
     explanation: 'Provider unavailable — showing labeled demo score. Not a live assessment.',
-    recommendedAction: 'Wait for live scan — do not size on demo fallback.',
+    recommendedAction: 'Demo fallback — not a live assessment; Decision Engine synthesizes act.',
     metrics: [
       { label: 'Liquidity', value: 50, why: 'Demo fallback' },
       { label: 'Contract Safety', value: 50, why: 'Demo fallback' },

@@ -53,8 +53,8 @@ Engines remain independently deployable — no merge.
 - **Fixed:** `useCanonicalDecision` bind line; builder math / risk-gate unchanged (deterministic, not opinion). Simple Execution already gated on Decision action.
 
 ### Alerts — `features/terminal-os/alerts`
-- **Found:** No scoring duplication — rules evaluate price / thresholds; unwired to Decision state changes (acceptable for L1 thresholds).
-- **Fixed:** n/a (documented clean). Future: optional Decision-change rules.
+- **Found:** No scoring duplication — rules evaluate price / thresholds; `ai_signal` unwired to Decision.
+- **Fixed:** `AlertEvaluateBridge` subscribes to `DecisionMade` and POSTs `aiConfidence` / `decisionAction` from `canonicalDecision`. `ai_signal` field=`action` supports Decision.action equality.
 
 ### Discovery — `features/terminal-os/discovery-engine` + Attention discovery workspace
 - **Found:** VIOLATION — invented `opportunityScore` via `scoreTokenFromMarket`; Attention discovery included `market-intelligence`.
@@ -65,7 +65,8 @@ Engines remain independently deployable — no merge.
 ## Enforcement
 
 - `npm run lint:decision-boundary` — fails if Layer 4 imports banned Layer 1 modules.
-- `npm run test:decision-boundary` — degraded Decision + lint smoke.
+- `npm run lint:boundaries` — runs on `npm run build` (Vercel) before `next build`.
+- `npm run test:decision-boundary` — degraded Decision + lint smoke + ai_signal Decision conditions.
 
 ---
 

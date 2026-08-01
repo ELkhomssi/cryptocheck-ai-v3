@@ -155,20 +155,34 @@ export function TradeLikeMeWidget({ compact = false }: { compact?: boolean }) {
           <div
             className={`tos-tlm-card${state.currentOpportunity?.disagreement ? ' tos-tlm-card--disagree' : ''}`}
           >
-            <p className="tos-tlm-kicker">Current Opportunity</p>
+            <p className="tos-tlm-kicker">
+              Decision
+              {state.canonicalDecision?.degraded ? ' · degraded' : ''}
+            </p>
             {state.currentOpportunity && narrative ? (
               <>
                 <div className="tos-tlm-decision-head">
                   <span
-                    className={`tos-tlm-action ${ACTION_CLASS[state.currentOpportunity.action]}`}
+                    className={`tos-tlm-action ${ACTION_CLASS[state.canonicalDecision?.action ?? state.currentOpportunity.action]}`}
                   >
                     {narrative.headline}
                   </span>
-                  <span className="tos-tlm-conf">{narrative.confidenceLine}</span>
+                  <span className="tos-tlm-conf">
+                    {state.canonicalDecision
+                      ? `Confidence ${state.canonicalDecision.confidence}%`
+                      : narrative.confidenceLine}
+                  </span>
                 </div>
                 <p className="tos-tlm-token">
-                  ${state.currentOpportunity.tokenSymbol}{' '}
-                  <span className="tos-muted">{state.currentOpportunity.chain}</span>
+                  $
+                  {state.canonicalDecision?.subject.kind === 'token'
+                    ? state.canonicalDecision.subject.symbol
+                    : state.currentOpportunity.tokenSymbol}{' '}
+                  <span className="tos-muted">
+                    {state.canonicalDecision?.subject.kind === 'token'
+                      ? state.canonicalDecision.subject.chain
+                      : state.currentOpportunity.chain}
+                  </span>
                 </p>
                 <ul className="tos-tlm-reasons">
                   {narrative.bullets.map((b) => (
@@ -212,7 +226,10 @@ export function TradeLikeMeWidget({ compact = false }: { compact?: boolean }) {
                 <div className="tos-tlm-scores">
                   <Score label="Behavior" value={state.currentOpportunity.scores.behaviorMatch} />
                   <Score label="Market" value={state.currentOpportunity.scores.marketQuality} />
-                  <Score label="Risk" value={state.currentOpportunity.scores.risk} />
+                  <Score
+                    label="Risk"
+                    value={state.canonicalDecision?.risk ?? state.currentOpportunity.scores.risk}
+                  />
                   <Score label="Timing" value={state.currentOpportunity.scores.timing} />
                 </div>
               </>
@@ -251,25 +268,30 @@ export function TradeLikeMeWidget({ compact = false }: { compact?: boolean }) {
               </p>
             </div>
             <div>
-              <p className="tos-tlm-kicker">Last Decision</p>
+              <p className="tos-tlm-kicker">Prior Decision</p>
               <p className="tos-tlm-pos">
-                {state.lastDecision ? state.lastDecision.summary : '—'}
+                {state.canonicalDecision?.reasoning ??
+                  (state.lastDecision ? state.lastDecision.summary : '—')}
               </p>
             </div>
             <div>
               <p className="tos-tlm-kicker">Expected ROI</p>
               <p className="tos-num">
-                {state.currentOpportunity
-                  ? formatPct(state.currentOpportunity.estimatedUpsidePct)
-                  : '—'}
+                {state.canonicalDecision?.expectedROI != null
+                  ? formatPct(state.canonicalDecision.expectedROI)
+                  : state.currentOpportunity
+                    ? formatPct(state.currentOpportunity.estimatedUpsidePct)
+                    : '—'}
               </p>
             </div>
             <div>
               <p className="tos-tlm-kicker">Expected Risk</p>
               <p className="tos-num">
-                {state.currentOpportunity
-                  ? `−${state.currentOpportunity.estimatedDownsidePct}%`
-                  : '—'}
+                {state.canonicalDecision?.expectedDrawdown != null
+                  ? `−${state.canonicalDecision.expectedDrawdown}%`
+                  : state.currentOpportunity
+                    ? `−${state.currentOpportunity.estimatedDownsidePct}%`
+                    : '—'}
               </p>
             </div>
           </div>

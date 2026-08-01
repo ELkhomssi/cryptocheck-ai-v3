@@ -15,10 +15,7 @@ export function adaptCoachToAttention(insights: CoachInsight[]): AttentionItem[]
     headline: c.headline,
     reality: c.statistic,
     analysis: c.reasoning,
-    recommendation: {
-      action: c.expectedImpact,
-      confidence: Math.round(c.confidence),
-    },
+    // No recommendation — Coach attention is tone/facts; Decision Engine owns act
     evidence: [
       { id: 'e-conf', kind: 'score', label: 'Coach confidence', value: Math.round(c.confidence) },
       { id: 'e-stat', kind: 'text', label: 'Statistic', detail: c.statistic },

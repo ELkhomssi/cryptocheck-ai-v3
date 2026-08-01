@@ -18,6 +18,8 @@ const LAYER4_DIRS = [
   'features/terminal-os/alerts',
   'features/terminal-os/discovery-engine',
   'features/attention-feed',
+  'features/terminal-os/ai-trade-like-me/components',
+  'features/terminal-os/ai-trade-like-me/hooks',
 ]
 
 /** Layer 1 engine modules — facts/signals; Layer 4 must not import these */
