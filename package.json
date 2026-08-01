@@ -18,7 +18,7 @@
   ],
   "scripts": {
     "dev": "next dev",
-    "build": "npm run build:packages && npm run lint:boundaries && next build",
+    "build": "npm run build:packages && npm run lint:decision-boundary && next build",
     "build:packages": "npm run build --prefix packages/signing && npm run build --prefix packages/types && npm run build --prefix packages/ccai-connect && npm run build --prefix packages/signal-contracts && npm run build --prefix packages/decision-contracts",
     "start": "next start",
     "lint": "next lint",

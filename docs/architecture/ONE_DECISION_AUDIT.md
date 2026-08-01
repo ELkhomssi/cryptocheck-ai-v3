@@ -65,7 +65,8 @@ Engines remain independently deployable — no merge.
 ## Enforcement
 
 - `npm run lint:decision-boundary` — fails if Layer 4 imports banned Layer 1 modules.
-- `npm run lint:boundaries` — runs on `npm run build` (Vercel) before `next build`.
+- `npm run lint:decision-boundary` — runs on `npm run build` (Vercel) before `next build`.
+- `npm run lint:boundaries` — local aggregate (intelligence-core + chart + decision); chart script tolerates missing `rg`.
 - `npm run test:decision-boundary` — degraded Decision + lint smoke + ai_signal Decision conditions.
 
 ---
