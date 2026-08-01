@@ -1,10 +1,11 @@
 /**
  * Reshape Trade Like Me / Decision Engine output → AttentionItem.
- * Read-only — does not call into engine internals beyond public hooks' state.
+ * Read-only consumer of canonical Decision (Layer 4).
  */
 
 import type { ExplainedNarrative } from '@/features/terminal-os/ai-trade-like-me/engines/explainable-engine'
 import type { TradeLikeMeState } from '@/features/terminal-os/ai-trade-like-me/types'
+import { toCanonicalDecision } from '@/features/terminal-os/ai-trade-like-me/lib/to-canonical-decision'
 import type { AttentionItem } from '../types'
 
 export function adaptDecisionToAttention(
@@ -14,17 +15,19 @@ export function adaptDecisionToAttention(
   const opp = state.currentOpportunity
   if (!opp) return []
 
-  const action = opp.action
-  const conf = Math.round(opp.scores.confidence)
-  const symbol = opp.tokenSymbol
-  const reality =
-    opp.summary ||
-    `$${symbol} on ${opp.chain} is the live opportunity your Decision Engine ranked highest (${state.phase}).`
+  const decision = toCanonicalDecision(opp)
+  const action = decision.action
+  const conf = decision.confidence
+  const symbol = decision.subject.kind === 'token' ? decision.subject.symbol : opp.tokenSymbol
+  const reality = decision.reasoning
   const analysis =
     narrative?.bullets?.slice(0, 3).join(' ') ||
-    opp.reasons.slice(0, 3).join(' · ') ||
+    decision.contributingFactors
+      .slice(0, 3)
+      .map((f) => f.summary)
+      .join(' · ') ||
     narrative?.confidenceLine ||
-    'Explainable AI cited your Trader DNA against current market quality.'
+    'Canonical Decision — Explainable AI tone only.'
 
   const urgency =
     conf >= 70 && (action === 'BUY' || action === 'SELL' || action === 'EXIT')
@@ -35,10 +38,10 @@ export function adaptDecisionToAttention(
 
   return [
     {
-      id: `decision:${opp.id}:${action}`,
+      id: `decision:${decision.id}:${action}`,
       sourceEngine: 'decision-engine',
       urgency,
-      headline: `${action} $${symbol} — AI conviction ${conf}%`,
+      headline: `${action} $${symbol} — Decision confidence ${conf}%${decision.degraded ? ' · degraded' : ''}`,
       reality,
       analysis,
       recommendation: {
@@ -50,25 +53,23 @@ export function adaptDecisionToAttention(
       },
       evidence: [
         { id: 'e-conf', kind: 'score', label: 'Confidence', value: conf },
-        { id: 'e-beh', kind: 'score', label: 'Behavior match', value: opp.scores.behaviorMatch },
-        { id: 'e-mkt', kind: 'score', label: 'Market quality', value: opp.scores.marketQuality },
-        { id: 'e-risk', kind: 'score', label: 'Risk', value: opp.scores.risk },
+        { id: 'e-risk', kind: 'score', label: 'Risk', value: decision.risk },
         { id: 'e-phase', kind: 'text', label: 'Engine phase', value: state.phase },
-        ...opp.reasons.slice(0, 4).map((r, i) => ({
-          id: `e-reason-${i}`,
+        ...(decision.degradedInputs ?? []).map((e, i) => ({
+          id: `e-deg-${i}`,
           kind: 'text' as const,
-          label: 'Reason',
-          detail: r,
+          label: 'Degraded input',
+          detail: e,
         })),
-        ...opp.citations.slice(0, 3).map((c, i) => ({
-          id: `e-cite-${i}`,
+        ...decision.contributingFactors.slice(0, 4).map((f, i) => ({
+          id: `e-factor-${i}`,
           kind: 'text' as const,
-          label: `${c.source}.${c.field}`,
-          detail: c.contribution,
-          value: typeof c.value === 'number' ? c.value : String(c.value),
+          label: String(f.engine),
+          detail: f.summary,
+          value: f.weight,
         })),
       ],
-      createdAt: opp.madeAt,
+      createdAt: decision.computedAt,
       rankScore: conf + (urgency === 'now' ? 20 : 0),
     },
   ]

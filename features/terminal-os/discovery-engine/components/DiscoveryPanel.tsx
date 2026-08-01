@@ -1,38 +1,44 @@
 'use client'
 
 /**
- * Discovery — live market opportunities from Terminal OS feed (not mock rows).
+ * Discovery — filtered/sorted view over Decision Engine output (Layer 4).
+ * Does not invent opportunityScore — confidence/action come from Decision only.
  */
 
 import { useEffect, useState } from 'react'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
 import { liveMarketDataProvider } from '@/features/terminal-os/shared/lib/live-providers'
-import { scoreTokenFromMarket } from '@/features/terminal-os/shared/lib/score-from-market'
+import { decideForToken } from '@/features/terminal-os/ai-trade-like-me/lib/decide-for-token'
 import { useTerminalOsStore } from '@/stores/terminal-os'
 import type { DiscoveryOpportunity, RiskBand, TokenRow } from '@/features/terminal-os/shared/types'
 
-function toOpportunity(t: TokenRow): DiscoveryOpportunity {
-  const scan = scoreTokenFromMarket(t)
-  const opportunityScore = Math.round(
-    Math.min(98, Math.max(12, scan.score * 0.55 + Math.min(40, Math.log10(Math.max(t.volume24hUsd, 1)) * 8))),
-  )
-  const risk = (scan.band === 'excellent' || scan.band === 'good'
-    ? 'low'
-    : scan.band === 'caution'
-      ? 'moderate'
-      : 'high') as RiskBand
+const HIGH_CONVICTION_MIN = 70
+
+function toOpportunity(t: TokenRow): DiscoveryOpportunity | null {
+  const { decision } = decideForToken({ token: t, dna: null })
+  // Discovery = Decision view, not a separate ranking algorithm
+  if (decision.action !== 'BUY' && decision.action !== 'WAIT') return null
+  if (decision.confidence < HIGH_CONVICTION_MIN) return null
+
+  const risk = (
+    decision.risk >= 70 ? 'high' : decision.risk >= 45 ? 'moderate' : 'low'
+  ) as RiskBand
+
   return {
     id: t.id,
     symbol: t.symbol,
     name: t.name,
-    opportunityScore,
+    opportunityScore: decision.confidence,
     risk,
-    narrative: `${t.chain} · liq ${Math.round(t.liquidityUsd).toLocaleString()}`,
-    catalyst: t.change24hPct >= 0 ? 'Positive 24h momentum' : 'Pullback — watch for reclaim',
-    confidence: scan.confidence,
+    narrative: decision.reasoning.slice(0, 120),
+    catalyst: `${decision.action} · Decision ${decision.id.slice(0, 12)}`,
+    confidence: decision.confidence,
     timeHorizon: 'intraday',
-    why: scan.explanation,
+    why: decision.contributingFactors
+      .slice(0, 3)
+      .map((f) => f.summary)
+      .join(' · ') || decision.reasoning,
   }
 }
 
@@ -48,7 +54,13 @@ export function DiscoveryPanel() {
       .getTopTokens(chain === 'all' ? 'solana' : chain)
       .then((tokens) => {
         if (c) return
-        setRows(tokens.slice(0, 8).map(toOpportunity))
+        const scored = tokens
+          .slice(0, 16)
+          .map(toOpportunity)
+          .filter((o): o is DiscoveryOpportunity => o != null)
+          .sort((a, b) => b.opportunityScore - a.opportunityScore)
+          .slice(0, 8)
+        setRows(scored)
       })
       .catch((e: Error) => {
         if (!c) setError(e.message)
@@ -65,7 +77,7 @@ export function DiscoveryPanel() {
       ) : !rows ? (
         <PanelSkeleton rows={3} />
       ) : rows.length === 0 ? (
-        <EmptyState message="No live opportunities scored yet." />
+        <EmptyState message="No live Decisions ranked yet — Decision Engine has no high-conviction BUY/WAIT." />
       ) : (
         <div className="tos-stack-sm">
           {rows.map((o) => (
@@ -103,14 +115,14 @@ export function DiscoveryPanel() {
                   ${o.symbol} <span className="tos-secondary">{o.name}</span>
                 </strong>
                 <span className="tos-num" style={{ color: 'var(--tos-accent-gold)' }}>
-                  Opp {o.opportunityScore}
+                  Decision {o.opportunityScore}
                 </span>
               </div>
               <div className="tos-card-tile-meta">
                 {o.narrative} · Risk {o.risk} · {o.timeHorizon}
               </div>
               <p className="tos-card-tile-meta" style={{ color: 'var(--tos-text-secondary)' }}>
-                Catalyst: {o.catalyst}. Why: {o.why} (conf {o.confidence}%)
+                {o.catalyst}. Why: {o.why} (conf {o.confidence}%)
               </p>
             </article>
           ))}

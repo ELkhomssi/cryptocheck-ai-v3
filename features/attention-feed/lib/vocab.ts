@@ -72,5 +72,6 @@ export const WORKSPACE_ENGINES: Record<
     'automation-engine',
   ],
   coach: ['ai-coach', 'portfolio-intelligence', 'explainable-ai'],
-  discovery: ['decision-engine', 'market-intelligence'],
+  /** High-conviction list = Decision objects only (no market shadow ranking) */
+  discovery: ['decision-engine'],
 }
