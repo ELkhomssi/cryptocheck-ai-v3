@@ -7,6 +7,7 @@ import { subscriptionService } from '@/lib/services/subscription.service'
 import { userHasFullPlatformAccess } from '@/lib/billing/full-access'
 import { logSecurityEvent } from '@/lib/services/security-log.service'
 import { mergeWithRateLimitHeaders, scanApiErrorPayload } from '@/lib/api/scan-api-errors'
+import { evaluateApiBotGuard } from '@/lib/bot-protection/api-guard'
 
 export type ApiAuthContext = {
   userId: string
@@ -156,6 +157,8 @@ export type ApiHandlerWithAuth = (req: NextRequest, ctx: ApiAuthContext) => Prom
 
 export function withApiAuth(handler: ApiHandlerWithAuth) {
   return async (req: NextRequest) => {
+    const bot = evaluateApiBotGuard(req)
+    if (!bot.allow && bot.response) return bot.response
     const result = await authenticateApiRequest(req)
     if (result.ok === false) return result.response
     return handler(req, result.ctx)
@@ -165,6 +168,8 @@ export function withApiAuth(handler: ApiHandlerWithAuth) {
 /** API key auth + server-verified FULL_ACCESS (neural, alpha feed). */
 export function withFullAccessApiAuth(handler: ApiHandlerWithAuth) {
   return async (req: NextRequest) => {
+    const bot = evaluateApiBotGuard(req)
+    if (!bot.allow && bot.response) return bot.response
     const result = await authenticateApiRequest(req)
     if (result.ok === false) return result.response
 
