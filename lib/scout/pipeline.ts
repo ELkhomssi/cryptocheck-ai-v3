@@ -152,6 +152,9 @@ export async function approveScoutArticle(articleId: string): Promise<ScoutArtic
   }
   await enqueueArticle(published)
 
+  // Best-effort search engine notification after publish (never blocks)
+  void notifySearchEnginesOfUrl(`/blog/${published.slug}`)
+
   let state = await loadScoutState()
   state = {
     ...state,
