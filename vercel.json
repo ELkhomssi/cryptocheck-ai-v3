@@ -56,6 +56,10 @@
     {
       "path": "/api/cron/intelligence-memory",
       "schedule": "15 6 * * *"
+    },
+    {
+      "path": "/api/cron/scout-cycle",
+      "schedule": "0 */6 * * *"
     }
   ],
   "redirects": [

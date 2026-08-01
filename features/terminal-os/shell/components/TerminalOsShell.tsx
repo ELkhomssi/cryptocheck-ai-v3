@@ -18,6 +18,7 @@ import { TokenScoreScanCard } from '@/features/terminal-os/security-center/compo
 import { WalletScoreScanCard } from '@/features/terminal-os/security-center/components/WalletScoreScanCard'
 import { AiCoachingCard } from '@/features/terminal-os/ai-coach/components/AiCoachingCard'
 import { AiWorkforcePanel } from '@/features/terminal-os/ai-workforce/components/AiWorkforcePanel'
+import { ScoutPanel } from '@/features/terminal-os/scout/components/ScoutPanel'
 import { AlertsWorkspace } from '@/features/terminal-os/alerts/AlertsWorkspace'
 import { AlertToastHost } from '@/features/terminal-os/alerts/AlertToastHost'
 import { AlertEvaluateBridge } from '@/features/terminal-os/alerts/AlertEvaluateBridge'
@@ -101,6 +102,14 @@ function MainColumn() {
     return (
       <Bound title="AI Coach">
         <AiCoachWorkspace />
+      </Bound>
+    )
+  }
+
+  if (nav === 'scout') {
+    return (
+      <Bound title="Scout">
+        <ScoutPanel />
       </Bound>
     )
   }

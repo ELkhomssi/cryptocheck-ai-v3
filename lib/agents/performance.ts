@@ -176,6 +176,24 @@ async function scoreFromPredictions(
     return { score, sampleSize, calibrating: false, meta: { accepted } }
   }
 
+  if (formulaId === 'growth_content_impact') {
+    const { data } = await admin
+      .from('scout_articles')
+      .select('status, quality_score')
+      .order('updated_at', { ascending: false })
+      .limit(100)
+    const rows = data ?? []
+    const sampleSize = rows.length
+    if (sampleSize < minSamples) {
+      return { score: null, sampleSize, calibrating: true, meta: { reason: 'insufficient_scout_articles' } }
+    }
+    const publishedOrApproved = rows.filter((r) =>
+      ['published', 'approved', 'in_review'].includes(String((r as { status: string }).status)),
+    ).length
+    const score = Math.round((publishedOrApproved / sampleSize) * 100)
+    return { score, sampleSize, calibrating: false, meta: { publishedOrApproved } }
+  }
+
   // Default: prediction win-rate formulas
   const { data } = await admin
     .from('agent_predictions')

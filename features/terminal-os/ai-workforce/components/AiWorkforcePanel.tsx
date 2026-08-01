@@ -15,6 +15,7 @@ const EMPLOYEES = [
   'Coach',
   'Discovery Agent',
   'News Intelligence',
+  'Scout',
 ] as const
 
 /** Roster shell — agents map to live engines already wired (scan, whales, coach, execution). */

@@ -23,6 +23,7 @@ export const STATIC_SITEMAP_ROUTES: StaticSitemapRoute[] = [
   { path: '/about', changefreq: 'monthly', priority: 0.7 },
   { path: '/contact', changefreq: 'monthly', priority: 0.7 },
   { path: '/docs', changefreq: 'weekly', priority: 0.8 },
+  { path: '/blog', changefreq: 'daily', priority: 0.85 },
   { path: '/status', changefreq: 'daily', priority: 0.5 },
   { path: '/terms', changefreq: 'yearly', priority: 0.3 },
   { path: '/launchLab', changefreq: 'weekly', priority: 0.75 },
