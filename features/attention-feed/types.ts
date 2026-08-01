@@ -51,6 +51,16 @@ export interface AttentionItem {
   rankScore: number
 }
 
+/** Live presentation meta — never invents content, only labels how an item arrived */
+export type AttentionLiveKind = 'stable' | 'new' | 'updated'
+
+export interface AttentionFeedEntry {
+  item: AttentionItem
+  kind: AttentionLiveKind
+  /** True when first seen after the user's last session marker */
+  sinceAway: boolean
+}
+
 export type UiPresentationMode = 'simple' | 'pro'
 
 /** Disclosure levels — structurally enforced by AttentionCard */

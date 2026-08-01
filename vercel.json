@@ -42,6 +42,10 @@
       "schedule": "*/5 * * * *"
     },
     {
+      "path": "/api/cron/attention-feed",
+      "schedule": "*/2 * * * *"
+    },
+    {
       "path": "/api/cron/agent-performance",
       "schedule": "0 * * * *"
     },

@@ -9,12 +9,12 @@ import { useCallback, useState } from 'react'
 import { useTradeLikeMeEngine } from '@/features/terminal-os/ai-trade-like-me/hooks/useTradeLikeMeEngine'
 import { useTerminalOsStore } from '@/stores/terminal-os'
 import type { CoachInsight } from '@/features/terminal-os/shared/types'
-import { AttentionCard } from '../components/AttentionCard'
+import { AttentionFeedList } from '../components/AttentionFeedList'
 import { SimpleSecureAccount } from '../components/SimpleSecureAccount'
 import { useAttentionFeed } from '../hooks/useAttentionFeed'
 
 export function SimpleCoachWorkspace() {
-  const { items, isLoading } = useAttentionFeed('coach')
+  const { entries } = useAttentionFeed('coach')
   const { teach, state, trainAiFromMyTrading, busy, error } = useTradeLikeMeEngine()
   const walletConnected = useTerminalOsStore((s) => s.walletConnected)
   const wallet = useTerminalOsStore((s) => s.walletAddress)
@@ -91,12 +91,7 @@ export function SimpleCoachWorkspace() {
         </div>
       ) : null}
 
-      <div className="sm-feed">
-        {isLoading && !items.length ? <p className="sm-muted-line">Loading coach context…</p> : null}
-        {items.map((item) => (
-          <AttentionCard key={item.id} item={item} />
-        ))}
-      </div>
+      <AttentionFeedList entries={entries} />
 
       <div className="sm-coach-ask">
         <label className="sm-field">

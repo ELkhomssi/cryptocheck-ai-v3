@@ -136,7 +136,20 @@ export class TradeLikeMeOrchestrator {
   ) {
     const dna = this.dnaEngine.getDna() ?? this.refreshDna()
     const intel = this.market.snapshot({ token, whales })
+    const prev = this.lastMarketContext
     this.lastMarketContext = intel
+    // Attention Feed: only when MarketContext materially shifts (not every price tick)
+    if (
+      !prev ||
+      prev.tokenSymbol !== intel.tokenSymbol ||
+      prev.whaleBias !== intel.whaleBias ||
+      prev.securityBand !== intel.securityBand ||
+      prev.liquidityTrend !== intel.liquidityTrend ||
+      Math.abs(prev.volatilityPct - intel.volatilityPct) >= 4 ||
+      Math.abs(prev.whaleActivityScore - intel.whaleActivityScore) >= 12
+    ) {
+      this.bus.publish('MarketContextChanged', intel, 'MarketIntelligenceEngine')
+    }
     this.prediction.predict(dna, intel)
 
     const collectiveSig = this.collective.signal(dna, intel)
