@@ -3,6 +3,7 @@ import { IBM_Plex_Mono, IBM_Plex_Sans, JetBrains_Mono } from 'next/font/google'
 import { SolanaProvider } from '@/components/SolanaProvider'
 import { DisclaimerModal } from '@/components/legal/DisclaimerModal'
 import { Analytics } from '@vercel/analytics/react'
+import { buildRootMetadata } from '@/lib/seo/metadata'
 import '@/styles/tokens.css'
 import './globals.css'
 // ── Bloomberg-style monospace + companion sans ──
@@ -30,13 +31,7 @@ const jetbrainsMono = JetBrains_Mono({
   variable: '--font-mono-terminal',
   display: 'swap',
 })
-export const metadata: Metadata = {
-  icons: { icon: '/logo.jpg', apple: '/logo.jpg' },
-  title: 'CryptoCheck AI — Solana Token Intelligence',
-  description: 'Institutional-grade Neural Scan, AI Predictions, Whale Tracking for Solana traders',
-  keywords: ['Solana', 'token scanner', 'rug detection', 'DeFi', 'blockchain analytics', 'Helius'],
-  authors: [{ name: 'CryptoCheck AI' }],
-}
+export const metadata: Metadata = buildRootMetadata()
 
 /** Next.js 14+ — themeColor belongs on `viewport`, not `metadata`. */
 export const viewport: Viewport = {

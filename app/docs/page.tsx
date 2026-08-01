@@ -1,12 +1,17 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { GlassCard } from '@/components/Dashboard/GlassCard'
 import { DocsQuickStart } from '@/components/docs/DocsQuickStart'
 import { SCAN_API_SECURITY_DOCS_URL } from '@/lib/security/signing/env'
+import { buildPageMetadata } from '@/lib/seo/metadata'
 
-export const metadata = {
-  title: 'Developer documentation — CryptoCheck AI',
-  description: 'Integrate institutional token intelligence in minutes. TypeScript SDK, signing, and API reference.',
-}
+export const metadata: Metadata = buildPageMetadata({
+  title: 'Developer documentation — CryptoCheckAI',
+  description:
+    'Integrate institutional token intelligence in minutes. TypeScript SDK, signing, and API reference.',
+  path: '/docs',
+  keywords: ['CryptoCheckAI API', 'solana scanner API', 'developer docs'],
+})
 
 export default function DocsPage() {
   return (

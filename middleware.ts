@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest, type NextFetchEvent } from 'next/server'
+import { runEdgeBotProtection } from '@/lib/bot-protection/edge'
 import {
   PV_SID_COOKIE,
   PV_SID_MAX_AGE,
@@ -9,11 +10,12 @@ import {
 } from '@/lib/page-views/capture'
 
 /**
- * Permanent redirects for legacy / spam URLs (e.g. "company website" crawl noise).
- * FULL_ACCESS is enforced in API route handlers (`withFullAccessApiAuth`, `requireSessionFullAccess`)
- * and via webhook-updated `saas_subscriptions.full_access` — not in middleware (API keys lack cookies).
+ * Edge middleware:
+ * 1) Legacy redirects
+ * 2) Bot protection (search engines always allowed; &lt;5ms target for clean traffic)
+ * 3) Pageview capture (non-bot HTML)
  *
- * Pageview capture (`page_views`) runs non-blocking via NextFetchEvent.waitUntil for non-bot HTML navigations.
+ * FULL_ACCESS remains in API route handlers — not here.
  */
 
 async function logPageView(request: NextRequest, response: NextResponse): Promise<void> {
@@ -34,6 +36,8 @@ async function logPageView(request: NextRequest, response: NextResponse): Promis
 function attachPageView(request: NextRequest, response: NextResponse, event: NextFetchEvent): void {
   const ua = request.headers.get('user-agent')
   if (isBot(ua)) return
+  // Skip pageviews for API
+  if (request.nextUrl.pathname.startsWith('/api/')) return
 
   if (!request.cookies.get(PV_SID_COOKIE)?.value) {
     response.cookies.set(PV_SID_COOKIE, crypto.randomUUID(), {
@@ -48,7 +52,7 @@ function attachPageView(request: NextRequest, response: NextResponse, event: Nex
   event.waitUntil(logPageView(request, response))
 }
 
-export function middleware(request: NextRequest, event: NextFetchEvent) {
+export async function middleware(request: NextRequest, event: NextFetchEvent) {
   const { pathname, search } = request.nextUrl
   const haystack = `${pathname}${search}`.toLowerCase()
 
@@ -69,14 +73,25 @@ export function middleware(request: NextRequest, event: NextFetchEvent) {
     return response
   }
 
+  const bot = await runEdgeBotProtection(request)
+  if (bot.response) {
+    // Do not attach pageviews for blocked / challenged traffic
+    return bot.response
+  }
+
   const response = NextResponse.next()
+  if (bot.result.botScore > 0) {
+    response.headers.set('X-CCAI-BotScore', String(bot.result.botScore))
+  }
   attachPageView(request, response, event)
   return response
 }
 
 export const config = {
   matcher: [
-    // Existing exclusions + pageview static asset extensions (css|js|woff).
-    '/((?!api/|_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|css|js|ico|woff|woff2)$).*)',
+    /*
+     * Run on pages + API (bot defense). Exclude Next internals & static assets.
+     */
+    '/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|css|js|ico|woff|woff2)$).*)',
   ],
 }
