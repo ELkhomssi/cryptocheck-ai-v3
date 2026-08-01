@@ -7,10 +7,10 @@
  */
 
 import { useCallback, useState, startTransition } from 'react'
-import { PanelSkeleton, EmptyState } from '@/features/terminal-os/shared/components/PanelStates'
+import { EmptyState } from '@/features/terminal-os/shared/components/PanelStates'
 import { useTradeLikeMeEngine } from '@/features/terminal-os/ai-trade-like-me/hooks/useTradeLikeMeEngine'
 import { useTerminalOsStore } from '@/stores/terminal-os'
-import { AttentionCard } from '../components/AttentionCard'
+import { AttentionFeedList } from '../components/AttentionFeedList'
 import { AskAiInput } from '../components/AskAiInput'
 import { SimpleSecureAccount } from '../components/SimpleSecureAccount'
 import { useAttentionFeed } from '../hooks/useAttentionFeed'
@@ -26,12 +26,12 @@ function FeedWorkspace({
   workspace: Extract<SimpleWorkspaceId, 'home' | 'employees' | 'discovery'>
   onAcceptExecution: () => void
 }) {
-  const { items, isLoading, isError } = useAttentionFeed(workspace)
+  const { entries, items, isError, isLive } = useAttentionFeed(workspace)
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set())
   const setFocusedToken = useTerminalOsStore((s) => s.setFocusedToken)
   const { refreshOpportunity, state } = useTradeLikeMeEngine()
 
-  const visible = items.filter((i) => !dismissed.has(i.id))
+  const visible = entries.filter((e) => !dismissed.has(e.item.id))
   const meta = SIMPLE_WORKSPACES.find((w) => w.id === workspace)!
 
   const onDismiss = useCallback((id: string) => {
@@ -60,7 +60,12 @@ function FeedWorkspace({
 
   return (
     <div className="sm-workspace">
-      <h2 className="sm-workspace-title">{meta.label === 'Home' ? 'Attention' : meta.label}</h2>
+      <div className="sm-workspace-head">
+        <h2 className="sm-workspace-title">{meta.label === 'Home' ? 'Attention' : meta.label}</h2>
+        <span className="sm-live-pill" data-live={isLive ? 'true' : 'false'}>
+          {isLive ? 'Live' : 'Reconnecting'}
+        </span>
+      </div>
       <p className="sm-workspace-q">{meta.question}</p>
       {workspace === 'home' ? (
         <p className="sm-loop">
@@ -81,8 +86,7 @@ function FeedWorkspace({
       {isError && !visible.length ? (
         <EmptyState message="Attention feed offline — engines did not return ranked items." />
       ) : null}
-      {isLoading && !visible.length ? <PanelSkeleton rows={4} /> : null}
-      {!isLoading && !visible.length ? (
+      {!visible.length && !isError ? (
         <EmptyState
           message={
             workspace === 'discovery'
@@ -91,19 +95,15 @@ function FeedWorkspace({
           }
         />
       ) : null}
-      <div className="sm-feed">
-        {visible.map((item) => (
-          <AttentionCard
-            key={item.id}
-            item={item}
-            onAccept={onAccept}
-            onDismiss={onDismiss}
-            acceptLabel={
-              item.sourceEngine === 'decision-engine' ? 'Review execution' : 'Got it'
-            }
-          />
-        ))}
-      </div>
+      <AttentionFeedList
+        entries={visible}
+        onAccept={onAccept}
+        onDismiss={onDismiss}
+        acceptLabelFor={(id) => {
+          const item = items.find((i) => i.id === id)
+          return item?.sourceEngine === 'decision-engine' ? 'Review execution' : 'Got it'
+        }}
+      />
     </div>
   )
 }

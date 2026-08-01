@@ -7,7 +7,7 @@
  */
 
 import { useCallback, useState } from 'react'
-import type { AttentionItem, DisclosureLevel } from '../types'
+import type { AttentionItem, AttentionLiveKind, DisclosureLevel } from '../types'
 import { SIMPLE_ENGINE_LABEL } from '../lib/vocab'
 
 function advance(item: AttentionItem, level: DisclosureLevel): DisclosureLevel {
@@ -22,12 +22,15 @@ export function AttentionCard({
   onAccept,
   onDismiss,
   acceptLabel = 'Accept',
+  liveKind = 'stable',
 }: {
   item: AttentionItem
   onAccept?: (id: string) => void
   onDismiss?: (id: string) => void
   /** Simple Mode CTA — never Pro jargon */
   acceptLabel?: string
+  /** Live feed motion hint — new vs updated vs stable */
+  liveKind?: AttentionLiveKind
 }) {
   const [level, setLevel] = useState<DisclosureLevel>(0)
 
@@ -41,7 +44,13 @@ export function AttentionCard({
   }, [])
 
   return (
-    <article className="sm-card" data-urgency={item.urgency} data-level={level}>
+    <article
+      className="sm-card"
+      data-urgency={item.urgency}
+      data-level={level}
+      data-iv-noticed={liveKind === 'new' ? 'true' : 'false'}
+      data-live-updated={liveKind === 'updated' ? 'true' : 'false'}
+    >
       <header className="sm-card-head">
         <span className="sm-urgency" data-urgency={item.urgency}>
           {item.urgency}

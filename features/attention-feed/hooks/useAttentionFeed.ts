@@ -1,105 +1,239 @@
 'use client'
 
 /**
- * Composes read-only adapters over existing Pro Mode hooks/providers.
- * No duplicate engines — reshape only. Live holdings (not mocks).
+ * Live Attention Feed — SSE subscription + TLM event bus.
+ * No TanStack polling of market providers. First paint from snapshot.
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, startTransition } from 'react'
 import { useTradeLikeMeEngine } from '@/features/terminal-os/ai-trade-like-me/hooks/useTradeLikeMeEngine'
-import { useTopTokens, useWhaleMovements } from '@/features/terminal-os/shared/hooks/useTerminalQueries'
-import { summaryFromHoldings } from '@/features/terminal-os/portfolio-os/lib/summary-from-holdings'
+import { getTradeLikeMeOrchestrator } from '@/features/terminal-os/ai-trade-like-me/engines/orchestrator'
 import { useTerminalOsStore } from '@/stores/terminal-os'
-import type { HoldingsResponse } from '@/types/portfolio-desk'
-import type { CoachInsight, PortfolioHealthSummary } from '@/features/terminal-os/shared/types'
 import { adaptDecisionToAttention } from '../adapters/decision-adapter'
-import { adaptWhalesToAttention } from '../adapters/whale-adapter'
-import { adaptMarketToAttention } from '../adapters/market-adapter'
-import { adaptCoachToAttention, adaptPortfolioToAttention } from '../adapters/coach-portfolio-adapter'
 import { adaptDnaToAttention } from '../adapters/dna-adapter'
 import { prioritizeAttentionItems } from '../lib/prioritize'
 import { filterWorkspaceItems } from '../lib/filter-workspace'
+import { mergeLiveEntries, type LiveEventHint } from '../lib/merge-live-entries'
+import { readLastSeenAt, writeLastSeenAt } from '../lib/session-seen'
 import type { SimpleWorkspaceId } from '../lib/vocab'
-import type { AttentionItem } from '../types'
+import type { AttentionFeedEntry, AttentionItem, AttentionLiveKind } from '../types'
+
+const BATCH_MS = 2_500
+
+type SnapshotPayload = {
+  items?: AttentionItem[]
+  seq?: number
+  updatedAt?: string
+  events?: { itemId: string; kind: 'new' | 'updated'; at: string }[]
+  newCount?: number
+  updatedCount?: number
+}
 
 export function useAttentionFeed(workspace: SimpleWorkspaceId = 'home'): {
+  entries: AttentionFeedEntry[]
   items: AttentionItem[]
-  allItems: AttentionItem[]
   isLoading: boolean
   isError: boolean
+  isLive: boolean
 } {
   const { state, narrative } = useTradeLikeMeEngine()
-  const whalesQ = useWhaleMovements(16)
-  const tokensQ = useTopTokens('solana')
   const wallet = useTerminalOsStore((s) => s.walletAddress)
   const walletConnected = useTerminalOsStore((s) => s.walletConnected)
-  const chainFamily = useTerminalOsStore((s) => s.walletChainFamily)
 
-  const [portfolio, setPortfolio] = useState<PortfolioHealthSummary | null>(null)
-  const [coachInsights, setCoachInsights] = useState<CoachInsight[]>([])
-  const [portfolioLoading, setPortfolioLoading] = useState(false)
+  const [serverItems, setServerItems] = useState<AttentionItem[]>([])
+  const [hints, setHints] = useState<LiveEventHint[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isError, setIsError] = useState(false)
+  const [isLive, setIsLive] = useState(false)
+  const [lastSeenAt] = useState(() => readLastSeenAt())
+  const [kindFlash, setKindFlash] = useState<Record<string, AttentionLiveKind>>({})
 
+  const pendingRef = useRef<{
+    items: AttentionItem[] | null
+    hints: LiveEventHint[]
+  }>({ items: null, hints: [] })
+  const batchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const flushBatch = () => {
+    const pending = pendingRef.current
+    pendingRef.current = { items: null, hints: [] }
+    startTransition(() => {
+      if (pending.items) setServerItems(pending.items)
+      if (pending.hints.length) {
+        setHints((prev) => [...pending.hints, ...prev].slice(0, 64))
+        const flash: Record<string, AttentionLiveKind> = {}
+        for (const h of pending.hints) flash[h.itemId] = h.kind
+        setKindFlash((prev) => ({ ...prev, ...flash }))
+        window.setTimeout(() => {
+          setKindFlash((prev) => {
+            const next = { ...prev }
+            for (const id of Object.keys(flash)) {
+              if (next[id] === flash[id]) delete next[id]
+            }
+            return next
+          })
+        }, 2_400)
+      }
+    })
+  }
+
+  const scheduleBatch = (items: AttentionItem[] | null, newHints: LiveEventHint[]) => {
+    if (items) pendingRef.current.items = items
+    if (newHints.length) {
+      pendingRef.current.hints = [...newHints, ...pendingRef.current.hints]
+    }
+    if (batchTimer.current) clearTimeout(batchTimer.current)
+    batchTimer.current = setTimeout(flushBatch, BATCH_MS)
+  }
+
+  // First paint — snapshot (no spinner once data arrives; empty only if truly empty)
   useEffect(() => {
     let cancelled = false
-    if (!walletConnected || !wallet || chainFamily === 'evm') {
-      setPortfolio(null)
-      setCoachInsights([])
-      return
-    }
-    setPortfolioLoading(true)
-    void fetch(`/api/portfolio/holdings?wallet=${encodeURIComponent(wallet)}`, { cache: 'no-store' })
+    const q = walletConnected && wallet ? `?wallet=${encodeURIComponent(wallet)}` : ''
+    void fetch(`/api/terminal-os/attention/snapshot${q}`, { cache: 'no-store' })
       .then(async (res) => {
-        if (!res.ok) throw new Error('holdings')
-        return (await res.json()) as HoldingsResponse
-      })
-      .then((h) => {
-        if (!cancelled) setPortfolio(summaryFromHoldings(h))
+        const body = (await res.json()) as SnapshotPayload
+        if (cancelled) return
+        setServerItems(body.items ?? [])
+        setHints(
+          (body.events ?? []).map((e) => ({
+            itemId: e.itemId,
+            kind: e.kind,
+            at: e.at,
+          })),
+        )
+        setIsLoading(false)
       })
       .catch(() => {
-        if (!cancelled) setPortfolio(null)
-      })
-      .finally(() => {
-        if (!cancelled) setPortfolioLoading(false)
-      })
-
-    void fetch(`/api/terminal-os/coach?wallet=${encodeURIComponent(wallet)}`)
-      .then(async (res) => {
-        if (!res.ok) return
-        const body = (await res.json()) as { insights?: CoachInsight[]; insufficientData?: boolean }
-        if (!cancelled && body.insights?.length && !body.insufficientData) {
-          setCoachInsights(body.insights)
+        if (!cancelled) {
+          setIsError(true)
+          setIsLoading(false)
         }
       })
-      .catch(() => undefined)
-
     return () => {
       cancelled = true
     }
-  }, [walletConnected, wallet, chainFamily])
+  }, [wallet, walletConnected])
 
+  // SSE — subscribe, never poll CoinGecko/Dex from the client
+  useEffect(() => {
+    const q = walletConnected && wallet ? `?wallet=${encodeURIComponent(wallet)}` : ''
+    const es = new EventSource(`/api/terminal-os/attention/stream${q}`)
+    setIsLive(true)
+
+    const onSnapshot = (ev: MessageEvent) => {
+      try {
+        const body = JSON.parse(String(ev.data)) as SnapshotPayload
+        // First SSE snapshot can apply immediately (already painted from HTTP)
+        setServerItems(body.items ?? [])
+        setHints(
+          (body.events ?? []).map((e) => ({
+            itemId: e.itemId,
+            kind: e.kind,
+            at: e.at,
+          })),
+        )
+        setIsLoading(false)
+      } catch {
+        /* ignore */
+      }
+    }
+
+    const onDelta = (ev: MessageEvent) => {
+      try {
+        const body = JSON.parse(String(ev.data)) as SnapshotPayload
+        const deltaHints = (body.events ?? [])
+          .filter((e) => e.kind === 'new' || e.kind === 'updated')
+          .slice(0, 12)
+          .map((e) => ({ itemId: e.itemId, kind: e.kind, at: e.at }))
+        scheduleBatch(body.items ?? [], deltaHints)
+      } catch {
+        /* ignore */
+      }
+    }
+
+    es.addEventListener('snapshot', onSnapshot as EventListener)
+    es.addEventListener('delta', onDelta as EventListener)
+    es.addEventListener('error', () => {
+      setIsLive(false)
+    })
+
+    return () => {
+      es.close()
+      if (batchTimer.current) clearTimeout(batchTimer.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wallet, walletConnected])
+
+  const serverItemsRef = useRef(serverItems)
+  serverItemsRef.current = serverItems
+  const narrativeRef = useRef(narrative)
+  narrativeRef.current = narrative
+
+  // TLM bus — DecisionMade / DNAUpdated / MarketContextChanged (client engines)
+  useEffect(() => {
+    const orch = getTradeLikeMeOrchestrator()
+    const unsub = orch.bus.subscribe('*', (event) => {
+      if (
+        event.type !== 'DecisionMade' &&
+        event.type !== 'OpportunityScored' &&
+        event.type !== 'DNAUpdated' &&
+        event.type !== 'MarketContextChanged'
+      ) {
+        return
+      }
+      const st = orch.getState(useTerminalOsStore.getState().featureFlags)
+      const local = [
+        ...adaptDecisionToAttention(st, narrativeRef.current),
+        ...adaptDnaToAttention(st.dna),
+      ]
+      if (!local.length) return
+      const merged = prioritizeAttentionItems([...local, ...serverItemsRef.current], 12)
+      const at = event.at
+      const busHints: LiveEventHint[] = local.map((i) => ({
+        itemId: i.id,
+        kind: event.type === 'DNAUpdated' || event.type === 'DecisionMade' ? 'new' : 'updated',
+        at,
+      }))
+      scheduleBatch(merged, busHints)
+    })
+    return unsub
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Mark session as seen after user has the feed open briefly
+  useEffect(() => {
+    const id = window.setTimeout(() => writeLastSeenAt(), 8_000)
+    return () => window.clearTimeout(id)
+  }, [])
+
+  // Merge client DNA/decision into display without polling markets
   const allItems = useMemo(() => {
-    const merged: AttentionItem[] = [
+    const local = [
       ...adaptDecisionToAttention(state, narrative),
       ...adaptDnaToAttention(state.dna),
-      ...adaptWhalesToAttention(whalesQ.data ?? []),
-      ...adaptMarketToAttention(tokensQ.data ?? []),
-      ...adaptCoachToAttention(coachInsights),
-      ...(portfolio ? adaptPortfolioToAttention(portfolio) : []),
     ]
-    return prioritizeAttentionItems(merged, 12)
-  }, [state, narrative, whalesQ.data, tokensQ.data, coachInsights, portfolio])
+    const byId = new Map<string, AttentionItem>()
+    for (const i of serverItems) byId.set(i.id, i)
+    for (const i of local) byId.set(i.id, i)
+    return prioritizeAttentionItems([...byId.values()], 12)
+  }, [serverItems, state, narrative])
 
   const items = useMemo(
     () => filterWorkspaceItems(allItems, workspace),
     [allItems, workspace],
   )
 
-  const isLoading =
-    (whalesQ.isLoading && !whalesQ.data) ||
-    (tokensQ.isLoading && !tokensQ.data) ||
-    portfolioLoading
+  const entries = useMemo(
+    () => mergeLiveEntries(items, hints, lastSeenAt, kindFlash),
+    [items, hints, lastSeenAt, kindFlash],
+  )
 
-  const isError = Boolean(whalesQ.isError && tokensQ.isError)
-
-  return { items, allItems, isLoading, isError }
+  return {
+    entries,
+    items,
+    isLoading: isLoading && items.length === 0,
+    isError,
+    isLive,
+  }
 }

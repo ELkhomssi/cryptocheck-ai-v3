@@ -56,6 +56,8 @@
   --sm-accent: #0f172a;
   --sm-pos: #15803d;
   --sm-neg: #b91c1c;
+  --sm-motion-state: var(--motion-state, 320ms);
+  --sm-ease-state: var(--ease-state, cubic-bezier(0.22, 1, 0.36, 1));
   min-height: 100vh;
   min-height: 100dvh;
   background:
@@ -153,11 +155,100 @@
   width: 100%;
 }
 
+.sm-workspace-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
 .sm-workspace-title {
   margin: 0;
   font-size: 1.15rem;
   font-weight: 700;
   letter-spacing: -0.02em;
+}
+
+.sm-live-pill {
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sm-lo);
+}
+
+.sm-live-pill[data-live='true'] {
+  color: var(--sm-pos);
+}
+
+.sm-feed-item {
+  position: relative;
+  will-change: transform;
+}
+
+.sm-away-mark {
+  display: inline-block;
+  margin-bottom: 0.35rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sm-accent);
+}
+
+.sm-feed[data-refresh='true'] {
+  animation: sm-feed-refresh var(--sm-motion-state) var(--sm-ease-state);
+}
+
+@keyframes sm-feed-refresh {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Reuse IC “AI noticed something” signature (320ms / ease-state) */
+.sm-card[data-iv-noticed='true'] {
+  animation: sm-noticed-ripple var(--sm-motion-state) var(--sm-ease-state);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--sm-accent) 28%, transparent);
+}
+
+.sm-card[data-live-updated='true'] {
+  animation: sm-updated-edge var(--sm-motion-state) var(--sm-ease-state);
+}
+
+@keyframes sm-noticed-ripple {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--sm-accent) 35%, transparent);
+    transform: translateY(4px);
+    opacity: 0.65;
+  }
+  100% {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--sm-accent) 18%, transparent);
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes sm-updated-edge {
+  0% {
+    box-shadow: inset 3px 0 0 var(--sm-accent);
+  }
+  100% {
+    box-shadow: inset 0 0 0 transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sm-card[data-iv-noticed='true'],
+  .sm-card[data-live-updated='true'],
+  .sm-feed[data-refresh='true'],
+  .sm-feed-item {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 .sm-workspace-q {

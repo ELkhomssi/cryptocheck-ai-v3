@@ -49,6 +49,12 @@ export type TlmEventType =
   | 'CollectiveSignalReady'
   | 'SessionStarted'
   | 'SessionStopped'
+  /** Attention Feed subscriptions — emitted when MarketContext materially shifts */
+  | 'MarketContextChanged'
+  /** Security Scanner / risk band newly flags a held or watched token */
+  | 'SecurityFlagRaised'
+  /** Portfolio Intelligence detects real holdings / allocation / exposure change */
+  | 'PortfolioChanged'
   // legacy aliases kept for subscribers during migration
   | 'tlm.session.started'
   | 'tlm.session.stopped'

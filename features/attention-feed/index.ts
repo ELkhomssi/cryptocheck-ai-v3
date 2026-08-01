@@ -1,5 +1,7 @@
 export type {
   AttentionItem,
+  AttentionFeedEntry,
+  AttentionLiveKind,
   AttentionEngineId,
   AttentionUrgency,
   EvidenceRef,
@@ -8,9 +10,11 @@ export type {
 } from './types'
 export { prioritizeAttentionItems } from './lib/prioritize'
 export { filterWorkspaceItems } from './lib/filter-workspace'
+export { mergeLiveEntries } from './lib/merge-live-entries'
 export { SIMPLE_VOCAB, SIMPLE_WORKSPACES, SIMPLE_ENGINE_LABEL } from './lib/vocab'
 export type { SimpleWorkspaceId } from './lib/vocab'
 export { ModeRouter } from './shell/ModeRouter'
 export { SimpleModeShell } from './shell/SimpleModeShell'
 export { AttentionCard } from './components/AttentionCard'
+export { AttentionFeedList } from './components/AttentionFeedList'
 export { usePresentationModeStore, resolveForcedModeFromSearch } from './stores/presentation-mode'
