@@ -74,6 +74,36 @@ export function ScoutPanel() {
     })
   }
 
+  const approveArticle = (articleId: string) => {
+    setMessage(null)
+    startTransition(async () => {
+      try {
+        const res = await fetch('/api/scout/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ articleId }),
+        })
+        const json = (await res.json()) as { ok?: boolean; article?: { slug?: string }; error?: string }
+        if (!res.ok) {
+          setMessage(
+            json.error === 'unauthorized'
+              ? 'Operator auth required to approve'
+              : json.error ?? 'Approve failed',
+          )
+          return
+        }
+        await refresh()
+        setMessage(
+          json.article?.slug
+            ? `Published → /blog/${json.article.slug}`
+            : 'Article published',
+        )
+      } catch {
+        setMessage('Approve failed')
+      }
+    })
+  }
+
   if (loading) {
     return (
       <Panel title="Scout">
@@ -164,12 +194,49 @@ export function ScoutPanel() {
         {state.publicationQueue.length === 0 ? (
           <EmptyState message="Queue empty." />
         ) : (
-          <ul style={{ margin: 0, paddingLeft: 16, fontSize: 'var(--tos-fs-sm)' }}>
-            {state.publicationQueue.slice(0, 10).map((a) => (
-              <li key={a.id}>
-                {a.title} · {a.status} · quality {a.quality?.score ?? '—'}/100
-              </li>
-            ))}
+          <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none', fontSize: 'var(--tos-fs-sm)' }}>
+            {state.publicationQueue.slice(0, 10).map((a) => {
+              const canApprove = a.quality?.passed === true && a.status !== 'published'
+              return (
+                <li
+                  key={a.id}
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 8,
+                    alignItems: 'center',
+                    marginBottom: 10,
+                    paddingBottom: 10,
+                    borderBottom: '1px solid var(--tos-border)',
+                  }}
+                >
+                  <div style={{ flex: '1 1 220px' }}>
+                    <div>{a.title}</div>
+                    <div className="tos-muted">
+                      {a.status} · quality {a.quality?.score ?? '—'}/100
+                      {!a.quality?.passed ? ' · blocked' : ''}
+                    </div>
+                  </div>
+                  {canApprove ? (
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => approveArticle(a.id)}
+                      style={{
+                        border: '1px solid var(--tos-accent-gold, #c8ff00)',
+                        background: 'transparent',
+                        color: 'inherit',
+                        padding: '6px 10px',
+                        fontSize: 'var(--tos-fs-xs)',
+                        cursor: pending ? 'wait' : 'pointer',
+                      }}
+                    >
+                      Approve & publish
+                    </button>
+                  ) : null}
+                </li>
+              )
+            })}
           </ul>
         )}
       </Panel>

@@ -8,6 +8,7 @@ import { buildDistributionBundle } from '@/lib/scout/modules/distributor'
 import { rankKeywordOpportunities } from '@/lib/scout/modules/keyword-intel'
 import { reviewArticleQuality } from '@/lib/scout/modules/quality-review'
 import { buildArticleSeo } from '@/lib/scout/modules/seo-engine'
+import { notifySearchEnginesOfUrl } from '@/lib/scout/modules/search-notify'
 import { writeArticleFromEngines } from '@/lib/scout/modules/writer'
 import {
   appendLearningSignal,

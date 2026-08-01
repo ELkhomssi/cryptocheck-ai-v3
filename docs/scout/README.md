@@ -36,3 +36,11 @@ Never import frozen scanner core.
 - Search volumes stay `null` until a real SEO provider is wired (no fabrication).
 - Publishing is approval-based (`SCOUT_AUTO_PUBLISH=1` to override).
 - Quality gates must pass before approval.
+- After approve, Scout best-effort notifies IndexNow (if `INDEXNOW_KEY`) and pings the sitemap URL.
+
+## Operator flow
+
+1. Open Terminal OS → **Scout**
+2. **Run research cycle** (operator session or `SCOUT_RUN_SECRET`)
+3. Review queue — quality-blocked drafts cannot publish
+4. **Approve & publish** → live at `/blog/{slug}` and included in `/sitemap.xml`
