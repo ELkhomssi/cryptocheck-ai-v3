@@ -42,22 +42,34 @@ function walk(dir, out = []) {
 
 const violations = []
 
-for (const needle of FORBIDDEN) {
-  try {
-    const out = execSync(
-      `rg -n --glob '!node_modules/**' --glob '!package-lock.json' --glob '!.git/**' ${JSON.stringify(needle)} .`,
-      { cwd: ROOT, encoding: 'utf8' },
-    ).trim()
-    if (out) {
-      for (const line of out.split('\n')) {
-        if (!line) continue
-        if (line.includes('check-intelligence-chart')) continue
-        if (line.includes('FORBIDDEN')) continue
-        violations.push(`vendor:${line}`)
+let hasRg = false
+try {
+  execSync('rg --version', { stdio: 'ignore' })
+  hasRg = true
+} catch {
+  // Vercel / minimal CI images often lack ripgrep — package.json checks still run
+  console.warn('lint:intelligence-chart: rg not found; skipping repo-wide vendor string scan')
+}
+
+if (hasRg) {
+  for (const needle of FORBIDDEN) {
+    try {
+      const out = execSync(
+        `rg -n --glob '!node_modules/**' --glob '!package-lock.json' --glob '!.git/**' ${JSON.stringify(needle)} .`,
+        { cwd: ROOT, encoding: 'utf8' },
+      ).trim()
+      if (out) {
+        for (const line of out.split('\n')) {
+          if (!line) continue
+          if (line.includes('check-intelligence-chart')) continue
+          if (line.includes('FORBIDDEN')) continue
+          violations.push(`vendor:${line}`)
+        }
       }
+    } catch (e) {
+      // rg exit 1 = no matches
+      if (e.status !== 1) throw e
     }
-  } catch (e) {
-    if (e.status !== 1) throw e
   }
 }
 
