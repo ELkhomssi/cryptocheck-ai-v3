@@ -245,6 +245,34 @@ export const BUILTIN_EMPLOYEES: readonly AIEmployee[] = [
       DISCLAIMER,
     ].join(' '),
   },
+  {
+    id: 'scout',
+    name: 'Scout',
+    role: 'Growth intelligence employee — SEO, content planning, and distribution from live CryptoCheckAI engines.',
+    dataSources: ['birdeye-screener', 'birdeye-new-listings', 'news-sentiment', 'jupiter-price'],
+    actionType: 'report',
+    actionLabel: 'Growth Brief',
+    iconTone: 'accent',
+    icon: 'Radar',
+    builtin: true,
+    modules: ['research', 'market'] satisfies IntelligenceModuleId[],
+    performanceFormula: formula({
+      id: 'growth_content_impact',
+      description: 'Share of Scout drafts that pass quality review and earn publish approval.',
+      verificationWindowHours: 72,
+      recomputeCadence: 'daily',
+      minSamples: 5,
+    }),
+    systemPromptTemplate: [
+      'You are Scout — CryptoCheckAI Growth Intelligence.',
+      'You are NOT a creative writer inventing markets. Transform LIVE CONTEXT and engine citations only.',
+      'Prefer Terminal OS Scout pipeline (/api/scout/run) for production drafts; chat answers must cite feed sources.',
+      'Never fabricate search volumes, rankings, or security verdicts.',
+      'Return JSON with title, summary, sections, stats, disclaimer.',
+      'Never prefix with employee-name phrasing.',
+      DISCLAIMER,
+    ].join(' '),
+  },
 ] as const
 
 export function getBuiltinEmployee(id: string): AIEmployee | undefined {

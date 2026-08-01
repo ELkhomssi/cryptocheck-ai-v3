@@ -6,6 +6,7 @@ import {
   fetchIndexedWalletEntries,
 } from '@/lib/seo/sitemap-sources'
 import { DEFAULT_SITE_URL, SITEMAP_URL_LIMIT, getSiteUrl } from '@/lib/seo/site'
+import { listPublishedArticles } from '@/lib/scout/store'
 
 /**
  * Official Next.js App Router Metadata sitemap.
@@ -26,12 +27,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let tokens: MetadataRoute.Sitemap = []
   let wallets: MetadataRoute.Sitemap = []
   let reports: MetadataRoute.Sitemap = []
+  let blog: MetadataRoute.Sitemap = []
 
   try {
-    const [tokenRows, walletRows, reportRows] = await Promise.all([
+    const [tokenRows, walletRows, reportRows, articles] = await Promise.all([
       fetchIndexedTokenEntries({ limit: SITEMAP_URL_LIMIT }),
       fetchIndexedWalletEntries({ limit: Math.min(10_000, SITEMAP_URL_LIMIT) }),
       fetchIndexedReportEntries({ limit: Math.min(10_000, SITEMAP_URL_LIMIT) }),
+      listPublishedArticles(500),
     ])
 
     tokens = tokenRows.map((e) => ({
@@ -52,13 +55,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: e.changefreq,
       priority: e.priority,
     }))
+    blog = articles.map((a) => ({
+      url: `${base}/blog/${a.slug}`,
+      lastModified: new Date(a.publishedAt || a.updatedAt),
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    }))
   } catch (err) {
     console.error('[seo] sitemap.ts dynamic fetch failed', err)
   }
 
   // Stay under Google’s 50k URL / sitemap limit with headroom for static routes.
   const dynamicBudget = Math.max(0, SITEMAP_URL_LIMIT - staticEntries.length)
-  const combinedDynamic = [...tokens, ...wallets, ...reports].slice(0, dynamicBudget)
+  const combinedDynamic = [...blog, ...tokens, ...wallets, ...reports].slice(0, dynamicBudget)
 
   return [...staticEntries, ...combinedDynamic]
 }

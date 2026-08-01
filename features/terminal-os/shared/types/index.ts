@@ -261,3 +261,4 @@ export type TerminalNavId =
   | 'discovery'
   | 'security'
   | 'ai-coach'
+  | 'scout'

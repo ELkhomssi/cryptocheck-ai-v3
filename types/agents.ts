@@ -34,6 +34,7 @@ export type PerformanceFormulaId =
   | 'launch_approval_safety'
   | 'suggestion_acceptance'
   | 'scam_detection_accuracy'
+  | 'growth_content_impact'
 
 export type PerformanceFormula = {
   id: PerformanceFormulaId

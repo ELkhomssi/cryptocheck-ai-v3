@@ -4,9 +4,9 @@ import { listBuiltinEmployees, getBuiltinEmployee, buildCustomSystemPrompt } fro
 import { parseStructuredAgentOutput } from '../../lib/agents/parse-structured'
 
 describe('AI Employees roster', () => {
-  it('defines all 9 built-in employees', () => {
+  it('defines all 10 built-in employees including Scout', () => {
     const list = listBuiltinEmployees()
-    assert.equal(list.length, 9)
+    assert.equal(list.length, 10)
     assert.ok(list.every((e) => e.builtin))
     assert.deepEqual(
       list.map((e) => e.id).sort(),
@@ -18,10 +18,12 @@ describe('AI Employees roster', () => {
         'research-analyst',
         'risk-manager',
         'scam-investigator',
+        'scout',
         'trading-coach',
         'whale-analyst',
       ].sort(),
     )
+    assert.equal(getBuiltinEmployee('scout')?.performanceFormula.id, 'growth_content_impact')
   })
 
   it('looks up employees by id', () => {
