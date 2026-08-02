@@ -31,7 +31,7 @@ export function AlertEvaluateBridge() {
     const pollOnce = async () => {
       if (stopped) return
       const prices: Record<string, number> = {}
-      for (const q of quotes ?? []) {
+      for (const q of quotes?.items ?? []) {
         prices[q.symbol] = q.priceUsd
       }
       if (focused?.priceUsd && focused.id) prices[focused.id] = focused.priceUsd

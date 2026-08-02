@@ -10,16 +10,37 @@ import type { TopTrader } from '@/features/terminal-os/shared/types'
 
 /**
  * Click a ranked desk chip to focus its underlying asset across Chart / Scan / Swap.
+ * Never claims LIVE — desks are sample personas ranked by live movers.
  */
 export function TopTradersTicker() {
-  const { data: traders, isLoading, isError } = useTopTraders()
+  const { data, isLoading, isError } = useTopTraders()
+  const traders = data?.items
+  const meta = data?.meta
   const setFocusedToken = useTerminalOsStore((s) => s.setFocusedToken)
 
   return (
-    <Panel title="Top Traders Today" live>
+    <Panel
+      title="Top Traders Today"
+      live={false}
+      action={
+        <div className="tos-tab-row" style={{ gap: '0.5rem', alignItems: 'center' }}>
+          <span className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)' }}>
+            Sample desks · ranked by live movers
+          </span>
+          {(isError || meta?.demo || meta?.stale) && (
+            <StaleIndicator
+              stale={Boolean(meta?.stale || isError)}
+              demo
+              ageSec={meta?.ageSec ?? 0}
+              source={meta?.source ?? 'personas'}
+            />
+          )}
+        </div>
+      }
+    >
       {isError && !traders?.length ? (
         <div>
-          <StaleIndicator stale demo source="coingecko" />
+          <StaleIndicator stale demo source="personas" />
           <PanelSkeleton rows={1} />
         </div>
       ) : isLoading || !traders ? (

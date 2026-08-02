@@ -11,7 +11,11 @@ import {
   filterHighConfidenceWhales,
   mergeWhaleRing,
 } from '@/features/terminal-os/shared/lib/enrich-whale-movement'
-import { liveWhaleFeedProvider } from '@/features/terminal-os/shared/lib/live-providers'
+import {
+  EMPTY_META,
+  liveWhaleFeedProvider,
+  type LiveFeedMeta,
+} from '@/features/terminal-os/shared/lib/live-providers'
 import type { WhaleMovement } from '@/features/terminal-os/shared/types'
 
 type ConnState = 'connecting' | 'live' | 'polling' | 'error'
@@ -30,6 +34,7 @@ export function useWhaleMarqueeStream(opts?: {
   const minConfidence = opts?.minConfidence ?? WHALE_HIGH_CONFIDENCE_MIN
   const pollMs = opts?.pollMs ?? 8_000
   const [events, setEvents] = useState<WhaleMovement[]>([])
+  const [meta, setMeta] = useState<LiveFeedMeta>(EMPTY_META)
   const [conn, setConn] = useState<ConnState>('connecting')
   const [error, setError] = useState<string | null>(null)
   const bufferRef = useRef<WhaleMovement[]>([])
@@ -40,10 +45,11 @@ export function useWhaleMarqueeStream(opts?: {
     let pollTimer: ReturnType<typeof setInterval> | null = null
     let pollFallback: (() => void) | null = null
 
-    const ingest = (incoming: WhaleMovement[]) => {
+    const ingest = (incoming: WhaleMovement[], nextMeta?: LiveFeedMeta) => {
       if (stopped || incoming.length === 0) return
       bufferRef.current = mergeWhaleRing(bufferRef.current, incoming)
       setEvents(filterHighConfidenceWhales(bufferRef.current, minConfidence))
+      if (nextMeta) setMeta(nextMeta)
       setError(null)
     }
 
@@ -52,8 +58,8 @@ export function useWhaleMarqueeStream(opts?: {
       const tick = async () => {
         if (stopped) return
         try {
-          const items = await liveWhaleFeedProvider.getRecentMovements(32)
-          ingest(items)
+          const feed = await liveWhaleFeedProvider.getRecentMovements(32)
+          ingest(feed.items, feed.meta)
         } catch (e) {
           if (!stopped) {
             setError(e instanceof Error ? e.message : 'Whale poll failed')
@@ -141,5 +147,5 @@ export function useWhaleMarqueeStream(opts?: {
     }
   }, [minConfidence, pollMs])
 
-  return { events, conn, error, isLoading: events.length === 0 && conn !== 'error' }
+  return { events, meta, conn, error, isLoading: events.length === 0 && conn !== 'error' }
 }

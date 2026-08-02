@@ -206,11 +206,12 @@ export function AiCoachingCard() {
   }
 
   const top = insights?.[0]
+  const hasRealInsights = Boolean(top && !insufficient && insights && insights.length > 0)
 
   return (
     <Panel
       title="AI Coaching"
-      action={<span className="tos-beta-chip">LIVE</span>}
+      action={hasRealInsights ? <span className="tos-beta-chip">LIVE</span> : undefined}
     >
       {insights == null ? (
         <PanelSkeleton rows={2} />

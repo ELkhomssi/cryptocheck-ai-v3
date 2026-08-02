@@ -28,7 +28,7 @@ export function TokenScoreScanCard() {
     if (!needle) return
     setLoading(true)
     try {
-      const tokens = await liveMarketDataProvider.getTopTokens('all')
+      const { items: tokens } = await liveMarketDataProvider.getTopTokens('all')
       const lower = needle.toLowerCase()
       const hit =
         tokens.find(
