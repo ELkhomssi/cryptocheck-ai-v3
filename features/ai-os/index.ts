@@ -1,3 +1,5 @@
 export { AiOsShell } from './components/AiOsShell'
+export { IntelligenceSwap } from './components/IntelligenceSwap'
 export { OS_INTENTS } from './lib/intents'
 export type { OsBriefing, OsIntentId, OsRecommendation } from './types'
+export type { IntelligenceSwapProps } from './components/IntelligenceSwap'

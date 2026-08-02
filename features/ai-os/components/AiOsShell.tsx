@@ -14,15 +14,20 @@ import { AiGateway } from './AiGateway'
 import { AiOsCoach } from './AiOsCoach'
 import { AiOsWalletBar } from './AiOsWalletBar'
 import { DecisionActions } from './DecisionActions'
+import { IntelligenceSwap } from './IntelligenceSwap'
 import { MarketIntelligence } from './MarketIntelligence'
 import { TodaysRecommendation } from './TodaysRecommendation'
 import '../styles.css'
 
 export function AiOsShell() {
   const wallet = useTerminalOsStore((s) => s.walletAddress)
+  const focusedToken = useTerminalOsStore((s) => s.focusedToken)
   const { briefing, loading, reload } = useOsBriefing(wallet)
   const [intent, setIntent] = useState<OsIntentId | null>(null)
   const coachRef = useRef<HTMLDivElement | null>(null)
+  const swapRef = useRef<HTMLDivElement | null>(null)
+  const [approvedBuyMint, setApprovedBuyMint] = useState<string | null>(null)
+  const [approvedBuySymbol, setApprovedBuySymbol] = useState<string | null>(null)
 
   useEffect(() => {
     if (!intent) return
@@ -56,6 +61,13 @@ export function AiOsShell() {
 
         <MarketIntelligence signals={market} />
 
+        <div ref={swapRef}>
+          <IntelligenceSwap
+            initialBuyMint={approvedBuyMint ?? focusedToken?.id ?? briefing?.recommendation?.symbol}
+            initialBuySymbol={approvedBuySymbol ?? focusedToken?.symbol ?? briefing?.recommendation?.symbol}
+          />
+        </div>
+
         {briefing?.recommendation ? (
           <TodaysRecommendation recommendation={briefing.recommendation} />
         ) : (
@@ -67,7 +79,16 @@ export function AiOsShell() {
           </section>
         )}
 
-        <DecisionActions briefing={briefing} intent={intent} onTaught={() => void reload()} />
+        <DecisionActions
+          briefing={briefing}
+          intent={intent}
+          onTaught={() => void reload()}
+          onApprove={(mint, symbol) => {
+            setApprovedBuyMint(mint)
+            setApprovedBuySymbol(symbol)
+            swapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }}
+        />
       </div>
     </div>
   )

@@ -128,7 +128,10 @@ export interface IntelligenceChartBundle {
   sidebarTimeline: IntelligenceSidebarState[]
   fetchedAt: string
   stale?: boolean
+  /** Candle/token demo provenance — not AI Decision demo */
   demo?: boolean
+  /** True when AI strip/zones came from server Decision store (live, not demo-labeled) */
+  aiLive?: boolean
   source: string
 }
 

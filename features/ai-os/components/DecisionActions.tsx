@@ -8,10 +8,12 @@ export function DecisionActions({
   briefing,
   intent,
   onTaught,
+  onApprove,
 }: {
   briefing: OsBriefing | null
   intent: OsIntentId | null
   onTaught?: () => void
+  onApprove?: (mint: string, symbol: string) => void
 }) {
   const setFocusedToken = useTerminalOsStore((s) => s.setFocusedToken)
   const wallet = useTerminalOsStore((s) => s.walletAddress)
@@ -25,15 +27,18 @@ export function DecisionActions({
 
   const approve = () => {
     if (!rec?.symbol) return
-    setFocusedToken({
-      id: briefing?.decision?.subject.kind === 'token'
+    const mint =
+      briefing?.decision?.subject.kind === 'token'
         ? briefing.decision.subject.address || rec.symbol
-        : rec.symbol,
+        : rec.symbol
+    setFocusedToken({
+      id: mint,
       symbol: rec.symbol,
       name: rec.symbol,
       chain: 'solana',
       priceUsd: 0,
     })
+    onApprove?.(mint, rec.symbol)
     setStatus(
       intent === 'protect'
         ? 'Approved for review under capital-protection routing.'
