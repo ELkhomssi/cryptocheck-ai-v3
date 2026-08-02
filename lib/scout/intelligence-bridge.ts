@@ -10,7 +10,7 @@ import { buildMarketAnalystBrief } from '@/lib/portfolio-desk/market-analyst'
 import { getNewLaunchesFeed, getTrendingFeed } from '@/lib/terminal/market-feeds'
 import type { ScreenerRow } from '@/lib/providers/types'
 import { pickEcosystemSeeds } from '@/lib/scout/strategy'
-import { filterPublishableTopics } from '@/lib/scout/priority'
+import { gatherExtendedResearch } from '@/lib/scout/modules/research'
 import type { ScoutTopic } from '@/lib/scout/types'
 
 export type ScoutEngineSnapshot = {
@@ -18,6 +18,7 @@ export type ScoutEngineSnapshot = {
   marketBriefSummary: string | null
   marketBriefSources: string[]
   citations: string[]
+  researchSources: string[]
   gatheredAt: string
 }
 
@@ -30,18 +31,31 @@ function asScreenerRows(items: unknown[]): ScreenerRow[] {
   return items.filter((r): r is ScreenerRow => Boolean(r && typeof r === 'object' && 'mint' in (r as object)))
 }
 
-/** Gather live trending / launch / optional mint risk — fail open with empty sets. */
+/**
+ * Gather live research — fail open with empty sets.
+ * Priority filtering + learning boosts happen in the pipeline (post-gather).
+ */
 export async function gatherScoutIntelligence(opts?: {
   focusMint?: string | null
 }): Promise<ScoutEngineSnapshot> {
   const citations: string[] = []
+  const researchSources: string[] = []
   const topics: ScoutTopic[] = []
   const gatheredAt = new Date().toISOString()
 
-  const [trending, launches] = await Promise.all([
+  const [trending, launches, extended] = await Promise.all([
     getTrendingFeed(12).catch(() => null),
     getNewLaunchesFeed(8).catch(() => null),
+    gatherExtendedResearch(gatheredAt).catch(() => ({
+      topics: [] as ScoutTopic[],
+      citations: [] as string[],
+      sourcesTouched: [] as string[],
+    })),
   ])
+
+  if (extended.sourcesTouched.length) researchSources.push(...extended.sourcesTouched)
+  if (extended.citations.length) citations.push(...extended.citations)
+  topics.push(...extended.topics)
 
   const screenerForBrief = asScreenerRows((trending?.items as unknown[]) ?? []).slice(0, 20)
   let marketBrief: Awaited<ReturnType<typeof buildMarketAnalystBrief>> | null = null
@@ -58,8 +72,9 @@ export async function gatherScoutIntelligence(opts?: {
   }
 
   if (trending?.items?.length && !trending.error) {
+    researchSources.push(`market-feeds:${trending.source || 'trending'}`)
     citations.push(`market-feeds:trending:${trending.source || 'unknown'}`)
-    for (const row of screenerForBrief.slice(0, 8)) {
+    for (const row of screenerForBrief.slice(0, 6)) {
       const symbol = String(row.symbol || row.name || 'TOKEN')
       const mint = typeof row.mint === 'string' ? row.mint : null
       topics.push({
@@ -81,8 +96,9 @@ export async function gatherScoutIntelligence(opts?: {
   }
 
   if (launches?.items?.length && !launches.error) {
+    researchSources.push(`market-feeds:new-launches:${launches.source || 'unknown'}`)
     citations.push(`market-feeds:new-launches:${launches.source || 'unknown'}`)
-    for (const row of asScreenerRows(launches.items as unknown[]).slice(0, 5)) {
+    for (const row of asScreenerRows(launches.items as unknown[]).slice(0, 4)) {
       const symbol = String(row.symbol || row.name || 'NEW')
       const mint = typeof row.mint === 'string' ? row.mint : null
       topics.push({
@@ -104,6 +120,7 @@ export async function gatherScoutIntelligence(opts?: {
   let marketBriefSummary: string | null = null
   const marketBriefSources: string[] = []
   if (marketBrief && !marketBrief.unavailableReason) {
+    researchSources.push('market-analyst')
     citations.push('portfolio-desk:market-analyst')
     marketBriefSummary =
       [marketBrief.openingLine, marketBrief.executiveConclusion, marketBrief.convictionLine]
@@ -129,6 +146,7 @@ export async function gatherScoutIntelligence(opts?: {
   if (focusMint && focusMint.length >= 32) {
     try {
       const risk = await assessRiskByMint(focusMint, 'solana', 'fast')
+      researchSources.push('scan-gateway')
       citations.push(`scan-gateway:${focusMint.slice(0, 8)}`)
       const evidence =
         risk.snapshot?.reasoning?.evidence?.[0]?.detail ||
@@ -152,7 +170,6 @@ export async function gatherScoutIntelligence(opts?: {
     }
   }
 
-  // Always reinforce ecosystem pillars with live evidence (Rule #1 / #8)
   const topSymbol = topics.find((t) => t.symbol)?.symbol
   const evidenceAnchor =
     marketBriefSummary?.slice(0, 160) ||
@@ -163,8 +180,9 @@ export async function gatherScoutIntelligence(opts?: {
     citations.push('scout:ecosystem-pillar:v2')
   }
 
-  for (const pillar of pickEcosystemSeeds(4, gatheredAt + (topSymbol ?? ''))) {
-    const seed = pillar.seedTitles[Math.floor(Math.abs(gatheredAt.length) % pillar.seedTitles.length)]!
+  for (const pillar of pickEcosystemSeeds(3, gatheredAt + (topSymbol ?? ''))) {
+    const idx = Math.abs([...pillar.id].reduce((a, c) => a + c.charCodeAt(0), 0)) % pillar.seedTitles.length
+    const seed = pillar.seedTitles[idx]!
     topics.push({
       id: slugId('eco', pillar.id),
       title: seed,
@@ -180,11 +198,14 @@ export async function gatherScoutIntelligence(opts?: {
     })
   }
 
+  researchSources.push('ecosystem-pillars')
+
   return {
-    topics: filterPublishableTopics(topics),
+    topics,
     marketBriefSummary,
     marketBriefSources,
-    citations,
+    citations: [...new Set(citations)],
+    researchSources: [...new Set(researchSources)],
     gatheredAt,
   }
 }

@@ -138,6 +138,7 @@ export type QualityCheckId =
   | 'no_hype'
   | 'ecosystem_focus'
   | 'educate_structure'
+  | 'fact_check'
 
 export type QualityReport = {
   passed: boolean
@@ -234,6 +235,8 @@ export type ScoutDashboardState = {
   distributions: DistributionDraft[]
   metrics: ScoutMetricsSnapshot
   learning: ScoutLearningSignal[]
+  researchSources: string[]
+  nextResearchAt: string | null
   lastError: string | null
   updatedAt: string
 }

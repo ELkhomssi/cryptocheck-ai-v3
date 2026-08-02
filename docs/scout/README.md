@@ -22,7 +22,24 @@ publishing educate-first intelligence that makes readers want to try Terminal OS
 
 ## Pipeline
 
-Research → Priority score → Keywords → Plan → Write → SEO → Quality (fact / dup / hype / structure) → Publish → Sitemap / IndexNow → Distributions → Learning
+Research (CoinGecko · DexScreener · market feeds · whales · scan-gateway · Market Analyst · ecosystem pillars)
+→ Learning boost → Priority score → Keywords → Plan → Write → SEO → Quality → Fact-check
+→ Auto-publish → Sitemap / IndexNow → Distributions → Schedule next research (~3h)
+
+## Research sources (live, fail-open)
+
+| Source | Module |
+|--------|--------|
+| Birdeye / DexScreener trending | `market-feeds` |
+| New launches | `market-feeds` |
+| CoinGecko global | `live-market` via `modules/research.ts` |
+| Multi-chain DexScreener tops (Solana / Base / Ethereum) | `live-market` |
+| Whale flow | `fetchLiveWhaleMovements` |
+| Scan gateway | `assessRiskByMint` |
+| Market Analyst brief | `buildMarketAnalystBrief` |
+| Ecosystem pillar seeds | `strategy.ts` |
+
+Twitter / Reddit / GitHub / Google Trends are **not fabricated** — wire real adapters later; narrative themes map those subjects to pillars without inventing engagement stats.
 
 ## Engine sources (allowed)
 

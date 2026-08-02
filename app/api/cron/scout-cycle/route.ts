@@ -23,5 +23,7 @@ export async function GET(req: NextRequest) {
     topics: state.trendingTopics.length,
     queue: state.publicationQueue.length,
     published,
+    researchSources: state.researchSources,
+    nextResearchAt: state.nextResearchAt,
   })
 }

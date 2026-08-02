@@ -7,6 +7,8 @@ export {
   PRIORITY_CONFIDENCE_THRESHOLD,
   SCOUT_PRODUCT_PATHS,
 } from '@/lib/scout/strategy'
+export { factCheckArticle } from '@/lib/scout/modules/fact-check'
+export { applyLearningToTopics, nextResearchIso } from '@/lib/scout/modules/learning'
 export {
   loadScoutState,
   listPublishedArticles,

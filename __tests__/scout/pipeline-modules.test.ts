@@ -7,6 +7,8 @@ import { reviewArticleQuality } from '../../lib/scout/modules/quality-review'
 import { buildDistributionBundle } from '../../lib/scout/modules/distributor'
 import { buildArticleSeo } from '../../lib/scout/modules/seo-engine'
 import { scoreTopicPriority, filterPublishableTopics } from '../../lib/scout/priority'
+import { factCheckArticle } from '../../lib/scout/modules/fact-check'
+import { applyLearningToTopics, derivePillarWeights } from '../../lib/scout/modules/learning'
 import type { ScoutTopic } from '../../lib/scout/types'
 
 const topic: ScoutTopic = {
@@ -61,6 +63,7 @@ describe('Scout V2 pipeline modules', () => {
         marketBriefSummary: 'Market brief from buildMarketAnalystBrief.',
         marketBriefSources: ['Birdeye · Jupiter'],
         citations: ['market-feeds:trending:birdeye', 'portfolio-desk:market-analyst'],
+        researchSources: ['coingecko', 'dexscreener:solana', 'market-feeds:birdeye'],
         gatheredAt: new Date().toISOString(),
       },
     })
@@ -75,6 +78,16 @@ describe('Scout V2 pipeline modules', () => {
     const quality = reviewArticleQuality(draft)
     assert.equal(quality.passed, true, JSON.stringify(quality.checks.filter((c) => !c.passed)))
 
+    const facts = factCheckArticle(draft, {
+      topics: [topic],
+      marketBriefSummary: 'Market brief from buildMarketAnalystBrief.',
+      marketBriefSources: ['Birdeye · Jupiter'],
+      citations: ['market-feeds:trending:birdeye'],
+      researchSources: ['coingecko'],
+      gatheredAt: new Date().toISOString(),
+    })
+    assert.equal(facts.passed, true, JSON.stringify(facts.findings.filter((f) => !f.passed)))
+
     const seo = buildArticleSeo({ ...draft, quality })
     assert.match(seo.canonicalPath, /^\/blog\//)
     assert.equal(seo.articleSchema['@type'], 'Article')
@@ -87,5 +100,28 @@ describe('Scout V2 pipeline modules', () => {
     assert.ok(dist.some((d) => d.channel === 'reddit'))
     assert.ok(dist.some((d) => d.channel === 'summary'))
     assert.notEqual(dist.find((d) => d.channel === 'x_thread')!.body, draft.introduction)
+  })
+
+  it('boosts pillars that previously auto-published', () => {
+    const weights = derivePillarWeights([
+      {
+        id: '1',
+        topicId: 't',
+        signal: 'auto_published:terminal_os:slug:priority=80',
+        weight: 2,
+        createdAt: new Date().toISOString(),
+      },
+    ])
+    assert.ok((weights.terminal_os ?? 0) > 0)
+    const boosted = applyLearningToTopics([topic], [
+      {
+        id: '1',
+        topicId: 't',
+        signal: 'auto_published:terminal_os:slug',
+        weight: 2,
+        createdAt: new Date().toISOString(),
+      },
+    ])
+    assert.ok((boosted[0]!.priorityScore ?? 0) >= (topic.priorityScore ?? 0))
   })
 })

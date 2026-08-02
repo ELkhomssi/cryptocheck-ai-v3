@@ -56,6 +56,8 @@ export function emptyScoutState(): ScoutDashboardState {
     distributions: [],
     metrics: emptyMetrics(),
     learning: [],
+    researchSources: [],
+    nextResearchAt: null,
     lastError: null,
     updatedAt: new Date().toISOString(),
   }

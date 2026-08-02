@@ -37,6 +37,8 @@ const EMPTY: ScoutDashboardState = {
     sample: true,
   },
   learning: [],
+  researchSources: [],
+  nextResearchAt: null,
   lastError: null,
   updatedAt: new Date().toISOString(),
 }
@@ -149,6 +151,14 @@ export function ScoutPanel() {
               {state.priorityThreshold ?? 62}
             </div>
           </div>
+          <div>
+            <div className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)' }}>
+              Next research
+            </div>
+            <div style={{ fontWeight: 600, fontSize: 'var(--tos-fs-sm)' }}>
+              {state.nextResearchAt ? state.nextResearchAt.slice(0, 16).replace('T', ' ') + 'Z' : '—'}
+            </div>
+          </div>
           <button
             type="button"
             className="tos-nav-item"
@@ -212,6 +222,16 @@ export function ScoutPanel() {
           )}
         </Panel>
       </div>
+
+      <Panel title="Research sources">
+        {state.researchSources?.length ? (
+          <p style={{ margin: 0, fontSize: 'var(--tos-fs-sm)' }}>
+            {state.researchSources.join(' · ')}
+          </p>
+        ) : (
+          <EmptyState message="No research sources logged yet." />
+        )}
+      </Panel>
 
       <Panel title="Priority topics (threshold cleared)">
         {state.trendingTopics.length === 0 ? (
