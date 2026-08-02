@@ -1,38 +1,43 @@
 'use client'
 
 /**
- * Discovery — live market opportunities from Terminal OS feed (not mock rows).
+ * Discovery — filtered/sorted view over server-persisted Decisions (Layer 4).
+ * Uses marketConfidence for untrained wallets — never invents opportunityScore.
  */
 
 import { useEffect, useState } from 'react'
+import type { Decision } from '@cryptocheck/decision-contracts'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
-import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
-import { liveMarketDataProvider } from '@/features/terminal-os/shared/lib/live-providers'
-import { scoreTokenFromMarket } from '@/features/terminal-os/shared/lib/score-from-market'
+import { EmptyState, PanelSkeleton, StaleIndicator } from '@/features/terminal-os/shared/components/PanelStates'
 import { useTerminalOsStore } from '@/stores/terminal-os'
-import type { DiscoveryOpportunity, RiskBand, TokenRow } from '@/features/terminal-os/shared/types'
+import type { DiscoveryOpportunity, RiskBand } from '@/features/terminal-os/shared/types'
 
-function toOpportunity(t: TokenRow): DiscoveryOpportunity {
-  const scan = scoreTokenFromMarket(t)
-  const opportunityScore = Math.round(
-    Math.min(98, Math.max(12, scan.score * 0.55 + Math.min(40, Math.log10(Math.max(t.volume24hUsd, 1)) * 8))),
-  )
-  const risk = (scan.band === 'excellent' || scan.band === 'good'
-    ? 'low'
-    : scan.band === 'caution'
-      ? 'moderate'
-      : 'high') as RiskBand
+const HIGH_CONVICTION_MIN = 70
+
+function fromDecision(d: Decision): DiscoveryOpportunity | null {
+  const conf = d.marketConfidence ?? d.confidence
+  if (d.action !== 'BUY' && d.action !== 'WAIT') return null
+  // Discovery uses market-quality confidence — both BUY and WAIT need ≥70
+  if (conf < HIGH_CONVICTION_MIN) return null
+
+  const risk = (d.risk >= 70 ? 'high' : d.risk >= 45 ? 'moderate' : 'low') as RiskBand
+  const symbol = d.subject.kind === 'token' ? d.subject.symbol : d.subject.address.slice(0, 6)
+
   return {
-    id: t.id,
-    symbol: t.symbol,
-    name: t.name,
-    opportunityScore,
+    id: d.subject.kind === 'token' ? d.subject.address || d.id : d.id,
+    symbol,
+    name: symbol,
+    opportunityScore: conf,
     risk,
-    narrative: `${t.chain} · liq ${Math.round(t.liquidityUsd).toLocaleString()}`,
-    catalyst: t.change24hPct >= 0 ? 'Positive 24h momentum' : 'Pullback — watch for reclaim',
-    confidence: scan.confidence,
+    narrative: d.reasoning.slice(0, 140),
+    catalyst: `${d.action} · ${d.confidenceMode} conf ${conf}%`,
+    confidence: conf,
     timeHorizon: 'intraday',
-    why: scan.explanation,
+    why:
+      d.contributingFactors
+        .slice(0, 3)
+        .map((f) => f.summary)
+        .join(' · ') || d.reasoning,
   }
 }
 
@@ -41,17 +46,30 @@ export function DiscoveryPanel() {
   const chain = useTerminalOsStore((s) => s.tokenChainTab)
   const [rows, setRows] = useState<DiscoveryOpportunity[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [live, setLive] = useState(false)
 
   useEffect(() => {
     let c = false
-    liveMarketDataProvider
-      .getTopTokens(chain === 'all' ? 'solana' : chain)
-      .then((tokens) => {
+    fetch('/api/terminal-os/decisions?limit=16', { cache: 'no-store' })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Decisions unavailable')
+        const body = (await res.json()) as { decisions?: Decision[] }
         if (c) return
-        setRows(tokens.slice(0, 8).map(toOpportunity))
+        const scored = (body.decisions ?? [])
+          .map(fromDecision)
+          .filter((o): o is DiscoveryOpportunity => o != null)
+          .sort((a, b) => b.opportunityScore - a.opportunityScore)
+          .slice(0, 8)
+        setRows(scored)
+        setLive(true)
+        setError(null)
       })
       .catch((e: Error) => {
-        if (!c) setError(e.message)
+        if (!c) {
+          setError(e.message)
+          setRows([])
+          setLive(false)
+        }
       })
     return () => {
       c = true
@@ -59,13 +77,16 @@ export function DiscoveryPanel() {
   }, [chain])
 
   return (
-    <Panel title="Discovery Engine" live>
+    <Panel title="Discovery Engine" live={live && !error}>
       {error ? (
-        <EmptyState message={error} />
+        <>
+          <StaleIndicator stale source="decision-engine" />
+          <EmptyState message={error} />
+        </>
       ) : !rows ? (
         <PanelSkeleton rows={3} />
       ) : rows.length === 0 ? (
-        <EmptyState message="No live opportunities scored yet." />
+        <EmptyState message="No high-conviction Decisions yet — waiting for Decision Engine tick." />
       ) : (
         <div className="tos-stack-sm">
           {rows.map((o) => (
@@ -103,14 +124,14 @@ export function DiscoveryPanel() {
                   ${o.symbol} <span className="tos-secondary">{o.name}</span>
                 </strong>
                 <span className="tos-num" style={{ color: 'var(--tos-accent-gold)' }}>
-                  Opp {o.opportunityScore}
+                  Decision {o.opportunityScore}
                 </span>
               </div>
               <div className="tos-card-tile-meta">
                 {o.narrative} · Risk {o.risk} · {o.timeHorizon}
               </div>
               <p className="tos-card-tile-meta" style={{ color: 'var(--tos-text-secondary)' }}>
-                Catalyst: {o.catalyst}. Why: {o.why} (conf {o.confidence}%)
+                {o.catalyst}. Why: {o.why} (conf {o.confidence}%)
               </p>
             </article>
           ))}

@@ -5,8 +5,8 @@
 
 import type { ExecutionState } from '@/features/execution-desk/types'
 import type { PortfolioHealthSummary } from '@/features/terminal-os/shared/types'
+import type { Decision } from '@cryptocheck/decision-contracts'
 import type {
-  ExplainableDecision,
   MarketContext,
   PerformanceReport,
   TraderDna,
@@ -141,7 +141,8 @@ export interface LifecycleSnapshot {
   portfolioLoading: boolean
   dna: TraderDna | null
   marketContext: MarketContext | null
-  decision: ExplainableDecision | null
+  /** Canonical Decision from the server store (not client-only orchestrator) */
+  decision: Decision | null
   executionState: ExecutionState
   performance: PerformanceReport | null
   ramp: RampProviderConfig

@@ -15,18 +15,38 @@ type PositionRow = {
 }
 
 async function fetchPositions(wallet: string): Promise<PositionRow[]> {
-  const res = await fetch(`/api/portfolio/${encodeURIComponent(wallet)}`)
-  if (!res.ok) return []
+  // Same working holdings endpoint used elsewhere — not the auth-gated /api/portfolio/[wallet]
+  const res = await fetch(`/api/portfolio/holdings?wallet=${encodeURIComponent(wallet)}`, {
+    cache: 'no-store',
+  })
+  if (!res.ok) throw new Error('Holdings unavailable')
   const body = (await res.json()) as {
-    positions?: PositionRow[]
-    holdings?: PositionRow[]
+    holdings?: Array<{
+      mint: string
+      symbol?: string
+      amount?: number
+      uiAmount?: number
+      priceUsd?: number
+      valueUsd?: number
+      pnlUsd?: number
+      pnlPct?: number
+    }>
   }
-  return body.positions ?? body.holdings ?? []
+  return (body.holdings ?? [])
+    .filter((h) => (h.uiAmount ?? h.amount ?? 0) > 0)
+    .map((h) => ({
+      mint: h.mint,
+      symbol: h.symbol,
+      amountTokens: h.uiAmount ?? h.amount,
+      currentPriceUsd: h.priceUsd,
+      pnlUsd: h.pnlUsd,
+      pnlPct: h.pnlPct,
+    }))
 }
 
 /**
- * Position Manager — reads Portfolio Intelligence / portfolio API.
- * Does not recompute PnL independently when the API provides it.
+ * Position Manager — reads live holdings (same API as Portfolio OS).
+ * LIVE badge only when we have a successful, non-empty response.
  */
 export function PositionManager() {
   const wallet = useWallet()
@@ -37,21 +57,26 @@ export function PositionManager() {
     enabled: Boolean(addr),
     staleTime: 20_000,
     refetchInterval: 30_000,
+    retry: 1,
   })
+
+  const live = Boolean(addr && q.isSuccess && (q.data?.length ?? 0) > 0)
 
   return (
     <section className="ex-panel" aria-label="Position Manager">
       <header className="ex-panel-head">
         <h2>Position Manager</h2>
-        <span className="ex-live">LIVE</span>
+        {live ? <span className="ex-live">LIVE</span> : null}
       </header>
 
       {!addr ? (
         <EmptyState message="Connect a wallet to load open positions." />
       ) : q.isLoading ? (
         <PanelSkeleton rows={4} />
+      ) : q.isError ? (
+        <EmptyState message="Holdings unavailable — try again shortly." />
       ) : !q.data?.length ? (
-        <EmptyState message="No open positions from Portfolio Intelligence." />
+        <EmptyState message="No open token balances for this wallet." />
       ) : (
         <ul className="ex-pos-list">
           {q.data.map((p) => {
