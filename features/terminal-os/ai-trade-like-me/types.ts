@@ -264,6 +264,9 @@ export interface DecisionScores {
   expectedRoiPct: number
   expectedDrawdownPct: number
   confidence: number
+  marketConfidence: number
+  personalizedConfidence?: number
+  confidenceMode: 'market' | 'personalized'
   timing: number
   executionQuality: number
 }
@@ -293,6 +296,8 @@ export interface ExplainableDecision {
   improvesTrader: boolean
   summary: string
   citations: ScoreCitation[]
+  degraded?: boolean
+  degradedInputs?: string[]
 }
 
 export interface AutonomyConfig {

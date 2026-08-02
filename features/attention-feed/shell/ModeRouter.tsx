@@ -1,40 +1,24 @@
 'use client'
 
-import { useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { TerminalOsShell } from '@/features/terminal-os/shell/components/TerminalOsShell'
-import { FloatingModeToggle } from '../components/FloatingModeToggle'
-import { SimpleModeShell } from './SimpleModeShell'
-import { usePresentationModeStore } from '../stores/presentation-mode'
-import '../styles.css'
+import { AiOsShell } from '@/features/ai-os'
 
 /**
- * Dual-mode router — additive wrapper.
- * Pro Mode shell is imported unchanged; never edited.
- * Dubai booth: ?mode=pro or ?demo=pro forces Pro on load.
+ * Terminal OS entry — AI Operating System is the product.
+ * Legacy dense Pro shell available only via ?legacy=pro (no Simple/Pro toggle).
  */
 export function ModeRouter() {
   const searchParams = useSearchParams()
-  const mode = usePresentationModeStore((s) => s.mode)
-  const hydrated = usePresentationModeStore((s) => s.hydrated)
-  const hydrate = usePresentationModeStore((s) => s.hydrate)
+  const legacyPro = searchParams.get('legacy') === 'pro'
 
-  useEffect(() => {
-    hydrate(searchParams.toString())
-  }, [hydrate, searchParams])
-
-  if (!hydrated) {
+  if (legacyPro) {
     return (
-      <div className="sm-boot" style={{ padding: 24, color: 'var(--tos-text-secondary, #9a9588)' }}>
-        Loading…
+      <div data-tos>
+        <TerminalOsShell />
       </div>
     )
   }
 
-  return (
-    <>
-      <FloatingModeToggle />
-      {mode === 'simple' ? <SimpleModeShell /> : <TerminalOsShell />}
-    </>
-  )
+  return <AiOsShell />
 }

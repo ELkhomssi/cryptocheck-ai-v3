@@ -1,6 +1,6 @@
 /**
  * Inspectable confidence formula — never an LLM black box.
- * Weights are user-adjustable via UserWeightPrefs.
+ * Market vs personalized modes: missing DNA is not scored as bad DNA.
  */
 
 import type { UserWeightPrefs } from '../types'
@@ -16,8 +16,7 @@ export type ConfidenceInputs = {
 }
 
 /**
- * computeConfidence — explicit weighted combination.
- * riskPenalty subtracts normalized risk from the blend.
+ * Personalized confidence — includes behaviorMatch (requires TraderDNA).
  */
 export function computeConfidence(
   scores: ConfidenceInputs,
@@ -31,8 +30,33 @@ export function computeConfidence(
     scores.executionQuality * prefs.executionQuality -
     scores.risk * prefs.riskPenalty
 
-  // Re-normalize so typical good setups land ~60–95
   const scaled = 35 + raw * 0.65
+  return Math.round(Math.max(5, Math.min(97, scaled)))
+}
+
+/**
+ * Market-quality confidence — excludes behaviorMatch entirely.
+ * Used when dna === null (Discovery / untrained wallets).
+ * Redistributes behaviorMatch weight into marketQuality + probability.
+ */
+export function computeMarketConfidence(
+  scores: Omit<ConfidenceInputs, 'behaviorMatch'>,
+  prefs: UserWeightPrefs = DEFAULT_WEIGHT_PREFS,
+): number {
+  const bmShare = prefs.behaviorMatch
+  const mqW = prefs.marketQuality + bmShare * 0.55
+  const probW = prefs.probability + bmShare * 0.25
+  const timingW = prefs.timing + bmShare * 0.1
+  const execW = prefs.executionQuality + bmShare * 0.1
+
+  const raw =
+    scores.marketQuality * mqW +
+    scores.probability * probW +
+    scores.timing * timingW +
+    scores.executionQuality * execW -
+    scores.risk * prefs.riskPenalty
+
+  const scaled = 38 + raw * 0.62
   return Math.round(Math.max(5, Math.min(97, scaled)))
 }
 
