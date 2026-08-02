@@ -25,7 +25,8 @@ export const OS_INTENTS: OsIntent[] = [
   {
     id: 'protect',
     label: 'I want to protect my wallet',
-    prompt: 'Prioritize risk, security band, and capital protection.',
+    prompt:
+      'Prioritize loss discipline — cut weakening positions early and rotate into strength (not zero-loss).',
   },
   {
     id: 'copy_strategy',

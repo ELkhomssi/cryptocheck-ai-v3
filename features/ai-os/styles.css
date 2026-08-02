@@ -859,6 +859,98 @@
   text-align: center;
 }
 
+/* Capital rotation — loss discipline */
+.aios-rotation-claim {
+  margin: 0 0 1rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--aios-ink-2);
+  max-width: 38rem;
+}
+
+.aios-rotation-threshold {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.aios-rotation-threshold-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+.aios-rotation-input {
+  width: 5rem;
+  border: 1px solid var(--aios-line-strong);
+  border-radius: var(--aios-radius-sm);
+  background: var(--aios-surface-2);
+  color: var(--aios-ink);
+  padding: 0.45rem 0.55rem;
+  font-family: var(--aios-mono);
+  font-size: 0.9rem;
+}
+
+.aios-rotation-proposal {
+  background: var(--aios-surface-2);
+  border: 1px solid color-mix(in srgb, var(--aios-warn) 35%, var(--aios-line));
+  border-radius: var(--aios-radius);
+  padding: 1.1rem 1.05rem;
+  margin-bottom: 1rem;
+}
+
+.aios-rotation-legs {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .aios-rotation-legs {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.aios-rotation-leg {
+  padding: 0.75rem;
+  border-radius: var(--aios-radius-sm);
+  border: 1px solid var(--aios-line);
+  background: var(--aios-surface);
+}
+
+.aios-rotation-leg[data-leg='exit'] {
+  border-color: color-mix(in srgb, var(--aios-danger) 30%, var(--aios-line));
+}
+
+.aios-rotation-leg[data-leg='entry'] {
+  border-color: color-mix(in srgb, var(--aios-accent) 30%, var(--aios-line));
+}
+
+.aios-rotation-leg p {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.aios-rotation-log {
+  margin-top: 1rem;
+}
+
+.aios-rotation-log li {
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--aios-line);
+}
+
+.aios-rotation-agg {
+  margin-top: 1rem;
+  padding-top: 0.5rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .aios-top,
   .aios-gateway,

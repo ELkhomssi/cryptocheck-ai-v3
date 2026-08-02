@@ -13,6 +13,7 @@ import type { OsIntentId } from '../types'
 import { AiGateway } from './AiGateway'
 import { AiOsCoach } from './AiOsCoach'
 import { AiOsWalletBar } from './AiOsWalletBar'
+import { CapitalRotationPanel } from './CapitalRotationPanel'
 import { DecisionActions } from './DecisionActions'
 import { IntelligenceSwap } from './IntelligenceSwap'
 import { MarketIntelligence } from './MarketIntelligence'
@@ -60,6 +61,16 @@ export function AiOsShell() {
         </div>
 
         <MarketIntelligence signals={market} />
+
+        {(intent === 'protect' || intent === 'monitor' || intent === 'invest' || wallet) && (
+          <CapitalRotationPanel
+            onRotateInto={(mint, symbol) => {
+              setApprovedBuyMint(mint)
+              setApprovedBuySymbol(symbol)
+              swapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }}
+          />
+        )}
 
         <div ref={swapRef}>
           <IntelligenceSwap
