@@ -9,43 +9,96 @@ export const dynamic = 'force-dynamic'
 
 /**
  * POST /api/terminal-os/scan
- * Demo-critical token scan: gateway (Solana mint) + DexScreener market rubric fallback.
- * Never returns blank — always a scored result or soft stale demo score.
+ * Scan gateway (Solana mint) + DexScreener market rubric.
+ * Never silently substitutes another token. Never fabricates a score on failure.
  */
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as { query?: string; chain?: string }
-    const query = (body.query || 'WIF').trim()
+    const query = (body.query || '').trim()
+    if (!query) {
+      return NextResponse.json(
+        { error: 'token query required', notFound: true },
+        { status: 400 },
+      )
+    }
+
     const tokensEnv = await resilientTokens('all', 16)
     const needle = query.toLowerCase()
-    const hit =
-      tokensEnv.data.find(
-        (t) =>
-          t.symbol.toLowerCase() === needle ||
-          t.id.toLowerCase() === needle ||
-          t.name.toLowerCase().includes(needle) ||
-          (t.pairAddress && t.pairAddress.toLowerCase() === needle),
-      ) || tokensEnv.data[0]
+    const hit = tokensEnv.data.find(
+      (t) =>
+        t.symbol.toLowerCase() === needle ||
+        t.id.toLowerCase() === needle ||
+        t.name.toLowerCase() === needle ||
+        (t.pairAddress && t.pairAddress.toLowerCase() === needle),
+    )
 
     if (!hit) {
-      return NextResponse.json({
-        result: softFailScan(query),
-        meta: { price: 0, vol: 0, liq: 0 },
-        stale: true,
-        demo: true,
-        source: 'demo-fallback',
-      })
+      // Try mint-shaped Solana query via gateway even if not in top tokens
+      const looksSolMint = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(query)
+      if (looksSolMint) {
+        try {
+          const assess = await assessRiskByMint(query, 'solana', 'fast')
+          const safety = assess.safetyScore
+          const band =
+            safety >= 80 ? 'excellent' : safety >= 65 ? 'good' : safety >= 45 ? 'caution' : 'danger'
+          const result: TokenScanResult = {
+            mintOrAddress: query,
+            symbol: query.slice(0, 4).toUpperCase(),
+            score: safety,
+            band,
+            riskLabel:
+              band === 'excellent'
+                ? 'Very Low Risk'
+                : band === 'good'
+                  ? 'Low Risk'
+                  : band === 'caution'
+                    ? 'Elevated Risk'
+                    : 'High Risk',
+            confidence: Math.round(
+              typeof assess.confidence === 'number'
+                ? assess.confidence
+                : assess.confidence === 'high'
+                  ? 85
+                  : assess.confidence === 'medium'
+                    ? 65
+                    : 45,
+            ),
+            explanation: `Scan gateway (fast) · safety ${safety} · verdict ${assess.verdict}.`,
+            recommendedAction: `Risk band: ${assess.verdict} (scan gateway) — Decision Engine synthesizes act.`,
+            metrics: [],
+          }
+          return NextResponse.json({
+            result,
+            meta: { price: 0, vol: 0, liq: 0 },
+            stale: false,
+            demo: false,
+            source: 'scan-gateway',
+          })
+        } catch {
+          /* fall through to not found */
+        }
+      }
+
+      return NextResponse.json(
+        {
+          error: 'Token not found',
+          notFound: true,
+          query,
+          result: null,
+          unavailable: true,
+        },
+        { status: 404 },
+      )
     }
 
     let result: TokenScanResult = scoreTokenFromMarket(hit)
     let gatewayUsed = false
 
-    // Solana-looking mint → scan gateway (fast) — ~sub-200ms assessment target
     const looksSolMint = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(query) || hit.chain === 'solana'
     if (looksSolMint && hit.chain === 'solana') {
       try {
         const mint = query.length >= 32 ? query : hit.id
-        // ~150ms estimated when cached / fast depth
         const assess = await assessRiskByMint(mint, 'solana', 'fast')
         gatewayUsed = true
         const safety = assess.safetyScore
@@ -74,15 +127,10 @@ export async function POST(req: NextRequest) {
                   : 45,
           ),
           explanation: `Scan gateway (fast) · safety ${safety} · verdict ${assess.verdict}. Blended with live DexScreener liquidity/volume.`,
-          recommendedAction:
-            assess.verdict === 'BLOCKED' || assess.verdict === 'HIGH_RISK'
-              ? 'Avoid or micro-size — confirm rug heuristics before any swap.'
-              : assess.verdict === 'CAUTION'
-                ? 'Proceed only with tight size and hard slippage limits.'
-                : 'Eligible for normal swap flow — still verify size vs. liquidity.',
+          recommendedAction: `Risk band: ${assess.verdict} (scan gateway) — Decision Engine synthesizes act.`,
         }
       } catch {
-        // keep market rubric — never blank
+        // Keep market rubric only — do not fabricate a soft-fail score
       }
     }
 
@@ -97,33 +145,17 @@ export async function POST(req: NextRequest) {
     })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Scan failed'
-    return NextResponse.json({
-      result: softFailScan('UNKNOWN'),
-      meta: { price: 0, vol: 0, liq: 0 },
-      stale: true,
-      demo: true,
-      source: 'demo-fallback',
-      error: message,
-    })
-  }
-}
-
-function softFailScan(symbol: string): TokenScanResult {
-  return {
-    mintOrAddress: symbol,
-    symbol: symbol.slice(0, 8).toUpperCase(),
-    score: 50,
-    band: 'caution',
-    riskLabel: 'Elevated Risk',
-    confidence: 40,
-    explanation: 'Provider unavailable — showing labeled demo score. Not a live assessment.',
-    recommendedAction: 'Wait for live scan — do not size on demo fallback.',
-    metrics: [
-      { label: 'Liquidity', value: 50, why: 'Demo fallback' },
-      { label: 'Contract Safety', value: 50, why: 'Demo fallback' },
-      { label: 'Holders', value: 50, why: 'Demo fallback' },
-      { label: 'Dev Activity', value: 50, why: 'Demo fallback' },
-      { label: 'Community', value: 50, why: 'Demo fallback' },
-    ],
+    return NextResponse.json(
+      {
+        error: message,
+        unavailable: true,
+        result: null,
+        meta: { price: 0, vol: 0, liq: 0 },
+        stale: true,
+        demo: false,
+        source: 'scan-unavailable',
+      },
+      { status: 503 },
+    )
   }
 }

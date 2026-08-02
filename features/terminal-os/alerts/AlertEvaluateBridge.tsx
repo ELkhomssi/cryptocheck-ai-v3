@@ -3,6 +3,7 @@
 /**
  * Continuously evaluates active alert rules.
  * Prefers SSE (/api/terminal-os/alerts/stream) for real-time push; falls back to POST poll.
+ * ai_signal rules resolve from the server Decision store — not client-only Decision state.
  */
 
 import { useEffect } from 'react'
@@ -31,12 +32,12 @@ export function AlertEvaluateBridge() {
     const pollOnce = async () => {
       if (stopped) return
       const prices: Record<string, number> = {}
-      for (const q of quotes ?? []) {
+      for (const q of quotes?.items ?? []) {
         prices[q.symbol] = q.priceUsd
       }
       if (focused?.priceUsd && focused.id) prices[focused.id] = focused.priceUsd
       if (focused?.symbol && focused.priceUsd) prices[focused.symbol] = focused.priceUsd
-      if (Object.keys(prices).length === 0) return
+      // Prices optional — server loads Decision store for ai_signal rules
       try {
         const res = await fetch('/api/terminal-os/alerts/evaluate', {
           method: 'POST',

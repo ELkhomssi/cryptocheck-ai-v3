@@ -14,9 +14,18 @@ function env(name: string): string {
 /**
  * Build buy/sell URLs for the first configured licensed provider.
  * Priority: MoonPay → Transak → Ramp Network.
+ * Optional `usdAmount` pre-fills exact shortfall for mid-swap funding.
  */
-export function resolveRampConfig(walletAddress: string | null): RampProviderConfig {
+export function resolveRampConfig(
+  walletAddress: string | null,
+  opts?: { usdAmount?: number },
+): RampProviderConfig {
   const addr = walletAddress?.trim() || ''
+  const usd =
+    typeof opts?.usdAmount === 'number' && Number.isFinite(opts.usdAmount) && opts.usdAmount > 0
+      ? Math.round(opts.usdAmount * 100) / 100
+      : null
+
   const moonpay = env('NEXT_PUBLIC_MOONPAY_API_KEY')
   if (moonpay) {
     const buy = new URL('https://buy.moonpay.com/')
@@ -24,6 +33,7 @@ export function resolveRampConfig(walletAddress: string | null): RampProviderCon
     buy.searchParams.set('baseCurrencyCode', 'usd')
     buy.searchParams.set('currencyCode', 'sol')
     if (addr) buy.searchParams.set('walletAddress', addr)
+    if (usd != null) buy.searchParams.set('baseCurrencyAmount', String(usd))
 
     const sell = new URL('https://sell.moonpay.com/')
     sell.searchParams.set('apiKey', moonpay)
@@ -41,6 +51,7 @@ export function resolveRampConfig(walletAddress: string | null): RampProviderCon
     buy.searchParams.set('network', 'solana')
     buy.searchParams.set('productsAvailed', 'BUY')
     if (addr) buy.searchParams.set('walletAddress', addr)
+    if (usd != null) buy.searchParams.set('fiatAmount', String(usd))
 
     const sell = new URL('https://global.transak.com/')
     sell.searchParams.set('apiKey', transak)
@@ -59,6 +70,7 @@ export function resolveRampConfig(walletAddress: string | null): RampProviderCon
     buy.searchParams.set('swapAsset', 'SOLANA_SOL')
     buy.searchParams.set('defaultAsset', 'SOLANA_SOL')
     if (addr) buy.searchParams.set('userAddress', addr)
+    if (usd != null) buy.searchParams.set('fiatValue', String(usd))
 
     const sell = new URL('https://app.ramp.network/')
     sell.searchParams.set('hostApiKey', ramp)

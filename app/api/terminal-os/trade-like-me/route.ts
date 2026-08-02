@@ -6,45 +6,141 @@ import { explainDecision } from '@/features/terminal-os/ai-trade-like-me/engines
 import { buildPerformanceReport } from '@/features/terminal-os/ai-trade-like-me/engines/performance-analytics-engine'
 import { buildSampleTradeHistory } from '@/features/terminal-os/ai-trade-like-me/lib/sample-trade-history'
 import { fetchLiveTopTokens, fetchLiveWhaleMovements } from '@/lib/terminal-os/live-market'
-import type { CapturedTrade } from '@/features/terminal-os/ai-trade-like-me/types'
+import { getPersistedDna } from '@/lib/terminal-os/dna-store'
+import { fetchCapturedTrades } from '@/lib/terminal-os/fetch-captured-trades'
+import { isValidSolanaMint } from '@/lib/validation/mint'
+import type { CapturedTrade, TraderDna } from '@/features/terminal-os/ai-trade-like-me/types'
 import type { ChainId } from '@/features/terminal-os/shared/types'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+const DEMO_WALLET = 'DemoWhale1111111111111111111111111111111'
+
+type ResolvedHistory = {
+  dna: TraderDna | null
+  trades: CapturedTrade[]
+  sample: boolean
+  insufficientData: boolean
+}
+
 /**
- * GET /api/terminal-os/trade-like-me?action=dna|opportunity|status
- * Server-side evaluation — UI stays thin.
+ * Load order (never silent sample for a real wallet):
+ * 1) getPersistedDna if sampleSize >= 3
+ * 2) fetch real trades via Helius path
+ * 3) only if query sample=1 explicitly → sample history + sample:true
+ */
+async function resolveTradeLikeMeHistory(
+  wallet: string,
+  wantSample: boolean,
+): Promise<ResolvedHistory> {
+  if (wantSample) {
+    const trades = buildSampleTradeHistory(wallet || DEMO_WALLET)
+    const dna = buildTraderDna(wallet || DEMO_WALLET, trades)
+    return { dna, trades, sample: true, insufficientData: false }
+  }
+
+  let dna: TraderDna | null = null
+  let trades: CapturedTrade[] = []
+
+  const persisted = wallet ? await getPersistedDna(wallet).catch(() => null) : null
+  if (persisted && persisted.sampleSize >= 3) {
+    dna = persisted
+  }
+
+  if (wallet && isValidSolanaMint(wallet)) {
+    try {
+      trades = await fetchCapturedTrades(wallet)
+    } catch {
+      trades = []
+    }
+  }
+
+  if (!dna && trades.length >= 3) {
+    dna = buildTraderDna(wallet, trades)
+  }
+
+  const insufficientData = !dna
+  return { dna, trades, sample: false, insufficientData }
+}
+
+/**
+ * GET /api/terminal-os/trade-like-me?action=dna|opportunity|status&wallet=&sample=1
+ * Real DNA/trades only — sample path requires explicit sample=1.
  */
 export async function GET(req: NextRequest) {
   const action = (req.nextUrl.searchParams.get('action') || 'status').toLowerCase()
-  const wallet = req.nextUrl.searchParams.get('wallet') || 'DemoWhale1111111111111111111111111111111'
+  const wantSample = req.nextUrl.searchParams.get('sample') === '1'
+  const walletParam = req.nextUrl.searchParams.get('wallet')?.trim() ?? ''
+  const wallet = walletParam || (wantSample ? DEMO_WALLET : '')
   const chain = (req.nextUrl.searchParams.get('chain') || 'solana') as ChainId
 
+  if (!wallet && !wantSample) {
+    return NextResponse.json(
+      {
+        error: 'wallet required (or sample=1 for demo)',
+        insufficientData: true,
+        sample: false,
+        dna: null,
+      },
+      { status: 400 },
+    )
+  }
+
   try {
-    // Until wallet indexing lands, seed with tagged sample history for DNA demos.
-    const trades: CapturedTrade[] = buildSampleTradeHistory(wallet)
+    const resolved = await resolveTradeLikeMeHistory(wallet, wantSample)
+    const { dna, trades, sample, insufficientData } = resolved
 
     if (action === 'status') {
-      const dna = buildTraderDna(wallet, trades)
+      if (insufficientData || !dna) {
+        return NextResponse.json({
+          phase: 'insufficient',
+          learningProgressPct: Math.min(99, Math.round((trades.length / 3) * 100)),
+          dna: null,
+          performance: null,
+          autonomy: {
+            armed: false,
+            blockedReason: 'Insufficient trade history — connect wallet and train',
+            wouldExecute: false,
+          },
+          statusLine: 'Need more on-chain trades to build Trader DNA',
+          tradeCount: trades.length,
+          insufficientData: true,
+          sample: false,
+        })
+      }
       return NextResponse.json({
         phase: 'ready',
         learningProgressPct: 100,
         dna,
-        performance: buildPerformanceReport(trades, dna),
+        performance: buildPerformanceReport(trades.length ? trades : [], dna),
         autonomy: {
           armed: false,
           blockedReason: 'Autonomous Mode flagged OFF — advise-only',
           wouldExecute: false,
         },
-        statusLine: 'Watching Markets…',
-        sample: true,
+        statusLine: sample ? 'Sample DNA (explicit sample=1)' : 'Watching Markets…',
+        tradeCount: trades.length,
+        insufficientData: false,
+        sample,
       })
     }
 
     if (action === 'dna') {
-      const dna = buildTraderDna(wallet, trades)
-      return NextResponse.json({ dna, tradeCount: trades.length, sample: true })
+      if (insufficientData || !dna) {
+        return NextResponse.json({
+          dna: null,
+          tradeCount: trades.length,
+          insufficientData: true,
+          sample: false,
+        })
+      }
+      return NextResponse.json({
+        dna,
+        tradeCount: trades.length,
+        insufficientData: false,
+        sample,
+      })
     }
 
     if (action === 'opportunity') {
@@ -56,7 +152,7 @@ export async function GET(req: NextRequest) {
       if (!token) {
         return NextResponse.json({ error: 'No live tokens' }, { status: 502 })
       }
-      const dna = buildTraderDna(wallet, trades)
+      // Real DNA when available; null → market-quality decide (never invent sample DNA)
       const intel = buildMarketIntel({ token, whales })
       const decision = decide(dna, intel)
       const narrative = explainDecision(decision)
@@ -64,12 +160,20 @@ export async function GET(req: NextRequest) {
         decision,
         narrative,
         intel,
-        dnaSummary: {
-          style: dna.tradingStyleSummary,
-          confidence: dna.confidenceScore,
-          winRate: dna.winRatePct,
-        },
-        sampleDna: true,
+        dnaSummary: dna
+          ? {
+              style: dna.tradingStyleSummary,
+              confidence: dna.confidenceScore,
+              winRate: dna.winRatePct,
+            }
+          : null,
+        confidenceMode: decision.scores.confidenceMode,
+        behaviorMatch: decision.scores.behaviorMatch,
+        marketConfidence: decision.scores.marketConfidence,
+        personalizedConfidence: decision.scores.personalizedConfidence ?? null,
+        insufficientData: !dna,
+        sample,
+        sampleDna: wantSample,
       })
     }
 

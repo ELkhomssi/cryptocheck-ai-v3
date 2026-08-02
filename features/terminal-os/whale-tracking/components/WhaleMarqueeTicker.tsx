@@ -109,6 +109,31 @@ export function WhaleMarqueeTicker({
     return filtered.slice(0, MARQUEE_VISIBLE)
   }, [events, filter])
 
+  /** True when any row is wallet-attributed (WHALE_ALERT / real desks). */
+  const hasWalletAttributed = useMemo(
+    () => events.some((w) => w.walletAttributed === true),
+    [events],
+  )
+  const majorityFlowProxy = useMemo(() => {
+    if (events.length === 0) return false
+    const unattributed = events.filter((w) => w.walletAttributed === false).length
+    return unattributed > events.length / 2
+  }, [events])
+  const isFlowProxy = events.length > 0 && !hasWalletAttributed
+  const displayTitle = isFlowProxy || majorityFlowProxy ? 'Market flow' : title
+  const connLabel =
+    conn === 'live'
+      ? isFlowProxy
+        ? 'Live · flow proxy'
+        : 'Live'
+      : conn === 'polling'
+        ? isFlowProxy
+          ? 'Polling · flow proxy'
+          : 'Polling'
+        : conn === 'connecting'
+          ? 'Connecting'
+          : 'Offline'
+
   /** Duplicate strip for seamless CSS loop */
   const strip = useMemo(() => {
     if (visible.length === 0) return []
@@ -136,16 +161,17 @@ export function WhaleMarqueeTicker({
   return (
     <section
       className={`tos-wm-ticker${fixed ? ' tos-wm-ticker--fixed' : ''}`}
-      aria-label={title}
+      aria-label={displayTitle}
       data-conn={conn}
+      data-flow-proxy={isFlowProxy ? 'true' : undefined}
     >
       <div className="tos-wm-bar">
         <div className="tos-wm-title-block">
           <span className="tos-wm-live" data-state={conn} aria-hidden />
-          <h2 className="tos-wm-title">{title}</h2>
+          <h2 className="tos-wm-title">{displayTitle}</h2>
           <span className="tos-wm-sub">
-            High-confidence ·{' '}
-            {conn === 'live' ? 'Live' : conn === 'polling' ? 'Polling' : conn === 'connecting' ? 'Connecting' : 'Offline'}
+            {isFlowProxy ? 'Flow proxy · ' : 'High-confidence · '}
+            {connLabel}
           </span>
         </div>
         <div className="tos-wm-filters" role="tablist" aria-label="Whale filters">
@@ -171,7 +197,13 @@ export function WhaleMarqueeTicker({
           <PanelSkeleton rows={1} />
         </div>
       ) : visible.length === 0 ? (
-        <EmptyState message="No high-confidence whale flows for this filter." />
+        <EmptyState
+          message={
+            isFlowProxy
+              ? 'No high-confidence market flows for this filter.'
+              : 'No high-confidence whale flows for this filter.'
+          }
+        />
       ) : (
         <div
           className="tos-wm-track-wrap"

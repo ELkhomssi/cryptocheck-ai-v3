@@ -35,16 +35,24 @@ export function TopTokensToday() {
   const tab = useTerminalOsStore((s) => s.tokenChainTab)
   const setTab = useTerminalOsStore((s) => s.setTokenChainTab)
   const setFocusedToken = useTerminalOsStore((s) => s.setFocusedToken)
-  const { data: rows, isLoading, isError, isFetching } = useTopTokens(tab)
+  const { data, isLoading, isError, isFetching } = useTopTokens(tab)
+  const rows = data?.items
+  const meta = data?.meta
+  const showStale = Boolean(isError || meta?.demo || meta?.stale)
 
   return (
     <Panel
       title="Top Tokens Today"
-      live
+      live={!meta?.demo && !isError}
       action={
         <div className="tos-tab-row">
-          {(isError || (isFetching && !rows?.length)) && (
-            <StaleIndicator stale demo={isError} ageSec={0} source="dexscreener" />
+          {(showStale || (isFetching && !rows?.length)) && (
+            <StaleIndicator
+              stale={Boolean(meta?.stale || isError)}
+              demo={Boolean(meta?.demo || isError)}
+              ageSec={meta?.ageSec ?? 0}
+              source={meta?.source ?? 'dexscreener'}
+            />
           )}
           {TABS.map((t) => (
             <button

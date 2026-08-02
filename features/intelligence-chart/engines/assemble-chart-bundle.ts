@@ -1,6 +1,7 @@
 /**
  * Server-only assembler — maps real engines → IntelligenceChartBundle.
  * Never invents events; layers without engine data get status: 'no_data'.
+ * AI strip prefers server Decision store over local decide(null).
  */
 
 import 'server-only'
@@ -12,9 +13,17 @@ import {
   resilientTokens,
   resilientWhales,
 } from '@/lib/terminal-os/resilient-feed'
+import {
+  getDecisionByTokenId,
+  getDecisionHistory,
+  saveDecision,
+  type DecisionHistoryPoint,
+} from '@/lib/terminal-os/decision-store'
 import { buildMarketIntel } from '@/features/terminal-os/ai-trade-like-me/engines/market-intelligence-engine'
 import { decide } from '@/features/terminal-os/ai-trade-like-me/engines/decision-engine'
 import { explainDecision } from '@/features/terminal-os/ai-trade-like-me/engines/explainable-engine'
+import { toCanonicalDecision } from '@/features/terminal-os/ai-trade-like-me/lib/to-canonical-decision'
+import type { Decision } from '@cryptocheck/decision-contracts'
 import type { ChainId, TokenRow, WhaleMovement } from '@/features/terminal-os/shared/types'
 import type {
   AiStripPoint,
@@ -28,12 +37,147 @@ import type {
 } from '../types'
 import { DEFAULT_LAYER_VISIBILITY } from '../types'
 
+/** Narrow AI view shared by store Decision + local decide() */
+type ChartAiDecision = {
+  action: string
+  confidence: number
+  probability: number
+  risk: number
+  expectedRoiPct: number
+  expectedDrawdownPct: number
+  reasoning: string
+}
+
 function emptyLayer(
   id: ChartLayer['id'],
   sourceEngine: ChartLayer['sourceEngine'],
   visible: boolean,
 ): ChartLayer {
   return { id, sourceEngine, events: [], status: 'no_data', visible }
+}
+
+function fromStoreDecision(d: Decision): ChartAiDecision {
+  return {
+    action: d.action,
+    confidence: Math.round(d.confidence),
+    probability: Math.round(d.confidence),
+    risk: Math.round(d.risk),
+    expectedRoiPct: d.expectedROI ?? 0,
+    expectedDrawdownPct: d.expectedDrawdown ?? 0,
+    reasoning: d.reasoning,
+  }
+}
+
+function fromExplainable(d: ReturnType<typeof decide>): ChartAiDecision {
+  return {
+    action: d.action,
+    confidence: d.opportunity.confidence,
+    probability: d.opportunity.probability,
+    risk: d.opportunity.risk,
+    expectedRoiPct: d.opportunity.expectedRoiPct,
+    expectedDrawdownPct: d.opportunity.expectedDrawdownPct,
+    reasoning: [d.summary, ...d.reasons.slice(0, 3)].filter(Boolean).join(' · '),
+  }
+}
+
+function nearestCandleTime(
+  candles: { time: number }[],
+  unixSec: number,
+  fallback: number,
+): number {
+  if (!candles.length) return fallback
+  let best = candles[0]!.time
+  let bestDist = Math.abs(best - unixSec)
+  for (const c of candles) {
+    const dist = Math.abs(c.time - unixSec)
+    if (dist < bestDist) {
+      best = c.time
+      bestDist = dist
+    }
+  }
+  return best
+}
+
+function zonesFromHistory(
+  history: DecisionHistoryPoint[],
+  candles: { time: number; close: number }[],
+  fallbackPrice: number,
+  lastTime: number,
+): AiZoneBand[] {
+  const zones: AiZoneBand[] = []
+  for (const point of history) {
+    if (point.action !== 'BUY' && point.action !== 'SELL' && point.action !== 'EXIT') continue
+    const ts = Math.floor(new Date(point.at).getTime() / 1000)
+    const t = nearestCandleTime(candles, ts, lastTime)
+    const near = candles.find((c) => c.time === t)
+    const price = near?.close || fallbackPrice
+    // Honest band at decision timestamp — not a fake range across all candles
+    const span = 120
+    if (point.action === 'BUY') {
+      zones.push({
+        id: `zone-buy:${point.at}`,
+        kind: 'buy',
+        priceLow: price * 0.97,
+        priceHigh: price * (1 + Math.min(0.08, Math.abs(point.confidence) / 1000)),
+        timeFrom: t,
+        timeTo: t + span,
+        confidence: point.confidence,
+        sourceEngineRef: `decision-store:zone:buy:${point.at}`,
+        label: 'AI Buy Zone',
+      })
+    } else {
+      zones.push({
+        id: `zone-sell:${point.at}`,
+        kind: 'sell',
+        priceLow: price * (1 - Math.min(0.08, point.risk / 1000)),
+        priceHigh: price * 1.02,
+        timeFrom: t,
+        timeTo: t + span,
+        confidence: point.confidence,
+        sourceEngineRef: `decision-store:zone:sell:${point.at}`,
+        label: 'AI Sell Zone',
+      })
+    }
+  }
+  return zones
+}
+
+function singleZoneAtLastCandle(
+  decision: ChartAiDecision,
+  whaleBias: string,
+  price: number,
+  lastTime: number,
+  sourcePrefix: string,
+): AiZoneBand[] {
+  const zones: AiZoneBand[] = []
+  const span = 120
+  if (decision.action === 'BUY' || decision.expectedRoiPct > 2) {
+    zones.push({
+      id: `zone-buy:${lastTime}`,
+      kind: 'buy',
+      priceLow: price * 0.97,
+      priceHigh: price * (1 + Math.min(0.08, Math.abs(decision.expectedRoiPct) / 100)),
+      timeFrom: lastTime,
+      timeTo: lastTime + span,
+      confidence: decision.confidence,
+      sourceEngineRef: `${sourcePrefix}:zone:buy:${decision.confidence}`,
+      label: 'AI Buy Zone',
+    })
+  }
+  if (decision.action === 'SELL' || decision.action === 'EXIT' || whaleBias === 'distributing') {
+    zones.push({
+      id: `zone-sell:${lastTime}`,
+      kind: 'sell',
+      priceLow: price * (1 - Math.min(0.08, Math.abs(decision.expectedDrawdownPct) / 100)),
+      priceHigh: price * 1.02,
+      timeFrom: lastTime,
+      timeTo: lastTime + span,
+      confidence: decision.confidence,
+      sourceEngineRef: `${sourcePrefix}:zone:sell:${decision.confidence}`,
+      label: 'AI Sell Zone',
+    })
+  }
+  return zones
 }
 
 export async function assembleIntelligenceChart(input: {
@@ -107,11 +251,46 @@ export async function assembleIntelligenceChart(input: {
     riskScore: scanRisk ?? undefined,
     securityBand,
   })
-  const decision = decide(null, intel)
-  const explained = explainDecision(decision)
-  const narrativeText = [explained.headline, explained.confidenceLine, ...explained.bullets.slice(0, 3)]
-    .filter(Boolean)
-    .join(' · ')
+
+  // Prefer server Decision store for AI strip; local decide only if empty
+  let stored =
+    (await getDecisionByTokenId(token.id).catch(() => null)) ??
+    (await getDecisionByTokenId(token.symbol).catch(() => null))
+  let aiLive = Boolean(stored)
+  let decision: ChartAiDecision
+  let narrativeText: string
+  let sourcePrefix = 'decision-store'
+
+  if (stored) {
+    decision = fromStoreDecision(stored)
+    narrativeText = stored.reasoning
+  } else {
+    const explained = decide(null, intel)
+    decision = fromExplainable(explained)
+    const explainedNarr = explainDecision(explained)
+    narrativeText = [explainedNarr.headline, explainedNarr.confidenceLine, ...explainedNarr.bullets.slice(0, 3)]
+      .filter(Boolean)
+      .join(' · ')
+    sourcePrefix = 'decision-engine'
+    // Optionally persist so subsequent chart / Layer 4 reads share the same Decision
+    try {
+      const canonical = toCanonicalDecision(explained, { tokenAddress: token.id })
+      await saveDecision(canonical)
+      stored = canonical
+      aiLive = true
+      sourcePrefix = 'decision-store'
+      decision = fromStoreDecision(canonical)
+      narrativeText = canonical.reasoning
+    } catch {
+      /* Redis optional */
+    }
+  }
+
+  const history = await getDecisionHistory(token.id).catch(() => [] as DecisionHistoryPoint[])
+  const historyAlt =
+    history.length === 0
+      ? await getDecisionHistory(token.symbol).catch(() => [] as DecisionHistoryPoint[])
+      : history
 
   const lastCandle = candles[candles.length - 1]
   const lastTime = lastCandle?.time ?? Math.floor(Date.now() / 1000)
@@ -138,7 +317,6 @@ export async function assembleIntelligenceChart(input: {
   }
 
   // No historical liquidity series from engines yet — do not fabricate a ribbon curve.
-  // When a time-series feed lands, populate LiquidityRibbonPoint[] here.
   const liquidityRibbon: LiquidityRibbonPoint[] =
     token.liquidityUsd > 0 && lastCandle
       ? [
@@ -169,59 +347,35 @@ export async function assembleIntelligenceChart(input: {
     DEFAULT_LAYER_VISIBILITY.developer,
   )
 
-  // ── Layer 5 AI (Decision + Explainable engines) ──
+  // ── Layer 5 AI (Decision store + Explainable engines) ──
   const aiEvents: ChartEvent[] = [
     {
-      id: `ai-decision:${decision.opportunity.confidence}:${lastTime}`,
+      id: `ai-decision:${decision.confidence}:${lastTime}`,
       timestamp: lastTime,
       price,
       severity: decision.action === 'BUY' || decision.action === 'SELL' ? 'notable' : 'info',
-      label: `AI ${decision.action} · confidence ${decision.opportunity.confidence}`,
+      label: `AI ${decision.action} · confidence ${decision.confidence}`,
       detail: narrativeText,
-      sourceEngineRef: `decision-engine:${decision.opportunity.confidence}:${decision.action}`,
+      sourceEngineRef: `${sourcePrefix}:${decision.confidence}:${decision.action}`,
       layerId: 'ai',
     },
   ]
 
-  const aiZones: AiZoneBand[] = []
-  const t0 = candles[0]?.time ?? lastTime - 3600
-  if (decision.action === 'BUY' || decision.opportunity.expectedRoiPct > 2) {
-    aiZones.push({
-      id: `zone-buy:${lastTime}`,
-      kind: 'buy',
-      priceLow: price * 0.97,
-      priceHigh: price * (1 + Math.min(0.08, Math.abs(decision.opportunity.expectedRoiPct) / 100)),
-      timeFrom: t0,
-      timeTo: lastTime,
-      confidence: decision.opportunity.confidence,
-      sourceEngineRef: `decision-engine:zone:buy:${decision.opportunity.confidence}`,
-      label: 'AI Buy Zone',
-    })
-  }
-  if (decision.action === 'SELL' || decision.action === 'EXIT' || intel.whaleBias === 'distributing') {
-    aiZones.push({
-      id: `zone-sell:${lastTime}`,
-      kind: 'sell',
-      priceLow: price * (1 - Math.min(0.08, Math.abs(decision.opportunity.expectedDrawdownPct) / 100)),
-      priceHigh: price * 1.02,
-      timeFrom: t0,
-      timeTo: lastTime,
-      confidence: decision.opportunity.confidence,
-      sourceEngineRef: `decision-engine:zone:sell:${decision.opportunity.confidence}`,
-      label: 'AI Sell Zone',
-    })
-  }
+  const aiZones: AiZoneBand[] =
+    historyAlt.length > 0
+      ? zonesFromHistory(historyAlt, candles, price, lastTime)
+      : singleZoneAtLastCandle(decision, intel.whaleBias, price, lastTime, sourcePrefix)
 
   const aiStrip: AiStripPoint[] = candles.length
-    ? sampleStrip(candles, decision, intel, lastTime)
+    ? sampleStrip(candles, decision, intel, lastTime, sourcePrefix)
     : [
         {
           time: lastTime,
-          confidence: decision.opportunity.confidence,
-          conviction: decision.opportunity.probability,
-          risk: decision.opportunity.risk,
+          confidence: decision.confidence,
+          conviction: decision.probability,
+          risk: decision.risk,
           trend: clamp(50 + token.change24hPct, 0, 100),
-          sourceEngineRef: `decision-engine:strip:${decision.opportunity.confidence}`,
+          sourceEngineRef: `${sourcePrefix}:strip:${decision.confidence}`,
         },
       ]
 
@@ -295,7 +449,11 @@ export async function assembleIntelligenceChart(input: {
     narrative: narrativeText,
     scanSafety,
     holderHealth: null,
+    sourcePrefix,
   })
+
+  // demo reflects candle/token provenance only — AI live from store is not demo-labeled
+  const candlesDemo = Boolean(candlesEnv.demo || tokensEnv.demo)
 
   return {
     token: {
@@ -318,8 +476,9 @@ export async function assembleIntelligenceChart(input: {
     sidebarTimeline,
     fetchedAt: new Date().toISOString(),
     stale: candlesEnv.stale || tokensEnv.stale,
-    demo: candlesEnv.demo || tokensEnv.demo,
-    source: `intelligence-chart+${candlesEnv.source}`,
+    demo: candlesDemo,
+    aiLive,
+    source: `intelligence-chart+${candlesEnv.source}${aiLive ? '+decision-store' : ''}`,
   }
 }
 
@@ -346,9 +505,10 @@ function whaleToLiquidityEvent(w: WhaleMovement, fallbackPrice: number): ChartEv
 
 function sampleStrip(
   candles: { time: number }[],
-  decision: ReturnType<typeof decide>,
+  decision: ChartAiDecision,
   intel: ReturnType<typeof buildMarketIntel>,
   lastTime: number,
+  sourcePrefix: string,
 ): AiStripPoint[] {
   // Sparse real samples: only emit points at candle times with the same live engine scores
   // (no fabricated historical AI series — strip is flat until we have time-series decisions)
@@ -358,21 +518,21 @@ function sampleStrip(
     const c = candles[i]!
     out.push({
       time: c.time,
-      confidence: decision.opportunity.confidence,
-      conviction: decision.opportunity.probability,
-      risk: decision.opportunity.risk,
+      confidence: decision.confidence,
+      conviction: decision.probability,
+      risk: decision.risk,
       trend: clamp(50 + (intel.predictionUpsidePct ?? 0), 0, 100),
-      sourceEngineRef: `decision-engine:strip:${decision.opportunity.confidence}:${c.time}`,
+      sourceEngineRef: `${sourcePrefix}:strip:${decision.confidence}:${c.time}`,
     })
   }
   if (!out.length || out[out.length - 1]!.time !== lastTime) {
     out.push({
       time: lastTime,
-      confidence: decision.opportunity.confidence,
-      conviction: decision.opportunity.probability,
-      risk: decision.opportunity.risk,
+      confidence: decision.confidence,
+      conviction: decision.probability,
+      risk: decision.risk,
       trend: clamp(50 + (intel.predictionUpsidePct ?? 0), 0, 100),
-      sourceEngineRef: `decision-engine:strip:${decision.opportunity.confidence}:${lastTime}`,
+      sourceEngineRef: `${sourcePrefix}:strip:${decision.confidence}:${lastTime}`,
     })
   }
   return out
@@ -380,49 +540,49 @@ function sampleStrip(
 
 function buildSidebarTimeline(input: {
   candles: { time: number }[]
-  decision: ReturnType<typeof decide>
+  decision: ChartAiDecision
   intel: ReturnType<typeof buildMarketIntel>
   narrative: string
   scanSafety: number | null
   holderHealth: number | null
+  sourcePrefix: string
 }): IntelligenceSidebarState[] {
-  const { decision, intel, narrative, scanSafety, holderHealth, candles } = input
+  const { decision, intel, narrative, scanSafety, holderHealth, candles, sourcePrefix } = input
   if (!candles.length) {
     return [
       {
         timestamp: Math.floor(Date.now() / 1000),
-        aiConviction: decision.opportunity.probability,
-        risk: decision.opportunity.risk,
-        confidence: decision.opportunity.confidence,
+        aiConviction: decision.probability,
+        risk: decision.risk,
+        confidence: decision.confidence,
         narrative,
         trend: clamp(50 + (intel.predictionUpsidePct ?? 0), 0, 100),
         smartMoneyActivity: intel.smartMoneyScore,
         whalePressure: intel.whaleBias,
         holderHealth,
         sourceRefs: [
-          `decision-engine:${decision.opportunity.confidence}`,
+          `${sourcePrefix}:${decision.confidence}`,
           `market-intelligence:${intel.tokenAddress}`,
           ...(scanSafety != null ? [`scan-gateway:safety:${scanSafety}`] : []),
         ],
       },
     ]
   }
-  // Sparse timeline: first, mid, last — getStateAtTimestamp picks latest ≤ ts
   const idxs = [0, Math.floor(candles.length / 2), candles.length - 1]
   return idxs.map((i) => {
     const t = candles[i]!.time
     return {
       timestamp: t,
-      aiConviction: decision.opportunity.probability,
-      risk: decision.opportunity.risk,
-      confidence: decision.opportunity.confidence,
+      aiConviction: decision.probability,
+      risk: decision.risk,
+      confidence: decision.confidence,
       narrative,
       trend: clamp(50 + (intel.predictionUpsidePct ?? 0), 0, 100),
       smartMoneyActivity: intel.smartMoneyScore,
       whalePressure: intel.whaleBias,
       holderHealth,
       sourceRefs: [
-        `decision-engine:${decision.opportunity.confidence}:${t}`,
+        `${sourcePrefix}:${decision.confidence}:${t}`,
         `market-intelligence:${intel.tokenAddress}:${t}`,
       ],
     }

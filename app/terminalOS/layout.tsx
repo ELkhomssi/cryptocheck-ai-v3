@@ -5,21 +5,20 @@ import '@/styles/tokens.css'
 import '@/styles/terminal-os.css'
 import '@/features/intelligence-chart/styles.css'
 import '@/features/execution-desk/styles.css'
+import '@/features/ai-os/styles.css'
 
 export const metadata = {
-  title: 'Terminal OS v6 · CryptoCheck AI',
+  title: 'CryptoCheck AI · AI Operating System',
   description:
-    'CryptoCheck AI Trading Operating System — live market intelligence, AI Trade Like Me, security scanning, and portfolio health.',
+    'CryptoCheck AI Operating System — intent gateway, AI Coach, and Decision Engine recommendations. Not financial advice.',
 }
 
 export default function TerminalOsLayout({ children }: { children: React.ReactNode }) {
   return (
     <div
-      data-tos
       className={`${GeistSans.variable} ${GeistMono.variable}`}
       style={{
         minHeight: '100vh',
-        background: 'var(--tos-bg-app)',
         fontFamily: 'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
       }}
     >
