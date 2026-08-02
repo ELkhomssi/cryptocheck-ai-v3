@@ -7,21 +7,24 @@
 import 'server-only'
 
 import type { Decision } from '@cryptocheck/decision-contracts'
-import { decide } from '@/features/terminal-os/ai-trade-like-me/engines/decision-engine'
-import { buildMarketIntel } from '@/features/terminal-os/ai-trade-like-me/engines/market-intelligence-engine'
-import { toCanonicalDecision } from '@/features/terminal-os/ai-trade-like-me/lib/to-canonical-decision'
-import { getPersistedDna } from '@/lib/terminal-os/dna-store'
-import { listRecentDecisions, saveDecision, runDecisionTickIfNeeded } from '@/lib/terminal-os/rotation-helpers'
-import { resilientTokens, resilientWhales } from '@/lib/terminal-os/resilient-feed'
-import { buildHoldingsResponse } from '@/lib/portfolio-desk/holdings-service'
-import { assessSwapIntent } from '@/lib/trading/risk-gated-swap'
-import { redis } from '@/lib/cache/redis'
+import {
+  assessDeterioration,
+  type DeteriorationVerdict,
+} from '@/features/terminal-os/capital-rotation/logic'
 import type {
   RotationEvent,
   RotationPermissionMode,
   RotationProposal,
   RotationThreshold,
 } from '@/features/terminal-os/capital-rotation/types'
+import { decide } from '@/features/terminal-os/ai-trade-like-me/engines/decision-engine'
+import { buildMarketIntel } from '@/features/terminal-os/ai-trade-like-me/engines/market-intelligence-engine'
+import { toCanonicalDecision } from '@/features/terminal-os/ai-trade-like-me/lib/to-canonical-decision'
+import type { MarketContext, TraderDna } from '@/features/terminal-os/ai-trade-like-me/types'
+import type { TokenRow } from '@/features/terminal-os/shared/types'
+import { redis } from '@/lib/cache/redis'
+import { getPersistedDna } from '@/lib/terminal-os/dna-store'
+import { listRecentDecisions, saveDecision, runDecisionTickIfNeeded } from '@/lib/terminal-os/rotation-helpers'
 import {
   DEFAULT_LOSS_THRESHOLD_PCT,
   appendRotationEvent,
@@ -33,6 +36,17 @@ import {
   saveRotationProposal,
   saveRotationThreshold,
 } from '@/lib/terminal-os/rotation-store'
+import { resilientTokens, resilientWhales } from '@/lib/terminal-os/resilient-feed'
+import { buildHoldingsResponse } from '@/lib/portfolio-desk/holdings-service'
+import { assessSwapIntent } from '@/lib/trading/risk-gated-swap'
+import type { Holding } from '@/types/portfolio-desk'
+
+export { assessDeterioration }
+export type { DeteriorationVerdict }
+
+const SOL_MINT = 'So11111111111111111111111111111111111111112'
+const HONESTY =
+  'A rotation exit may still be a real loss versus entry. The AI aims to cut a weakening position before it becomes a large undisciplined loss and redeploy into current strength — not to eliminate losses.'
 
 async function registerWatchWallet(wallet: string): Promise<void> {
   const key = 'ccai:tos:rotation:watchlist'
@@ -48,21 +62,6 @@ async function registerWatchWallet(wallet: string): Promise<void> {
   wallets = [wallet, ...wallets.filter((w) => w !== wallet)].slice(0, 48)
   await redis.setex(key, 60 * 60 * 24 * 30, JSON.stringify(wallets))
 }
-import type { Holding } from '@/types/portfolio-desk'
-import type { MarketContext, TraderDna } from '@/features/terminal-os/ai-trade-like-me/types'
-import type { TokenRow } from '@/features/terminal-os/shared/types'
-
-const SOL_MINT = 'So11111111111111111111111111111111111111112'
-const HONESTY =
-  'A rotation exit may still be a real loss versus entry. The AI aims to cut a weakening position before it becomes a large undisciplined loss and redeploy into current strength — not to eliminate losses.'
-
-import {
-  assessDeterioration,
-  type DeteriorationVerdict,
-} from '@/features/terminal-os/capital-rotation/logic'
-
-export { assessDeterioration }
-export type { DeteriorationVerdict }
 
 export async function resolveLossThreshold(
   wallet: string,
@@ -156,14 +155,16 @@ async function pickRotationCandidate(
   const top = buys[0]
   if (!top || top.subject.kind !== 'token') return null
 
-  const mint = top.subject.address || top.subject.symbol
+  const topSubject = top.subject
+  const mint = topSubject.address || topSubject.symbol
+  const symbol = topSubject.symbol
   const [tokensEnv] = await Promise.all([resilientTokens('solana', 24)])
   const token =
-    (tokensEnv.data ?? []).find((t) => t.id === mint || t.symbol === top.subject.symbol) ??
+    (tokensEnv.data ?? []).find((t) => t.id === mint || t.symbol === symbol) ??
     ({
       id: mint,
-      symbol: top.subject.symbol,
-      name: top.subject.symbol,
+      symbol,
+      name: symbol,
       chain: 'solana' as const,
       priceUsd: 0,
       change24hPct: 0,
@@ -193,7 +194,9 @@ async function pickRotationCandidate(
       // Try next BUY candidates
       for (const alt of buys.slice(1, 5)) {
         if (alt.subject.kind !== 'token') continue
-        const altMint = alt.subject.address || alt.subject.symbol
+        const altSubject = alt.subject
+        const altMint = altSubject.address || altSubject.symbol
+        const altSymbol = altSubject.symbol
         if (altMint.length < 32) continue
         const a2 = await assessSwapIntent({
           walletAddress: wallet,
@@ -206,7 +209,7 @@ async function pickRotationCandidate(
         if (a2.verdict === 'SAFE' || a2.verdict === 'CAUTION') {
           const altToken =
             (tokensEnv.data ?? []).find((t) => t.id === altMint) ??
-            ({ ...token, id: altMint, symbol: alt.subject.symbol } satisfies TokenRow)
+            ({ ...token, id: altMint, symbol: altSymbol } satisfies TokenRow)
           return {
             decision: alt,
             token: altToken,
