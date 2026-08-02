@@ -226,17 +226,18 @@ function stageDecides(snap: LifecycleSnapshot) {
     return {
       status: 'insufficient_data' as const,
       headline: 'Not enough data yet',
-      detailLines: ['OpportunityScore + explainable reasoning appear after a Decision Engine run.'],
+      detailLines: ['Waiting for the server Decision Engine tick (runs without an open tab).'],
       ctaLabel: 'Open Trade Like Me',
       ctaHref: 'ai-trading',
     }
   }
+  const conf = d.marketConfidence ?? d.confidence
   return {
     status: 'ready' as const,
-    headline: `${d.action}, confidence ${Math.round(d.scores.confidence)}%`,
+    headline: `${d.action}, confidence ${Math.round(conf)}% (${d.confidenceMode})`,
     detailLines: [
-      d.summary,
-      d.reasons[0] || 'See Trade Like Me for full explainable citations.',
+      d.reasoning.slice(0, 160),
+      d.contributingFactors[0]?.summary || 'See Trade Like Me for full explainable citations.',
     ],
     ctaLabel: 'View decision',
     ctaHref: 'ai-trading',

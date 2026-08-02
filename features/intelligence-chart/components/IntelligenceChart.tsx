@@ -124,8 +124,12 @@ export function IntelligenceChart({
         live
         action={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {(bundle.stale || isFetching) && (
-              <StaleIndicator stale={bundle.stale} demo={bundle.demo} source={bundle.source} />
+            {(bundle.stale || isFetching || (bundle.demo && !bundle.aiLive)) && (
+              <StaleIndicator
+                stale={bundle.stale}
+                demo={Boolean(bundle.demo) && !bundle.aiLive}
+                source={bundle.source}
+              />
             )}
             {onClose ? (
               <button type="button" className="tos-tab" onClick={onClose}>

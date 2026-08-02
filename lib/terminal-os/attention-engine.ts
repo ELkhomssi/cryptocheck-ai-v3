@@ -12,11 +12,17 @@ import { adaptMarketToAttention } from '@/features/attention-feed/adapters/marke
 import { adaptWhalesToAttention } from '@/features/attention-feed/adapters/whale-adapter'
 import { adaptSecurityToAttention } from '@/features/attention-feed/adapters/security-adapter'
 import { adaptPortfolioToAttention } from '@/features/attention-feed/adapters/coach-portfolio-adapter'
+import { adaptDecisionCoachToAttention } from '@/features/attention-feed/adapters/decision-coach-adapter'
+import { adaptRotationProposalToAttention } from '@/features/attention-feed/adapters/rotation-adapter'
 import { summaryFromHoldings } from '@/features/terminal-os/portfolio-os/lib/summary-from-holdings'
 import { buildHoldingsResponse } from '@/lib/portfolio-desk/holdings-service'
 import { isValidSolanaWallet } from '@/lib/portfolio-desk/validate'
 import { prioritizeAttentionItems } from '@/features/attention-feed/lib/prioritize'
 import type { AttentionItem } from '@/features/attention-feed/types'
+import { listRecentDecisions } from '@/lib/terminal-os/decision-store'
+import { runDecisionTick } from '@/lib/terminal-os/decision-engine-tick'
+import { adaptCanonicalDecisionToAttention } from '@/features/attention-feed/adapters/decision-from-store'
+import { getRotationProposal } from '@/lib/terminal-os/rotation-store'
 import {
   attentionFingerprint,
   getAttentionFingerprints,
@@ -36,7 +42,10 @@ function eventTypeFor(item: AttentionItem): AttentionLiveEvent['eventType'] {
     case 'decision-engine':
       return 'DecisionMade'
     case 'ai-coach':
-      return 'DNAUpdated'
+      // Proactive Decision coach messages track DecisionMade (action/confidence in id)
+      return item.id.startsWith('coach:decision:') ? 'DecisionMade' : 'DNAUpdated'
+    case 'automation-engine':
+      return item.id.startsWith('rotation:') ? 'DecisionMade' : 'MarketContextChanged'
     case 'wallet-intelligence':
       return 'WhaleFlow'
     default:
@@ -79,6 +88,20 @@ export async function runAttentionTick(opts?: {
     ...adaptSecurityToAttention(tokensEnv.data ?? []),
   ]
 
+  // Server-persisted Decisions — same objects Discovery/Coach/Alerts read
+  try {
+    let decisions = await listRecentDecisions(8)
+    if (!decisions.length) {
+      await runDecisionTick({ wallet: opts?.wallet, limit: 12 })
+      decisions = await listRecentDecisions(8)
+    }
+    candidates.push(...adaptCanonicalDecisionToAttention(decisions))
+    // Proactive Coach — contributingFactors → Attention feed without opening Coach UI
+    candidates.push(...adaptDecisionCoachToAttention(decisions))
+  } catch {
+    /* decision store optional on cold start */
+  }
+
   // Drop market items that never crossed a meaningful band (adapter already filters ≥8%)
   const filtered = candidates.filter((item) => {
     if (item.sourceEngine !== 'market-intelligence') return true
@@ -98,6 +121,12 @@ export async function runAttentionTick(opts?: {
       filtered.push(...adaptPortfolioToAttention(summary))
     } catch {
       /* holdings optional — do not fabricate */
+    }
+    try {
+      const proposal = await getRotationProposal(wallet)
+      filtered.push(...adaptRotationProposalToAttention(proposal))
+    } catch {
+      /* rotation store optional */
     }
   }
 

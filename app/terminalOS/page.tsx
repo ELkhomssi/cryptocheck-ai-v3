@@ -4,16 +4,15 @@ import { Suspense } from 'react'
 import { ModeRouter } from '@/features/attention-feed'
 
 /**
- * Dual Mode entry — Simple (AI OS) vs Pro (Terminal).
- * The only Pro-adjacent change: route through ModeRouter.
- * TerminalOsShell itself is imported unchanged inside ModeRouter.
+ * CryptoCheck AI Operating System.
+ * Intent gateway + Decision Engine briefing — not a crypto dashboard.
  */
 export default function TerminalOsPage() {
   return (
     <Suspense
       fallback={
-        <div style={{ padding: 24, color: 'var(--tos-text-secondary, #57534e)' }}>
-          Loading…
+        <div style={{ padding: 24, color: '#6b7380', fontFamily: 'var(--font-geist-sans), sans-serif' }}>
+          Starting AI Operating System…
         </div>
       }
     >

@@ -89,7 +89,10 @@ export async function getAttentionSeq(): Promise<number> {
 
 /** Content fingerprint — material fields only (ignores pure timestamp noise). */
 export function attentionFingerprint(item: AttentionItem): string {
+  // Coach Decision messages: id embeds action+confidence so DecisionMade changes
+  // fingerprint as new items when those fields change.
   return [
+    item.id.startsWith('coach:decision:') ? item.id : '',
     item.sourceEngine,
     item.urgency,
     item.headline,
