@@ -1,7 +1,9 @@
 /**
- * Scout — Growth Intelligence Operating System contracts.
+ * Scout V2 — Growth Intelligence Agent contracts.
  * Scout never invents market analysis; it transforms CryptoCheckAI engine outputs.
  */
+
+import type { EcosystemPillar } from '@/lib/scout/strategy'
 
 export type ScoutStatus =
   | 'idle'
@@ -20,6 +22,7 @@ export type ScoutTopicSource =
   | 'scan-gateway'
   | 'market-analyst'
   | 'whale-feed'
+  | 'ecosystem-pillar'
   | 'manual'
 
 export type SearchIntent = 'informational' | 'navigational' | 'commercial' | 'transactional'
@@ -33,6 +36,12 @@ export type ScoutTopic = {
   symbol?: string | null
   evidenceLine: string
   discoveredAt: string
+  /** Ecosystem pillar this topic reinforces (V2). */
+  pillar?: EcosystemPillar
+  /** 0–100 priority before final scorer (optional seed). */
+  priorityScore?: number
+  /** True when topic cites a live engine snapshot. */
+  engineCited?: boolean
   /** True only when synthetic demo rows are intentionally shown in UI. */
   sample?: boolean
 }
@@ -47,6 +56,7 @@ export type KeywordOpportunity = {
   intent: SearchIntent
   relatedKeywords: string[]
   longTail: string[]
+  semanticKeywords: string[]
   peopleAlsoAsk: string[]
   opportunityScore: number
   method: 'heuristic' | 'provider'
@@ -55,7 +65,7 @@ export type KeywordOpportunity = {
 
 export type ContentPlanItem = {
   id: string
-  kind: 'blog' | 'tweet' | 'linkedin' | 'newsletter' | 'research_report'
+  kind: 'blog' | 'tweet' | 'linkedin' | 'newsletter' | 'research_report' | 'reddit' | 'discord' | 'telegram'
   topicId: string
   title: string
   expectedImpact: number
@@ -74,12 +84,15 @@ export type DailyContentPlan = {
 export type ArticleSection = {
   heading: string
   body: string
+  id?: string
 }
 
 export type ScoutArticleDraft = {
   id: string
   slug: string
   title: string
+  metaTitle: string
+  metaDescription: string
   introduction: string
   marketContext: string
   technicalAnalysis: string
@@ -91,8 +104,16 @@ export type ScoutArticleDraft = {
   sources: Array<{ label: string; url?: string; engine: string }>
   internalLinks: Array<{ href: string; anchor: string }>
   keywords: string[]
+  longTailKeywords: string[]
+  semanticKeywords: string[]
   mint?: string | null
   topicId: string
+  pillar?: EcosystemPillar
+  category: string
+  readingMinutes: number
+  aiConfidence: number
+  imagePrompt: string
+  priorityScore: number
   status: 'draft' | 'in_review' | 'approved' | 'published' | 'rejected'
   quality: QualityReport | null
   seo: ScoutSeoPayload | null
@@ -114,6 +135,9 @@ export type QualityCheckId =
   | 'internal_links'
   | 'external_sources'
   | 'no_hallucination'
+  | 'no_hype'
+  | 'ecosystem_focus'
+  | 'educate_structure'
 
 export type QualityReport = {
   passed: boolean
@@ -126,6 +150,17 @@ export type ScoutSeoPayload = {
   title: string
   description: string
   canonicalPath: string
+  openGraph: {
+    title: string
+    description: string
+    type: 'article'
+    url: string
+  }
+  twitter: {
+    card: 'summary_large_image'
+    title: string
+    description: string
+  }
   jsonLd: Record<string, unknown>[]
   faqSchema: Record<string, unknown>
   breadcrumbSchema: Record<string, unknown>
@@ -139,9 +174,11 @@ export type DistributionChannel =
   | 'telegram'
   | 'discord'
   | 'newsletter'
+  | 'reddit'
   | 'medium'
   | 'devto'
   | 'hashnode'
+  | 'summary'
 
 export type DistributionDraft = {
   id: string
@@ -159,8 +196,17 @@ export type ScoutMetricsSnapshot = {
   rankingKeywords: number | null
   organicUsers: number | null
   trafficGrowthPct: number | null
+  googleImpressions: number | null
+  googleClicks: number | null
+  googleCtr: number | null
+  avgPosition: number | null
+  accountsCreated: number | null
+  walletConnections: number | null
+  terminalOsSessions: number | null
+  revenueInfluenced: number | null
   queueDepth: number
   avgQualityScore: number | null
+  avgPriorityScore: number | null
   generatedAt: string
   /** Metrics are null until Search Console / analytics are wired */
   sample: boolean
@@ -177,6 +223,9 @@ export type ScoutLearningSignal = {
 
 export type ScoutDashboardState = {
   status: ScoutStatus
+  version: 'v2'
+  autoPublish: boolean
+  priorityThreshold: number
   trendingTopics: ScoutTopic[]
   keywordOpportunities: KeywordOpportunity[]
   todayPlan: DailyContentPlan | null

@@ -14,6 +14,7 @@ describe('Scout API routes', () => {
     assert.match(status, /loadScoutState/)
     assert.match(approve, /approveScoutArticle/)
     assert.match(cron, /CRON_SECRET/)
+    assert.match(cron, /version: 'v2'|autoPublish/)
   })
 
   it('registers Terminal OS scout nav and blog routes', () => {

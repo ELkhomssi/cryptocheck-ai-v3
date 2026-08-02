@@ -3,44 +3,67 @@ import Link from 'next/link'
 import { buildPageMetadata } from '@/lib/seo/metadata'
 import { listPublishedArticles } from '@/lib/scout/store'
 import { SCOUT_DISCLAIMER } from '@/lib/scout/constants'
+import { IntelligenceCards } from './_components/IntelligenceCards'
+import { TerminalOsCta } from './_components/TerminalOsCta'
+import './blog.css'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = buildPageMetadata({
-  title: 'Blog — CryptoCheckAI Scout',
+  title: 'Intelligence Blog — CryptoCheckAI Scout',
   description:
-    'Growth intelligence briefs from CryptoCheckAI Scout — derived from live scanners, market feeds, and security gateway outputs.',
+    'Growth intelligence from CryptoCheckAI Scout — Terminal OS education, security, decision intelligence, and AI Gateway. Never generic crypto blogging.',
   path: '/blog',
-  keywords: ['CryptoCheckAI blog', 'solana security', 'crypto AI', 'Scout'],
+  keywords: [
+    'CryptoCheckAI blog',
+    'Terminal OS',
+    'AI Gateway',
+    'Security Scanner',
+    'decision intelligence',
+    'Scout',
+  ],
 })
 
 export default async function BlogIndexPage() {
   const articles = await listPublishedArticles(40)
 
   return (
-    <main className="min-h-screen bg-[#050510] px-6 py-12 text-slate-200 md:px-10">
-      <div className="mx-auto max-w-3xl">
-        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-[#c8ff00]">
-          CryptoCheckAI · Scout
-        </p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-100">Growth Intelligence Blog</h1>
-        <p className="mt-3 text-sm text-slate-400">
-          Articles are composed from CryptoCheckAI engine outputs. Scout never invents market analysis.
+    <main className="scout-blog">
+      <div className="scout-blog__shell">
+        <p className="scout-blog__brand scout-blog__animate">CryptoCheckAI · Scout V2</p>
+        <h1 className="scout-blog__h1 scout-blog__animate scout-blog__animate-delay-1">
+          Intelligence Blog
+        </h1>
+        <p className="scout-blog__lede scout-blog__animate scout-blog__animate-delay-2">
+          Autonomous Growth Intelligence — educate first, reinforce Terminal OS, cite live engines.
+          Scout never invents market analysis or promises profits.
         </p>
 
+        <div style={{ marginTop: '2rem' }}>
+          <IntelligenceCards />
+        </div>
+
         {articles.length === 0 ? (
-          <p className="mt-10 text-sm text-slate-500">
-            No published Scout articles yet. Operators can run a cycle from Terminal OS → Scout and approve drafts.
+          <p className="scout-blog__lede" style={{ marginTop: '2.5rem' }}>
+            No published Scout articles yet. Cron runs every few hours; quality-gated drafts auto-publish
+            when priority clears threshold.
           </p>
         ) : (
-          <ul className="mt-10 space-y-6">
+          <ul className="scout-blog__list">
             {articles.map((a) => (
-              <li key={a.id} className="border-b border-white/[0.06] pb-6">
-                <Link href={`/blog/${a.slug}`} className="text-lg font-semibold text-slate-100 hover:text-[#c8ff00]">
-                  {a.title}
-                </Link>
-                <p className="mt-2 text-sm text-slate-500">{a.introduction.slice(0, 180)}…</p>
-                <p className="mt-2 text-[0.65rem] uppercase tracking-[0.14em] text-slate-600">
+              <li key={a.id} className="scout-blog__list-item">
+                <div className="scout-blog__meta-row" style={{ marginTop: 0, marginBottom: '0.5rem' }}>
+                  <span className="scout-blog__chip scout-blog__chip--gold">
+                    {a.category || 'Intelligence'}
+                  </span>
+                  <span>~{a.readingMinutes ?? 5} min</span>
+                  <span>AI confidence {a.aiConfidence ?? a.quality?.score ?? '—'}%</span>
+                </div>
+                <Link href={`/blog/${a.slug}`}>{a.title}</Link>
+                <p style={{ margin: '0.55rem 0 0', color: 'var(--sb-muted)', fontSize: '0.95rem', lineHeight: 1.55 }}>
+                  {(a.metaDescription || a.introduction).slice(0, 200)}…
+                </p>
+                <p style={{ margin: '0.5rem 0 0', fontSize: '0.7rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5c5a66' }}>
                   {a.publishedAt?.slice(0, 10) ?? a.createdAt.slice(0, 10)}
                 </p>
               </li>
@@ -48,7 +71,8 @@ export default async function BlogIndexPage() {
           </ul>
         )}
 
-        <p className="mt-12 text-[0.65rem] uppercase tracking-[0.16em] text-slate-600">{SCOUT_DISCLAIMER}</p>
+        <TerminalOsCta />
+        <p className="scout-blog__disclaimer">{SCOUT_DISCLAIMER}</p>
       </div>
     </main>
   )

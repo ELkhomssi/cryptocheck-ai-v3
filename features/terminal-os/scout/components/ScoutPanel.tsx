@@ -7,6 +7,9 @@ import type { ScoutDashboardState } from '@/lib/scout/types'
 
 const EMPTY: ScoutDashboardState = {
   status: 'idle',
+  version: 'v2',
+  autoPublish: true,
+  priorityThreshold: 62,
   trendingTopics: [],
   keywordOpportunities: [],
   todayPlan: null,
@@ -19,8 +22,17 @@ const EMPTY: ScoutDashboardState = {
     rankingKeywords: null,
     organicUsers: null,
     trafficGrowthPct: null,
+    googleImpressions: null,
+    googleClicks: null,
+    googleCtr: null,
+    avgPosition: null,
+    accountsCreated: null,
+    walletConnections: null,
+    terminalOsSessions: null,
+    revenueInfluenced: null,
     queueDepth: 0,
     avgQualityScore: null,
+    avgPriorityScore: null,
     generatedAt: new Date().toISOString(),
     sample: true,
   },
@@ -67,7 +79,11 @@ export function ScoutPanel() {
           return
         }
         if (json.state) setState(json.state)
-        setMessage('Cycle complete — drafts queued for approval')
+        setMessage(
+          json.state?.autoPublish
+            ? 'V2 cycle complete — quality-gated articles auto-published'
+            : 'Cycle complete — drafts queued for approval',
+        )
       } catch {
         setMessage('Scout cycle failed')
       }
@@ -114,7 +130,7 @@ export function ScoutPanel() {
 
   return (
     <div className="tos-stack">
-      <Panel title="Scout — Growth Intelligence">
+      <Panel title="Scout V2 — Growth Intelligence Agent">
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
           <div>
             <div className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)' }}>
@@ -122,6 +138,15 @@ export function ScoutPanel() {
             </div>
             <div style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               {pending ? 'running' : state.status}
+            </div>
+          </div>
+          <div>
+            <div className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)' }}>
+              Mode
+            </div>
+            <div style={{ fontWeight: 600 }}>
+              {state.autoPublish ? 'AUTO-PUBLISH' : 'APPROVAL'} · priority ≥{' '}
+              {state.priorityThreshold ?? 62}
             </div>
           </div>
           <button
@@ -137,8 +162,9 @@ export function ScoutPanel() {
           {message ? <span className="tos-muted">{message}</span> : null}
         </div>
         <p className="tos-muted" style={{ marginTop: 12, fontSize: 'var(--tos-fs-sm)', lineHeight: 1.5 }}>
-          Scout consumes market feeds, Market Analyst, and scan-gateway — it never invents analysis. Publishing is
-          approval-based unless auto-publish is enabled.
+          Scout V2 researches every few hours, scores Terminal OS ecosystem topics, writes educate-first
+          articles, and auto-publishes after SEO / fact / duplicate gates. Never invents market analysis.
+          Set <code>SCOUT_AUTO_PUBLISH=0</code> for manual approval.
         </p>
       </Panel>
 
@@ -149,16 +175,28 @@ export function ScoutPanel() {
           gap: 'var(--tos-space-3)',
         }}
       >
-        <Panel title="SEO / Traffic">
+        <Panel title="SEO / Growth metrics">
           <Stat label="Articles published" value={String(state.metrics.articlesPublished)} />
           <Stat label="Queue depth" value={String(state.metrics.queueDepth)} />
           <Stat
             label="Avg quality"
             value={state.metrics.avgQualityScore != null ? `${state.metrics.avgQualityScore}` : '—'}
           />
+          <Stat
+            label="Avg priority"
+            value={state.metrics.avgPriorityScore != null ? `${state.metrics.avgPriorityScore}` : '—'}
+          />
+          <Stat
+            label="GSC impressions"
+            value={state.metrics.googleImpressions != null ? String(state.metrics.googleImpressions) : '—'}
+          />
+          <Stat
+            label="Terminal OS sessions"
+            value={state.metrics.terminalOsSessions != null ? String(state.metrics.terminalOsSessions) : '—'}
+          />
           {state.metrics.sample ? (
             <p className="tos-muted" style={{ marginTop: 8, fontSize: 'var(--tos-fs-xs)' }}>
-              GSC traffic metrics pending wiring · sample
+              GSC / conversion metrics pending wiring · sample
             </p>
           ) : null}
         </Panel>
@@ -175,14 +213,14 @@ export function ScoutPanel() {
         </Panel>
       </div>
 
-      <Panel title="Trending topics">
+      <Panel title="Priority topics (threshold cleared)">
         {state.trendingTopics.length === 0 ? (
-          <EmptyState message="No live topics yet. Run a research cycle when feeds are configured." />
+          <EmptyState message="No topics above priority threshold. Run a research cycle when feeds are configured." />
         ) : (
           <ul style={{ margin: 0, paddingLeft: 16, fontSize: 'var(--tos-fs-sm)' }}>
             {state.trendingTopics.slice(0, 8).map((t) => (
               <li key={t.id}>
-                <strong>{t.title}</strong> · {t.source}
+                <strong>{t.title}</strong> · {t.pillar ?? t.source} · P{t.priorityScore ?? '—'}
                 <div className="tos-muted">{t.evidenceLine}</div>
               </li>
             ))}
@@ -192,11 +230,11 @@ export function ScoutPanel() {
 
       <Panel title="Publication queue">
         {state.publicationQueue.length === 0 ? (
-          <EmptyState message="Queue empty." />
+          <EmptyState message={state.autoPublish ? 'Queue empty — auto-publish cleared drafts.' : 'Queue empty.'} />
         ) : (
           <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none', fontSize: 'var(--tos-fs-sm)' }}>
             {state.publicationQueue.slice(0, 10).map((a) => {
-              const canApprove = a.quality?.passed === true && a.status !== 'published'
+              const canApprove = a.quality?.passed === true && a.status !== 'published' && !state.autoPublish
               return (
                 <li
                   key={a.id}
@@ -213,7 +251,7 @@ export function ScoutPanel() {
                   <div style={{ flex: '1 1 220px' }}>
                     <div>{a.title}</div>
                     <div className="tos-muted">
-                      {a.status} · quality {a.quality?.score ?? '—'}/100
+                      {a.status} · quality {a.quality?.score ?? '—'}/100 · {a.category || a.pillar}
                       {!a.quality?.passed ? ' · blocked' : ''}
                     </div>
                   </div>
@@ -249,6 +287,20 @@ export function ScoutPanel() {
             {state.todayPlan.items.slice(0, 12).map((item) => (
               <li key={item.id}>
                 [{item.kind}] {item.title} · impact {Math.round(item.expectedImpact)}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
+
+      <Panel title="Recent distributions">
+        {state.distributions.length === 0 ? (
+          <EmptyState message="No channel adaptations yet." />
+        ) : (
+          <ul style={{ margin: 0, paddingLeft: 16, fontSize: 'var(--tos-fs-sm)' }}>
+            {state.distributions.slice(0, 8).map((d) => (
+              <li key={d.id}>
+                [{d.channel}] {d.title}
               </li>
             ))}
           </ul>
