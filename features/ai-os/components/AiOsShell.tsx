@@ -29,6 +29,8 @@ export function AiOsShell() {
   const swapRef = useRef<HTMLDivElement | null>(null)
   const [approvedBuyMint, setApprovedBuyMint] = useState<string | null>(null)
   const [approvedBuySymbol, setApprovedBuySymbol] = useState<string | null>(null)
+  const [approvedSellMint, setApprovedSellMint] = useState<string | null>(null)
+  const [approvedSellSymbol, setApprovedSellSymbol] = useState<string | null>(null)
 
   useEffect(() => {
     if (!intent) return
@@ -64,9 +66,11 @@ export function AiOsShell() {
 
         {(intent === 'protect' || intent === 'monitor' || intent === 'invest' || wallet) && (
           <CapitalRotationPanel
-            onRotateInto={(mint, symbol) => {
-              setApprovedBuyMint(mint)
-              setApprovedBuySymbol(symbol)
+            onRotateInto={(legs) => {
+              setApprovedSellMint(legs.exitMint)
+              setApprovedSellSymbol(legs.exitSymbol)
+              setApprovedBuyMint(legs.entryMint)
+              setApprovedBuySymbol(legs.entrySymbol)
               swapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
             }}
           />
@@ -74,8 +78,24 @@ export function AiOsShell() {
 
         <div ref={swapRef}>
           <IntelligenceSwap
+            initialSellMint={approvedSellMint}
+            initialSellSymbol={approvedSellSymbol}
             initialBuyMint={approvedBuyMint ?? focusedToken?.id ?? briefing?.recommendation?.symbol}
             initialBuySymbol={approvedBuySymbol ?? focusedToken?.symbol ?? briefing?.recommendation?.symbol}
+            onSwapConfirmed={(info) => {
+              if (info.side !== 'buy' || !wallet) return
+              void fetch('/api/terminal-os/rotation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  wallet,
+                  action: 'record_entry_fill',
+                  entryMint: info.mint,
+                }),
+              }).catch(() => {
+                /* optional — cost basis may be unavailable */
+              })
+            }}
           />
         </div>
 
@@ -95,6 +115,8 @@ export function AiOsShell() {
           intent={intent}
           onTaught={() => void reload()}
           onApprove={(mint, symbol) => {
+            setApprovedSellMint(null)
+            setApprovedSellSymbol(null)
             setApprovedBuyMint(mint)
             setApprovedBuySymbol(symbol)
             swapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })

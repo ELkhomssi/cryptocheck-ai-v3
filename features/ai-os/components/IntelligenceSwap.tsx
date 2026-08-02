@@ -114,14 +114,30 @@ function stateLabel(s: ExecutionState): string {
 }
 
 export type IntelligenceSwapProps = {
+  /** Prefill BUY side (discovery / recommendation). */
   initialBuyMint?: string | null
   initialBuySymbol?: string | null
+  /**
+   * Prefill SELL side for capital rotation: EXIT current → BUY discovery.
+   * When set with initialBuyMint, both legs are staged — never auto-executes.
+   */
+  initialSellMint?: string | null
+  initialSellSymbol?: string | null
+  /** Fired after a confirmed on-chain swap (rotation entry-result tracking). */
+  onSwapConfirmed?: (info: {
+    side: 'buy' | 'sell'
+    mint: string
+    signature: string
+  }) => void
   defaultAmountUsd?: number
 }
 
 export function IntelligenceSwap({
   initialBuyMint,
   initialBuySymbol,
+  initialSellMint,
+  initialSellSymbol,
+  onSwapConfirmed,
   defaultAmountUsd = 50,
 }: IntelligenceSwapProps) {
   const { connection } = useConnection()
@@ -214,10 +230,25 @@ export function IntelligenceSwap({
     return usd + fee
   }, [usd, quote?.platformFee.amountUsd])
 
-  // Sync buy token from focusedToken / props on mount and when they change
+  // Sync EXIT (sell) + BUY from rotation / recommendation / focus — never auto-executes.
   useEffect(() => {
-    const mint = initialBuyMint ?? focusedToken?.id
-    const symbol = initialBuySymbol ?? focusedToken?.symbol
+    const sellMint = initialSellMint?.trim()
+    const buyMintPrefill = initialBuyMint?.trim()
+    const focusMint = focusedToken?.id
+
+    if (sellMint) {
+      setSellToken({
+        mint: sellMint,
+        symbol: initialSellSymbol ?? sellMint.slice(0, 6),
+        name: initialSellSymbol ?? 'Exit token',
+        chain: sellMint.startsWith('0x') ? 'evm' : 'solana',
+      })
+    }
+
+    const mint = buyMintPrefill || (!sellMint ? focusMint : undefined)
+    const symbol = buyMintPrefill
+      ? (initialBuySymbol ?? buyMintPrefill.slice(0, 6))
+      : focusedToken?.symbol
     if (!mint) return
     setBuyToken({
       mint,
@@ -226,10 +257,22 @@ export function IntelligenceSwap({
       chain:
         focusedToken?.chain && focusedToken.chain !== 'solana' && focusedToken.chain !== 'all'
           ? 'evm'
-          : 'solana',
+          : mint.startsWith('0x')
+            ? 'evm'
+            : 'solana',
       priceUsd: focusedToken?.priceUsd,
     })
-  }, [initialBuyMint, initialBuySymbol, focusedToken?.id, focusedToken?.symbol, focusedToken?.name, focusedToken?.chain, focusedToken?.priceUsd])
+  }, [
+    initialBuyMint,
+    initialBuySymbol,
+    initialSellMint,
+    initialSellSymbol,
+    focusedToken?.id,
+    focusedToken?.symbol,
+    focusedToken?.name,
+    focusedToken?.chain,
+    focusedToken?.priceUsd,
+  ])
 
   // Load token feed
   useEffect(() => {
@@ -507,6 +550,11 @@ export function IntelligenceSwap({
         setError('Still confirming — open explorer if this persists.')
       } else {
         setExecState('confirmed')
+        // BUY of non-SOL output is the rotation entry leg; SELL of non-SOL is exit.
+        const side: 'buy' | 'sell' =
+          sellToken.mint !== SOL_MINT && buyMint === SOL_MINT ? 'sell' : 'buy'
+        const trackedMint = side === 'sell' ? sellToken.mint : buyMint
+        onSwapConfirmed?.({ side, mint: trackedMint, signature: sent.signature })
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Execution failed'

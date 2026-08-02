@@ -9,8 +9,13 @@ import {
   assessDeterioration,
   computeRotationAggregate,
 } from '../../features/terminal-os/capital-rotation/logic'
+import { adaptRotationProposalToAttention } from '../../features/attention-feed/adapters/rotation-adapter'
 import type { MarketContext } from '../../features/terminal-os/ai-trade-like-me/types'
-import type { RotationEvent } from '../../features/terminal-os/capital-rotation/types'
+import type {
+  RotationEvent,
+  RotationProposal,
+} from '../../features/terminal-os/capital-rotation/types'
+import type { Decision } from '@cryptocheck/decision-contracts'
 
 function intel(over: Partial<MarketContext> = {}): MarketContext {
   return {
@@ -92,5 +97,58 @@ describe('capital rotation — deterioration', () => {
     assert.equal(agg.avgExitResultPct, -2.7)
     assert.equal(agg.aggregateNetPct, null)
     assert.match(agg.honestyNote, /real exit losses/i)
+  })
+})
+
+describe('capital rotation — attention adapter', () => {
+  const stubDecision = (action: Decision['action'], symbol: string): Decision =>
+    ({
+      id: `d-${symbol}`,
+      action,
+      confidence: 80,
+      marketConfidence: 80,
+      confidenceMode: 'market',
+      reasoning: `${action} $${symbol} for test`,
+      contributingFactors: [],
+      subject: { kind: 'token', symbol, address: `${symbol}Mint111111111111111111111111111111` },
+      computedAt: new Date().toISOString(),
+    }) as Decision
+
+  it('emits Attention for proposed rotation and labels 24h proxy honestly', () => {
+    const proposal: RotationProposal = {
+      id: 'rot-1',
+      wallet: 'Wallet111111111111111111111111111111111',
+      status: 'proposed',
+      permissionMode: 'advise_only',
+      exit: {
+        mint: 'ExitMint1111111111111111111111111111111',
+        symbol: 'WEAK',
+        pnlPctFromEntry: -9.2,
+        pnlBasis: 'change_24h',
+        decision: stubDecision('EXIT', 'WEAK'),
+        deteriorationReasons: ['whale distribution detected', 'liquidity decreasing'],
+      },
+      entry: {
+        mint: 'EntryMint111111111111111111111111111111',
+        symbol: 'STRONG',
+        decision: stubDecision('BUY', 'STRONG'),
+        securityVerdict: 'CAUTION',
+        securityPassed: true,
+      },
+      thresholdPct: 8,
+      thresholdSource: 'default',
+      createdAt: new Date().toISOString(),
+      honestyNote: 'Exit may still be a real loss.',
+    }
+    const items = adaptRotationProposalToAttention(proposal)
+    assert.equal(items.length, 1)
+    assert.match(items[0]!.headline, /EXIT \$WEAK/)
+    assert.match(items[0]!.reality, /vs 24h \(entry unavailable\)/i)
+    assert.match(items[0]!.analysis, /Advise-only/i)
+    assert.equal(adaptRotationProposalToAttention(null).length, 0)
+    assert.equal(
+      adaptRotationProposalToAttention({ ...proposal, status: 'approved' }).length,
+      0,
+    )
   })
 })

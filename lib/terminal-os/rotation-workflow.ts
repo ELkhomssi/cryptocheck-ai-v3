@@ -30,14 +30,17 @@ import {
   appendRotationEvent,
   clearRotationProposal,
   computeRotationAggregate,
+  findOpenRotationForEntry,
   getRotationProposal,
   getRotationThreshold,
   listRotationEvents,
+  patchRotationEntryResult,
   saveRotationProposal,
   saveRotationThreshold,
 } from '@/lib/terminal-os/rotation-store'
 import { resilientTokens, resilientWhales } from '@/lib/terminal-os/resilient-feed'
 import { buildHoldingsResponse } from '@/lib/portfolio-desk/holdings-service'
+import { getAvgBuyByMint } from '@/lib/terminal/portfolio-analytics'
 import { assessSwapIntent } from '@/lib/trading/risk-gated-swap'
 import type { Holding } from '@/types/portfolio-desk'
 
@@ -105,13 +108,18 @@ export async function resolveLossThreshold(
   return t
 }
 
-function pnlFromHolding(h: Holding): number | null {
+function pnlFromHolding(
+  h: Holding,
+): { pnl: number; basis: 'entry' | 'change_24h' } | null {
   if (h.avgBuyPriceUsd != null && h.avgBuyPriceUsd > 0 && h.priceUsd > 0) {
-    return ((h.priceUsd - h.avgBuyPriceUsd) / h.avgBuyPriceUsd) * 100
+    return {
+      pnl: ((h.priceUsd - h.avgBuyPriceUsd) / h.avgBuyPriceUsd) * 100,
+      basis: 'entry',
+    }
   }
   // Honest fallback: 24h change is not entry PnL — label as such upstream
   if (typeof h.change24hPct === 'number' && Number.isFinite(h.change24hPct)) {
-    return h.change24hPct
+    return { pnl: h.change24hPct, basis: 'change_24h' }
   }
   return null
 }
@@ -294,6 +302,13 @@ export async function runCapitalRotationTick(opts: {
     }
   }
 
+  // Enrich with FIFO avg-buy when holdings service leaves avgBuyPriceUsd null (~200–800ms)
+  const avgBuyMap = await getAvgBuyByMint(wallet).catch(() => new Map<string, number>())
+  holdings = holdings.map((h) => ({
+    ...h,
+    avgBuyPriceUsd: h.avgBuyPriceUsd ?? avgBuyMap.get(h.mint) ?? null,
+  }))
+
   const [tokensEnv, whalesEnv] = await Promise.all([
     resilientTokens('solana', 24),
     resilientWhales(24),
@@ -305,6 +320,7 @@ export async function runCapitalRotationTick(opts: {
   type Candidate = {
     holding: Holding
     pnl: number
+    pnlBasis: 'entry' | 'change_24h'
     intel: MarketContext
     det: DeteriorationVerdict
     exitDecision: Decision
@@ -312,8 +328,9 @@ export async function runCapitalRotationTick(opts: {
   let best: Candidate | null = null
 
   for (const holding of holdings) {
-    const pnl = pnlFromHolding(holding)
-    if (pnl == null || pnl > -threshold.thresholdPct) continue
+    const measured = pnlFromHolding(holding)
+    if (measured == null || measured.pnl > -threshold.thresholdPct) continue
+    const { pnl, basis: pnlBasis } = measured
 
     const token = tokenForHolding(holding, tokens)
     const related = whales.filter(
@@ -330,11 +347,12 @@ export async function runCapitalRotationTick(opts: {
       hasOpenPosition: true,
       unavailableEngines: dna && dna.sampleSize >= 3 ? [] : ['trader-dna'],
     })
+    const pnlLabel = pnlBasis === 'entry' ? 'from entry' : 'vs 24h (entry unavailable)'
     // Force EXIT action for rotation (position is open + genuine deterioration)
     const exitExplained = {
       ...explained,
       action: 'EXIT' as const,
-      summary: `EXIT $${holding.symbol} · ${pnl.toFixed(1)}% from entry · ${det.reasons.slice(0, 2).join(', ')}`,
+      summary: `EXIT $${holding.symbol} · ${pnl.toFixed(1)}% ${pnlLabel} · ${det.reasons.slice(0, 2).join(', ')}`,
       reasons: [
         `Loss-discipline threshold −${threshold.thresholdPct}% crossed (${threshold.source}).`,
         ...det.reasons,
@@ -348,7 +366,7 @@ export async function runCapitalRotationTick(opts: {
     await saveDecision(exitDecision)
 
     if (!best || pnl < best.pnl) {
-      best = { holding, pnl, intel, det, exitDecision }
+      best = { holding, pnl, pnlBasis, intel, det, exitDecision }
     }
   }
 
@@ -387,6 +405,7 @@ export async function runCapitalRotationTick(opts: {
       mint: best.holding.mint,
       symbol: best.holding.symbol,
       pnlPctFromEntry: Number(best.pnl.toFixed(2)),
+      pnlBasis: best.pnlBasis,
       decision: best.exitDecision,
       deteriorationReasons: best.det.reasons,
     },
@@ -463,4 +482,48 @@ export async function confirmRotationProposal(
   await clearRotationProposal(wallet)
 
   return { ok: true, event, proposal: approved }
+}
+
+/**
+ * After Intelligence Swap confirms a BUY into a rotation entry mint,
+ * mark-to-market entryResultPct from FIFO cost basis when available.
+ * Never fabricates a result when price or entry is missing.
+ */
+export async function recordRotationEntryFill(opts: {
+  wallet: string
+  entryMint: string
+}): Promise<{ ok: boolean; event?: RotationEvent; error?: string }> {
+  const wallet = opts.wallet.trim()
+  const entryMint = opts.entryMint.trim()
+  const open = await findOpenRotationForEntry(wallet, entryMint)
+  if (!open) {
+    return { ok: false, error: 'No open rotation awaiting entry result for this mint' }
+  }
+
+  let holdings: Holding[] = []
+  try {
+    const h = await buildHoldingsResponse(wallet)
+    holdings = h.holdings ?? []
+  } catch {
+    return { ok: false, error: 'Holdings unavailable — entry result not patched' }
+  }
+
+  const holding = holdings.find((x) => x.mint === entryMint)
+  if (!holding || !(holding.priceUsd > 0)) {
+    return { ok: false, error: 'Entry mint not in holdings with a live price — not patched' }
+  }
+
+  const avgBuyMap = await getAvgBuyByMint(wallet).catch(() => new Map<string, number>())
+  const avg =
+    holding.avgBuyPriceUsd && holding.avgBuyPriceUsd > 0
+      ? holding.avgBuyPriceUsd
+      : avgBuyMap.get(entryMint)
+  if (!(avg != null && avg > 0)) {
+    return { ok: false, error: 'Cost basis unavailable — entry result left null (not fabricated)' }
+  }
+
+  const pct = ((holding.priceUsd - avg) / avg) * 100
+  const updated = await patchRotationEntryResult(wallet, open.id, pct)
+  if (!updated) return { ok: false, error: 'Failed to patch rotation event' }
+  return { ok: true, event: updated }
 }

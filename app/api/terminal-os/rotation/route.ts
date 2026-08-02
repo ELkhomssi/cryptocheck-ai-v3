@@ -19,6 +19,7 @@ import {
 } from '@/lib/terminal-os/rotation-store'
 import {
   confirmRotationProposal,
+  recordRotationEntryFill,
   resolveLossThreshold,
   runCapitalRotationTick,
 } from '@/lib/terminal-os/rotation-workflow'
@@ -59,9 +60,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as {
     wallet?: string
-    action?: 'evaluate' | 'approve' | 'reject' | 'set_threshold'
+    action?: 'evaluate' | 'approve' | 'reject' | 'set_threshold' | 'record_entry_fill'
     thresholdPct?: number
     permissionMode?: RotationPermissionMode
+    entryMint?: string
   }
   const wallet = body.wallet?.trim() ?? ''
   if (!wallet || !isValidSolanaWallet(wallet)) {
@@ -93,8 +95,25 @@ export async function POST(req: NextRequest) {
       aggregate: computeRotationAggregate(events),
       nextStep:
         action === 'approve'
-          ? 'Execute both legs via Intelligence Swap — wallet signature required. Advise-only never auto-sells.'
+          ? 'Execute EXIT then BUY via Intelligence Swap — wallet signature required. Advise-only never auto-sells.'
           : 'Proposal rejected — no execution.',
+    })
+  }
+
+  if (action === 'record_entry_fill') {
+    const entryMint = body.entryMint?.trim() ?? ''
+    if (!entryMint) {
+      return NextResponse.json({ error: 'entryMint required' }, { status: 400 })
+    }
+    const result = await recordRotationEntryFill({ wallet, entryMint })
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 404 })
+    }
+    const events = await listRotationEvents(wallet, 24)
+    return NextResponse.json({
+      ok: true,
+      event: result.event,
+      aggregate: computeRotationAggregate(events),
     })
   }
 

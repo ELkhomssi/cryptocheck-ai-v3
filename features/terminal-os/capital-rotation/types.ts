@@ -26,6 +26,8 @@ export type RotationProposal = {
     mint: string
     symbol: string
     pnlPctFromEntry: number
+    /** entry = FIFO cost basis; change_24h = proxy when entry unavailable (must be labeled) */
+    pnlBasis: 'entry' | 'change_24h'
     decision: Decision
     deteriorationReasons: string[]
   }

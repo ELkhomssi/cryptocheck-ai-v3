@@ -23,10 +23,17 @@ type RotationPayload = {
   permissionDefault: string
 }
 
+export type RotationLegsPrefill = {
+  exitMint: string
+  exitSymbol: string
+  entryMint: string
+  entrySymbol: string
+}
+
 export function CapitalRotationPanel({
   onRotateInto,
 }: {
-  onRotateInto?: (mint: string, symbol: string) => void
+  onRotateInto?: (legs: RotationLegsPrefill) => void
 }) {
   const wallet = useTerminalOsStore((s) => s.walletAddress)
   const [data, setData] = useState<RotationPayload | null>(null)
@@ -129,7 +136,12 @@ export function CapitalRotationPanel({
         setStatus(
           `Logged linked rotation. Next: execute EXIT $${body.event.exit.symbol} then BUY $${body.event.entry.symbol} in Intelligence Swap — your wallet signs both legs.`,
         )
-        onRotateInto?.(body.event.entry.mint, body.event.entry.symbol)
+        onRotateInto?.({
+          exitMint: body.event.exit.mint,
+          exitSymbol: body.event.exit.symbol,
+          entryMint: body.event.entry.mint,
+          entrySymbol: body.event.entry.symbol,
+        })
       } else {
         setStatus('Proposal rejected — position left untouched.')
       }
@@ -210,10 +222,13 @@ export function CapitalRotationPanel({
                 <div className="aios-rotation-leg" data-leg="exit">
                   <span className="aios-market-label">Exit</span>
                   <p>
-                    Exited ${data.proposal.exit.symbol} —{' '}
+                    Exit ${data.proposal.exit.symbol} —{' '}
                     <strong>
                       {data.proposal.exit.pnlPctFromEntry >= 0 ? '+' : ''}
-                      {data.proposal.exit.pnlPctFromEntry}% from entry
+                      {data.proposal.exit.pnlPctFromEntry}%{' '}
+                      {data.proposal.exit.pnlBasis === 'change_24h'
+                        ? 'vs 24h (entry unavailable)'
+                        : 'from entry'}
                     </strong>
                   </p>
                   <p className="aios-rec-detail">
@@ -270,12 +285,15 @@ export function CapitalRotationPanel({
                     Exited ${e.exit.symbol} —{' '}
                     <strong>
                       {e.exitResultPct >= 0 ? '+' : ''}
-                      {e.exitResultPct}% from entry
+                      {e.exitResultPct}%
                     </strong>
                     <br />
                     <span className="aios-muted">Reason: {e.exit.reason}</span>
                     <br />
                     Rotated into ${e.entry.symbol} — Decision confidence {e.entry.confidence}%
+                    {e.entryResultPct != null
+                      ? ` · entry mark ${e.entryResultPct >= 0 ? '+' : ''}${e.entryResultPct}%`
+                      : ' · entry mark — (awaiting fill / cost basis)'}
                     <br />
                     <span className="aios-muted">Reason: {e.entry.reason}</span>
                   </li>

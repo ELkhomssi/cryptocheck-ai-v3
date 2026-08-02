@@ -204,6 +204,28 @@ async function correlationForHoldings(
  * Build full portfolio analytics for a wallet.
  * ~300–1500ms estimated (Helius txs + Birdeye OHLCV for correlation).
  */
+/**
+ * Lightweight FIFO avg-buy map for open mints — no fabricated prices.
+ * Used by capital rotation / holdings enrichment. ~200–800ms when Helius is available.
+ */
+export async function getAvgBuyByMint(walletAddress: string): Promise<Map<string, number>> {
+  const out = new Map<string, number>()
+  const solMarket = await fetchTokenMarket(SOL_MINT)
+  const solUsd = solMarket?.priceUsd && solMarket.priceUsd > 0 ? solMarket.priceUsd : 0
+  if (!(solUsd > 0)) return out
+  const txs = await fetchWalletTransactions(walletAddress, 100)
+  if (!txs) return out
+  const { fills, pricedCount } = buildsFillsFromTxs(walletAddress, txs, solUsd)
+  if (pricedCount === 0) return out
+  const fifo = applyFifoLots(fills)
+  for (const [mint, r] of fifo) {
+    if (r.avgEntryPriceUsd != null && r.avgEntryPriceUsd > 0) {
+      out.set(mint, r.avgEntryPriceUsd)
+    }
+  }
+  return out
+}
+
 export async function buildPortfolioAnalytics(walletAddress: string): Promise<PortfolioAnalytics> {
   const holdingsRes = await buildHoldingsResponse(walletAddress)
   const limitationParts: string[] = []

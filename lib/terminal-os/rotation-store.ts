@@ -95,3 +95,42 @@ export async function listRotationEvents(wallet: string, limit = 24): Promise<Ro
     return []
   }
 }
+
+/** Patch entry-leg result after the rotation BUY fills — never invent values. */
+export async function patchRotationEntryResult(
+  wallet: string,
+  eventId: string,
+  entryResultPct: number,
+): Promise<RotationEvent | null> {
+  if (!Number.isFinite(entryResultPct)) return null
+  const raw = await redis.get(eventsKey(wallet))
+  if (!raw) return null
+  let list: RotationEvent[] = []
+  try {
+    list = JSON.parse(raw) as RotationEvent[]
+  } catch {
+    return null
+  }
+  const idx = list.findIndex((e) => e.id === eventId)
+  if (idx < 0) return null
+  const updated: RotationEvent = {
+    ...list[idx]!,
+    entryResultPct: Number(entryResultPct.toFixed(2)),
+  }
+  list[idx] = updated
+  await redis.setex(eventsKey(wallet), TTL_EVENTS, JSON.stringify(list))
+  return updated
+}
+
+/** Most recent approved rotation still missing an entry result (for swap completion). */
+export async function findOpenRotationForEntry(
+  wallet: string,
+  entryMint: string,
+): Promise<RotationEvent | null> {
+  const events = await listRotationEvents(wallet, 12)
+  return (
+    events.find(
+      (e) => e.entry.mint === entryMint && e.entryResultPct == null,
+    ) ?? null
+  )
+}
