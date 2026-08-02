@@ -1,6 +1,7 @@
 /**
  * Shared alert evaluation against a live snapshot.
  * Used by POST /evaluate and the SSE alerts stream.
+ * ai_signal reads the shared Decision store (same object as Discovery / Attention / Coach).
  */
 import 'server-only'
 
@@ -10,6 +11,7 @@ import {
   listFiredAlerts,
 } from '@/lib/terminal-os/alert-store'
 import { evaluateCondition } from '@/lib/terminal-os/alert-evaluate'
+import { listRecentDecisions, getDecisionByTokenId } from '@/lib/terminal-os/decision-store'
 import type { FiredAlert } from '@/lib/terminal-os/alert-types'
 
 export type EvaluateSnapshot = {
@@ -17,6 +19,24 @@ export type EvaluateSnapshot = {
   whaleScore?: number
   riskScore?: number
   aiConfidence?: number
+  decisionAction?: string
+}
+
+async function resolveAiSignalFromStore(ruleTargetId?: string, ruleSymbol?: string): Promise<number | null> {
+  if (ruleTargetId) {
+    const byId = await getDecisionByTokenId(ruleTargetId)
+    if (byId) return byId.marketConfidence ?? byId.confidence
+  }
+  const recent = await listRecentDecisions(12)
+  if (ruleSymbol) {
+    const match = recent.find(
+      (d) => d.subject.kind === 'token' && d.subject.symbol.toUpperCase() === ruleSymbol.toUpperCase(),
+    )
+    if (match) return match.marketConfidence ?? match.confidence
+  }
+  const actionable = recent.find((d) => d.action === 'BUY' || d.action === 'SELL' || d.action === 'EXIT')
+  if (actionable) return actionable.marketConfidence ?? actionable.confidence
+  return recent[0] ? recent[0].marketConfidence ?? recent[0].confidence : null
 }
 
 export async function evaluateAlertsForWallet(
@@ -47,7 +67,10 @@ export async function evaluateAlertsForWallet(
     } else if (rule.type === 'security_flag' || rule.type === 'portfolio_risk') {
       current = typeof snapshot.riskScore === 'number' ? snapshot.riskScore : null
     } else if (rule.type === 'ai_signal') {
-      current = typeof snapshot.aiConfidence === 'number' ? snapshot.aiConfidence : null
+      current =
+        typeof snapshot.aiConfidence === 'number'
+          ? snapshot.aiConfidence
+          : await resolveAiSignalFromStore(rule.target.id, rule.target.symbol)
     }
     if (current == null) continue
     if (!evaluateCondition(rule.condition, current)) continue

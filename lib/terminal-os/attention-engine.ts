@@ -17,6 +17,9 @@ import { buildHoldingsResponse } from '@/lib/portfolio-desk/holdings-service'
 import { isValidSolanaWallet } from '@/lib/portfolio-desk/validate'
 import { prioritizeAttentionItems } from '@/features/attention-feed/lib/prioritize'
 import type { AttentionItem } from '@/features/attention-feed/types'
+import { listRecentDecisions } from '@/lib/terminal-os/decision-store'
+import { runDecisionTick } from '@/lib/terminal-os/decision-engine-tick'
+import { adaptCanonicalDecisionToAttention } from '@/features/attention-feed/adapters/decision-from-store'
 import {
   attentionFingerprint,
   getAttentionFingerprints,
@@ -78,6 +81,18 @@ export async function runAttentionTick(opts?: {
     ...adaptWhalesToAttention(whalesEnv.data ?? []),
     ...adaptSecurityToAttention(tokensEnv.data ?? []),
   ]
+
+  // Server-persisted Decisions — same objects Discovery/Coach/Alerts read
+  try {
+    let decisions = await listRecentDecisions(8)
+    if (!decisions.length) {
+      await runDecisionTick({ wallet: opts?.wallet, limit: 12 })
+      decisions = await listRecentDecisions(8)
+    }
+    candidates.push(...adaptCanonicalDecisionToAttention(decisions))
+  } catch {
+    /* decision store optional on cold start */
+  }
 
   // Drop market items that never crossed a meaningful band (adapter already filters ≥8%)
   const filtered = candidates.filter((item) => {

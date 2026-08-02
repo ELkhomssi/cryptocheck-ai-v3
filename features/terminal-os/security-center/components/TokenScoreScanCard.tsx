@@ -28,21 +28,25 @@ export function TokenScoreScanCard() {
     if (!needle) return
     setLoading(true)
     try {
-      const tokens = await liveMarketDataProvider.getTopTokens('all')
+      const { items: tokens } = await liveMarketDataProvider.getTopTokens('all')
       const lower = needle.toLowerCase()
-      const hit =
-        tokens.find(
-          (t) =>
-            t.symbol.toLowerCase() === lower ||
-            t.id.toLowerCase() === lower ||
-            t.name.toLowerCase().includes(lower),
-        ) || tokens[0]
+      const hit = tokens.find(
+        (t) =>
+          t.symbol.toLowerCase() === lower ||
+          t.id.toLowerCase() === lower ||
+          t.name.toLowerCase() === lower,
+      )
+      // Optimistic preview only on exact hit — never substitute tokens[0]
       if (hit) {
         const optimistic = scoreTokenFromMarket(hit)
         startTransition(() => {
           setResult({ ...optimistic, symbol: hit.symbol, mintOrAddress: hit.id })
           setMeta({ price: hit.priceUsd, vol: hit.volume24hUsd, liq: hit.liquidityUsd })
-          setLoading(false)
+        })
+      } else {
+        startTransition(() => {
+          setResult(null)
+          setMeta(null)
         })
       }
     } catch {
@@ -56,16 +60,28 @@ export function TokenScoreScanCard() {
         body: JSON.stringify({ query: needle }),
       })
       const body = (await res.json()) as {
-        result: TokenScanResult
-        meta: ScanMeta
+        result: TokenScanResult | null
+        meta?: ScanMeta
         stale?: boolean
         demo?: boolean
         ageSec?: number
         source?: string
+        notFound?: boolean
+        unavailable?: boolean
+        error?: string
       }
       startTransition(() => {
+        if (!res.ok || body.notFound || body.unavailable || !body.result) {
+          setResult(null)
+          setMeta(null)
+          setStale(true)
+          setDemo(false)
+          setSource(body.source ?? (body.notFound ? 'not-found' : 'scan-unavailable'))
+          setLoading(false)
+          return
+        }
         setResult(body.result)
-        setMeta(body.meta)
+        setMeta(body.meta ?? null)
         setStale(Boolean(body.stale))
         setDemo(Boolean(body.demo))
         setAgeSec(body.ageSec ?? 0)
@@ -73,7 +89,10 @@ export function TokenScoreScanCard() {
         setLoading(false)
       })
     } catch {
+      setResult(null)
       setStale(true)
+      setDemo(false)
+      setSource('scan-unavailable')
       setLoading(false)
     }
   }, [])
@@ -94,7 +113,7 @@ export function TokenScoreScanCard() {
   }, [])
 
   return (
-    <Panel title="Token Score & Scan" live>
+    <Panel title="Token Score & Scan" live={Boolean(result) && !demo && !stale}>
       <form
         onSubmit={(e) => {
           e.preventDefault()
@@ -117,7 +136,11 @@ export function TokenScoreScanCard() {
       {loading && !result ? (
         <PanelSkeleton rows={4} />
       ) : !result ? (
-        <PanelSkeleton rows={4} />
+        <p className="tos-muted" style={{ fontSize: 'var(--tos-fs-sm)' }}>
+          {source === 'not-found'
+            ? 'Token not found — try an exact symbol or Solana mint.'
+            : 'Scan unavailable — no fabricated score shown.'}
+        </p>
       ) : (
         <div>
           <div style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
