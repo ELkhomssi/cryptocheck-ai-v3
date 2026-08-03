@@ -7,7 +7,8 @@ export const runtime = 'nodejs'
 
 /**
  * POST /api/terminal-os/alerts/evaluate
- * Body: { wallet, prices?, whaleScore?, riskScore?, aiConfidence? }
+ * Body: { wallet, prices?, whaleScore?, riskScore?, aiConfidence?, decisionAction? }
+ * aiConfidence / decisionAction must come from Decision Engine (Layer 3) — never a Layer 4 score.
  */
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as {
@@ -16,6 +17,7 @@ export async function POST(req: NextRequest) {
     whaleScore?: number
     riskScore?: number
     aiConfidence?: number
+    decisionAction?: string
   }
   const wallet = body.wallet?.trim() ?? ''
   if (!wallet || (!isValidSolanaMint(wallet) && !/^0x[a-fA-F0-9]{40}$/.test(wallet))) {
@@ -27,6 +29,7 @@ export async function POST(req: NextRequest) {
     whaleScore: body.whaleScore,
     riskScore: body.riskScore,
     aiConfidence: body.aiConfidence,
+    decisionAction: body.decisionAction,
   })
 
   return NextResponse.json(

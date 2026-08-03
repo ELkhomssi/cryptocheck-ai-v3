@@ -24,13 +24,10 @@ export function adaptWhalesToAttention(whales: WhaleMovement[]): AttentionItem[]
         urgency,
         headline: `${w.smartMoney ? 'Smart money' : 'Whale'} ${w.action} ${w.assetSymbol} · ${usd}`,
         reality: `${w.walletTruncated} on ${w.chain} · ${w.action} ${w.assetSymbol} (${usd}) — classified ${w.classification}.`,
-        analysis: w.aiReasoning || w.classificationWhy || 'Wallet Intelligence flagged this flow as attention-worthy.',
-        recommendation: w.smartMoney
-          ? {
-              action: `Review $${w.assetSymbol} before sizing — smart-money flow`,
-              confidence: Math.round(w.aiConfidence),
-            }
-          : undefined,
+        analysis:
+          w.aiReasoning ||
+          w.classificationWhy ||
+          'Wallet Intelligence classification (fact) — Decision Engine owns act synthesis.',
         evidence: [
           { id: 'e-conf', kind: 'score', label: 'AI confidence', value: Math.round(w.aiConfidence) },
           { id: 'e-sm', kind: 'score', label: 'Smart-money score', value: Math.round(w.smartMoneyScore) },

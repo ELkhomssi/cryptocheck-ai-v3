@@ -226,17 +226,20 @@ function stageDecides(snap: LifecycleSnapshot) {
     return {
       status: 'insufficient_data' as const,
       headline: 'Not enough data yet',
-      detailLines: ['OpportunityScore + explainable reasoning appear after a Decision Engine run.'],
+      detailLines: ['Canonical Decision appears after a Decision Engine run.'],
       ctaLabel: 'Open Trade Like Me',
       ctaHref: 'ai-trading',
     }
   }
+  const degradedNote = d.degraded
+    ? `Degraded inputs: ${(d.degradedInputs ?? []).join(', ') || 'partial'}`
+    : null
   return {
     status: 'ready' as const,
-    headline: `${d.action}, confidence ${Math.round(d.scores.confidence)}%`,
+    headline: `${d.action}, confidence ${Math.round(d.scores.confidence)}%${d.degraded ? ' · degraded' : ''}`,
     detailLines: [
       d.summary,
-      d.reasons[0] || 'See Trade Like Me for full explainable citations.',
+      degradedNote || d.reasons[0] || 'See Trade Like Me for full explainable citations.',
     ],
     ctaLabel: 'View decision',
     ctaHref: 'ai-trading',

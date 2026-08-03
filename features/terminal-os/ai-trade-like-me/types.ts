@@ -293,6 +293,10 @@ export interface ExplainableDecision {
   improvesTrader: boolean
   summary: string
   citations: ScoreCitation[]
+  /** True when any Layer 1 input was unavailable — maps to Decision.degraded */
+  degraded?: boolean
+  /** Layer 1 engine ids that were missing for this Decision */
+  degradedInputs?: string[]
 }
 
 export interface AutonomyConfig {
@@ -367,6 +371,11 @@ export interface TradeLikeMeState {
   dna: TraderDna | null
   currentOpportunity: ExplainableDecision | null
   lastDecision: ExplainableDecision | null
+  /**
+   * Canonical Layer 3 Decision — the only opinion-shaped object Layer 4 should read.
+   * Derived from currentOpportunity ?? lastDecision via toCanonicalDecision.
+   */
+  canonicalDecision: import('@cryptocheck/decision-contracts').Decision | null // keep package type; avoid circular value import
   openPosition: {
     tokenSymbol: string
     chain: ChainId

@@ -41,43 +41,47 @@ function buildInsights(wallet: string): {
   }
 
   const dna = state.dna
+  // DNA facts only — no actionable prescriptions without a Decision
   const insights: CoachInsight[] = [
     {
       id: `dna-${dna.wallet.slice(0, 8)}`,
       headline: `Your edge: ${dna.tradingStyleSummary}`,
       reasoning: `Built from ${dna.sampleSize} captured trades/rejections for this wallet.`,
       statistic: `Risk appetite ${dna.riskAppetite}/100 · ${dna.riskAppetiteLabel}`,
-      expectedImpact: 'Align size and entry filters to your DNA before the next fill.',
+      expectedImpact: 'TraderDNA profile loaded — Coach awaits a Decision to personalize tone.',
       confidence: dna.confidence,
     },
   ]
 
   if (state.currentOpportunity) {
     const narrative = explainDecision(state.currentOpportunity)
+    const opp = state.currentOpportunity
     insights.push({
-      id: state.currentOpportunity.id,
+      id: opp.id,
       headline: narrative.headline,
       reasoning: narrativeBlurb(narrative).slice(0, 280),
       statistic: narrative.confidenceLine,
       expectedImpact: `${narrative.upsideLine} · ${narrative.downsideLine}`,
-      confidence: Math.round(state.currentOpportunity.scores.confidence),
+      confidence: Math.round(opp.scores.confidence),
+    })
+    // Discipline tone is derived FROM Decision + DNA facts — not an independent opinion
+    insights.push({
+      id: `discipline-${opp.id}`,
+      headline:
+        dna.emotionalBiasScore > 55 && (opp.action === 'BUY' || opp.action === 'SELL')
+          ? `${opp.action} with elevated emotional-bias score — Decision confidence ${Math.round(opp.scores.confidence)}%`
+          : `Decision ${opp.action} · Coach mirrors Decision Engine (no independent score)`,
+      reasoning: [
+        ...opp.reasons.slice(0, 2),
+        dna.emotionalBiasScore > 55
+          ? `DNA emotionalBiasScore ${dna.emotionalBiasScore}/100 (fact) — tone only; action is Decision.${opp.action}.`
+          : `DNA sample ${dna.sampleSize} · win ${dna.winRatePct.toFixed(1)}% (facts).`,
+      ].join(' · '),
+      statistic: `Decision conf ${Math.round(opp.scores.confidence)}% · DNA conf ${dna.confidence}%`,
+      expectedImpact: narrative.confidenceLine,
+      confidence: Math.round(opp.scores.confidence),
     })
   }
-
-  insights.push({
-    id: `discipline-${dna.sampleSize}`,
-    headline:
-      dna.emotionalBiasScore > 55
-        ? 'Emotional bias elevated — size down until discipline recovers'
-        : 'Discipline holding — stick to your DNA entry filters',
-    reasoning:
-      dna.emotionalBiasScore > 55
-        ? 'Late-session and loss-tolerance patterns are elevating emotional bias in your DNA.'
-        : 'Your sample shows discipline within your historical entry profile.',
-    statistic: `Win rate ${dna.winRatePct.toFixed(1)}% · sample ${dna.sampleSize}`,
-    expectedImpact: 'Protect edge by sizing only when DNA confidence and market quality align.',
-    confidence: dna.confidence,
-  })
 
   return { insights, insufficient: false, message: null }
 }

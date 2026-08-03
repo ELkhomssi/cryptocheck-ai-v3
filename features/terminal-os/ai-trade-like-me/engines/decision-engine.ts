@@ -3,6 +3,7 @@
  * Cosine similarity for behaviorMatch. LLM never generates confidence.
  */
 
+import type { EngineId } from '@cryptocheck/decision-contracts'
 import type {
   DisagreementCheck,
   ExplainableDecision,
@@ -110,9 +111,12 @@ export function decide(
     weightPrefs?: UserWeightPrefs
     teachRules?: string[]
     collectiveBoostPct?: number
+    /** Layer 1 engines unavailable — Decision still emits, confidence penalized */
+    unavailableEngines?: EngineId[]
   },
 ): ExplainableDecision {
   const prefs = opts?.weightPrefs ?? DEFAULT_WEIGHT_PREFS
+  const unavailable = opts?.unavailableEngines ?? []
   const pred = predictOpportunity(dna, intel)
   const citations: ScoreCitation[] = []
 
@@ -123,7 +127,9 @@ export function decide(
     source: 'TraderDNA',
     field: 'entryConditionProfile',
     value: behaviorMatch,
-    contribution: `cosine similarity ${behaviorMatch}% vs entry profile`,
+    contribution: dna
+      ? `cosine similarity ${behaviorMatch}% vs entry profile`
+      : 'TraderDNA unavailable — neutral behaviorMatch baseline',
   })
 
   const mq = marketQuality(intel)
@@ -152,7 +158,7 @@ export function decide(
     })
   }
 
-  const confidence = computeConfidence(
+  let confidence = computeConfidence(
     {
       behaviorMatch,
       marketQuality: mq,
@@ -163,6 +169,17 @@ export function decide(
     },
     prefs,
   )
+  // Partial Layer 1 input: never block; lower confidence-to-act explicitly
+  if (unavailable.length) {
+    const penalty = Math.min(35, unavailable.length * 8)
+    confidence = clamp(confidence - penalty, 5, 95)
+    citations.push({
+      source: 'MarketContext',
+      field: 'degradedInputs',
+      value: unavailable.length,
+      contribution: `degraded Layer 1 inputs: ${unavailable.join(', ')} (−${penalty} conf)`,
+    })
+  }
   citations.push({
     source: 'Weights',
     field: 'computeConfidence',
@@ -189,6 +206,12 @@ export function decide(
   let action: TlmDecisionAction = 'DO_NOTHING'
   let improvesTrader = false
   let disagreement: DisagreementCheck | null = null
+
+  if (unavailable.length) {
+    reasons.push(
+      `Degraded inputs: ${unavailable.join(', ')} — confidence reduced; Decision still emitted.`,
+    )
+  }
 
   if (intel.securityBand === 'danger' || risk >= 78) {
     action = opts?.hasOpenPosition ? 'EXIT' : 'DO_NOTHING'
@@ -298,6 +321,8 @@ export function decide(
     improvesTrader,
     summary,
     citations,
+    degraded: unavailable.length > 0,
+    degradedInputs: unavailable.length ? unavailable : undefined,
   }
 
   return decision
@@ -311,7 +336,9 @@ export class DecisionEngine {
     intel: MarketContext,
     opts?: Parameters<typeof decide>[2],
   ): ExplainableDecision {
-    const decision = decide(dna, intel, opts)
+    const unavailable = [...(opts?.unavailableEngines ?? [])]
+    if (!dna && !unavailable.includes('trader-dna')) unavailable.push('trader-dna')
+    const decision = decide(dna, intel, { ...opts, unavailableEngines: unavailable })
     this.bus.publish(
       'OpportunityScored',
       { token: intel.tokenSymbol, opportunity: decision.opportunity },
@@ -324,6 +351,8 @@ export class DecisionEngine {
         confidence: decision.scores.confidence,
         id: decision.id,
         improvesTrader: decision.improvesTrader,
+        degraded: unavailable.length > 0,
+        degradedInputs: unavailable,
       },
       'DecisionEngine',
     )

@@ -106,7 +106,7 @@ describe('whale adapter sample hygiene', () => {
 })
 
 describe('simple mode workspace filters', () => {
-  it('filters discovery to high-conviction only', () => {
+  it('filters discovery to Decision Engine high-conviction only', () => {
     const out = filterWorkspaceItems(
       [
         item({
@@ -115,6 +115,13 @@ describe('simple mode workspace filters', () => {
           rankScore: 40,
           sourceEngine: 'market-intelligence',
           recommendation: { action: 'Watch', confidence: 40 },
+        }),
+        item({
+          id: 'market-high',
+          urgency: 'now',
+          rankScore: 95,
+          sourceEngine: 'market-intelligence',
+          recommendation: { action: 'Chase', confidence: 95 },
         }),
         item({
           id: 'high',

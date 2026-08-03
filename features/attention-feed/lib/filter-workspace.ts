@@ -23,11 +23,12 @@ export function filterWorkspaceItems(
   }
 
   if (workspace === 'discovery') {
-    const engines = WORKSPACE_ENGINES.discovery
+    // Filtered/sorted view over Decision Engine items only — no Layer 1 ranking
     return items.filter(
       (i) =>
-        engines.includes(i.sourceEngine) &&
-        (i.recommendation?.confidence ?? i.rankScore) >= HIGH_CONVICTION_MIN,
+        i.sourceEngine === 'decision-engine' &&
+        Boolean(i.recommendation) &&
+        (i.recommendation?.confidence ?? 0) >= HIGH_CONVICTION_MIN,
     )
   }
 

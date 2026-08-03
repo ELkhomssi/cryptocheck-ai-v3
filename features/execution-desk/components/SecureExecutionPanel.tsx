@@ -16,6 +16,7 @@ import type { SwapQuote } from '@/lib/revenue-dashboard/types'
 import { simulateSerializedSwapTransaction } from '@/lib/services/swap-simulation'
 import { sendSignedSwap } from '@/lib/execution/client-submit'
 import { useIntelligenceChart } from '@/features/intelligence-chart/hooks/useIntelligenceChart'
+import { useCanonicalDecision } from '@/features/terminal-os/ai-trade-like-me/hooks/useCanonicalDecision'
 import { computeMevProtection } from '../lib/mev-score'
 import type { ExecutionAuditPayload, ExecutionBuilderState, ExecutionState } from '../types'
 import { useExecutionLifecycleBridge } from '@/features/terminal-os/money-lifecycle/execution-lifecycle-bridge'
@@ -73,6 +74,8 @@ export function SecureExecutionPanel({
   const { connection } = useConnection()
   const wallet = useWallet()
   const { data: bundle } = useIntelligenceChart(query, 'solana')
+  /** Layer 4 — canonical Decision only (SwapDecision below is risk-gate math, not opinion) */
+  const aiDecision = useCanonicalDecision()
 
   const mint = builder?.token.mint && builder.token.mint.length >= 32 ? builder.token.mint : ''
   const amountUsd = builder?.amountUsd ?? 0
@@ -370,6 +373,19 @@ export function SecureExecutionPanel({
           {stateLabel(execState)}
         </span>
       </header>
+
+      {aiDecision ? (
+        <p className="ex-muted" data-testid="canonical-decision-bind">
+          Decision {aiDecision.action} · conf {aiDecision.confidence}%
+          {aiDecision.degraded ? ' · degraded inputs' : ''} —{' '}
+          {aiDecision.reasoning.slice(0, 160)}
+          {aiDecision.reasoning.length > 160 ? '…' : ''}
+        </p>
+      ) : (
+        <p className="ex-muted" data-testid="canonical-decision-bind">
+          No live Decision bound — risk gate + builder math only (no shadow opinion).
+        </p>
+      )}
 
       <div className="ex-secure-grid">
         <div>

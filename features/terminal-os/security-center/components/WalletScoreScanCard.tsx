@@ -49,8 +49,8 @@ function scoreFromHoldings(h: HoldingsResponse): WalletScanResult {
     explanation: `Live holdings · ${n} tokens · $${h.totalValueUsd.toFixed(0)} total · top allocation ${topShare.toFixed(0)}%.`,
     recommendedAction:
       band === 'danger' || band === 'caution'
-        ? 'Reduce concentration before sizing new risk.'
-        : 'Book looks balanced — still verify liquidity before swaps.',
+        ? `Concentration band: ${band} (portfolio facts) — Decision Engine synthesizes act.`
+        : 'Concentration band: balanced (portfolio facts) — Decision Engine synthesizes act.',
   }
 }
 

@@ -65,12 +65,13 @@ export function scoreTokenFromMarket(token: TokenRow): TokenScanResult {
     riskLabel,
     confidence: clamp(58 + liq * 0.22 + (token.liquidityUsd > 500_000 ? 8 : 0)),
     explanation: `Institutional rubric on live DexScreener metrics for $${token.symbol} (${token.chain}).`,
+    // Domain risk label (facts) — Decision Engine owns BUY/SELL/WAIT act synthesis
     recommendedAction:
       band === 'danger'
-        ? 'Avoid or micro-size — confirm rug heuristics before any swap.'
+        ? 'Risk band: danger (heuristic) — Decision Engine synthesizes act.'
         : band === 'caution'
-          ? 'Proceed only with tight size and hard slippage limits.'
-          : 'Eligible for normal swap flow — still verify size vs. liquidity.',
+          ? 'Risk band: caution (heuristic) — Decision Engine synthesizes act.'
+          : 'Risk band: acceptable (heuristic) — Decision Engine synthesizes act.',
     metrics,
   }
 }

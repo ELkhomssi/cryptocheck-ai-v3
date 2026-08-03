@@ -24,41 +24,46 @@ function narrativeBlurb(d: ReturnType<typeof explainDecision>): string {
   return [d.confidenceLine, d.upsideLine, d.downsideLine, ...d.bullets.slice(0, 2)].join(' · ')
 }
 
-function insightsFromDna(dna: TraderDna, oppSummary?: ReturnType<typeof explainDecision> | null): CoachInsight[] {
+function insightsFromDna(
+  dna: TraderDna,
+  oppSummary?: ReturnType<typeof explainDecision> | null,
+  oppAction?: string | null,
+  oppConfidence?: number | null,
+): CoachInsight[] {
   const insights: CoachInsight[] = [
     {
       id: `dna-${dna.wallet.slice(0, 8)}`,
       headline: `Your edge: ${dna.tradingStyleSummary}`,
       reasoning: `Built from ${dna.sampleSize} captured trades/rejections for this wallet.`,
       statistic: `Risk appetite ${dna.riskAppetite}/100 · ${dna.riskAppetiteLabel}`,
-      expectedImpact: 'Align size and entry filters to your DNA before the next fill.',
+      expectedImpact: 'TraderDNA profile loaded — Coach awaits a Decision to personalize tone.',
       confidence: dna.confidence,
     },
   ]
   if (oppSummary) {
+    const conf = oppConfidence ?? dna.confidence
     insights.push({
       id: `opp-${dna.wallet.slice(0, 6)}`,
       headline: oppSummary.headline,
       reasoning: narrativeBlurb(oppSummary).slice(0, 280),
       statistic: oppSummary.confidenceLine,
       expectedImpact: `${oppSummary.upsideLine} · ${oppSummary.downsideLine}`,
-      confidence: dna.confidence,
+      confidence: Math.round(conf),
+    })
+    insights.push({
+      id: `discipline-${dna.sampleSize}`,
+      headline: oppAction
+        ? `Decision ${oppAction} · Coach mirrors Decision Engine (no independent score)`
+        : 'Awaiting Decision — no independent Coach prescription',
+      reasoning:
+        dna.emotionalBiasScore > 55
+          ? `DNA emotionalBiasScore ${dna.emotionalBiasScore}/100 (fact). Action comes from Decision only.`
+          : `DNA sample ${dna.sampleSize} · win ${dna.winRatePct.toFixed(1)}% (facts).`,
+      statistic: `Decision conf ${Math.round(conf)}% · DNA conf ${dna.confidence}%`,
+      expectedImpact: oppSummary.confidenceLine,
+      confidence: Math.round(conf),
     })
   }
-  insights.push({
-    id: `discipline-${dna.sampleSize}`,
-    headline:
-      dna.emotionalBiasScore > 55
-        ? 'Emotional bias elevated — size down until discipline recovers'
-        : 'Discipline holding — stick to your DNA entry filters',
-    reasoning:
-      dna.emotionalBiasScore > 55
-        ? 'Late-session and loss-tolerance patterns are elevating emotional bias in your DNA.'
-        : 'Your sample shows discipline within your historical entry profile.',
-    statistic: `Win rate ${dna.winRatePct.toFixed(1)}% · sample ${dna.sampleSize}`,
-    expectedImpact: 'Protect edge by sizing only when DNA confidence and market quality align.',
-    confidence: dna.confidence,
-  })
   return insights
 }
 
@@ -103,7 +108,12 @@ export async function GET(req: NextRequest) {
   const oppNarrative = state.currentOpportunity ? explainDecision(state.currentOpportunity) : null
 
   return NextResponse.json({
-    insights: insightsFromDna(dna, oppNarrative),
+    insights: insightsFromDna(
+      dna,
+      oppNarrative,
+      state.currentOpportunity?.action ?? null,
+      state.currentOpportunity?.scores.confidence ?? null,
+    ),
     insufficientData: false,
     sampleSize: dna.sampleSize,
     learningProgressPct: learningProgressFromSampleSize(dna.sampleSize),
