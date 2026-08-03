@@ -29,6 +29,12 @@ import {
   OVERRIDE_PHRASE,
 } from '@/features/execution-desk/types'
 import type { TokenRow } from '@/features/terminal-os/shared/types'
+import {
+  gatewayPhase,
+  phaseLabel,
+  spokenSummary,
+  type DecisionTickMeta,
+} from '@/features/ai-os/lib/gateway-phase'
 import '../styles.css'
 import '../gateway-tos.css'
 
@@ -45,6 +51,7 @@ function formatPctOpt(n: number | undefined): string {
   const sign = n > 0 ? '+' : ''
   return `${sign}${n.toFixed(1)}%`
 }
+
 const SOL_DECIMALS = 9
 const DEFAULT_TOKEN_DECIMALS = 6
 
@@ -153,7 +160,9 @@ export function IntelligenceSwap({
   const [feedTokens, setFeedTokens] = useState<SwapToken[]>([])
 
   const [decision, setDecision] = useState<Decision | null>(null)
+  const [tickMeta, setTickMeta] = useState<DecisionTickMeta | null>(null)
   const [decisionLoading, setDecisionLoading] = useState(false)
+  const [sourcesOpen, setSourcesOpen] = useState(false)
   const [swapDecision, setSwapDecision] = useState<SwapDecision | null>(null)
   const [quote, setQuote] = useState<SwapQuote | null>(null)
   const [quoteLoading, setQuoteLoading] = useState(false)
@@ -272,11 +281,16 @@ export function IntelligenceSwap({
     if (walletAddress) qs.set('wallet', walletAddress)
     void fetch(`/api/terminal-os/decisions?${qs}`, { cache: 'no-store' })
       .then((r) => r.json())
-      .then((body: { decision?: Decision | null }) => {
-        if (!cancelled) setDecision(body.decision ?? null)
+      .then((body: { decision?: Decision | null; tickMeta?: DecisionTickMeta | null }) => {
+        if (cancelled) return
+        setDecision(body.decision ?? null)
+        setTickMeta(body.tickMeta ?? null)
       })
       .catch(() => {
-        if (!cancelled) setDecision(null)
+        if (!cancelled) {
+          setDecision(null)
+          setTickMeta(null)
+        }
       })
       .finally(() => {
         if (!cancelled) setDecisionLoading(false)
@@ -553,60 +567,76 @@ export function IntelligenceSwap({
   const subjectSymbol =
     decision?.subject.kind === 'token' ? decision.subject.symbol : buyToken?.symbol
   const dir = decision ? decisionDirection(decision.action) : 'neutral'
+  const phase = gatewayPhase({
+    hasBuyMint: Boolean(buyMint),
+    decisionLoading,
+    hasDecision: Boolean(decision),
+    quoteLoading,
+    execState,
+  })
+  const spoken = spokenSummary(tickMeta, {
+    action: decision?.action,
+    symbol: subjectSymbol,
+  })
 
   return (
     <div data-aios data-aios-gateway>
     <section className="aios-section aios-swap" data-delay="2" aria-label="AI Gateway">
       <p className="aios-section-label">AI Gateway</p>
 
-      <div className="aios-swap-card">
-        {/* Decision hierarchy — real Decision object only */}
+      <div className="aios-swap-card" data-primary-budget="7">
+        {/* Priority: Decision → Confidence → Reasoning → Risk → Expected Return → Execution */}
         {buyMint ? (
           <div
             className="aios-gw-decision"
             data-degraded={decision?.degraded ? 'true' : 'false'}
+            data-phase={phase}
             aria-live="polite"
           >
-            <p className="aios-gw-thinking" data-live={decisionLoading ? 'true' : 'false'}>
-              {decisionLoading
-                ? 'AI Thinking · computing'
-                : decision
-                  ? `AI Thinking · idle · published ${new Date(decision.computedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false })}`
-                  : 'AI Thinking · waiting for Decision'}
+            <p className="aios-gw-thinking" data-live={phase !== 'ready' && phase !== 'waiting' ? 'true' : 'false'}>
+              {phaseLabel(phase)}
+              {decision && phase === 'ready'
+                ? ` · published ${new Date(decision.computedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false })}`
+                : ''}
             </p>
-            {decisionLoading ? (
+
+            {decisionLoading && !decision ? (
               <p className="aios-gw-reasoning">Loading Decision…</p>
             ) : decision ? (
               <>
+                {/* 1. Decision — must dominate every other element */}
                 <h3 className="aios-gw-action" data-dir={dir}>
                   {decision.action}
                   {subjectSymbol ? ` $${subjectSymbol}` : ''}
                 </h3>
+
+                {/* Cycle voice — real tickMeta only; never above Decision */}
+                {spoken ? <p className="aios-gw-spoken">{spoken}</p> : null}
+
+                {/* 2. Confidence */}
+                <p className="aios-gw-confidence">
+                  <span className="aios-gw-confidence-value">{Math.round(decision.confidence)}%</span>
+                  <span className="aios-gw-confidence-meta">
+                    {decision.confidenceMode === 'personalized' ? 'Personalized' : 'Market'} confidence
+                    {' · '}
+                    market {Math.round(decision.marketConfidence)}%
+                    {decision.personalizedConfidence != null
+                      ? ` · DNA ${Math.round(decision.personalizedConfidence)}%`
+                      : ''}
+                  </span>
+                </p>
+
+                {/* 3. Reasoning */}
                 <p className="aios-gw-reasoning">{decision.reasoning}</p>
-                <div className="aios-gw-metrics">
-                  <div className="aios-gw-metric">
-                    <span className="aios-gw-metric-label">
-                      {decision.confidenceMode === 'personalized'
-                        ? 'Personalized confidence'
-                        : 'Market confidence'}
-                    </span>
-                    <span className="aios-gw-metric-value">{Math.round(decision.confidence)}%</span>
-                  </div>
-                  <div className="aios-gw-metric">
-                    <span className="aios-gw-metric-label">Market / DNA</span>
-                    <span className="aios-gw-metric-value">
-                      {Math.round(decision.marketConfidence)}%
-                      {decision.personalizedConfidence != null
-                        ? ` / ${Math.round(decision.personalizedConfidence)}%`
-                        : ' / —'}
-                    </span>
-                  </div>
+
+                {/* 4–5. Risk + Expected Return */}
+                <div className="aios-gw-metrics" data-compact="true">
                   <div className="aios-gw-metric">
                     <span className="aios-gw-metric-label">Risk</span>
                     <span className="aios-gw-metric-value">{Math.round(decision.risk)}</span>
                   </div>
                   <div className="aios-gw-metric">
-                    <span className="aios-gw-metric-label">Expected reward</span>
+                    <span className="aios-gw-metric-label">Expected return</span>
                     <span className="aios-gw-metric-value">
                       {formatPctOpt(decision.expectedROI)}
                       {decision.expectedDrawdown != null
@@ -615,16 +645,25 @@ export function IntelligenceSwap({
                     </span>
                   </div>
                 </div>
+
+                {/* Sources — collapsed (cognitive budget); real contributingFactors only */}
                 {decision.contributingFactors.length > 0 ? (
-                  <ul className="aios-gw-sources" aria-label="AI sources">
-                    {decision.contributingFactors.slice(0, 5).map((f, i) => (
-                      <li key={`${f.engine}-${i}`}>
-                        <strong>{String(f.engine)}</strong>
-                        <span>{f.summary}</span>
-                        <span>{Math.round(f.weight * 100)}%</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <details
+                    className="aios-gw-sources-wrap"
+                    open={sourcesOpen}
+                    onToggle={(e) => setSourcesOpen((e.target as HTMLDetailsElement).open)}
+                  >
+                    <summary>AI sources ({decision.contributingFactors.length})</summary>
+                    <ul className="aios-gw-sources" aria-label="AI sources">
+                      {decision.contributingFactors.slice(0, 5).map((f, i) => (
+                        <li key={`${f.engine}-${i}`}>
+                          <strong>{String(f.engine)}</strong>
+                          <span>{f.summary}</span>
+                          <span>{Math.round(f.weight * 100)}%</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
                 ) : null}
                 {decision.degraded ? (
                   <span className="aios-swap-degraded">degraded inputs</span>

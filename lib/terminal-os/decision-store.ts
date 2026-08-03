@@ -12,8 +12,22 @@ import { redis } from '@/lib/cache/redis'
 const TOKEN_PREFIX = 'ccai:tos:decision:token:'
 const INDEX_KEY = 'ccai:tos:decision:index'
 const HIST_PREFIX = 'ccai:tos:decision:hist:'
+const TICK_META_KEY = 'ccai:tos:decision:tick:meta'
 const TTL_SEC = 60 * 30
 const HIST_TTL_SEC = 60 * 60 * 24 * 7
+
+/** Last Decision Engine tick counts — real numbers only for Gateway spoken summary. */
+export type DecisionTickMeta = {
+  at: string
+  /** Tokens considered from the live feed this cycle */
+  scanned: number
+  /** Canonical Decisions written this cycle */
+  published: number
+  /** Subset with action BUY */
+  buyCount: number
+  /** Subset with action WAIT or DO_NOTHING */
+  waitCount: number
+}
 
 export type DecisionHistoryPoint = {
   at: string
@@ -135,5 +149,19 @@ export async function getDecisionIndexIds(): Promise<string[]> {
     return JSON.parse(raw) as string[]
   } catch {
     return []
+  }
+}
+
+export async function saveDecisionTickMeta(meta: DecisionTickMeta): Promise<void> {
+  await redis.setex(TICK_META_KEY, TTL_SEC, JSON.stringify(meta))
+}
+
+export async function getDecisionTickMeta(): Promise<DecisionTickMeta | null> {
+  const raw = await redis.get(TICK_META_KEY)
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as DecisionTickMeta
+  } catch {
+    return null
   }
 }

@@ -59,12 +59,12 @@
   padding: 1.35rem 1.25rem 1.15rem;
 }
 
-/* Iteration 1 — Decision hero */
+/* Evolution — Decision must dominate (size + contrast) vs every other element */
 [data-tos] [data-aios-gateway] .aios-gw-decision {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
-  padding: 1rem 1.05rem;
+  gap: 0.65rem;
+  padding: 1.15rem 1.15rem 1rem;
   border-radius: var(--tos-radius-sm);
   border: 1px solid var(--tos-glass-border);
   background: color-mix(in srgb, var(--tos-bg-panel-elevated) 88%, transparent);
@@ -72,8 +72,8 @@
 
 [data-tos] [data-aios-gateway] .aios-gw-thinking {
   margin: 0;
-  font-size: var(--tos-fs-sm);
-  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--tos-text-muted);
   font-family: var(--tos-mono);
@@ -83,12 +83,21 @@
   color: var(--tos-accent-gold-bright);
 }
 
+[data-tos] [data-aios-gateway] .aios-gw-spoken {
+  margin: 0;
+  font-size: var(--tos-fs-sm);
+  line-height: 1.45;
+  color: var(--tos-text-secondary);
+  max-width: 40rem;
+}
+
+/* Decision line — largest / highest-contrast text in the Gateway */
 [data-tos] [data-aios-gateway] .aios-gw-action {
   margin: 0;
-  font-size: clamp(1.75rem, 3.2vw, 2.35rem);
+  font-size: clamp(2.5rem, 5vw, 3.35rem);
   font-weight: var(--tos-fw-extrabold);
-  letter-spacing: -0.03em;
-  line-height: 1.1;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
   color: var(--tos-text-primary);
 }
 
@@ -104,17 +113,79 @@
   color: var(--tos-accent-gold-bright);
 }
 
+[data-tos] [data-aios-gateway] .aios-gw-confidence {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.55rem 0.85rem;
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-confidence-value {
+  font-family: var(--tos-mono);
+  font-size: clamp(1.25rem, 2.2vw, 1.55rem);
+  font-weight: var(--tos-fw-bold);
+  color: var(--tos-accent-gold-bright);
+  font-variant-numeric: tabular-nums;
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-confidence-meta {
+  font-size: var(--tos-fs-sm);
+  color: var(--tos-text-muted);
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-reasoning {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--tos-text-secondary);
+  max-width: 42rem;
+}
+
 [data-tos] [data-aios-gateway] .aios-gw-metrics {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.55rem 0.85rem;
-  margin: 0.15rem 0 0;
+  margin: 0.1rem 0 0;
 }
 
-@media (min-width: 720px) {
-  [data-tos] [data-aios-gateway] .aios-gw-metrics {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
+[data-tos] [data-aios-gateway] .aios-gw-metrics[data-compact='true'] {
+  max-width: 28rem;
+}
+
+/* Amount must not compete with Decision (≤ ~half Decision size) */
+[data-tos] [data-aios-gateway] .aios-swap-amount {
+  font-size: 1.2rem !important;
+}
+
+/* Execute is strong but secondary to Decision typography */
+[data-tos] [data-aios-gateway] .aios-swap-execute {
+  font-size: 0.9rem !important;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-sources-wrap {
+  margin: 0.15rem 0 0;
+  font-size: var(--tos-fs-sm);
+  color: var(--tos-text-muted);
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-sources-wrap summary {
+  cursor: pointer;
+  list-style: none;
+  color: var(--tos-accent-gold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  font-weight: var(--tos-fw-semibold);
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-sources-wrap summary::-webkit-details-marker {
+  display: none;
 }
 
 [data-tos] [data-aios-gateway] .aios-gw-metric {
@@ -137,13 +208,6 @@
   font-weight: var(--tos-fw-semibold);
   color: var(--tos-text-primary);
   font-variant-numeric: tabular-nums;
-}
-
-[data-tos] [data-aios-gateway] .aios-gw-reasoning {
-  margin: 0.25rem 0 0;
-  font-size: var(--tos-fs-md);
-  line-height: 1.5;
-  color: var(--tos-text-secondary);
 }
 
 [data-tos] [data-aios-gateway] .aios-gw-sources {
@@ -188,10 +252,12 @@
 }
 
 [data-tos] [data-aios-gateway] .aios-swap-execute {
-  background: linear-gradient(180deg, var(--tos-accent-gold-bright), var(--tos-accent-gold));
+  /* Evolution #4 — present, not competing with Decision hero */
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tos-accent-gold-bright) 88%, #fff), var(--tos-accent-gold));
   color: #120f08;
-  font-weight: var(--tos-fw-bold);
-  box-shadow: var(--tos-shadow-glow);
+  font-weight: var(--tos-fw-semibold);
+  font-size: 0.95rem;
+  box-shadow: none;
 }
 
 [data-tos] [data-aios-gateway] .aios-swap-execute:focus-visible,
@@ -218,11 +284,6 @@
 [data-tos] [data-aios-gateway] .aios-swap-cost-value {
   font-size: 1.15rem;
   color: var(--tos-accent-gold-bright);
-}
-
-[data-tos] [data-aios-gateway] .aios-swap-amount {
-  font-size: 1.65rem;
-  color: var(--tos-text-primary);
 }
 
 @keyframes aios-gw-in {

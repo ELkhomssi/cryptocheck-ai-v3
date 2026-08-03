@@ -3,6 +3,7 @@ import {
   listRecentDecisions,
   getDecisionByTokenId,
   getDecisionHistory,
+  getDecisionTickMeta,
 } from '@/lib/terminal-os/decision-store'
 import { runDecisionTick } from '@/lib/terminal-os/decision-engine-tick'
 
@@ -34,9 +35,11 @@ export async function GET(req: NextRequest) {
       decision = await getDecisionByTokenId(token)
     }
     const history = wantHistory ? await getDecisionHistory(token, 32) : undefined
+    const tickMeta = await getDecisionTickMeta()
     return NextResponse.json(
       {
         decision,
+        tickMeta,
         ...(wantHistory ? { history } : {}),
         at: new Date().toISOString(),
       },
@@ -50,10 +53,12 @@ export async function GET(req: NextRequest) {
     decisions = tick.decisions
   }
 
+  const tickMeta = await getDecisionTickMeta()
   return NextResponse.json(
     {
       decisions,
       count: decisions.length,
+      tickMeta,
       at: new Date().toISOString(),
     },
     { headers: { 'cache-control': 'no-store' } },

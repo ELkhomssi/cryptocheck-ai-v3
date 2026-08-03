@@ -7,7 +7,7 @@ import 'server-only'
 
 import type { Decision } from '@cryptocheck/decision-contracts'
 import { resilientTokens, resilientWhales } from '@/lib/terminal-os/resilient-feed'
-import { saveDecision } from '@/lib/terminal-os/decision-store'
+import { saveDecision, saveDecisionTickMeta } from '@/lib/terminal-os/decision-store'
 import { buildMarketIntel } from '@/features/terminal-os/ai-trade-like-me/engines/market-intelligence-engine'
 import { decide } from '@/features/terminal-os/ai-trade-like-me/engines/decision-engine'
 import { toCanonicalDecision } from '@/features/terminal-os/ai-trade-like-me/lib/to-canonical-decision'
@@ -64,9 +64,19 @@ export async function runDecisionTick(opts?: {
     decisions.push(decision)
   }
 
+  const at = new Date().toISOString()
+  // Persist real cycle counts for Gateway spoken summary (presentation only)
+  await saveDecisionTickMeta({
+    at,
+    scanned: tokens.length,
+    published: decisions.length,
+    buyCount: decisions.filter((d) => d.action === 'BUY').length,
+    waitCount: decisions.filter((d) => d.action === 'WAIT' || d.action === 'DO_NOTHING').length,
+  })
+
   return {
     computed: decisions.length,
     decisions,
-    at: new Date().toISOString(),
+    at,
   }
 }
