@@ -1,13 +1,14 @@
 'use client'
 
 /**
- * @deprecated Dual-mode router retired. /terminalOS mounts AiOsShell directly.
- * Kept as a thin re-export so attention-feed barrel imports do not break.
- * TerminalOsShell (V6 Pro chrome) is never mounted from this path.
+ * RETIRED — Simple/Pro ModeRouter must not gate /terminalOS.
+ * Page mounts TerminalOsShell directly. This stub exists only so
+ * attention-feed barrel imports do not break; it never toggles modes.
  */
 
-import { AiOsShell } from '@/features/ai-os'
+import { TerminalOsShell } from '@/features/terminal-os/shell/components/TerminalOsShell'
 
+/** @deprecated Import TerminalOsShell from features/terminal-os instead. */
 export function ModeRouter() {
-  return <AiOsShell />
+  return <TerminalOsShell />
 }
