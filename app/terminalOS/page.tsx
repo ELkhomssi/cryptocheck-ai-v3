@@ -1,23 +1,11 @@
 'use client'
 
-import { Suspense } from 'react'
-import { ModeRouter } from '@/features/attention-feed'
+import { AiOsShell } from '@/features/ai-os'
 
 /**
- * Dual Mode entry — Simple (AI OS) vs Pro (Terminal).
- * The only Pro-adjacent change: route through ModeRouter.
- * TerminalOsShell itself is imported unchanged inside ModeRouter.
+ * /terminalOS — CryptoCheck AI Operating System only.
+ * Terminal V6 (Top Traders / Money Lifecycle / rails) is no longer rendered here.
  */
 export default function TerminalOsPage() {
-  return (
-    <Suspense
-      fallback={
-        <div style={{ padding: 24, color: 'var(--tos-text-secondary, #57534e)' }}>
-          Loading…
-        </div>
-      }
-    >
-      <ModeRouter />
-    </Suspense>
-  )
+  return <AiOsShell />
 }
