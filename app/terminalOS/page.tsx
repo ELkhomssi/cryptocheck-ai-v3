@@ -1,11 +1,11 @@
 'use client'
 
-import { AiOsShell } from '@/features/ai-os'
+import { TerminalOsShell } from '@/features/terminal-os/shell/components/TerminalOsShell'
 
 /**
- * /terminalOS — CryptoCheck AI Operating System only.
- * Terminal V6 (Top Traders / Money Lifecycle / rails) is no longer rendered here.
+ * /terminalOS — original Terminal OS foundation only.
+ * No ModeRouter. No Simple Mode. No Pro toggle. No AiOsShell.
  */
 export default function TerminalOsPage() {
-  return <AiOsShell />
+  return <TerminalOsShell />
 }
