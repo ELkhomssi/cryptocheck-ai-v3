@@ -1,0 +1,243 @@
+/**
+ * AI Gateway — dark institutional presentation when mounted inside Terminal OS.
+ * Maps Intelligence Swap (aios-*) onto [data-tos] tokens. Presentation only.
+ */
+
+[data-tos] [data-aios-gateway] {
+  --aios-bg: transparent;
+  --aios-bg-deep: transparent;
+  --aios-surface: var(--tos-bg-panel);
+  --aios-surface-2: var(--tos-bg-panel-elevated);
+  --aios-ink: var(--tos-text-primary);
+  --aios-ink-2: var(--tos-text-secondary);
+  --aios-muted: var(--tos-text-muted);
+  --aios-line: var(--tos-border-subtle);
+  --aios-line-strong: var(--tos-glass-border);
+  --aios-accent: var(--tos-accent-gold);
+  --aios-accent-soft: var(--tos-accent-gold-dim);
+  --aios-warn: var(--tos-warning);
+  --aios-danger: var(--tos-negative);
+  --aios-positive: var(--tos-positive);
+  --aios-mono: var(--tos-mono);
+  --aios-sans: var(--tos-font);
+  --aios-display: var(--tos-font);
+  --aios-radius: var(--tos-radius);
+  --aios-radius-sm: var(--tos-radius-sm);
+  --aios-ease: var(--tos-ease-state);
+
+  color-scheme: dark;
+  min-height: 0;
+  background: transparent;
+  color: var(--tos-text-primary);
+  font-family: var(--tos-font);
+  animation: aios-gw-in 0.55s var(--tos-ease-state) both;
+}
+
+[data-tos] [data-aios-gateway] .aios-section {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  max-width: none;
+}
+
+[data-tos] [data-aios-gateway] .aios-section-label {
+  font-size: var(--tos-fs-xs);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--tos-accent-gold);
+  margin: 0 0 0.65rem;
+  font-weight: var(--tos-fw-semibold);
+}
+
+[data-tos] [data-aios-gateway] .aios-swap-card {
+  background: var(--tos-glass);
+  border: 1px solid var(--tos-glass-border);
+  box-shadow: var(--tos-shadow-2);
+  backdrop-filter: blur(18px);
+  gap: 0.85rem;
+  padding: 1.35rem 1.25rem 1.15rem;
+}
+
+/* Iteration 1 — Decision hero */
+[data-tos] [data-aios-gateway] .aios-gw-decision {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 1rem 1.05rem;
+  border-radius: var(--tos-radius-sm);
+  border: 1px solid var(--tos-glass-border);
+  background: color-mix(in srgb, var(--tos-bg-panel-elevated) 88%, transparent);
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-thinking {
+  margin: 0;
+  font-size: var(--tos-fs-sm);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tos-text-muted);
+  font-family: var(--tos-mono);
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-thinking[data-live='true'] {
+  color: var(--tos-accent-gold-bright);
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-action {
+  margin: 0;
+  font-size: clamp(1.75rem, 3.2vw, 2.35rem);
+  font-weight: var(--tos-fw-extrabold);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--tos-text-primary);
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-action[data-dir='bullish'] {
+  color: var(--tos-positive);
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-action[data-dir='bearish'] {
+  color: var(--tos-negative);
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-action[data-dir='neutral'] {
+  color: var(--tos-accent-gold-bright);
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem 0.85rem;
+  margin: 0.15rem 0 0;
+}
+
+@media (min-width: 720px) {
+  [data-tos] [data-aios-gateway] .aios-gw-metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-metric-label {
+  font-size: 0.625rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tos-text-muted);
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-metric-value {
+  font-family: var(--tos-mono);
+  font-size: var(--tos-fs-md);
+  font-weight: var(--tos-fw-semibold);
+  color: var(--tos-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-reasoning {
+  margin: 0.25rem 0 0;
+  font-size: var(--tos-fs-md);
+  line-height: 1.5;
+  color: var(--tos-text-secondary);
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-sources {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-sources li {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr auto;
+  gap: 0.5rem;
+  font-size: var(--tos-fs-sm);
+  color: var(--tos-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-sources strong {
+  color: var(--tos-accent-gold);
+  font-weight: var(--tos-fw-semibold);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-sources span:last-child {
+  font-family: var(--tos-mono);
+  color: var(--tos-text-muted);
+}
+
+/* Iteration 4 — touch targets ≥44px */
+[data-tos] [data-aios-gateway] .aios-swap-execute,
+[data-tos] [data-aios-gateway] .aios-swap-override,
+[data-tos] [data-aios-gateway] .aios-swap-token-btn {
+  min-height: 44px;
+}
+
+[data-tos] [data-aios-gateway] .aios-swap-execute {
+  background: linear-gradient(180deg, var(--tos-accent-gold-bright), var(--tos-accent-gold));
+  color: #120f08;
+  font-weight: var(--tos-fw-bold);
+  box-shadow: var(--tos-shadow-glow);
+}
+
+[data-tos] [data-aios-gateway] .aios-swap-execute:focus-visible,
+[data-tos] [data-aios-gateway] .aios-swap-token-btn:focus-visible,
+[data-tos] [data-aios-gateway] .aios-swap-flip:focus-visible,
+[data-tos] [data-aios-gateway] .aios-swap-override:focus-visible,
+[data-tos] [data-aios-gateway] .aios-swap-amount:focus-visible,
+[data-tos] [data-aios-gateway] .aios-swap-large-input:focus-visible,
+[data-tos] [data-aios-gateway] .aios-swap-paste-input:focus-visible {
+  outline: none;
+  box-shadow: var(--tos-shadow-focus);
+}
+
+[data-tos] [data-aios-gateway] .aios-swap-flip {
+  width: 44px;
+  height: 44px;
+}
+
+[data-tos] [data-aios-gateway] .aios-swap-cost {
+  border-top: 1px solid var(--tos-glass-border);
+  padding: 0.75rem 0 0.35rem;
+}
+
+[data-tos] [data-aios-gateway] .aios-swap-cost-value {
+  font-size: 1.15rem;
+  color: var(--tos-accent-gold-bright);
+}
+
+[data-tos] [data-aios-gateway] .aios-swap-amount {
+  font-size: 1.65rem;
+  color: var(--tos-text-primary);
+}
+
+@keyframes aios-gw-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-tos] [data-aios-gateway] {
+    animation: none;
+  }
+}

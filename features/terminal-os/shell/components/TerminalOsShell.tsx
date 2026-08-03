@@ -36,6 +36,12 @@ const TradeLikeMeWidget = dynamic(
   { ssr: false, loading: () => <PanelSkeleton rows={6} /> },
 )
 
+/** AI Gateway = existing Intelligence Swap elevated to centerpiece (Layer 4 only) */
+const IntelligenceSwap = dynamic(
+  () => import('@/features/ai-os/components/IntelligenceSwap').then((m) => m.IntelligenceSwap),
+  { ssr: false, loading: () => <PanelSkeleton rows={8} /> },
+)
+
 function Bound({ title, children }: { title: string; children: ReactNode }) {
   return <PanelErrorBoundary title={title}>{children}</PanelErrorBoundary>
 }
@@ -180,9 +186,12 @@ function MainColumn() {
     return <SecondaryNavStub nav={nav} />
   }
 
-  {/* Default Terminal home — traders → tokens → 2×2 charts (whales fixed in top marquee) */}
+  {/* Default Terminal home — AI Gateway centerpiece, then market context + chart */}
   return (
     <>
+      <Bound title="AI Gateway">
+        <AiGatewayCenterpiece />
+      </Bound>
       <Bound title="Top Traders">
         <TopTradersTicker />
       </Bound>
@@ -194,9 +203,22 @@ function MainColumn() {
   )
 }
 
+function AiGatewayCenterpiece() {
+  const focused = useTerminalOsStore((s) => s.focusedToken)
+  return (
+    <IntelligenceSwap
+      initialBuyMint={focused?.id ?? null}
+      initialBuySymbol={focused?.symbol ?? null}
+    />
+  )
+}
+
 function AiTradingWorkspace() {
   return (
     <div className="tos-stack">
+      <Bound title="AI Gateway">
+        <AiGatewayCenterpiece />
+      </Bound>
       <Bound title="Trade Like Me">
         <TradeLikeMeWidget />
       </Bound>
