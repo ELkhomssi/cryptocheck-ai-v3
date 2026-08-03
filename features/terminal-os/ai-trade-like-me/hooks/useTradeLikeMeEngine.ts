@@ -107,12 +107,12 @@ export function useTradeLikeMeEngine() {
       await persistDna()
       startTransition(() => sync())
 
-      const [tokens, whales] = await Promise.all([
+      const [tokenFeed, whaleFeed] = await Promise.all([
         liveMarketDataProvider.getTopTokens(chain === 'all' ? 'solana' : chain),
         liveWhaleFeedProvider.getRecentMovements(16),
       ])
-      if (tokens[0]) {
-        orchRef.current.evaluateOpportunity(tokens[0], whales, flags)
+      if (tokenFeed.items[0]) {
+        orchRef.current.evaluateOpportunity(tokenFeed.items[0], whaleFeed.items, flags)
       }
       startTransition(() => sync())
     } catch (e) {
@@ -126,12 +126,12 @@ export function useTradeLikeMeEngine() {
     setBusy(true)
     setError(null)
     try {
-      const [tokens, whales] = await Promise.all([
+      const [tokenFeed, whaleFeed] = await Promise.all([
         liveMarketDataProvider.getTopTokens(chain === 'all' ? 'solana' : chain),
         liveWhaleFeedProvider.getRecentMovements(16),
       ])
-      if (!tokens[0]) throw new Error('No live market opportunity')
-      orchRef.current.evaluateOpportunity(tokens[0], whales, flags, {
+      if (!tokenFeed.items[0]) throw new Error('No live market opportunity')
+      orchRef.current.evaluateOpportunity(tokenFeed.items[0], whaleFeed.items, flags, {
         hasOpenPosition: Boolean(orchRef.current.getState(flags).openPosition),
       })
       startTransition(() => sync())

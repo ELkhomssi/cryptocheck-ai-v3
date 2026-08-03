@@ -100,36 +100,37 @@ export function AiCoachingCard() {
       setAnswer(null)
       return
     }
-    const local = buildInsights(wallet)
-    if (!local.insufficient) {
-      setInsights(local.insights)
-      setInsufficient(false)
-      setMessage(null)
-      return
-    }
-    // Fall back to server (Redis-persisted DNA) when client session is cold
+    // Prefer server Coach — opportunity insight comes from shared Decision store
     try {
-      const res = await fetch(`/api/terminal-os/coach?wallet=${encodeURIComponent(wallet)}`)
-      if (!res.ok) throw new Error('Coach offline')
-      const body = (await res.json()) as {
-        insights?: CoachInsight[]
-        insufficientData?: boolean
-        message?: string
+      const res = await fetch(`/api/terminal-os/coach?wallet=${encodeURIComponent(wallet)}`, {
+        cache: 'no-store',
+      })
+      if (res.ok) {
+        const body = (await res.json()) as {
+          insights?: CoachInsight[]
+          insufficientData?: boolean
+          message?: string
+        }
+        if (!body.insufficientData && body.insights?.length) {
+          setInsights(body.insights)
+          setInsufficient(false)
+          setMessage(null)
+          return
+        }
+        if (body.insufficientData) {
+          setInsights([])
+          setInsufficient(true)
+          setMessage(body.message ?? INSUFFICIENT)
+          return
+        }
       }
-      if (body.insufficientData || !(body.insights?.length)) {
-        setInsights([])
-        setInsufficient(true)
-        setMessage(body.message ?? INSUFFICIENT)
-        return
-      }
-      setInsights(body.insights)
-      setInsufficient(false)
-      setMessage(null)
     } catch {
-      setInsights(local.insights)
-      setInsufficient(local.insufficient)
-      setMessage(local.message)
+      /* fall through to local DNA */
     }
+    const local = buildInsights(wallet)
+    setInsights(local.insights)
+    setInsufficient(local.insufficient)
+    setMessage(local.message)
   }, [wallet, walletConnected])
 
   useEffect(() => {
@@ -206,11 +207,12 @@ export function AiCoachingCard() {
   }
 
   const top = insights?.[0]
+  const hasRealInsights = Boolean(top && !insufficient && insights && insights.length > 0)
 
   return (
     <Panel
       title="AI Coaching"
-      action={<span className="tos-beta-chip">LIVE</span>}
+      action={hasRealInsights ? <span className="tos-beta-chip">LIVE</span> : undefined}
     >
       {insights == null ? (
         <PanelSkeleton rows={2} />

@@ -5,11 +5,17 @@ import {
   liveMarketDataProvider,
   liveTraderLeaderboardProvider,
   liveWhaleFeedProvider,
+  type LiveFeedMeta,
 } from '@/features/terminal-os/shared/lib/live-providers'
 import type { ChainId } from '@/features/terminal-os/shared/types'
 
 const STALE_PRICE = 12_000
 const STALE_SLOW = 60_000
+
+export type FeedQueryData<T> = {
+  items: T[]
+  meta: LiveFeedMeta
+}
 
 export function useTickerQuotes() {
   return useQuery({

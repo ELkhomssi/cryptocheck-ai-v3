@@ -7,10 +7,11 @@ import { formatPct, formatUsd } from '@/features/terminal-os/shared/lib/format'
 import { useMarketOverview } from '@/features/terminal-os/shared/hooks/useTerminalQueries'
 
 export function MarketOverviewPanel() {
-  const { data: overview, isLoading, isError, error } = useMarketOverview()
+  const { data, isLoading, isError, error } = useMarketOverview()
+  const overview = data?.item
 
   return (
-    <Panel title="Market Overview" live>
+    <Panel title="Market Overview" live={!data?.meta.demo}>
       {isError ? (
         <EmptyState message={error instanceof Error ? error.message : 'Overview offline'} />
       ) : isLoading || !overview ? (

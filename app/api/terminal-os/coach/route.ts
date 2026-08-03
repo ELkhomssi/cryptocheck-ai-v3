@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getTradeLikeMeOrchestrator } from '@/features/terminal-os/ai-trade-like-me/engines/orchestrator'
-import { explainDecision } from '@/features/terminal-os/ai-trade-like-me/engines/explainable-engine'
 import { getPersistedDna } from '@/lib/terminal-os/dna-store'
+import { listRecentDecisions } from '@/lib/terminal-os/decision-store'
+import type { Decision } from '@cryptocheck/decision-contracts'
 import type { CoachInsight } from '@/features/terminal-os/shared/types'
 import type { TraderDna } from '@/features/terminal-os/ai-trade-like-me/types'
 import { learningProgressFromSampleSize } from '@/features/terminal-os/ai-trade-like-me/engines/behavioral-learning-engine'
@@ -20,11 +21,26 @@ type DnaHint = {
   winRatePct?: number
 }
 
-function narrativeBlurb(d: ReturnType<typeof explainDecision>): string {
-  return [d.confidenceLine, d.upsideLine, d.downsideLine, ...d.bullets.slice(0, 2)].join(' · ')
+function insightFromDecision(d: Decision): CoachInsight {
+  const symbol = d.subject.kind === 'token' ? d.subject.symbol : d.subject.address.slice(0, 6)
+  const conf =
+    d.confidenceMode === 'personalized' && d.personalizedConfidence != null
+      ? d.personalizedConfidence
+      : d.marketConfidence ?? d.confidence
+  return {
+    id: d.id,
+    headline: `${d.action} $${symbol} · ${d.confidenceMode} conf ${conf}%`,
+    reasoning: d.reasoning.slice(0, 280),
+    statistic: `Risk ${d.risk} · factors ${d.contributingFactors.length}`,
+    expectedImpact:
+      d.expectedROI != null
+        ? `Est. ROI ${d.expectedROI}% · drawdown ${d.expectedDrawdown ?? '—'}%`
+        : d.contributingFactors[0]?.summary ?? 'Server Decision Engine',
+    confidence: Math.round(conf),
+  }
 }
 
-function insightsFromDna(dna: TraderDna, oppSummary?: ReturnType<typeof explainDecision> | null): CoachInsight[] {
+function insightsFromDna(dna: TraderDna, decision?: Decision | null): CoachInsight[] {
   const insights: CoachInsight[] = [
     {
       id: `dna-${dna.wallet.slice(0, 8)}`,
@@ -35,15 +51,8 @@ function insightsFromDna(dna: TraderDna, oppSummary?: ReturnType<typeof explainD
       confidence: dna.confidence,
     },
   ]
-  if (oppSummary) {
-    insights.push({
-      id: `opp-${dna.wallet.slice(0, 6)}`,
-      headline: oppSummary.headline,
-      reasoning: narrativeBlurb(oppSummary).slice(0, 280),
-      statistic: oppSummary.confidenceLine,
-      expectedImpact: `${oppSummary.upsideLine} · ${oppSummary.downsideLine}`,
-      confidence: dna.confidence,
-    })
+  if (decision) {
+    insights.push(insightFromDecision(decision))
   }
   insights.push({
     id: `discipline-${dna.sampleSize}`,
@@ -64,7 +73,7 @@ function insightsFromDna(dna: TraderDna, oppSummary?: ReturnType<typeof explainD
 
 /**
  * GET /api/terminal-os/coach?wallet=
- * Uses in-process orchestrator DNA, then falls back to Redis-persisted DNA.
+ * DNA from orchestrator/Redis; opportunity insight from shared Decision store.
  */
 export async function GET(req: NextRequest) {
   const wallet = req.nextUrl.searchParams.get('wallet')?.trim() ?? ''
@@ -100,13 +109,18 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  const oppNarrative = state.currentOpportunity ? explainDecision(state.currentOpportunity) : null
+  const decisions = await listRecentDecisions(8).catch(() => [] as Decision[])
+  const top =
+    decisions.find((d) => d.action === 'BUY' || d.action === 'WAIT' || d.action === 'SELL') ??
+    decisions[0] ??
+    null
 
   return NextResponse.json({
-    insights: insightsFromDna(dna, oppNarrative),
+    insights: insightsFromDna(dna, top),
     insufficientData: false,
     sampleSize: dna.sampleSize,
     learningProgressPct: learningProgressFromSampleSize(dna.sampleSize),
+    decision: top,
     dna: {
       tradingStyleSummary: dna.tradingStyleSummary,
       confidence: dna.confidence,
@@ -164,14 +178,17 @@ export async function POST(req: NextRequest) {
   const confidence = hint?.confidence ?? dna?.confidence ?? 0
   const risk = hint?.riskAppetiteLabel ?? dna?.riskAppetiteLabel ?? 'moderate'
   const sample = hint?.sampleSize ?? dna?.sampleSize ?? 0
-  const opp = state.currentOpportunity
-  const narrative = opp ? explainDecision(opp) : null
+  const decisions = await listRecentDecisions(8).catch(() => [] as Decision[])
+  const top =
+    decisions.find((d) => d.action === 'BUY' || d.action === 'WAIT' || d.action === 'SELL') ??
+    decisions[0] ??
+    null
 
   const answer = [
     `Context: ${style} (confidence ${confidence}%).`,
-    narrative
-      ? `Live opportunity: ${narrative.headline} — ${narrativeBlurb(narrative)}`
-      : 'No live opportunity scored yet — refresh Trade Like Me desk.',
+    top
+      ? `Live Decision: ${top.action} $${top.subject.kind === 'token' ? top.subject.symbol : 'wallet'} · ${top.confidenceMode} conf ${top.marketConfidence ?? top.confidence}% — ${top.reasoning.slice(0, 160)}`
+      : 'No live Decision in the shared store yet — waiting for Decision Engine tick.',
     `Risk band: ${risk}. Sample size ${sample}.`,
     `You asked: “${q.slice(0, 160)}”`,
   ].join(' ')
@@ -181,5 +198,6 @@ export async function POST(req: NextRequest) {
     insufficientData: false,
     confidence,
     sampleSize: sample,
+    decision: top,
   })
 }

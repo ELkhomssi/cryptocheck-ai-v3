@@ -97,11 +97,12 @@ export function TopBar() {
 
   const { data: quotes } = useTickerQuotes()
   const stream = useTerminalMarketStream()
-  const [lkg, setLkg] = useState(quotes)
+  const quoteItems = quotes?.items
+  const [lkg, setLkg] = useState(quoteItems)
   useEffect(() => {
-    if (quotes?.length) setLkg(quotes)
-  }, [quotes])
-  const shown = quotes?.length ? quotes : lkg
+    if (quoteItems?.length) setLkg(quoteItems)
+  }, [quoteItems])
+  const shown = quoteItems?.length ? quoteItems : lkg
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -186,10 +187,10 @@ export function TopBar() {
               </div>
             ))}
             <StaleIndicator
-              stale={stream.ticker?.stale}
-              demo={stream.ticker?.demo}
-              ageSec={stream.ticker?.ageSec}
-              source={stream.ticker?.source}
+              stale={stream.ticker?.stale || quotes?.meta.stale}
+              demo={stream.ticker?.demo || quotes?.meta.demo}
+              ageSec={stream.ticker?.ageSec ?? quotes?.meta.ageSec}
+              source={stream.ticker?.source ?? quotes?.meta.source}
             />
           </>
         )}
