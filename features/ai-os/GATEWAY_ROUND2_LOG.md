@@ -42,6 +42,12 @@
 ### Stop
 Iteration 5 reached. Subjective trust → **human checkpoint** below.
 
+### Continuation (cold review — still within Round 2 IA scope)
+**Finding:** Full engine checklist + confidence block sat above/beside the Decision and competed with the Decision → Reason → Approve first look.
+**Change:** Engines expand only while computing; when ready, one “Decision Ready · age · freshness” line, then Decision hero. Confidence sparkline + full engine list move into Evidence.
+**Why:** §2/§3 — one Decision must win the first look after greeting; engines/confidence remain real, just progressive.
+**Checks:** Tests assert Decision → Reason → Mission → Approve order; engines-in-Evidence when ready.
+
 ---
 
 ## Human checkpoint (required before merge)

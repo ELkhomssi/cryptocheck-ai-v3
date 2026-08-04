@@ -160,16 +160,21 @@ describe('Gateway Round 2 wiring integrity', () => {
     assert.doesNotMatch(src, /12,?431/)
   })
 
-  it('GatewayHeroFlow sequence Decision → Reason → Approve; no Round 1 CSS retune required', () => {
+  it('GatewayHeroFlow sequence Decision → Reason → Approve; engines not above Decision when ready', () => {
     const hero = readFileSync(join(root, 'features/ai-os/components/GatewayHeroFlow.tsx'), 'utf8')
     const actionIdx = hero.indexOf('data-gw-hero-decision')
     const reasonIdx = hero.indexOf('data-gw-hero-reason')
     const missionIdx = hero.indexOf('data-gw-mission')
     const approveIdx = hero.indexOf('data-gw-approve')
+    const readyLine = hero.indexOf('data-gw-ready-line')
+    const evidenceEnginesComment = hero.indexOf('Engine checklist retained in Evidence')
     assert.ok(actionIdx > 0 && actionIdx < reasonIdx && reasonIdx < missionIdx && missionIdx < approveIdx)
+    assert.ok(readyLine > 0 && readyLine < actionIdx)
+    assert.ok(evidenceEnginesComment > approveIdx)
     assert.match(hero, /Building confidence history/)
     assert.match(hero, /data-gw-engines/)
     assert.match(hero, /Evidence \/ Details/)
+    assert.match(hero, /showEnginesWhileComputing/)
   })
 
   it('does not edit frozen scanner / decision-engine scoring', () => {

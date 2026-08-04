@@ -61,16 +61,18 @@ describe('AI Gateway presentation integrity', () => {
   })
 
   it('DOM priority keeps Decision before Confidence / Reasoning / Risk', () => {
-    // Round 2 moved hero strip into GatewayHeroFlow; cost remains in IntelligenceSwap
+    // Round 2: hero strip in GatewayHeroFlow; confidence demoted to Evidence
     const hero = readFileSync(join(root, 'features/ai-os/components/GatewayHeroFlow.tsx'), 'utf8')
     const swap = readFileSync(join(root, 'features/ai-os/components/IntelligenceSwap.tsx'), 'utf8')
     const actionIdx = hero.indexOf('className="aios-gw-action"')
-    const confIdx = hero.indexOf('className="aios-gw-confidence"')
     const reasonIdx = hero.indexOf('data-gw-hero-reason')
-    const metricsIdx = hero.indexOf('data-gw-mission')
+    const missionIdx = hero.indexOf('data-gw-mission')
+    const confIdx = hero.indexOf('data-gw-freshness')
     const costIdx = swap.indexOf('Estimated total cost')
     assert.ok(actionIdx > 0)
-    assert.ok(actionIdx < reasonIdx && reasonIdx < confIdx && confIdx < metricsIdx)
+    assert.ok(actionIdx < reasonIdx && reasonIdx < missionIdx)
+    // Confidence lives in Evidence — after Approve in source order
+    assert.ok(confIdx > missionIdx)
     assert.ok(costIdx > 0)
     assert.match(swap, /GatewayHeroFlow/)
   })
