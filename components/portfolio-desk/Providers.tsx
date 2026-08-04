@@ -1,7 +1,11 @@
 'use client'
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useEffect, useState, type ReactNode } from 'react'
+/**
+ * Portfolio desk theme hydrator only.
+ * QueryClient lives once in app/providers.tsx — do not re-create it here.
+ */
+
+import { useEffect, type ReactNode } from 'react'
 import { usePortfolioTheme } from '@/store/portfolio-theme'
 
 function ThemeHydrator({ children }: { children: ReactNode }) {
@@ -13,21 +17,5 @@ function ThemeHydrator({ children }: { children: ReactNode }) {
 }
 
 export function PortfolioProviders({ children }: { children: ReactNode }) {
-  const [client] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 30_000,
-            refetchOnWindowFocus: false,
-          },
-        },
-      }),
-  )
-
-  return (
-    <QueryClientProvider client={client}>
-      <ThemeHydrator>{children}</ThemeHydrator>
-    </QueryClientProvider>
-  )
+  return <ThemeHydrator>{children}</ThemeHydrator>
 }

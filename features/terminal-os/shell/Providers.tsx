@@ -1,21 +1,12 @@
 'use client'
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useState, type ReactNode } from 'react'
+/**
+ * Terminal OS layout shell passthrough.
+ * QueryClient lives once in app/providers.tsx — do not re-create it here.
+ */
+
+import type { ReactNode } from 'react'
 
 export function TerminalOsProviders({ children }: { children: ReactNode }) {
-  const [client] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 12_000,
-            refetchOnWindowFocus: true,
-            retry: 2,
-            placeholderData: (prev: unknown) => prev,
-          },
-        },
-      }),
-  )
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  return <>{children}</>
 }
