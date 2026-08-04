@@ -10,9 +10,11 @@ import { join } from 'node:path'
 import type { Decision } from '@cryptocheck/decision-contracts'
 import {
   buildGatewayGreeting,
+  buildHeroMetrics,
   buildMissionSummary,
   canShowConfidenceTrend,
   confidenceSeries,
+  convictionBadgeLabel,
   decisionAgeLabel,
   decisionFreshnessLabel,
   engineChecklist,
@@ -20,6 +22,8 @@ import {
   heroReason,
   resolveGatewayDisplayName,
   selectHeroDecision,
+  strategyFromDna,
+  UNAVAILABLE,
 } from '../../features/ai-os/lib/gateway-round2'
 
 const root = process.cwd()
@@ -144,6 +148,31 @@ describe('Gateway Round 2 helpers', () => {
     assert.equal(byId['market-intelligence'], 'live')
     assert.equal(byId['security-scanner'], 'live')
   })
+
+  it('hero metrics use real Decision fields; missing → Unavailable; conviction gated', () => {
+    assert.equal(convictionBadgeLabel(90), 'ULTRA HIGH CONVICTION')
+    assert.equal(convictionBadgeLabel(75), 'HIGH CONVICTION')
+    assert.equal(convictionBadgeLabel(50), null)
+
+    const d = sampleDecision({ action: 'BUY', confidence: 88, expectedROI: 12.5, risk: 20 })
+    const untrained = buildHeroMetrics(d, { avgHoldingMs: null, dnaSampleSize: 0 })
+    assert.equal(untrained.primary[0]!.value, '88%')
+    assert.equal(untrained.primary[1]!.value, '+12.5%')
+    assert.equal(untrained.primary[3]!.value, UNAVAILABLE)
+    assert.equal(untrained.primary[3]!.available, false)
+    assert.equal(untrained.secondary[0]!.value, UNAVAILABLE)
+    assert.equal(untrained.secondary[1]!.value, UNAVAILABLE)
+    assert.equal(untrained.secondary[2]!.value, UNAVAILABLE)
+
+    const trained = buildHeroMetrics(d, {
+      avgHoldingMs: 2.3 * 3_600_000,
+      dnaSampleSize: 12,
+      tradingStyleSummary: 'Momentum + whale',
+    })
+    assert.match(trained.secondary[0]!.value, /~2\.3h/)
+    assert.equal(trained.secondary[1]!.value, 'Momentum + whale')
+    assert.equal(strategyFromDna({ sampleSize: 2, tradingStyleSummary: 'X' }), null)
+  })
 })
 
 describe('Gateway Round 2 wiring integrity', () => {
@@ -156,25 +185,36 @@ describe('Gateway Round 2 wiring integrity', () => {
     assert.match(src, /\/api\/terminal-os\/dna/)
     assert.match(src, /signTransaction/)
     assert.match(src, /Estimated total cost/)
+    assert.match(src, /prepareAndSimulate|runSimulateOnly/)
+    assert.match(src, /runSignOnly/)
+    assert.match(src, /onApproveAndExecute/)
     assert.doesNotMatch(src, /Good evening, Abderrahim/)
     assert.doesNotMatch(src, /12,?431/)
   })
 
-  it('GatewayHeroFlow sequence Decision → Reason → Approve; engines not above Decision when ready', () => {
+  it('GatewayHeroFlow sequence Decision → Reason → metrics → Approve & Execute; engines in Evidence', () => {
     const hero = readFileSync(join(root, 'features/ai-os/components/GatewayHeroFlow.tsx'), 'utf8')
     const actionIdx = hero.indexOf('data-gw-hero-decision')
     const reasonIdx = hero.indexOf('data-gw-hero-reason')
-    const missionIdx = hero.indexOf('data-gw-mission')
+    const missionIdx = hero.indexOf('data-gw-mission="true"')
     const approveIdx = hero.indexOf('data-gw-approve')
+    const simulateIdx = hero.indexOf('data-gw-simulate')
+    const signIdx = hero.indexOf('data-gw-sign')
+    const queueIdx = hero.indexOf('data-gw-queue')
     const readyLine = hero.indexOf('data-gw-ready-line')
-    const evidenceEnginesComment = hero.indexOf('Engine checklist retained in Evidence')
     assert.ok(actionIdx > 0 && actionIdx < reasonIdx && reasonIdx < missionIdx && missionIdx < approveIdx)
     assert.ok(readyLine > 0 && readyLine < actionIdx)
-    assert.ok(evidenceEnginesComment > approveIdx)
+    assert.ok(approveIdx < simulateIdx && simulateIdx < signIdx && signIdx < queueIdx)
+    assert.match(hero, /Approve & Execute/)
+    assert.match(hero, /buildHeroMetrics/)
+    assert.match(hero, /convictionBadgeLabel/)
+    assert.match(hero, /Queue unavailable/)
     assert.match(hero, /Building confidence history/)
     assert.match(hero, /data-gw-engines/)
     assert.match(hero, /Evidence \/ Details/)
     assert.match(hero, /showEnginesWhileComputing/)
+    assert.doesNotMatch(hero, /94%/)
+    assert.doesNotMatch(hero, /\+22\.6%/)
   })
 
   it('does not edit frozen scanner / decision-engine scoring', () => {

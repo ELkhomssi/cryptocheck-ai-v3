@@ -3,6 +3,7 @@ import { GeistMono } from 'geist/font/mono'
 import { TerminalOsProviders } from '@/features/terminal-os/shell/Providers'
 import '@/styles/tokens.css'
 import '@/styles/terminal-os.css'
+import '@/lib/portfolio-desk/theme.css'
 import '@/features/intelligence-chart/styles.css'
 import '@/features/execution-desk/styles.css'
 

@@ -218,6 +218,7 @@ export function IntelligenceChartCanvas({
                 color: z.kind === 'buy' ? IV.zoneBuy : IV.zoneSell,
                 borderColor: z.kind === 'buy' ? IV.zoneBuyBorder : IV.zoneSellBorder,
               },
+              name: z.label,
             },
             {
               xAxis: toMs(z.timeTo),

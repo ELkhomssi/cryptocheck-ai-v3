@@ -322,7 +322,7 @@ export function SettingsPanel({
         </div>
         {advancedOpen ? (
           <p style={{ marginTop: 10, fontSize: 12, color: 'var(--text-faint)' }}>
-            Deep links: <span className="pd-num">/terminal?nav=intelligence</span> ·{' '}
+            Deep links: <span className="pd-num">/terminalOS?nav=ai-workforce</span> ·{' '}
             <span className="pd-num">/settings/intelligence-engine</span>
           </p>
         ) : null}

@@ -31,7 +31,8 @@ describe('AI Gateway presentation integrity', () => {
     assert.match(hero, /decision\.reasoning|heroReason\(decision\.reasoning\)/)
     assert.match(hero, /marketConfidence/)
     assert.match(hero, /personalizedConfidence/)
-    assert.match(combined, /expectedROI|expectedRoi/)
+    assert.match(combined, /buildHeroMetrics|expectedROI|expectedRoi/)
+    assert.match(readFileSync(join(root, 'features/ai-os/lib/gateway-round2.ts'), 'utf8'), /expectedROI/)
     assert.match(hero, /contributingFactors/)
     assert.doesNotMatch(combined, /confidence:\s*85/)
     assert.doesNotMatch(combined, /sample-decision/)
@@ -60,21 +61,23 @@ describe('AI Gateway presentation integrity', () => {
     assert.match(src, /sendSignedSwap/)
   })
 
-  it('DOM priority keeps Decision before Confidence / Reasoning / Risk', () => {
-    // Round 2: hero strip in GatewayHeroFlow; confidence demoted to Evidence
+  it('DOM priority keeps Decision before Reason / metrics; Simulate Sign Queue present', () => {
+    // Phase 1 hero: Decision → Reason → metrics → Approve & Execute → Simulate/Sign/Queue
     const hero = readFileSync(join(root, 'features/ai-os/components/GatewayHeroFlow.tsx'), 'utf8')
     const swap = readFileSync(join(root, 'features/ai-os/components/IntelligenceSwap.tsx'), 'utf8')
     const actionIdx = hero.indexOf('className="aios-gw-action"')
     const reasonIdx = hero.indexOf('data-gw-hero-reason')
-    const missionIdx = hero.indexOf('data-gw-mission')
+    const missionIdx = hero.indexOf('data-gw-mission="true"')
     const confIdx = hero.indexOf('data-gw-freshness')
     const costIdx = swap.indexOf('Estimated total cost')
     assert.ok(actionIdx > 0)
     assert.ok(actionIdx < reasonIdx && reasonIdx < missionIdx)
-    // Confidence lives in Evidence — after Approve in source order
     assert.ok(confIdx > missionIdx)
     assert.ok(costIdx > 0)
     assert.match(swap, /GatewayHeroFlow/)
+    assert.match(hero, /data-gw-simulate/)
+    assert.match(hero, /data-gw-sign/)
+    assert.match(hero, /data-gw-queue/)
   })
 
   it('Decision CSS is measurably larger than amount / confidence / execute', () => {

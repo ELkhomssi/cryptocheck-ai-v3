@@ -31,8 +31,8 @@ export async function POST(req: NextRequest) {
 
   const params = new URLSearchParams()
   params.set('mode', 'subscription')
-  params.set('success_url', `${siteUrl}/terminal?nav=mission&billing=success`)
-  params.set('cancel_url', `${siteUrl}/terminal?nav=mission&billing=cancel`)
+  params.set('success_url', `${siteUrl}/terminalOS?nav=mission-control&billing=success`)
+  params.set('cancel_url', `${siteUrl}/terminalOS?nav=mission-control&billing=cancel`)
   params.set('line_items[0][price]', priceId)
   params.set('line_items[0][quantity]', '1')
   params.set('client_reference_id', session.userId)

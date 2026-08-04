@@ -165,9 +165,14 @@ export function IntelligenceSwap({
   const [tickMeta, setTickMeta] = useState<DecisionTickMeta | null>(null)
   const [decisionHistory, setDecisionHistory] = useState<GatewayHistoryPoint[] | null>(null)
   const [avgHoldingMs, setAvgHoldingMs] = useState<number | null>(null)
+  const [dnaSampleSize, setDnaSampleSize] = useState<number | null>(null)
+  const [tradingStyleSummary, setTradingStyleSummary] = useState<string | null>(null)
   const [decisionLoading, setDecisionLoading] = useState(false)
   const [evidenceOpen, setEvidenceOpen] = useState(false)
   const [missionApproved, setMissionApproved] = useState(false)
+  const [simReady, setSimReady] = useState(false)
+  const [pendingSwapTx, setPendingSwapTx] = useState<string | null>(null)
+  const [pendingOpportunityId, setPendingOpportunityId] = useState<string | null>(null)
   const [heroBootstrapped, setHeroBootstrapped] = useState(false)
   const [swapDecision, setSwapDecision] = useState<SwapDecision | null>(null)
   const [quote, setQuote] = useState<SwapQuote | null>(null)
@@ -329,6 +334,9 @@ export function IntelligenceSwap({
     let cancelled = false
     setDecisionLoading(true)
     setMissionApproved(false)
+    setSimReady(false)
+    setPendingSwapTx(null)
+    setPendingOpportunityId(null)
     const qs = new URLSearchParams({ token: buyMint, history: '1' })
     if (walletAddress) qs.set('wallet', walletAddress)
     void fetch(`/api/terminal-os/decisions?${qs}`, { cache: 'no-store' })
@@ -359,10 +367,12 @@ export function IntelligenceSwap({
     }
   }, [buyMint, walletAddress, isEvmBuy])
 
-  // TraderDNA avg hold — Holding field only when real sample exists
+  // TraderDNA — hold / strategy only when sampleSize ≥ 3 (honest for untrained wallets)
   useEffect(() => {
     if (!walletAddress) {
       setAvgHoldingMs(null)
+      setDnaSampleSize(null)
+      setTradingStyleSummary(null)
       return
     }
     let cancelled = false
@@ -370,17 +380,36 @@ export function IntelligenceSwap({
       cache: 'no-store',
     })
       .then((r) => r.json())
-      .then((body: { dna?: { avgHoldingMs?: number; sampleSize?: number } | null }) => {
-        if (cancelled) return
-        const dna = body.dna
-        if (dna && (dna.sampleSize ?? 0) >= 3 && (dna.avgHoldingMs ?? 0) > 0) {
-          setAvgHoldingMs(dna.avgHoldingMs!)
-        } else {
-          setAvgHoldingMs(null)
-        }
-      })
+      .then(
+        (body: {
+          dna?: {
+            avgHoldingMs?: number
+            sampleSize?: number
+            tradingStyleSummary?: string
+          } | null
+        }) => {
+          if (cancelled) return
+          const dna = body.dna
+          const n = dna?.sampleSize ?? 0
+          setDnaSampleSize(dna ? n : null)
+          if (dna && n >= 3 && (dna.avgHoldingMs ?? 0) > 0) {
+            setAvgHoldingMs(dna.avgHoldingMs!)
+          } else {
+            setAvgHoldingMs(null)
+          }
+          if (dna && n >= 3 && dna.tradingStyleSummary?.trim()) {
+            setTradingStyleSummary(dna.tradingStyleSummary.trim())
+          } else {
+            setTradingStyleSummary(null)
+          }
+        },
+      )
       .catch(() => {
-        if (!cancelled) setAvgHoldingMs(null)
+        if (!cancelled) {
+          setAvgHoldingMs(null)
+          setDnaSampleSize(null)
+          setTradingStyleSummary(null)
+        }
       })
     return () => {
       cancelled = true
@@ -414,6 +443,9 @@ export function IntelligenceSwap({
     setError(null)
     setExecState('building')
     setOverrideOk(false)
+    setSimReady(false)
+    setPendingSwapTx(null)
+    setPendingOpportunityId(null)
     try {
       const [qRes, aRes] = await Promise.all([
         fetch('/api/revenue/quote', {
@@ -496,19 +528,23 @@ export function IntelligenceSwap({
     })
   }
 
-  const executeSwap = async () => {
-    if (!quote || !wallet.publicKey || !wallet.signTransaction || isEvm) return
+  /** Build unsigned tx + dry-run. Returns base64 tx on success; never asks wallet. */
+  const prepareAndSimulate = async (): Promise<{
+    swapTxBase64: string
+    opportunityId: string | null
+  } | null> => {
+    if (!quote || !wallet.publicKey || isEvm) return null
     if (swapDecision?.verdict === 'BLOCKED') {
       setError(swapDecision.blockedReason ?? 'Blocked by Security Scanner')
-      return
+      return null
     }
     if (needsOverride && !overrideOk) {
       setDangerOpen(true)
-      return
+      return null
     }
     if (isLarge && !largeOk) {
       setError(`Large trade — type "${LARGE_TRADE_PHRASE}" to continue.`)
-      return
+      return null
     }
 
     setError(null)
@@ -518,110 +554,163 @@ export function IntelligenceSwap({
     const amountSol =
       sellToken.mint === SOL_MINT ? sellAmountHuman : usd / solPrice
 
-    try {
-      let swapTxBase64: string | null = null
-      let opportunityId: string | null = null
+    let swapTxBase64: string | null = null
+    let opportunityId: string | null = null
 
-      const prepRes = await fetch('/api/execution/prepare', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mint: buyMint,
-          walletAddress: wallet.publicKey.toBase58(),
-          amountSol,
-          slippageBps,
-          strategy: mev.route === 'jito_private' ? 'aggressive' : 'balanced',
-          source: 'manual',
-          symbol: buyToken?.symbol,
-        }),
-      })
-      const prepBody = (await prepRes.json().catch(() => ({}))) as {
-        allowed?: boolean
-        swapTransaction?: string
-        opportunityId?: string
-        blockReason?: string
-        error?: string
-      }
-
-      if (prepRes.status === 401) {
-        const prioritizationFeeLamports =
-          mev.route === 'jito_private'
-            ? { jitoTipLamports: mev.tipLamports }
-            : ('auto' as const)
-        const feeAcct = quote.platformFee.feeTokenAccount?.trim()
-        swapTxBase64 = await buildJupiterSwapTransaction(
-          quote.quote,
-          wallet.publicKey.toBase58(),
-          {
-            prioritizationFeeLamports,
-            ...(feeAcct && quote.platformFee.bps > 0 ? { feeAccount: feeAcct } : {}),
-          },
-        )
-        const sim = await simulateSerializedSwapTransaction(connection, swapTxBase64)
-        if (sim.sellSimulationFailed) {
-          setExecState('simulation_failed')
-          setError(
-            sim.rpcError
-              ? `Simulation would revert — ${sim.rpcError}. Refresh quote and retry.`
-              : 'Simulation would revert — not sent to wallet.',
-          )
-          return
-        }
-      } else if (!prepRes.ok || !prepBody?.allowed || !prepBody?.swapTransaction) {
-        setExecState('simulation_failed')
-        setError(
-          typeof prepBody?.blockReason === 'string'
-            ? prepBody.blockReason
-            : typeof prepBody?.error === 'string'
-              ? prepBody.error
-              : 'OMS prepare blocked — not sent to wallet.',
-        )
-        return
-      } else {
-        opportunityId = typeof prepBody.opportunityId === 'string' ? prepBody.opportunityId : null
-        swapTxBase64 = String(prepBody.swapTransaction)
-      }
-
-      if (!swapTxBase64) throw new Error('No unsigned transaction')
-
-      setExecState('awaiting_signature')
-      const tx = VersionedTransaction.deserialize(Buffer.from(swapTxBase64, 'base64'))
-      const signed = await wallet.signTransaction(tx)
-
-      setExecState('broadcasting')
-      const sent = await sendSignedSwap({
-        signed,
-        connection,
+    const prepRes = await fetch('/api/execution/prepare', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mint: buyMint,
+        walletAddress: wallet.publicKey.toBase58(),
+        amountSol,
+        slippageBps,
         strategy: mev.route === 'jito_private' ? 'aggressive' : 'balanced',
-        opportunityId,
-      })
+        source: 'manual',
+        symbol: buyToken?.symbol,
+      }),
+    })
+    const prepBody = (await prepRes.json().catch(() => ({}))) as {
+      allowed?: boolean
+      swapTransaction?: string
+      opportunityId?: string
+      blockReason?: string
+      error?: string
+    }
 
+    if (prepRes.status === 401) {
+      const prioritizationFeeLamports =
+        mev.route === 'jito_private'
+          ? { jitoTipLamports: mev.tipLamports }
+          : ('auto' as const)
+      const feeAcct = quote.platformFee.feeTokenAccount?.trim()
+      swapTxBase64 = await buildJupiterSwapTransaction(
+        quote.quote,
+        wallet.publicKey.toBase58(),
+        {
+          prioritizationFeeLamports,
+          ...(feeAcct && quote.platformFee.bps > 0 ? { feeAccount: feeAcct } : {}),
+        },
+      )
+      const sim = await simulateSerializedSwapTransaction(connection, swapTxBase64)
+      if (sim.sellSimulationFailed) {
+        setExecState('simulation_failed')
+        setSimReady(false)
+        setError(
+          sim.rpcError
+            ? `Simulation would revert — ${sim.rpcError}. Refresh quote and retry.`
+            : 'Simulation would revert — not sent to wallet.',
+        )
+        return null
+      }
+    } else if (!prepRes.ok || !prepBody?.allowed || !prepBody?.swapTransaction) {
+      setExecState('simulation_failed')
+      setSimReady(false)
+      setError(
+        typeof prepBody?.blockReason === 'string'
+          ? prepBody.blockReason
+          : typeof prepBody?.error === 'string'
+            ? prepBody.error
+            : 'OMS prepare blocked — not sent to wallet.',
+      )
+      return null
+    } else {
+      opportunityId = typeof prepBody.opportunityId === 'string' ? prepBody.opportunityId : null
+      swapTxBase64 = String(prepBody.swapTransaction)
+      const sim = await simulateSerializedSwapTransaction(connection, swapTxBase64)
+      if (sim.sellSimulationFailed) {
+        setExecState('simulation_failed')
+        setSimReady(false)
+        setError(
+          sim.rpcError
+            ? `Simulation would revert — ${sim.rpcError}. Refresh quote and retry.`
+            : 'Simulation would revert — not sent to wallet.',
+        )
+        return null
+      }
+    }
+
+    if (!swapTxBase64) {
+      setExecState('simulation_failed')
+      setSimReady(false)
+      setError('No unsigned transaction')
+      return null
+    }
+
+    setPendingSwapTx(swapTxBase64)
+    setPendingOpportunityId(opportunityId)
+    setSimReady(true)
+    setExecState('building')
+    return { swapTxBase64, opportunityId }
+  }
+
+  const signAndBroadcast = async (swapTxBase64: string, opportunityId: string | null) => {
+    if (!wallet.publicKey || !wallet.signTransaction) return
+
+    setExecState('awaiting_signature')
+    const tx = VersionedTransaction.deserialize(Buffer.from(swapTxBase64, 'base64'))
+    const signed = await wallet.signTransaction(tx)
+
+    setExecState('broadcasting')
+    const sent = await sendSignedSwap({
+      signed,
+      connection,
+      strategy: mev.route === 'jito_private' ? 'aggressive' : 'balanced',
+      opportunityId,
+    })
+
+    setExecState('pending_confirmation')
+    setPendingSince(Date.now())
+    setSignature(sent.signature)
+    setPendingSwapTx(null)
+    setSimReady(false)
+
+    let confirmed = false
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => setTimeout(r, 1000))
+      const st = await connection.getSignatureStatuses([sent.signature])
+      const v = st?.value?.[0]
+      if (v?.err) {
+        setExecState('reverted')
+        setError(typeof v.err === 'string' ? v.err : 'Transaction reverted on-chain')
+        return
+      }
+      if (v?.confirmationStatus === 'confirmed' || v?.confirmationStatus === 'finalized') {
+        confirmed = true
+        break
+      }
+    }
+
+    if (!confirmed) {
       setExecState('pending_confirmation')
-      setPendingSince(Date.now())
-      setSignature(sent.signature)
+      setError('Still confirming — open explorer if this persists.')
+    } else {
+      setExecState('confirmed')
+    }
+  }
 
-      let confirmed = false
-      for (let i = 0; i < 30; i++) {
-        await new Promise((r) => setTimeout(r, 1000))
-        const st = await connection.getSignatureStatuses([sent.signature])
-        const v = st?.value?.[0]
-        if (v?.err) {
-          setExecState('reverted')
-          setError(typeof v.err === 'string' ? v.err : 'Transaction reverted on-chain')
-          return
-        }
-        if (v?.confirmationStatus === 'confirmed' || v?.confirmationStatus === 'finalized') {
-          confirmed = true
-          break
-        }
+  const runSimulateOnly = async () => {
+    if (!missionApproved || !quote || !wallet.publicKey || isEvm) return
+    try {
+      const prepared = await prepareAndSimulate()
+      if (prepared) {
+        setError(null)
       }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Simulation failed'
+      setExecState('simulation_failed')
+      setSimReady(false)
+      setError(msg)
+    }
+  }
 
-      if (!confirmed) {
-        setExecState('pending_confirmation')
-        setError('Still confirming — open explorer if this persists.')
-      } else {
-        setExecState('confirmed')
-      }
+  const runSignOnly = async () => {
+    if (!missionApproved || !simReady || !pendingSwapTx) {
+      setError('Run Simulate successfully before Sign.')
+      return
+    }
+    try {
+      await signAndBroadcast(pendingSwapTx, pendingOpportunityId)
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Execution failed'
       setExecState('failed')
@@ -631,6 +720,31 @@ export function IntelligenceSwap({
         setError(msg)
       }
     }
+  }
+
+  const executeSwap = async () => {
+    if (!quote || !wallet.publicKey || !wallet.signTransaction || isEvm) return
+    try {
+      const prepared = await prepareAndSimulate()
+      if (!prepared) return
+      await signAndBroadcast(prepared.swapTxBase64, prepared.opportunityId)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Execution failed'
+      setExecState('failed')
+      if (msg.toLowerCase().includes('reject') || msg.toLowerCase().includes('cancel')) {
+        setError('Wallet rejected the signature request.')
+      } else {
+        setError(msg)
+      }
+    }
+  }
+
+  const onApproveAndExecute = () => {
+    if (!missionApproved) {
+      setMissionApproved(true)
+      return
+    }
+    void executeSwap()
   }
 
   const executeDisabled =
@@ -675,8 +789,19 @@ export function IntelligenceSwap({
           decisionLoading={decisionLoading}
           history={decisionHistory}
           avgHoldingMs={avgHoldingMs}
+          dnaSampleSize={dnaSampleSize}
+          tradingStyleSummary={tradingStyleSummary}
           missionApproved={missionApproved}
-          onApprove={() => setMissionApproved(true)}
+          onApproveAndExecute={onApproveAndExecute}
+          onSimulate={() => void runSimulateOnly()}
+          onSign={() => void runSignOnly()}
+          simulateBusy={execState === 'simulating'}
+          signBusy={
+            execState === 'awaiting_signature' ||
+            execState === 'broadcasting' ||
+            execState === 'pending_confirmation'
+          }
+          simReady={simReady}
           evidenceOpen={evidenceOpen}
           onEvidenceToggle={setEvidenceOpen}
           dir={dir}
@@ -697,7 +822,7 @@ export function IntelligenceSwap({
 
         {!missionApproved ? (
           <p className="aios-gw-reasoning" data-gw-await-approve="true">
-            Approve the Mission Summary to unlock Execute.
+            Approve & Execute unlocks amount, cost, and Simulate → Sign.
           </p>
         ) : (
           <div data-gw-exec="ready">
@@ -875,6 +1000,7 @@ export function IntelligenceSwap({
                 className="aios-swap-execute"
                 disabled={executeDisabled || (isLarge && !largeOk)}
                 onClick={() => void executeSwap()}
+                data-gw-exec-fallback="true"
               >
                 {execState === 'confirmed'
                   ? 'Swap confirmed'
@@ -882,7 +1008,7 @@ export function IntelligenceSwap({
                       execState !== 'simulation_failed' &&
                       execState !== 'failed'
                     ? stateLabel(execState)
-                    : 'Execute'}
+                    : 'Execute (Simulate → Sign)'}
               </button>
             ) : null}
 

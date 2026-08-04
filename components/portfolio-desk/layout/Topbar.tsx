@@ -16,7 +16,7 @@ export function Topbar({
 }: {
   alertCount?: number
   onOpenNav?: () => void
-  /** Optional override — default navigates to /terminal?mint=… */
+  /** Optional override — default navigates to /terminalOS?mint=… */
   onSelectToken?: (row: ScreenerRow) => void
   /** Mission Feed (replaces notifications panel). */
   onOpenFeed?: () => void
@@ -46,7 +46,7 @@ export function Topbar({
       onSelectToken(row)
       return
     }
-    router.push(`/terminal?nav=market&mint=${encodeURIComponent(row.mint)}`)
+    router.push(`/terminalOS?nav=market-intel&mint=${encodeURIComponent(row.mint)}`)
   }
 
   return (
@@ -83,7 +83,7 @@ export function Topbar({
           title="Mission Feed"
           onClick={() => {
             if (onOpenFeed) onOpenFeed()
-            else router.push('/terminal?nav=feed')
+            else router.push('/terminalOS?nav=alerts')
           }}
         >
           {alertCount > 0 ? <span className="ping" aria-hidden /> : null}

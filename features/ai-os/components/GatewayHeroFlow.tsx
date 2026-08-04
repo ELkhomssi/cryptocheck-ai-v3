@@ -1,20 +1,19 @@
 'use client'
 
 /**
- * AI Gateway hero — Decision → Reason → Approve (Mission Summary) → Execute cue.
- * Presentation / IA only. Reuses existing aios-gw-* classes (no Round 1 visual retune).
- *
- * Cold-review fix: full engine checklist only while computing; when ready, Decision
- * is the first dominant element after greeting (engines + confidence live in Evidence).
+ * AI Gateway hero — Decision-first card (mockup hierarchy).
+ * Presentation only. All numbers from Decision / DNA; missing → Unavailable.
+ * Primary CTA: Approve & Execute · Secondary: Simulate / Sign / Queue (safety floor visible).
  */
 
 import type { Decision } from '@cryptocheck/decision-contracts'
 import { Sparkline } from '@/features/terminal-os/shared/components/Sparkline'
 import {
   buildGatewayGreeting,
-  buildMissionSummary,
+  buildHeroMetrics,
   canShowConfidenceTrend,
   confidenceSeries,
+  convictionBadgeLabel,
   decisionAgeLabel,
   decisionFreshnessLabel,
   engineChecklist,
@@ -57,6 +56,40 @@ function EngineChecklist({
   )
 }
 
+function MetricGrid({
+  cells,
+  compact,
+  'data-gw-mission': gwMission,
+  'data-gw-secondary': gwSecondary,
+}: {
+  cells: ReturnType<typeof buildHeroMetrics>['primary']
+  compact?: boolean
+  'data-gw-mission'?: string
+  'data-gw-secondary'?: string
+}) {
+  return (
+    <div
+      className="aios-gw-metrics"
+      data-compact={compact ? 'true' : undefined}
+      data-cols={cells.length}
+      data-gw-mission={gwMission}
+      data-gw-secondary={gwSecondary}
+    >
+      {cells.map((cell) => (
+        <div
+          key={cell.label}
+          className="aios-gw-metric"
+          data-available={cell.available ? 'true' : 'false'}
+          title={cell.hint}
+        >
+          <span className="aios-gw-metric-label">{cell.label}</span>
+          <span className="aios-gw-metric-value">{cell.value}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function GatewayHeroFlow({
   displayName,
   tickMeta,
@@ -65,8 +98,15 @@ export function GatewayHeroFlow({
   decisionLoading,
   history,
   avgHoldingMs,
+  dnaSampleSize,
+  tradingStyleSummary,
   missionApproved,
-  onApprove,
+  onApproveAndExecute,
+  onSimulate,
+  onSign,
+  simulateBusy,
+  signBusy,
+  simReady,
   evidenceOpen,
   onEvidenceToggle,
   dir,
@@ -79,8 +119,16 @@ export function GatewayHeroFlow({
   decisionLoading: boolean
   history: GatewayHistoryPoint[] | null
   avgHoldingMs: number | null
+  dnaSampleSize: number | null
+  tradingStyleSummary: string | null
   missionApproved: boolean
-  onApprove: () => void
+  onApproveAndExecute: () => void
+  onSimulate: () => void
+  onSign: () => void
+  simulateBusy: boolean
+  signBusy: boolean
+  /** True after a successful dry-run simulation (Sign may proceed). */
+  simReady: boolean
   evidenceOpen: boolean
   onEvidenceToggle: (open: boolean) => void
   dir: 'bullish' | 'bearish' | 'neutral'
@@ -94,11 +142,16 @@ export function GatewayHeroFlow({
   const engines = engineChecklist({ decisionLoading, decision })
   const series = confidenceSeries(history)
   const showTrend = canShowConfidenceTrend(series)
-  const mission = decision
-    ? buildMissionSummary(decision, { avgHoldingMs })
-    : null
   const decisionReady = Boolean(decision && !decisionLoading)
   const showEnginesWhileComputing = decisionLoading || !decision
+  const conviction = decision ? convictionBadgeLabel(decision.confidence) : null
+  const metrics = decision
+    ? buildHeroMetrics(decision, {
+        avgHoldingMs,
+        dnaSampleSize,
+        tradingStyleSummary,
+      })
+    : null
 
   return (
     <div
@@ -107,7 +160,6 @@ export function GatewayHeroFlow({
       data-phase={decisionReady ? 'ready' : decisionLoading ? 'thinking' : 'waiting'}
       aria-live="polite"
     >
-      {/* §1 Proactive greeting */}
       <div className="aios-gw-spoken" data-gw-greeting="true">
         {greeting.lines.map((line, i) => (
           <p key={`${i}-${line.slice(0, 24)}`} className="aios-gw-reasoning">
@@ -116,7 +168,6 @@ export function GatewayHeroFlow({
         ))}
       </div>
 
-      {/* §5 Full engine checklist only while computing — must not compete with Decision */}
       {showEnginesWhileComputing ? (
         <EngineChecklist
           engines={engines}
@@ -134,9 +185,19 @@ export function GatewayHeroFlow({
 
       {decisionLoading && !decision ? (
         <p className="aios-gw-reasoning">Loading Decision…</p>
-      ) : decision && mission ? (
+      ) : decision && metrics ? (
         <>
-          {/* §2–3 Hero flow only: Decision → Reason → Approve → (Execute in parent) */}
+          <div className="aios-gw-badges" data-gw-badges="true">
+            <span className="aios-gw-badge" data-kind="primary">
+              Primary Decision
+            </span>
+            {conviction ? (
+              <span className="aios-gw-badge" data-kind="conviction" data-gw-conviction="true">
+                {conviction}
+              </span>
+            ) : null}
+          </div>
+
           <h3 className="aios-gw-action" data-dir={dir} data-gw-hero-decision="true">
             {decision.action}
             {subjectSymbol ? ` $${subjectSymbol}` : ''}
@@ -146,50 +207,67 @@ export function GatewayHeroFlow({
             {heroReason(decision.reasoning)}
           </p>
 
-          {/* §6 Mission Summary → Approve (secondary metrics stay here as Approve payload) */}
-          <div className="aios-gw-metrics" data-compact="true" data-gw-mission="true">
-            <div className="aios-gw-metric">
-              <span className="aios-gw-metric-label">Action</span>
-              <span className="aios-gw-metric-value">{mission.actionLine}</span>
-            </div>
-            <div className="aios-gw-metric">
-              <span className="aios-gw-metric-label">Reason</span>
-              <span className="aios-gw-metric-value">{mission.reason}</span>
-            </div>
-            <div className="aios-gw-metric">
-              <span className="aios-gw-metric-label">Risk</span>
-              <span className="aios-gw-metric-value">
-                {mission.risk} ({Math.round(decision.risk)})
-              </span>
-            </div>
-            {mission.expectedRoi != null ? (
-              <div className="aios-gw-metric">
-                <span className="aios-gw-metric-label">Expected ROI</span>
-                <span className="aios-gw-metric-value">{mission.expectedRoi}</span>
-              </div>
-            ) : null}
-            {mission.holding != null ? (
-              <div className="aios-gw-metric">
-                <span className="aios-gw-metric-label">Holding</span>
-                <span className="aios-gw-metric-value">{mission.holding}</span>
-              </div>
-            ) : null}
-          </div>
+          <MetricGrid cells={metrics.primary} data-gw-mission="true" />
+          <MetricGrid cells={metrics.secondary} compact data-gw-secondary="true" />
 
-          {!missionApproved ? (
+          <div className="aios-gw-cta" data-gw-cta="true">
             <button
               type="button"
-              className="aios-swap-override"
+              className="aios-swap-execute aios-gw-cta-primary"
               data-gw-approve="true"
-              onClick={onApprove}
+              onClick={onApproveAndExecute}
             >
-              Approve
+              {missionApproved ? 'Approve & Execute »' : 'Approve & Execute »'}
             </button>
-          ) : (
-            <p className="aios-gw-thinking" data-live="true">
-              Approved — review cost, then Execute
-            </p>
-          )}
+            <div className="aios-gw-cta-secondary" role="group" aria-label="Execution safety steps">
+              <button
+                type="button"
+                className="aios-gw-cta-sec"
+                data-gw-simulate="true"
+                disabled={!missionApproved || simulateBusy}
+                onClick={onSimulate}
+                title={
+                  missionApproved
+                    ? 'Dry-run on RPC — no wallet signature'
+                    : 'Approve first to unlock Simulate'
+                }
+              >
+                {simulateBusy ? 'Simulating…' : 'Simulate'}
+              </button>
+              <button
+                type="button"
+                className="aios-gw-cta-sec"
+                data-gw-sign="true"
+                disabled={!missionApproved || !simReady || signBusy}
+                onClick={onSign}
+                title={
+                  simReady
+                    ? 'Your wallet signs — OS never holds keys'
+                    : 'Run Simulate successfully before Sign'
+                }
+              >
+                {signBusy ? 'Signing…' : 'Sign'}
+              </button>
+              <button
+                type="button"
+                className="aios-gw-cta-sec"
+                data-gw-queue="true"
+                disabled
+                title="Queue unavailable — no execution queue engine in this build"
+              >
+                Queue
+              </button>
+            </div>
+            {missionApproved ? (
+              <p className="aios-gw-thinking" data-live="true">
+                Approved — review cost below, then Simulate → Sign
+              </p>
+            ) : (
+              <p className="aios-gw-thinking" data-live="false">
+                Approve unlocks Simulate / Sign. Queue not enabled.
+              </p>
+            )}
+          </div>
 
           <details
             className="aios-gw-sources-wrap"
@@ -198,7 +276,6 @@ export function GatewayHeroFlow({
           >
             <summary>Evidence / Details</summary>
 
-            {/* §4 Confidence + trend — secondary, not in hero flow */}
             <div className="aios-gw-confidence" data-gw-freshness="true">
               <span className="aios-gw-confidence-value">{Math.round(decision.confidence)}%</span>
               <span className="aios-gw-confidence-meta">
@@ -227,7 +304,6 @@ export function GatewayHeroFlow({
                 : ''}
             </p>
 
-            {/* §5 Engine checklist retained in Evidence when Decision Ready */}
             <EngineChecklist
               engines={engines}
               decisionReady={decisionReady}

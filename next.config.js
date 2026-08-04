@@ -14,11 +14,12 @@ const nextConfig = {
       },
       { source: '/company', destination: '/', permanent: true },
       { source: '/company/:path*', destination: '/', permanent: true },
-      { source: '/dashboard/terminal', destination: '/terminal', permanent: false },
-      { source: '/dashboard/terminal/:path*', destination: '/terminal', permanent: false },
-      // Phase 10 — portfolio desk is now the canonical /terminal
-      { source: '/portfolio', destination: '/terminal', permanent: true },
-      { source: '/portfolio/:path*', destination: '/terminal', permanent: true },
+      { source: '/dashboard/terminal', destination: '/terminalOS', permanent: false },
+      { source: '/dashboard/terminal/:path*', destination: '/terminalOS', permanent: false },
+      // Canonical terminal is Terminal OS (/terminalOS); legacy /terminal redirects there
+      { source: '/terminal', destination: '/terminalOS', permanent: false },
+      { source: '/portfolio', destination: '/terminalOS', permanent: true },
+      { source: '/portfolio/:path*', destination: '/terminalOS', permanent: true },
     ]
   },
   async headers() {

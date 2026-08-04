@@ -27,6 +27,8 @@ export function DashboardShell({
   const pathname = usePathname()
   const isCommandCenterHome = pathname === '/dashboard'
   const isTradingTerminal =
+    pathname === '/terminalOS' ||
+    pathname.startsWith('/terminalOS/') ||
     pathname === '/terminal' ||
     pathname.startsWith('/terminal/') ||
     pathname === '/ai-employees' ||

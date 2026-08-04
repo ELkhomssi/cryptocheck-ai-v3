@@ -50,11 +50,11 @@ export default function IntelligenceEnginePage() {
         onSelect={(id: DeskNav) => {
           setMobileNav(false)
           if (id === 'settings') {
-            router.push('/terminal?nav=settings')
+            router.push('/terminalOS?nav=settings')
             return
           }
           if (id === 'intelligence') return
-          router.push(`/terminal?nav=${id}`)
+          router.push(`/terminalOS?nav=${id}`)
         }}
         mobileOpen={mobileNav}
         onCloseMobile={() => setMobileNav(false)}
@@ -62,7 +62,7 @@ export default function IntelligenceEnginePage() {
       <Topbar
         alertCount={alertsQ.data ?? 0}
         onOpenNav={() => setMobileNav(true)}
-        onOpenFeed={() => router.push('/terminal?nav=feed')}
+        onOpenFeed={() => router.push('/terminalOS?nav=alerts')}
       />
       <TickerTape />
 

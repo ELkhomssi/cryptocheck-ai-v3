@@ -2,7 +2,7 @@
  * Phase 10.9 — Definition of Done checklist (terminal production layer).
  * Keep this in sync when auditing before merge.
  *
- * Route: /terminal (legacy /portfolio → 308 redirect)
+ * Route: /terminalOS (legacy /terminal and /portfolio → redirect here)
  *
  * [x] Provider clients server-only under lib/providers/* + Redis TTL cache
  * [x] Market feeds: gainers/losers/trending/new-launches/graduated/volume/smart-money
@@ -17,4 +17,4 @@
  * [ ] Ops: register Helius webhook → /api/webhooks/helius
  */
 
-export const PHASE10_TERMINAL_PATH = '/terminal' as const
+export const PHASE10_TERMINAL_PATH = '/terminalOS' as const

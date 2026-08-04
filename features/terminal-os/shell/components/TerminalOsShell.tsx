@@ -16,12 +16,16 @@ import { PortfolioOverviewPanel } from '@/features/terminal-os/portfolio-os/comp
 import { DiscoveryPanel } from '@/features/terminal-os/discovery-engine/components/DiscoveryPanel'
 import { TokenScoreScanCard } from '@/features/terminal-os/security-center/components/TokenScoreScanCard'
 import { WalletScoreScanCard } from '@/features/terminal-os/security-center/components/WalletScoreScanCard'
-import { AiCoachingCard } from '@/features/terminal-os/ai-coach/components/AiCoachingCard'
 import { AiWorkforcePanel } from '@/features/terminal-os/ai-workforce/components/AiWorkforcePanel'
 import { ScoutPanel } from '@/features/terminal-os/scout/components/ScoutPanel'
 import { AlertsWorkspace } from '@/features/terminal-os/alerts/AlertsWorkspace'
 import { AlertToastHost } from '@/features/terminal-os/alerts/AlertToastHost'
 import { AlertEvaluateBridge } from '@/features/terminal-os/alerts/AlertEvaluateBridge'
+import {
+  AiCoachWorkspace,
+  MissionControlWorkspace,
+} from '@/features/terminal-os/shell/components/MissionAndCoachWorkspaces'
+import { PersistentCoachRail } from '@/features/terminal-os/shell/components/PersistentCoachRail'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
 import { useTerminalOsStore } from '@/stores/terminal-os'
@@ -102,6 +106,14 @@ function MainColumn() {
 
   if (nav === 'ai-trading') {
     return <AiTradingWorkspace />
+  }
+
+  if (nav === 'mission-control') {
+    return (
+      <Bound title="Mission Control">
+        <MissionControlWorkspace />
+      </Bound>
+    )
   }
 
   if (nav === 'ai-coach') {
@@ -226,14 +238,6 @@ function AiTradingWorkspace() {
   )
 }
 
-function AiCoachWorkspace() {
-  return (
-    <div className="tos-stack" style={{ maxWidth: '40rem' }}>
-      <AiCoachingCard />
-    </div>
-  )
-}
-
 function SecondaryNavStub({ nav }: { nav: TerminalNavId }) {
   const labels: Partial<Record<TerminalNavId, string>> = {
     settings: 'Settings',
@@ -264,7 +268,8 @@ function SecondaryNavStub({ nav }: { nav: TerminalNavId }) {
 
 function RightRail() {
   return (
-    <aside className="tos-right-rail" aria-label="Tools">
+    <aside className="tos-right-rail" aria-label="AI Coach and tools" data-tos-right="coach">
+      <PersistentCoachRail />
       <Bound title="Token Score">
         <TokenScoreScanCard />
       </Bound>
@@ -273,9 +278,6 @@ function RightRail() {
       </Bound>
       <Bound title="Wallet Score">
         <WalletScoreScanCard />
-      </Bound>
-      <Bound title="AI Coaching">
-        <AiCoachingCard />
       </Bound>
     </aside>
   )

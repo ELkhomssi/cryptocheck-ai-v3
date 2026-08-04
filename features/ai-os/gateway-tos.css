@@ -149,8 +149,107 @@
   margin: 0.1rem 0 0;
 }
 
+[data-tos] [data-aios-gateway] .aios-gw-metrics[data-cols='4'] {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-width: none;
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-metrics[data-cols='3'] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: none;
+}
+
 [data-tos] [data-aios-gateway] .aios-gw-metrics[data-compact='true'] {
-  max-width: 28rem;
+  max-width: none;
+  opacity: 0.92;
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-metric[data-available='false'] .aios-gw-metric-value {
+  color: var(--tos-text-muted);
+  font-weight: var(--tos-fw-medium);
+  font-style: italic;
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.55rem;
+  align-items: center;
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-badge {
+  font-size: 0.625rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: var(--tos-fw-semibold);
+  font-family: var(--tos-mono);
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--tos-glass-border);
+  color: var(--tos-text-secondary);
+  background: color-mix(in srgb, var(--tos-bg-panel) 70%, transparent);
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-badge[data-kind='conviction'] {
+  color: var(--tos-positive);
+  border-color: color-mix(in srgb, var(--tos-positive) 45%, transparent);
+  background: color-mix(in srgb, var(--tos-positive) 12%, transparent);
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 0.25rem;
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-cta-primary {
+  width: 100%;
+  min-height: 48px;
+  letter-spacing: 0.06em;
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-cta-secondary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-cta-sec {
+  min-height: 44px;
+  padding: 0.45rem 0.5rem;
+  border-radius: var(--tos-radius-sm);
+  border: 1px solid var(--tos-glass-border);
+  background: transparent;
+  color: var(--tos-text-secondary);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: var(--tos-fw-semibold);
+  font-family: var(--tos-mono);
+  cursor: pointer;
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-cta-sec:hover:not(:disabled) {
+  border-color: var(--tos-accent-gold);
+  color: var(--tos-accent-gold-bright);
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-cta-sec:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-cta-sec:focus-visible {
+  outline: none;
+  box-shadow: var(--tos-shadow-focus);
+}
+
+@media (max-width: 720px) {
+  [data-tos] [data-aios-gateway] .aios-gw-metrics[data-cols='4'],
+  [data-tos] [data-aios-gateway] .aios-gw-metrics[data-cols='3'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* Amount must not compete with Decision (≤ ~half Decision size) */

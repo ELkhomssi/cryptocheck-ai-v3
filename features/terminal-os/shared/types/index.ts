@@ -247,6 +247,7 @@ export interface FeatureFlags {
 
 export type TerminalNavId =
   | 'terminal'
+  | 'mission-control'
   | 'ai-scanner'
   | 'market-intel'
   | 'whale-tracking'

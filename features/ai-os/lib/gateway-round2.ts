@@ -218,6 +218,32 @@ export type MissionSummary = {
   holding: string | null
 }
 
+/** Honest metric cell — never invent numbers; use Unavailable when field absent. */
+export type HeroMetricCell = {
+  label: string
+  value: string
+  /** True when value is a real derived field (not Unavailable) */
+  available: boolean
+  hint?: string
+}
+
+export type HeroMetrics = {
+  /** CONFIDENCE / EXPECTED ROI / RISK LEVEL / POSITION SIZE */
+  primary: HeroMetricCell[]
+  /** TIME HORIZON / STRATEGY / CAPITAL ALLOCATION */
+  secondary: HeroMetricCell[]
+}
+
+export const UNAVAILABLE = 'Unavailable' as const
+
+/** Conviction badge gated on real Decision.confidence — never unconditional. */
+export function convictionBadgeLabel(confidence: number): string | null {
+  if (!Number.isFinite(confidence)) return null
+  if (confidence >= 85) return 'ULTRA HIGH CONVICTION'
+  if (confidence >= 72) return 'HIGH CONVICTION'
+  return null
+}
+
 export function formatHoldingFromDna(avgHoldingMs: number | null | undefined): string | null {
   if (avgHoldingMs == null || !Number.isFinite(avgHoldingMs) || avgHoldingMs <= 0) return null
   const h = avgHoldingMs / 3_600_000
@@ -227,6 +253,21 @@ export function formatHoldingFromDna(avgHoldingMs: number | null | undefined): s
   }
   const rounded = h >= 10 ? Math.round(h) : Math.round(h * 10) / 10
   return `~${rounded}h`
+}
+
+/**
+ * Strategy label from real TraderDNA only (sampleSize ≥ 3 + non-empty summary).
+ * Never invent a strategy string for untrained wallets.
+ */
+export function strategyFromDna(opts: {
+  sampleSize?: number | null
+  tradingStyleSummary?: string | null
+}): string | null {
+  if ((opts.sampleSize ?? 0) < 3) return null
+  const s = opts.tradingStyleSummary?.trim()
+  if (!s || s.length === 0) return null
+  if (/insufficient/i.test(s)) return null
+  return s
 }
 
 export function buildMissionSummary(
@@ -246,6 +287,78 @@ export function buildMissionSummary(
     risk: riskBand(decision.risk),
     expectedRoi: roi,
     holding: formatHoldingFromDna(opts?.avgHoldingMs),
+  }
+}
+
+/**
+ * Hero metric rows for mockup layout — all values from Decision + optional DNA.
+ * positionSize / capitalAllocation are not on Decision → Unavailable (honest).
+ */
+export function buildHeroMetrics(
+  decision: Decision,
+  opts?: {
+    avgHoldingMs?: number | null
+    dnaSampleSize?: number | null
+    tradingStyleSummary?: string | null
+  },
+): HeroMetrics {
+  const roi =
+    decision.expectedROI != null && Number.isFinite(decision.expectedROI)
+      ? `${decision.expectedROI > 0 ? '+' : ''}${decision.expectedROI.toFixed(1)}%`
+      : null
+  const holding = formatHoldingFromDna(opts?.avgHoldingMs)
+  const strategy = strategyFromDna({
+    sampleSize: opts?.dnaSampleSize,
+    tradingStyleSummary: opts?.tradingStyleSummary,
+  })
+  const risk = riskBand(decision.risk)
+
+  return {
+    primary: [
+      {
+        label: 'Confidence',
+        value: `${Math.round(decision.confidence)}%`,
+        available: true,
+        hint:
+          decision.confidenceMode === 'personalized' ? 'Personalized' : 'Market',
+      },
+      {
+        label: 'Expected ROI',
+        value: roi ?? UNAVAILABLE,
+        available: roi != null,
+      },
+      {
+        label: 'Risk Level',
+        value: `${risk} (${Math.round(decision.risk)})`,
+        available: true,
+      },
+      {
+        label: 'Position Size',
+        value: UNAVAILABLE,
+        available: false,
+        hint: 'Not published on Decision',
+      },
+    ],
+    secondary: [
+      {
+        label: 'Time Horizon',
+        value: holding ?? UNAVAILABLE,
+        available: holding != null,
+        hint: holding ? 'From Trader DNA hold time' : 'Train DNA with real fills',
+      },
+      {
+        label: 'Strategy',
+        value: strategy ?? UNAVAILABLE,
+        available: strategy != null,
+        hint: strategy ? 'From Trader DNA' : 'Untrained wallet',
+      },
+      {
+        label: 'Capital Allocation',
+        value: UNAVAILABLE,
+        available: false,
+        hint: 'Not published on Decision',
+      },
+    ],
   }
 }
 
