@@ -2,11 +2,12 @@
 
 /**
  * Terminal market SSE — server pushes; client paints <200ms.
- * Updates TanStack Query cache so panels stay in sync without browser→3P polling.
+ * Soft-close + reconnect (no permanent poll fallback on routine rotation).
  */
 
 import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { connectTerminalOsSse } from '@/features/terminal-os/shared/lib/sse-client'
 import type { MarketOverview, TickerQuote, WhaleMovement } from '@/features/terminal-os/shared/types'
 
 export type StreamMeta = {
@@ -27,7 +28,6 @@ export function useTerminalMarketStream() {
   const lastPaint = useRef(0)
 
   useEffect(() => {
-    let es: EventSource | null = null
     let poll: ReturnType<typeof setInterval> | null = null
     let stopped = false
 
@@ -38,7 +38,6 @@ export function useTerminalMarketStream() {
       meta?: { ticker?: StreamMeta; overview?: StreamMeta; whales?: StreamMeta }
     }) => {
       const now = performance.now()
-      // Throttle UI updates to ~10/sec max even if SSE is chatty
       if (now - lastPaint.current < 100) return
       lastPaint.current = now
 
@@ -62,6 +61,7 @@ export function useTerminalMarketStream() {
     }
 
     const startPoll = () => {
+      if (poll) return
       const tick = async () => {
         if (stopped) return
         try {
@@ -85,33 +85,30 @@ export function useTerminalMarketStream() {
       poll = setInterval(() => void tick(), 5_000)
     }
 
-    try {
-      es = new EventSource('/api/terminal-os/stream')
-      es.addEventListener('ready', () => setMeta((m) => ({ ...m, connected: true })))
-      es.addEventListener('market', (ev) => {
-        try {
-          apply(JSON.parse((ev as MessageEvent).data))
-        } catch {
-          /* ignore */
-        }
-      })
-      es.onerror = () => {
-        if (es?.readyState === EventSource.CLOSED) {
-          es.close()
-          es = null
-          startPoll()
-        }
-      }
-    } catch {
-      startPoll()
-    }
+    const handle = connectTerminalOsSse(
+      '/api/terminal-os/stream',
+      {
+        onReady: () => setMeta((m) => ({ ...m, connected: true })),
+        onEvent: (event, data) => {
+          if (event !== 'market') return
+          try {
+            apply(JSON.parse(data))
+          } catch {
+            /* ignore */
+          }
+        },
+        onGiveUp: () => {
+          if (!stopped) startPoll()
+        },
+      },
+      { namedEvents: ['market'] },
+    )
 
-    // Warm cache once on mount
     void fetch('/api/terminal-os/feed?resource=warm', { cache: 'no-store' }).catch(() => undefined)
 
     return () => {
       stopped = true
-      es?.close()
+      handle.close()
       if (poll) clearInterval(poll)
     }
   }, [qc])

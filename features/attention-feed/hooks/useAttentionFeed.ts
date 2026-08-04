@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useRef, useState, startTransition } from 'react'
 import { useTradeLikeMeEngine } from '@/features/terminal-os/ai-trade-like-me/hooks/useTradeLikeMeEngine'
 import { getTradeLikeMeOrchestrator } from '@/features/terminal-os/ai-trade-like-me/engines/orchestrator'
+import { connectTerminalOsSse } from '@/features/terminal-os/shared/lib/sse-client'
 import { useTerminalOsStore } from '@/stores/terminal-os'
 import { adaptDecisionToAttention } from '../adapters/decision-adapter'
 import { adaptDnaToAttention } from '../adapters/dna-adapter'
@@ -118,48 +119,46 @@ export function useAttentionFeed(workspace: SimpleWorkspaceId = 'home'): {
   // SSE — subscribe, never poll CoinGecko/Dex from the client
   useEffect(() => {
     const q = walletConnected && wallet ? `?wallet=${encodeURIComponent(wallet)}` : ''
-    const es = new EventSource(`/api/terminal-os/attention/stream${q}`)
-    setIsLive(true)
-
-    const onSnapshot = (ev: MessageEvent) => {
-      try {
-        const body = JSON.parse(String(ev.data)) as SnapshotPayload
-        // First SSE snapshot can apply immediately (already painted from HTTP)
-        setServerItems(body.items ?? [])
-        setHints(
-          (body.events ?? []).map((e) => ({
-            itemId: e.itemId,
-            kind: e.kind,
-            at: e.at,
-          })),
-        )
-        setIsLoading(false)
-      } catch {
-        /* ignore */
-      }
-    }
-
-    const onDelta = (ev: MessageEvent) => {
-      try {
-        const body = JSON.parse(String(ev.data)) as SnapshotPayload
-        const deltaHints = (body.events ?? [])
-          .filter((e) => e.kind === 'new' || e.kind === 'updated')
-          .slice(0, 12)
-          .map((e) => ({ itemId: e.itemId, kind: e.kind, at: e.at }))
-        scheduleBatch(body.items ?? [], deltaHints)
-      } catch {
-        /* ignore */
-      }
-    }
-
-    es.addEventListener('snapshot', onSnapshot as EventListener)
-    es.addEventListener('delta', onDelta as EventListener)
-    es.addEventListener('error', () => {
-      setIsLive(false)
-    })
+    const handle = connectTerminalOsSse(
+      `/api/terminal-os/attention/stream${q}`,
+      {
+        onReady: () => setIsLive(true),
+        onReconnect: () => setIsLive(false),
+        onEvent: (event, data) => {
+          try {
+            const body = JSON.parse(data) as SnapshotPayload
+            if (event === 'snapshot') {
+              setServerItems(body.items ?? [])
+              setHints(
+                (body.events ?? []).map((e) => ({
+                  itemId: e.itemId,
+                  kind: e.kind,
+                  at: e.at,
+                })),
+              )
+              setIsLoading(false)
+              setIsLive(true)
+              return
+            }
+            if (event === 'delta') {
+              const deltaHints = (body.events ?? [])
+                .filter((e) => e.kind === 'new' || e.kind === 'updated')
+                .slice(0, 12)
+                .map((e) => ({ itemId: e.itemId, kind: e.kind, at: e.at }))
+              scheduleBatch(body.items ?? [], deltaHints)
+              setIsLive(true)
+            }
+          } catch {
+            /* ignore */
+          }
+        },
+        onGiveUp: () => setIsLive(false),
+      },
+      { namedEvents: ['snapshot', 'delta'] },
+    )
 
     return () => {
-      es.close()
+      handle.close()
       if (batchTimer.current) clearTimeout(batchTimer.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

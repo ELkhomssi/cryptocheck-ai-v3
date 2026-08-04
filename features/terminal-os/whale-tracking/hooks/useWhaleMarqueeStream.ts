@@ -2,7 +2,7 @@
 
 /**
  * Live whale marquee channel — EventSource (SSE) primary, HTTP poll fallback.
- * Merges into a capped ring buffer for thousands of events without DOM bloat.
+ * Soft-close reconnects before giving up to poll.
  */
 
 import { useEffect, useRef, useState } from 'react'
@@ -11,6 +11,7 @@ import {
   filterHighConfidenceWhales,
   mergeWhaleRing,
 } from '@/features/terminal-os/shared/lib/enrich-whale-movement'
+import { connectTerminalOsSse } from '@/features/terminal-os/shared/lib/sse-client'
 import { liveWhaleFeedProvider } from '@/features/terminal-os/shared/lib/live-providers'
 import type { WhaleMovement } from '@/features/terminal-os/shared/types'
 
@@ -36,9 +37,9 @@ export function useWhaleMarqueeStream(opts?: {
 
   useEffect(() => {
     let stopped = false
-    let es: EventSource | null = null
     let pollTimer: ReturnType<typeof setInterval> | null = null
     let pollFallback: (() => void) | null = null
+    let sseHandle: { close: () => void } | null = null
 
     const ingest = (incoming: WhaleMovement[]) => {
       if (stopped || incoming.length === 0) return
@@ -48,6 +49,7 @@ export function useWhaleMarqueeStream(opts?: {
     }
 
     const startPoll = () => {
+      if (pollTimer) return
       setConn('polling')
       const tick = async () => {
         if (stopped) return
@@ -97,47 +99,41 @@ export function useWhaleMarqueeStream(opts?: {
       }
     }
 
-    try {
-      es = new EventSource('/api/terminal-os/whales/stream')
-      es.addEventListener('ready', () => {
-        if (!stopped) setConn('live')
-      })
-      es.addEventListener('whales', (ev) => {
-        try {
-          ingest(parseItems(JSON.parse((ev as MessageEvent).data)))
+    sseHandle = connectTerminalOsSse(
+      '/api/terminal-os/whales/stream',
+      {
+        onReady: () => {
           if (!stopped) setConn('live')
-        } catch {
-          /* ignore */
-        }
-      })
-      es.addEventListener('error', () => {
-        /* EventSource fires error on retry; if closed, fall back */
-        if (es?.readyState === EventSource.CLOSED && !stopped) {
-          es.close()
-          es = null
-          startPoll()
-        }
-      })
-      // Safety: if SSE never delivers within 4s, poll
-      const safety = setTimeout(() => {
-        if (!stopped && bufferRef.current.length === 0) {
-          es?.close()
-          es = null
-          startPoll()
-        }
-      }, 4_000)
-      return () => {
-        stopped = true
-        clearTimeout(safety)
-        es?.close()
-        if (pollTimer) clearInterval(pollTimer)
+        },
+        onEvent: (event, data) => {
+          if (event !== 'whales') return
+          try {
+            ingest(parseItems(JSON.parse(data)))
+            if (!stopped) setConn('live')
+          } catch {
+            /* ignore */
+          }
+        },
+        onGiveUp: () => {
+          if (!stopped) startPoll()
+        },
+      },
+      { namedEvents: ['whales'] },
+    )
+
+    const safety = setTimeout(() => {
+      if (!stopped && bufferRef.current.length === 0) {
+        sseHandle?.close()
+        sseHandle = null
+        startPoll()
       }
-    } catch {
-      startPoll()
-      return () => {
-        stopped = true
-        if (pollTimer) clearInterval(pollTimer)
-      }
+    }, 4_000)
+
+    return () => {
+      stopped = true
+      clearTimeout(safety)
+      sseHandle?.close()
+      if (pollTimer) clearInterval(pollTimer)
     }
   }, [minConfidence, pollMs])
 
