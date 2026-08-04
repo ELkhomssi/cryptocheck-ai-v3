@@ -22,7 +22,8 @@ describe('Master Loop protocol institutionalized', () => {
     assert.match(src, /One-Decision|ONE-DECISION/)
     assert.match(src, /HUMAN CHECKPOINT/)
     assert.match(src, /never self-certified|never grades its own/i)
-    assert.doesNotMatch(src, /9\.7\/10/)
+    // 9.7/10 may appear only as a cautionary anti-pattern in "why this exists"
+    assert.match(src, /9\.7\/10.*no ground truth|self-scores with no ground truth/i)
   })
 
   it('canonical docs/MASTER_LOOP.md + .cursorrules pointer', () => {
