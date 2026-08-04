@@ -115,6 +115,79 @@ No → one more scoped round (same protocol, tightened Step 1). Yes → ship.
 
 ---
 
+## STEP 7 — SYSTEM EVOLUTION LOOP (after every mission)
+
+**Binding rule (not optional):** Everything in Step 7 is subordinate to Step 2's safety carve-out. Step 7 cannot be read or invoked independently of Step 2.
+
+For subsystems that can move real capital (Execution, AI Gateway, Automation Engine, Capital Rotation), advise-only / confirmation-required Execution or Autonomy is **not** a defect to close — it is very often the correct, permanent, intended state. Step 7 may note where a *higher* autonomy tier is technically possible, but closing that gap is always a separate, deliberate, **human-approved** roadmap decision with its own explicit safety review — never scored as "incomplete" or pushed by default.
+
+### 7.1 System health review
+
+After every completed mission, review the full platform — not only files touched: Decision Engine, Security Scanner, Automation Engine, Discovery, Trade Like Me, Trader DNA, Execution Engine, AI Gateway, AI Coach, Mission Feed, Portfolio Intelligence, Scout, Performance Analytics, Terminal OS, Memory Layer, Intelligence History, Risk Engine, Whale Intelligence, Chart Intelligence.
+
+### 7.2 Find the weakest link
+
+Evidence-based, not opinion-based. Return: weakest subsystem, reason, evidence, estimated impact. Good evidence types: duplicate logic, fake placeholder, missing persistence, unnecessary user interaction (that is not Step 2–protected).
+
+### 7.3 Before building anything new
+
+Can an existing engine solve this? Configuration instead of new code? One Decision instead of two? If yes — reuse, never duplicate. (Step 0 audit discipline, reapplied.)
+
+### 7.4 Autonomy review — classify before roadmap
+
+Evaluate stages: Observation → Thinking → Planning → Decision → Execution → Learning.
+
+When an incomplete stage is Execution or Autonomy on a **real-money path**, classify as one of:
+
+- **"Intentionally capped — protected by Step 2."** Correct permanent state for executing real trades without deliberate, user-opted-in, permissioned escalation. Not a roadmap candidate. Not flagged incomplete.
+- **"Genuinely incomplete — safe to close."** Real gap in a subsystem that does **not** touch capital (e.g. Discovery missing Learning; Chart missing historical persistence).
+
+Every autonomy-review output must state which category applies before anything becomes a roadmap candidate. An execution-adjacent "Execution ⚠" is very often correctly rated, not incomplete.
+
+### 7.5 Human work reduction test
+
+Ask: does this reduce clicks / decision fatigue / manual work / repetitive action? Target conversational padding, redundant confirmations that add **no** safety, navigation friction, unnecessary re-entry of the same information.
+
+**Exempt every time:** anything on Step 2's carve-out list. Security confirmation, cost display, wallet signature, and size-scaled friction on a large trade are **not** "manual work to remove." This test may never recommend redesigning those away.
+
+### 7.6 Self-evolution proposals
+
+Up to three proposals per mission: impact, complexity, reuse assessment, priority. **Proposals only** — never auto-implemented; always backlog candidates for human decision.
+
+Any proposal that touches a Step 2–protected element or proposes closing an "intentionally capped" autonomy gap from §7.4 must be labeled **"requires dedicated safety review"** and cannot carry default priority HIGH.
+
+### 7.7 Engine reuse score
+
+Reuse >80%, duplicate risk LOW — directional targets, not a hard gate.
+
+### 7.8 North star check
+
+Ask: did this make the system more **capable, honest, and useful** — reducing friction where friction adds nothing, reusing intelligence instead of duplicating it — or just bigger? Autonomy is one expression of that only for subsystems where more autonomy is the deliberately correct direction (e.g. Discovery, Coach). It is **not** the universal measure of progress and must never be scored that way for anything moving real capital.
+
+### 7.9 Final question
+
+"Would a top engineer see another dashboard, or a real intelligent operating system?" — gut-check on whether reasoning and reuse are real. It never overrides §0 / Step 2: an implementation can correctly earn "yes, this is real intelligence" while still advise-only on every execution path — and that combination is often the **correct** answer, not a failure to iterate past.
+
+### Standing principle (Step 7)
+
+Optimize for less *unnecessary* human work, more autonomous *reasoning*, more engine reuse, higher system intelligence, continuous evolution — with one permanent exception: **autonomous execution of real capital stays human-gated by default, forever**, unless a specific, deliberate, separately-reviewed decision says otherwise for a specific, bounded case. That exception is what makes the vision safe to ship.
+
+---
+
+## STEP 8 — HOW TO INVOKE
+
+```
+MISSION: [one or two sentences]
+SCOPE: [files/layer boundary]
+OUT OF SCOPE: [what not to touch]
+N: [iteration cap, default 5]
+Run the Master Loop.
+```
+
+After the mission ships (or reaches human checkpoint), run Step 7 System Evolution — proposals only, subordinate to Step 2.
+
+---
+
 ## WHY THIS EXISTS
 
-Earned from real failures and near-misses: Discovery silently empty from calibration bugs, LIVE badges on fabricated data, sample standing in for the moat feature, execution diagrams that dropped the approval gate, "9.7/10" self-scores with no ground truth. This rule keeps those mistakes from recurring under a new feature name.
+Earned from real failures and near-misses: Discovery silently empty from calibration bugs, LIVE badges on fabricated data, sample standing in for the moat feature, execution diagrams that dropped the approval gate, "9.7/10" self-scores with no ground truth, and autonomy-pressure loops that could erode capital-gating. This rule keeps those mistakes from recurring under a new feature name.

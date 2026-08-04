@@ -115,7 +115,72 @@ If any answer is no — one more scoped round, same protocol, tightened Step 1 s
 
 ---
 
-## STEP 7 — HOW TO INVOKE THIS FOR A NEW TASK
+## STEP 7 — SYSTEM EVOLUTION LOOP (CORRECTED)
+
+### Appends to the Master Loop. Binding rule: everything in this step is subordinate to Step 2's safety carve-out — it cannot be read or invoked independently of it.
+
+### 0. The binding rule (not optional)
+
+Step 2 of the Master Loop lists what no mission, and no optimization pressure, may ever weaken: simulate-before-sign, the security gate, visible real cost, the wallet's genuine signature prompt, size-scaled confirmation friction, and — most relevant here — **full autonomy is never the default for anything that moves real capital.**
+
+Step 7 runs after every mission, forever. Without an explicit binding to Step 2, a permanent, automatic process that scores subsystems on "how autonomous is this" and treats low autonomy on execution as an incomplete gap becomes a standing, repeated pressure to erode exactly what Step 2 protects — applied every single time, not just once. That's a bigger risk than a single bad instruction, because it's a loop.
+
+**So: for any subsystem that can move real capital (Execution, AI Gateway, Automation Engine, Capital Rotation), "Execution" or "Autonomy" being capped at advise-only / confirmation-required is not a defect to close. It is very often the correct, permanent, intended state.** Step 7 may still note where a *higher* autonomy tier is technically possible — but closing that gap is always a separate, deliberate, human-approved roadmap decision with its own explicit safety review, never something this loop scores as "incomplete" and pushes toward by default.
+
+### 7.1 System health review
+
+After every completed mission, review the full platform, not only files touched: Decision Engine, Security Scanner, Automation Engine, Discovery, Trade Like Me, Trader DNA, Execution Engine, AI Gateway, AI Coach, Mission Feed, Portfolio Intelligence, Scout, Performance Analytics, Terminal OS, Memory Layer, Intelligence History, Risk Engine, Whale Intelligence, Chart Intelligence.
+
+### 7.2 Find the weakest link
+
+Evidence-based, not opinion-based. Return: weakest subsystem, reason, evidence, estimated impact. Good examples: duplicate logic, fake placeholder, missing persistence, unnecessary user interaction (that is not Step 2–protected).
+
+### 7.3 Before building anything new
+
+Can an existing engine solve this? Can it become configuration instead of new code? Can it become one Decision instead of two? If yes — reuse, never duplicate. (This is Step 0's audit discipline, correctly reapplied here.)
+
+### 7.4 Autonomy review — corrected
+
+Evaluate each subsystem's stages (Observation → Thinking → Planning → Decision → Execution → Learning) — useful for spotting real gaps (e.g., Discovery missing Planning/Execution/Learning is a legitimate, safe finding, since Discovery doesn't move capital on its own).
+
+**The correction:** when a subsystem's incomplete stage is Execution or Autonomy on a real-money path, the review must classify it as one of two things, never treated the same way:
+
+- **"Intentionally capped — protected by Step 2."** The correct, permanent state for anything executing real trades without deliberate, user-opted-in, permissioned escalation. Not a roadmap candidate. Not flagged as incomplete.
+- **"Genuinely incomplete — safe to close."** A real gap in a subsystem that doesn't touch capital (e.g., Discovery's missing Learning stage, Chart's missing historical persistence).
+
+Every autonomy-review output must state which category applies before anything becomes a roadmap candidate. An execution-adjacent subsystem showing "Execution ⚠" is very often correctly rated, not incomplete.
+
+### 7.5 Human work reduction test — corrected
+
+Does this reduce clicks / decision fatigue / manual work / repetitive action? Good questions — for conversational padding, redundant confirmations that add no safety, navigation friction, unnecessary re-entry of the same information.
+
+**Exempt, explicitly, every time this test runs:** anything on Step 2's carve-out list. A security confirmation, a cost display, a wallet signature, or size-scaled friction on a large trade is not "manual work to remove" — it's the human work this entire product depends on existing. This test may never recommend redesigning those away, regardless of how much friction they add.
+
+### 7.6 Self-evolution proposals
+
+Up to three proposals per mission, each with impact, complexity, reuse assessment, and priority. Proposals only — never auto-implemented, always become backlog candidates for human decision.
+
+**Addition:** any proposal that touches a Step 2-protected element or proposes closing an "intentionally capped" autonomy gap from §7.4 must be labeled **"requires dedicated safety review"** and cannot carry a default priority of HIGH — it goes to a human for deliberate consideration, never fast-tracked by this loop's own momentum.
+
+### 7.7 Engine reuse score
+
+Reuse >80%, duplicate risk LOW, as directional targets. Useful signal, not a hard gate that blocks otherwise-good work.
+
+### 7.8 North star check — corrected
+
+Original framing: "did this make the system more autonomous, or just bigger?" **Reframe:** "did this make the system more *capable, honest, and useful* — reducing real friction where friction adds nothing, and reusing intelligence instead of duplicating it — or just bigger?" Autonomy is one possible expression of that, specifically for subsystems where more autonomy is the deliberately correct direction (Discovery finding more categories, Coach reasoning more precisely). It is not the universal measure of progress, and must never be scored that way for anything moving real capital.
+
+### 7.9 Final question (kept, with the same binding)
+
+"Would a top engineer see another dashboard, or a real intelligent operating system?" — a fine motivational gut-check. It answers whether the *reasoning and reuse* are real. It never overrides §0 — an implementation can correctly earn "yes, this is real intelligence" while still being advise-only on every execution path, and that combination is often the *correct* answer, not a failure to iterate past.
+
+### Standing principle — corrected
+
+CryptoCheckAI optimizes for less *unnecessary* human work, more autonomous *reasoning*, more engine reuse, higher system intelligence, and continuous evolution — with one permanent exception, restated because it's the one that matters most: **autonomous execution of real capital stays human-gated by default, forever, unless a specific, deliberate, separately-reviewed decision says otherwise for a specific, bounded case.** That exception isn't a limitation on the vision. It's what makes the vision safe to actually ship.
+
+---
+
+## STEP 8 — HOW TO INVOKE THIS FOR A NEW TASK
 
 A new feature or refinement request going forward should be as short as:
 
@@ -127,10 +192,12 @@ N: [iteration cap, default 5]
 Run the Master Loop.
 ```
 
-Everything else — the safety carve-out, the architecture boundary, the objective checks, the human checkpoint — is already defined here and applies automatically. This is what replaces writing a full bespoke guardrail set for every new ask.
+After the mission ships (or reaches human checkpoint), run **Step 7 System Evolution** — proposals only, always subordinate to Step 2.
+
+Everything else — the safety carve-out, the architecture boundary, the objective checks, the human checkpoint, and post-mission evolution — is already defined here and applies automatically.
 
 ---
 
 ## WHY THIS DOCUMENT EXISTS
 
-Every clause in this loop was earned from something that actually went wrong or nearly went wrong earlier in this build: Discovery silently empty from a calibration bug, LIVE badges on fabricated data, sample data quietly standing in for the real moat feature, an execution pipeline diagram that dropped the approval gate, a "9.7/10" self-score with no ground truth. This document is what keeps those specific mistakes from being repeated under a new feature name.
+Every clause in this loop was earned from something that actually went wrong or nearly went wrong earlier in this build: Discovery silently empty from a calibration bug, LIVE badges on fabricated data, sample data quietly standing in for the real moat feature, an execution pipeline diagram that dropped the approval gate, a "9.7/10" self-score with no ground truth, and autonomy-pressure loops that could erode capital-gating. This document is what keeps those specific mistakes from being repeated under a new feature name.
