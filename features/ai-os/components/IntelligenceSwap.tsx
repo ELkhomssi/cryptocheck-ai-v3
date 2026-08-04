@@ -29,12 +29,13 @@ import {
   OVERRIDE_PHRASE,
 } from '@/features/execution-desk/types'
 import type { TokenRow } from '@/features/terminal-os/shared/types'
+import type { DecisionTickMeta } from '@/features/ai-os/lib/gateway-phase'
 import {
-  gatewayPhase,
-  phaseLabel,
-  spokenSummary,
-  type DecisionTickMeta,
-} from '@/features/ai-os/lib/gateway-phase'
+  resolveGatewayDisplayName,
+  selectHeroDecision,
+  type GatewayHistoryPoint,
+} from '@/features/ai-os/lib/gateway-round2'
+import { GatewayHeroFlow } from '@/features/ai-os/components/GatewayHeroFlow'
 import '../styles.css'
 import '../gateway-tos.css'
 
@@ -44,12 +45,6 @@ function decisionDirection(action: Decision['action']): 'bullish' | 'bearish' | 
   if (action === 'BUY') return 'bullish'
   if (action === 'SELL' || action === 'EXIT') return 'bearish'
   return 'neutral'
-}
-
-function formatPctOpt(n: number | undefined): string {
-  if (n == null || !Number.isFinite(n)) return '—'
-  const sign = n > 0 ? '+' : ''
-  return `${sign}${n.toFixed(1)}%`
 }
 
 const SOL_DECIMALS = 9
@@ -147,8 +142,14 @@ export function IntelligenceSwap({
 }: IntelligenceSwapProps) {
   const { connection } = useConnection()
   const wallet = useWallet()
-  const { walletConnected, walletAddress, walletBalances, connectSolana, isConnecting } =
-    useTerminalWallet()
+  const {
+    walletConnected,
+    walletAddress,
+    walletBalances,
+    walletLabel,
+    connectSolana,
+    isConnecting,
+  } = useTerminalWallet()
   const focusedToken = useTerminalOsStore((s) => s.focusedToken)
 
   const [sellToken, setSellToken] = useState<SwapToken>(DEFAULT_SOL)
@@ -158,11 +159,16 @@ export function IntelligenceSwap({
   const [pickerOpen, setPickerOpen] = useState<'sell' | 'buy' | null>(null)
   const [pasteMint, setPasteMint] = useState('')
   const [feedTokens, setFeedTokens] = useState<SwapToken[]>([])
+  const [userPickedBuy, setUserPickedBuy] = useState(false)
 
   const [decision, setDecision] = useState<Decision | null>(null)
   const [tickMeta, setTickMeta] = useState<DecisionTickMeta | null>(null)
+  const [decisionHistory, setDecisionHistory] = useState<GatewayHistoryPoint[] | null>(null)
+  const [avgHoldingMs, setAvgHoldingMs] = useState<number | null>(null)
   const [decisionLoading, setDecisionLoading] = useState(false)
-  const [sourcesOpen, setSourcesOpen] = useState(false)
+  const [evidenceOpen, setEvidenceOpen] = useState(false)
+  const [missionApproved, setMissionApproved] = useState(false)
+  const [heroBootstrapped, setHeroBootstrapped] = useState(false)
   const [swapDecision, setSwapDecision] = useState<SwapDecision | null>(null)
   const [quote, setQuote] = useState<SwapQuote | null>(null)
   const [quoteLoading, setQuoteLoading] = useState(false)
@@ -234,8 +240,9 @@ export function IntelligenceSwap({
     return usd + fee
   }, [usd, quote?.platformFee.amountUsd])
 
-  // Sync buy token from focusedToken / props on mount and when they change
+  // Sync buy token from focusedToken / props only when user hasn't picked and hero not set
   useEffect(() => {
+    if (userPickedBuy || heroBootstrapped) return
     const mint = initialBuyMint ?? focusedToken?.id
     const symbol = initialBuySymbol ?? focusedToken?.symbol
     if (!mint) return
@@ -249,7 +256,17 @@ export function IntelligenceSwap({
           : 'solana',
       priceUsd: focusedToken?.priceUsd,
     })
-  }, [initialBuyMint, initialBuySymbol, focusedToken?.id, focusedToken?.symbol, focusedToken?.name, focusedToken?.chain, focusedToken?.priceUsd])
+  }, [
+    userPickedBuy,
+    heroBootstrapped,
+    initialBuyMint,
+    initialBuySymbol,
+    focusedToken?.id,
+    focusedToken?.symbol,
+    focusedToken?.name,
+    focusedToken?.chain,
+    focusedToken?.priceUsd,
+  ])
 
   // Load token feed
   useEffect(() => {
@@ -269,27 +286,69 @@ export function IntelligenceSwap({
     }
   }, [])
 
-  // Decision strip for buy token
+  // Round 2 §2 — bootstrap hero mint from highest-confidence actionable Decision
+  useEffect(() => {
+    if (userPickedBuy) return
+    let cancelled = false
+    const qs = new URLSearchParams({ limit: '16' })
+    if (walletAddress) qs.set('wallet', walletAddress)
+    void fetch(`/api/terminal-os/decisions?${qs}`, { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((body: { decisions?: Decision[]; tickMeta?: DecisionTickMeta | null }) => {
+        if (cancelled) return
+        setTickMeta(body.tickMeta ?? null)
+        const hero = selectHeroDecision(body.decisions ?? [])
+        if (hero?.subject.kind === 'token') {
+          const addr = hero.subject.address
+          if (addr && addr.length >= 32) {
+            setBuyToken({
+              mint: addr,
+              symbol: hero.subject.symbol,
+              name: hero.subject.symbol,
+              chain: 'solana',
+            })
+          }
+        }
+        setHeroBootstrapped(true)
+      })
+      .catch(() => {
+        if (!cancelled) setHeroBootstrapped(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [walletAddress, userPickedBuy])
+
+  // Decision + history for buy token (real hist via history=1 — Intelligence Memory)
   useEffect(() => {
     if (!buyMint || isEvmBuy) {
       setDecision(null)
+      setDecisionHistory(null)
       return
     }
     let cancelled = false
     setDecisionLoading(true)
-    const qs = new URLSearchParams({ token: buyMint })
+    setMissionApproved(false)
+    const qs = new URLSearchParams({ token: buyMint, history: '1' })
     if (walletAddress) qs.set('wallet', walletAddress)
     void fetch(`/api/terminal-os/decisions?${qs}`, { cache: 'no-store' })
       .then((r) => r.json())
-      .then((body: { decision?: Decision | null; tickMeta?: DecisionTickMeta | null }) => {
-        if (cancelled) return
-        setDecision(body.decision ?? null)
-        setTickMeta(body.tickMeta ?? null)
-      })
+      .then(
+        (body: {
+          decision?: Decision | null
+          tickMeta?: DecisionTickMeta | null
+          history?: GatewayHistoryPoint[]
+        }) => {
+          if (cancelled) return
+          setDecision(body.decision ?? null)
+          if (body.tickMeta) setTickMeta(body.tickMeta)
+          setDecisionHistory(body.history ?? null)
+        },
+      )
       .catch(() => {
         if (!cancelled) {
           setDecision(null)
-          setTickMeta(null)
+          setDecisionHistory(null)
         }
       })
       .finally(() => {
@@ -299,6 +358,34 @@ export function IntelligenceSwap({
       cancelled = true
     }
   }, [buyMint, walletAddress, isEvmBuy])
+
+  // TraderDNA avg hold — Holding field only when real sample exists
+  useEffect(() => {
+    if (!walletAddress) {
+      setAvgHoldingMs(null)
+      return
+    }
+    let cancelled = false
+    void fetch(`/api/terminal-os/dna?wallet=${encodeURIComponent(walletAddress)}`, {
+      cache: 'no-store',
+    })
+      .then((r) => r.json())
+      .then((body: { dna?: { avgHoldingMs?: number; sampleSize?: number } | null }) => {
+        if (cancelled) return
+        const dna = body.dna
+        if (dna && (dna.sampleSize ?? 0) >= 3 && (dna.avgHoldingMs ?? 0) > 0) {
+          setAvgHoldingMs(dna.avgHoldingMs!)
+        } else {
+          setAvgHoldingMs(null)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setAvgHoldingMs(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [walletAddress])
 
   // Execution lifecycle bridge
   useEffect(() => {
@@ -391,6 +478,8 @@ export function IntelligenceSwap({
       setSellToken(token)
     } else {
       setBuyToken(token)
+      setUserPickedBuy(true)
+      setMissionApproved(false)
     }
     setPickerOpen(null)
     setPasteMint('')
@@ -545,6 +634,7 @@ export function IntelligenceSwap({
   }
 
   const executeDisabled =
+    !missionApproved ||
     isEvm ||
     !buyMint ||
     !quote ||
@@ -567,289 +657,33 @@ export function IntelligenceSwap({
   const subjectSymbol =
     decision?.subject.kind === 'token' ? decision.subject.symbol : buyToken?.symbol
   const dir = decision ? decisionDirection(decision.action) : 'neutral'
-  const phase = gatewayPhase({
-    hasBuyMint: Boolean(buyMint),
-    decisionLoading,
-    hasDecision: Boolean(decision),
-    quoteLoading,
-    execState,
-  })
-  const spoken = spokenSummary(tickMeta, {
-    action: decision?.action,
-    symbol: subjectSymbol,
-  })
+  const displayName = resolveGatewayDisplayName({ walletLabel })
+  const portfolioReviewed = Boolean(walletConnected && walletBalances)
 
   return (
     <div data-aios data-aios-gateway>
     <section className="aios-section aios-swap" data-delay="2" aria-label="AI Gateway">
       <p className="aios-section-label">AI Gateway</p>
 
-      <div className="aios-swap-card" data-primary-budget="7">
-        {/* Priority: Decision → Confidence → Reasoning → Risk → Expected Return → Execution */}
-        {buyMint ? (
-          <div
-            className="aios-gw-decision"
-            data-degraded={decision?.degraded ? 'true' : 'false'}
-            data-phase={phase}
-            aria-live="polite"
-          >
-            <p className="aios-gw-thinking" data-live={phase !== 'ready' && phase !== 'waiting' ? 'true' : 'false'}>
-              {phaseLabel(phase)}
-              {decision && phase === 'ready'
-                ? ` · published ${new Date(decision.computedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false })}`
-                : ''}
-            </p>
+      <div className="aios-swap-card" data-primary-budget="7" data-gw-flow="decision-reason-approve-execute">
+        {/* Round 2: Decision → Reason → Approve → Execute (execution rows below after Approve) */}
+        <GatewayHeroFlow
+          displayName={displayName}
+          tickMeta={tickMeta}
+          portfolioReviewed={portfolioReviewed}
+          decision={decision}
+          decisionLoading={decisionLoading}
+          history={decisionHistory}
+          avgHoldingMs={avgHoldingMs}
+          missionApproved={missionApproved}
+          onApprove={() => setMissionApproved(true)}
+          evidenceOpen={evidenceOpen}
+          onEvidenceToggle={setEvidenceOpen}
+          dir={dir}
+          subjectSymbol={subjectSymbol}
+        />
 
-            {decisionLoading && !decision ? (
-              <p className="aios-gw-reasoning">Loading Decision…</p>
-            ) : decision ? (
-              <>
-                {/* 1. Decision — must dominate every other element */}
-                <h3 className="aios-gw-action" data-dir={dir}>
-                  {decision.action}
-                  {subjectSymbol ? ` $${subjectSymbol}` : ''}
-                </h3>
-
-                {/* Cycle voice — real tickMeta only; never above Decision */}
-                {spoken ? <p className="aios-gw-spoken">{spoken}</p> : null}
-
-                {/* 2. Confidence */}
-                <p className="aios-gw-confidence">
-                  <span className="aios-gw-confidence-value">{Math.round(decision.confidence)}%</span>
-                  <span className="aios-gw-confidence-meta">
-                    {decision.confidenceMode === 'personalized' ? 'Personalized' : 'Market'} confidence
-                    {' · '}
-                    market {Math.round(decision.marketConfidence)}%
-                    {decision.personalizedConfidence != null
-                      ? ` · DNA ${Math.round(decision.personalizedConfidence)}%`
-                      : ''}
-                  </span>
-                </p>
-
-                {/* 3. Reasoning */}
-                <p className="aios-gw-reasoning">{decision.reasoning}</p>
-
-                {/* 4–5. Risk + Expected Return */}
-                <div className="aios-gw-metrics" data-compact="true">
-                  <div className="aios-gw-metric">
-                    <span className="aios-gw-metric-label">Risk</span>
-                    <span className="aios-gw-metric-value">{Math.round(decision.risk)}</span>
-                  </div>
-                  <div className="aios-gw-metric">
-                    <span className="aios-gw-metric-label">Expected return</span>
-                    <span className="aios-gw-metric-value">
-                      {formatPctOpt(decision.expectedROI)}
-                      {decision.expectedDrawdown != null
-                        ? ` · DD ${formatPctOpt(-Math.abs(decision.expectedDrawdown))}`
-                        : ''}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Sources — collapsed (cognitive budget); real contributingFactors only */}
-                {decision.contributingFactors.length > 0 ? (
-                  <details
-                    className="aios-gw-sources-wrap"
-                    open={sourcesOpen}
-                    onToggle={(e) => setSourcesOpen((e.target as HTMLDetailsElement).open)}
-                  >
-                    <summary>AI sources ({decision.contributingFactors.length})</summary>
-                    <ul className="aios-gw-sources" aria-label="AI sources">
-                      {decision.contributingFactors.slice(0, 5).map((f, i) => (
-                        <li key={`${f.engine}-${i}`}>
-                          <strong>{String(f.engine)}</strong>
-                          <span>{f.summary}</span>
-                          <span>{Math.round(f.weight * 100)}%</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
-                ) : null}
-                {decision.degraded ? (
-                  <span className="aios-swap-degraded">degraded inputs</span>
-                ) : null}
-              </>
-            ) : isEvmBuy ? (
-              <p className="aios-gw-reasoning">
-                EVM token — Decision engine may not have on-chain coverage. Review manually.
-              </p>
-            ) : (
-              <p className="aios-gw-reasoning">No Decision published for this token yet.</p>
-            )}
-          </div>
-        ) : null}
-
-        {/* Sell row */}
-        <div className="aios-swap-row">
-          <div className="aios-swap-row-head">
-            <span className="aios-swap-side-label">Sell</span>
-            <button
-              type="button"
-              className="aios-swap-token-btn"
-              onClick={() => setPickerOpen(pickerOpen === 'sell' ? null : 'sell')}
-            >
-              {sellToken.symbol}
-              <span className="aios-swap-chevron" aria-hidden>
-                ▾
-              </span>
-            </button>
-          </div>
-          <input
-            type="number"
-            min={0}
-            className="aios-swap-amount"
-            value={amountUsd}
-            onChange={(e) => setAmountUsd(e.target.value)}
-            placeholder="0.00"
-            aria-label="Sell amount in USD"
-          />
-          <p className="aios-swap-equiv">
-            ≈ {sellAmountHuman > 0 ? sellAmountHuman.toFixed(4) : '0'} {sellToken.symbol}
-          </p>
-        </div>
-
-        <button
-          type="button"
-          className="aios-swap-flip"
-          onClick={flipTokens}
-          disabled={!buyToken}
-          aria-label="Flip sell and buy tokens"
-        >
-          ⇅
-        </button>
-
-        {/* Buy row */}
-        <div className="aios-swap-row">
-          <div className="aios-swap-row-head">
-            <span className="aios-swap-side-label">Buy</span>
-            <button
-              type="button"
-              className="aios-swap-token-btn"
-              onClick={() => setPickerOpen(pickerOpen === 'buy' ? null : 'buy')}
-            >
-              {buyToken?.symbol ?? 'Select token'}
-              <span className="aios-swap-chevron" aria-hidden>
-                ▾
-              </span>
-            </button>
-          </div>
-          <div className="aios-swap-amount aios-swap-amount-readonly" aria-label="Estimated buy amount">
-            {quoteLoading ? '…' : buyOutputDisplay ?? '—'}
-          </div>
-          <p className="aios-swap-equiv">
-            {buyToken ? buyToken.symbol : 'Pick a token to buy'}
-          </p>
-        </div>
-
-        {/* Token picker */}
-        {pickerOpen ? (
-          <div className="aios-swap-picker" role="listbox">
-            <p className="aios-swap-picker-label">Tokens</p>
-            <ul className="aios-swap-picker-list">
-              {pickerTokens.map((t) => (
-                <li key={`${t.chain}-${t.mint}`}>
-                  <button
-                    type="button"
-                    role="option"
-                    className="aios-swap-picker-item"
-                    data-chain={t.chain}
-                    onClick={() => selectToken(pickerOpen, t)}
-                  >
-                    <span className="aios-swap-picker-sym">{t.symbol}</span>
-                    <span className="aios-swap-picker-name">{t.name}</span>
-                    {t.chain === 'evm' ? (
-                      <span className="aios-swap-picker-badge">EVM</span>
-                    ) : null}
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <div className="aios-swap-paste">
-              <input
-                type="text"
-                value={pasteMint}
-                onChange={(e) => setPasteMint(e.target.value)}
-                placeholder="Paste mint address"
-                className="aios-swap-paste-input"
-              />
-              <button
-                type="button"
-                className="aios-swap-paste-btn"
-                onClick={() => applyPastedMint(pickerOpen)}
-              >
-                Use
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        {/* Estimated total cost — safety floor: always visible before Execute */}
-        <div className="aios-swap-cost">
-          <span className="aios-swap-cost-label">Estimated total cost</span>
-          <span className="aios-swap-cost-value">
-            {estimatedTotalUsd != null ? `$${estimatedTotalUsd.toFixed(2)}` : '—'}
-            {quote?.platformFee.bps ? (
-              <span className="aios-swap-fee">
-                {' '}
-                incl. platform fee
-                {quote.platformFee.amountUsd != null
-                  ? ` ~$${quote.platformFee.amountUsd.toFixed(4)}`
-                  : ''}{' '}
-                ({quote.platformFee.bps} bps)
-              </span>
-            ) : null}
-          </span>
-          {quote ? (
-            <span className="aios-swap-cost-detail">
-              Impact {quote.priceImpactPct.toFixed(3)}% · Slippage {quote.slippageBps} bps
-            </span>
-          ) : null}
-        </div>
-
-        {/* Security verdict */}
-        {swapDecision ? (
-          <div className="aios-swap-verdict" data-verdict={swapDecision.verdict.toLowerCase()}>
-            <span>
-              Scanner: {swapDecision.verdict} · risk {swapDecision.riskScore}
-            </span>
-          </div>
-        ) : null}
-
-        {/* Fund with card */}
-        {walletConnected && fundingShortfall > 0 && ramp.configured && ramp.buyUrl ? (
-          <p className="aios-swap-fund">
-            SOL balance short by ~${fundingShortfall.toFixed(2)}.{' '}
-            <a href={ramp.buyUrl} target="_blank" rel="noreferrer">
-              Fund with card
-            </a>{' '}
-            — non-custodial, funds go to your wallet.
-          </p>
-        ) : null}
-
-        {/* EVM notice */}
-        {isEvm ? (
-          <p className="aios-swap-evm-notice">
-            EVM DEX routing not wired — Decision still shown.
-          </p>
-        ) : null}
-
-        {/* Large trade confirmation */}
-        {isLarge && !isEvm ? (
-          <label className="aios-swap-large">
-            Large trade — type {LARGE_TRADE_PHRASE}
-            <input
-              className="aios-swap-large-input"
-              value={largeTyped}
-              onChange={(e) => {
-                setLargeTyped(e.target.value)
-                setLargeOk(e.target.value.trim() === LARGE_TRADE_PHRASE)
-              }}
-              autoComplete="off"
-            />
-          </label>
-        ) : null}
-
-        {/* Execute / Connect */}
+        {/* Connect stays available before Approve; swap rows unlock after Approve */}
         {!walletConnected ? (
           <button
             type="button"
@@ -859,45 +693,229 @@ export function IntelligenceSwap({
           >
             {isConnecting ? 'Connecting…' : 'Connect wallet'}
           </button>
+        ) : null}
+
+        {!missionApproved ? (
+          <p className="aios-gw-reasoning" data-gw-await-approve="true">
+            Approve the Mission Summary to unlock Execute.
+          </p>
         ) : (
-          <button
-            type="button"
-            className="aios-swap-execute"
-            disabled={executeDisabled || (isLarge && !largeOk)}
-            onClick={() => void executeSwap()}
-          >
-            {execState === 'confirmed'
-              ? 'Swap confirmed'
-              : execState !== 'building' && execState !== 'simulation_failed' && execState !== 'failed'
-                ? stateLabel(execState)
-                : 'Execute'}
-          </button>
+          <div data-gw-exec="ready">
+            {/* Sell row */}
+            <div className="aios-swap-row">
+              <div className="aios-swap-row-head">
+                <span className="aios-swap-side-label">Sell</span>
+                <button
+                  type="button"
+                  className="aios-swap-token-btn"
+                  onClick={() => setPickerOpen(pickerOpen === 'sell' ? null : 'sell')}
+                >
+                  {sellToken.symbol}
+                  <span className="aios-swap-chevron" aria-hidden>
+                    ▾
+                  </span>
+                </button>
+              </div>
+              <input
+                type="number"
+                min={0}
+                className="aios-swap-amount"
+                value={amountUsd}
+                onChange={(e) => setAmountUsd(e.target.value)}
+                placeholder="0.00"
+                aria-label="Sell amount in USD"
+              />
+              <p className="aios-swap-equiv">
+                ≈ {sellAmountHuman > 0 ? sellAmountHuman.toFixed(4) : '0'} {sellToken.symbol}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              className="aios-swap-flip"
+              onClick={flipTokens}
+              disabled={!buyToken}
+              aria-label="Flip sell and buy tokens"
+            >
+              ⇅
+            </button>
+
+            {/* Buy row */}
+            <div className="aios-swap-row">
+              <div className="aios-swap-row-head">
+                <span className="aios-swap-side-label">Buy</span>
+                <button
+                  type="button"
+                  className="aios-swap-token-btn"
+                  onClick={() => setPickerOpen(pickerOpen === 'buy' ? null : 'buy')}
+                >
+                  {buyToken?.symbol ?? 'Select token'}
+                  <span className="aios-swap-chevron" aria-hidden>
+                    ▾
+                  </span>
+                </button>
+              </div>
+              <div
+                className="aios-swap-amount aios-swap-amount-readonly"
+                aria-label="Estimated buy amount"
+              >
+                {quoteLoading ? '…' : buyOutputDisplay ?? '—'}
+              </div>
+              <p className="aios-swap-equiv">
+                {buyToken ? buyToken.symbol : 'Pick a token to buy'}
+              </p>
+            </div>
+
+            {pickerOpen ? (
+              <div className="aios-swap-picker" role="listbox">
+                <p className="aios-swap-picker-label">Tokens</p>
+                <ul className="aios-swap-picker-list">
+                  {pickerTokens.map((t) => (
+                    <li key={`${t.chain}-${t.mint}`}>
+                      <button
+                        type="button"
+                        role="option"
+                        className="aios-swap-picker-item"
+                        data-chain={t.chain}
+                        onClick={() => selectToken(pickerOpen, t)}
+                      >
+                        <span className="aios-swap-picker-sym">{t.symbol}</span>
+                        <span className="aios-swap-picker-name">{t.name}</span>
+                        {t.chain === 'evm' ? (
+                          <span className="aios-swap-picker-badge">EVM</span>
+                        ) : null}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <div className="aios-swap-paste">
+                  <input
+                    type="text"
+                    value={pasteMint}
+                    onChange={(e) => setPasteMint(e.target.value)}
+                    placeholder="Paste mint address"
+                    className="aios-swap-paste-input"
+                  />
+                  <button
+                    type="button"
+                    className="aios-swap-paste-btn"
+                    onClick={() => applyPastedMint(pickerOpen)}
+                  >
+                    Use
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Estimated total cost — safety floor: always visible before Execute */}
+            <div className="aios-swap-cost">
+              <span className="aios-swap-cost-label">Estimated total cost</span>
+              <span className="aios-swap-cost-value">
+                {estimatedTotalUsd != null ? `$${estimatedTotalUsd.toFixed(2)}` : '—'}
+                {quote?.platformFee.bps ? (
+                  <span className="aios-swap-fee">
+                    {' '}
+                    incl. platform fee
+                    {quote.platformFee.amountUsd != null
+                      ? ` ~$${quote.platformFee.amountUsd.toFixed(4)}`
+                      : ''}{' '}
+                    ({quote.platformFee.bps} bps)
+                  </span>
+                ) : null}
+              </span>
+              {quote ? (
+                <span className="aios-swap-cost-detail">
+                  Impact {quote.priceImpactPct.toFixed(3)}% · Slippage {quote.slippageBps} bps
+                </span>
+              ) : null}
+            </div>
+
+            {swapDecision ? (
+              <div className="aios-swap-verdict" data-verdict={swapDecision.verdict.toLowerCase()}>
+                <span>
+                  Scanner: {swapDecision.verdict} · risk {swapDecision.riskScore}
+                </span>
+              </div>
+            ) : null}
+
+            {walletConnected && fundingShortfall > 0 && ramp.configured && ramp.buyUrl ? (
+              <p className="aios-swap-fund">
+                SOL balance short by ~${fundingShortfall.toFixed(2)}.{' '}
+                <a href={ramp.buyUrl} target="_blank" rel="noreferrer">
+                  Fund with card
+                </a>{' '}
+                — non-custodial, funds go to your wallet.
+              </p>
+            ) : null}
+
+            {isEvm ? (
+              <p className="aios-swap-evm-notice">
+                EVM DEX routing not wired — Decision still shown.
+              </p>
+            ) : null}
+
+            {isLarge && !isEvm ? (
+              <label className="aios-swap-large">
+                Large trade — type {LARGE_TRADE_PHRASE}
+                <input
+                  className="aios-swap-large-input"
+                  value={largeTyped}
+                  onChange={(e) => {
+                    setLargeTyped(e.target.value)
+                    setLargeOk(e.target.value.trim() === LARGE_TRADE_PHRASE)
+                  }}
+                  autoComplete="off"
+                />
+              </label>
+            ) : null}
+
+            {walletConnected ? (
+              <button
+                type="button"
+                className="aios-swap-execute"
+                disabled={executeDisabled || (isLarge && !largeOk)}
+                onClick={() => void executeSwap()}
+              >
+                {execState === 'confirmed'
+                  ? 'Swap confirmed'
+                  : execState !== 'building' &&
+                      execState !== 'simulation_failed' &&
+                      execState !== 'failed'
+                    ? stateLabel(execState)
+                    : 'Execute'}
+              </button>
+            ) : null}
+
+            {needsOverride && !overrideOk && swapDecision?.verdict !== 'BLOCKED' && !isEvm ? (
+              <button
+                type="button"
+                className="aios-swap-override"
+                onClick={() => setDangerOpen(true)}
+              >
+                Acknowledge high risk to proceed
+              </button>
+            ) : null}
+
+            {error ? <p className="aios-swap-error">{error}</p> : null}
+
+            {execState === 'pending_confirmation' && signature ? (
+              <p className="aios-swap-status">
+                Elapsed {elapsed}s ·{' '}
+                <a href={`https://solscan.io/tx/${signature}`} target="_blank" rel="noreferrer">
+                  View on explorer
+                </a>
+              </p>
+            ) : null}
+
+            {execState === 'confirmed' && signature ? (
+              <p className="aios-swap-success">
+                <a href={`https://solscan.io/tx/${signature}`} target="_blank" rel="noreferrer">
+                  {signature.slice(0, 8)}…{signature.slice(-8)}
+                </a>
+              </p>
+            ) : null}
+          </div>
         )}
-
-        {needsOverride && !overrideOk && swapDecision?.verdict !== 'BLOCKED' && !isEvm ? (
-          <button type="button" className="aios-swap-override" onClick={() => setDangerOpen(true)}>
-            Acknowledge high risk to proceed
-          </button>
-        ) : null}
-
-        {error ? <p className="aios-swap-error">{error}</p> : null}
-
-        {execState === 'pending_confirmation' && signature ? (
-          <p className="aios-swap-status">
-            Elapsed {elapsed}s ·{' '}
-            <a href={`https://solscan.io/tx/${signature}`} target="_blank" rel="noreferrer">
-              View on explorer
-            </a>
-          </p>
-        ) : null}
-
-        {execState === 'confirmed' && signature ? (
-          <p className="aios-swap-success">
-            <a href={`https://solscan.io/tx/${signature}`} target="_blank" rel="noreferrer">
-              {signature.slice(0, 8)}…{signature.slice(-8)}
-            </a>
-          </p>
-        ) : null}
 
         <p className="aios-swap-compliance">Not financial advice · DYOR · Non-custodial</p>
       </div>

@@ -18,6 +18,8 @@ const root = process.cwd()
 describe('AI Gateway presentation integrity', () => {
   it('IntelligenceSwap still uses real Decision + ExecutionState + risk-gated path', () => {
     const src = readFileSync(join(root, 'features/ai-os/components/IntelligenceSwap.tsx'), 'utf8')
+    const hero = readFileSync(join(root, 'features/ai-os/components/GatewayHeroFlow.tsx'), 'utf8')
+    const combined = src + '\n' + hero
     assert.match(src, /@cryptocheck\/decision-contracts/)
     assert.match(src, /ExecutionState/)
     assert.match(src, /\/api\/revenue\/quote/)
@@ -25,16 +27,15 @@ describe('AI Gateway presentation integrity', () => {
     assert.match(src, /signTransaction/)
     assert.match(src, /Estimated total cost/)
     assert.match(src, /DANGER_ACK_PHRASE|OVERRIDE_PHRASE/)
-    assert.match(src, /decision\.action/)
-    assert.match(src, /decision\.reasoning/)
-    assert.match(src, /marketConfidence/)
-    assert.match(src, /personalizedConfidence/)
-    assert.match(src, /expectedROI/)
-    assert.match(src, /contributingFactors/)
-    assert.doesNotMatch(src, /confidence:\s*85/)
-    assert.doesNotMatch(src, /sample-decision/)
-    // No fabricated latency / fake scan counts in the component
-    assert.doesNotMatch(src, /12,?431/)
+    assert.match(hero, /decision\.action/)
+    assert.match(hero, /decision\.reasoning|heroReason\(decision\.reasoning\)/)
+    assert.match(hero, /marketConfidence/)
+    assert.match(hero, /personalizedConfidence/)
+    assert.match(combined, /expectedROI|expectedRoi/)
+    assert.match(hero, /contributingFactors/)
+    assert.doesNotMatch(combined, /confidence:\s*85/)
+    assert.doesNotMatch(combined, /sample-decision/)
+    assert.doesNotMatch(combined, /12,?431/)
     assert.doesNotMatch(src, /setTimeout\(\s*\(\)\s*=>\s*setPhase/)
   })
 
@@ -60,15 +61,20 @@ describe('AI Gateway presentation integrity', () => {
   })
 
   it('DOM priority keeps Decision before Confidence / Reasoning / Risk', () => {
-    const src = readFileSync(join(root, 'features/ai-os/components/IntelligenceSwap.tsx'), 'utf8')
-    const actionIdx = src.indexOf('className="aios-gw-action"')
-    const confIdx = src.indexOf('className="aios-gw-confidence"')
-    const reasonIdx = src.indexOf('className="aios-gw-reasoning">{decision.reasoning}')
-    const metricsIdx = src.indexOf('className="aios-gw-metrics"')
-    const costIdx = src.indexOf('Estimated total cost')
+    // Round 2: hero strip in GatewayHeroFlow; confidence demoted to Evidence
+    const hero = readFileSync(join(root, 'features/ai-os/components/GatewayHeroFlow.tsx'), 'utf8')
+    const swap = readFileSync(join(root, 'features/ai-os/components/IntelligenceSwap.tsx'), 'utf8')
+    const actionIdx = hero.indexOf('className="aios-gw-action"')
+    const reasonIdx = hero.indexOf('data-gw-hero-reason')
+    const missionIdx = hero.indexOf('data-gw-mission')
+    const confIdx = hero.indexOf('data-gw-freshness')
+    const costIdx = swap.indexOf('Estimated total cost')
     assert.ok(actionIdx > 0)
-    assert.ok(actionIdx < confIdx && confIdx < reasonIdx && reasonIdx < metricsIdx)
-    assert.ok(metricsIdx < costIdx)
+    assert.ok(actionIdx < reasonIdx && reasonIdx < missionIdx)
+    // Confidence lives in Evidence — after Approve in source order
+    assert.ok(confIdx > missionIdx)
+    assert.ok(costIdx > 0)
+    assert.match(swap, /GatewayHeroFlow/)
   })
 
   it('Decision CSS is measurably larger than amount / confidence / execute', () => {
@@ -83,9 +89,10 @@ describe('AI Gateway presentation integrity', () => {
 
   it('cognitive budget + touch targets declared', () => {
     const src = readFileSync(join(root, 'features/ai-os/components/IntelligenceSwap.tsx'), 'utf8')
+    const hero = readFileSync(join(root, 'features/ai-os/components/GatewayHeroFlow.tsx'), 'utf8')
     const css = readFileSync(join(root, 'features/ai-os/gateway-tos.css'), 'utf8')
     assert.match(src, /data-primary-budget="7"/)
-    assert.match(src, /aios-gw-sources-wrap/)
+    assert.match(hero, /aios-gw-sources-wrap/)
     assert.match(css, /min-height:\s*44px/)
   })
 
