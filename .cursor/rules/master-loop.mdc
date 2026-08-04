@@ -1,0 +1,120 @@
+---
+description: Standing Master Loop — audit-first bounded iteration for every CryptoCheck AI task
+alwaysApply: true
+---
+
+# CRYPTOCHECK AI — MASTER LOOP
+
+Standing protocol for **any** iterative work on this codebase. Not feature-specific — plug a mission into Step 1; the rest applies automatically.
+
+## Product north star (context for every loop)
+
+CryptoCheck AI is **not** building another crypto platform. It replaces the trader's daily work. Every feature must move work from the human to the AI. The product is an **autonomous financial operating system**, not an assistant. If a feature still requires the user to search, compare, analyze, or monitor manually, it is unfinished.
+
+Canonical long-form: `docs/MASTER_LOOP.md`.
+
+---
+
+## STEP 0 — AUDIT BEFORE BUILD (always first)
+
+Before writing any code for a new task:
+
+1. Search the codebase for existing engines, components, or logic that already do this or something close.
+2. State explicitly what already exists and will be **reused**, versus what is genuinely **new**.
+3. If something looks duplicated — **stop**. Reuse or extend; never build a second version of something that already exists.
+
+This step alone has prevented the most expensive mistakes: rebuilding Intelligence Swap from scratch, duplicating Decision logic across surfaces, recomputing what the Decision Engine already computed.
+
+---
+
+## STEP 1 — MISSION AND SCOPE (fill per task)
+
+Every loop declares scope **before** starting:
+
+```
+Mission: [what this loop is trying to achieve]
+Scope (files/directories this loop may touch): [explicit list or boundary]
+Layer boundary: [Layer 4 presentation only? Layer 1 engine? Never Decision Engine/Layer 1 unless stated]
+Explicitly out of scope: [what this loop must NOT touch or relitigate]
+```
+
+A loop with no stated boundary expands until someone stops it. The boundary makes "keep iterating" safe.
+
+Invoke form for new work:
+
+```
+MISSION: [one or two sentences]
+SCOPE: [files/layer boundary]
+OUT OF SCOPE: [what not to touch]
+N: [iteration cap, default 5]
+Run the Master Loop.
+```
+
+---
+
+## STEP 2 — STANDING SAFETY CARVE-OUT (unconditional)
+
+No mission, north star, or "reduce friction" instruction overrides these:
+
+- **Simulate-before-sign** — every transaction dry-run checked before wallet signature.
+- **Security Scanner critical-flag blocking** with typed override — never weakened for speed/conversion.
+- **Real total cost always visible** before any execute action — never collapsed away.
+- **Wallet's own signature prompt** stays genuine and unmodified.
+- **Confirmation friction scales up, never down**, with unusual position size.
+- **No fabricated data, ever** — no placeholder-as-real, no "LIVE" without provenance, no sample silently as live history, no demo as live. Missing data → "not enough data yet" / "unavailable".
+- **No claim of guaranteed outcomes** — "no losses," "never wrong," or equivalent never OK in UI/copy/marketing from a loop.
+- **Full autonomy is never the default** for anything that moves real capital. Advise-only is default; higher autonomy is explicit, opted-in, capped.
+
+Any iteration that proposes touching one of these is **flagged and rejected**, regardless of mission fit.
+
+---
+
+## STEP 3 — ONE-DECISION ARCHITECTURE BOUNDARY
+
+No Layer 4 surface (Chart, Coach, Gateway, Swap, Alerts, Discovery, Execution) computes its own opinion, score, or confidence. All read the real `Decision` object from the Decision Engine (Layer 1 inputs). CI-enforced intent: if a loop is writing scoring logic inside a Layer 4 component, it has drifted — stop and re-route through the Decision Engine.
+
+---
+
+## STEP 4 — BOUNDED ITERATION LOOP
+
+Repeat up to **N** times (default **N = 5**; state explicitly if different):
+
+1. Inspect current state against Step 1 mission.
+2. Identify **specific, nameable** weaknesses — never a vibe or bare score.  
+   ("Execute button is below the 44px touch target" — not "feels small.")
+3. Make **ONE** focused change addressing one weakness.
+4. Run Step 5 objective checks — all must pass before continuing.
+5. Log: what changed, why, before/after evidence.
+6. If no further specific weakness can be named **and** all objective checks pass → **stop early**. Do not iterate to hit N.
+
+Stop unconditionally at N regardless of subjective feeling. One change per iteration — prevents thrashing.
+
+---
+
+## STEP 5 — OBJECTIVE CHECKS (every iteration)
+
+- **Accessibility:** WCAG AA contrast, 44px min touch targets, keyboard navigability of any critical flow touched.
+- **No regressions:** existing tests pass; no new console errors.
+- **Performance:** no new layout shift / dropped frames (profiled when relevant, not assumed).
+- **Data integrity:** every shown value still traces to a real object/engine — check every iteration in presentation loops.
+- **Safety floor:** Step 2 carve-out, spot-checked intact every iteration — not only at the end.
+
+---
+
+## STEP 6 — HUMAN CHECKPOINT (never self-certified)
+
+Subjective trust / premium / institutional quality is answered by a **human** at loop end using the iteration log and evidence. The agent never grades its own subjective quality (with a number or otherwise).
+
+Standing three questions (any surface):
+
+1. Does this achieve the Step 1 mission, concretely?
+2. Can the answer to "what should I do / what happened / why" be found in the time this surface deserves?
+3. Any remaining concrete, nameable weakness?
+
+No → one more scoped round (same protocol, tightened Step 1). Yes → ship.
+
+---
+
+## WHY THIS EXISTS
+
+Earned from real failures and near-misses: Discovery silently empty from calibration bugs, LIVE badges on fabricated data, sample standing in for the moat feature, execution diagrams that dropped the approval gate, "9.7/10" self-scores with no ground truth. This rule keeps those mistakes from recurring under a new feature name.

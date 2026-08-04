@@ -1,5 +1,12 @@
 # CryptoCheck AI — Cursor rules
 
+## MASTER LOOP (standing protocol for iterative work)
+- Always-applied agent rule: `.cursor/rules/master-loop.mdc`
+- Canonical human doc: `docs/MASTER_LOOP.md`
+- Invoke with: MISSION / SCOPE / OUT OF SCOPE / N → Run the Master Loop.
+- Product north star: replace the trader's daily work — autonomous financial OS, not another crypto platform. Features that still require manual search/compare/analyze/monitor are unfinished.
+- Safety carve-out, One-Decision boundary, objective checks, and human checkpoint (never self-certified) apply to every loop automatically.
+
 ## FROZEN FILES — never edit these, ever
 - lib/services/scanner-engine.ts
 - lib/services/scanner/pipeline/run-institutional-scan.ts
