@@ -686,6 +686,23 @@ export function IntelligenceSwap({
       setError('Still confirming — open explorer if this persists.')
     } else {
       setExecState('confirmed')
+      // Kernel capture — every real execution becomes a CapturedTrade event
+      if (walletAddress && buyMint && buyToken && Number(amountUsd) > 0) {
+        void fetch('/api/terminal-os/captured-trades', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            wallet: walletAddress,
+            tokenMint: buyMint,
+            tokenSymbol: buyToken.symbol,
+            side: 'buy',
+            entryPriceUsd: buyToken.priceUsd && buyToken.priceUsd > 0 ? buyToken.priceUsd : 1,
+            positionSizeUsd: Number(amountUsd),
+            entryWhy: 'Live swap confirmed via Intelligence Swap',
+            id: `swap:${sent.signature}`,
+          }),
+        }).catch(() => {})
+      }
     }
   }
 
@@ -747,6 +764,35 @@ export function IntelligenceSwap({
     void executeSwap()
   }
 
+  const onSkipOpportunity = () => {
+    const mint =
+      decision?.subject.kind === 'token'
+        ? decision.subject.address || buyMint
+        : buyMint
+    if (walletAddress && mint && mint.length >= 32) {
+      void fetch('/api/terminal-os/captured-trades', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet: walletAddress,
+          tokenMint: mint,
+          tokenSymbol:
+            (decision?.subject.kind === 'token' ? decision.subject.symbol : null) ||
+            buyToken?.symbol ||
+            mint.slice(0, 4),
+          side: 'reject',
+          wasRejectedOpportunity: true,
+          rejectionReasonInferred: 'Gateway Skip — Decision shown, not executed',
+          entryWhy: 'Rejected opportunity after Gateway Decision review',
+        }),
+      }).catch(() => {})
+    }
+    setMissionApproved(false)
+    setSimReady(false)
+    setPendingSwapTx(null)
+    setError(null)
+  }
+
   const executeDisabled =
     !missionApproved ||
     isEvm ||
@@ -793,6 +839,7 @@ export function IntelligenceSwap({
           tradingStyleSummary={tradingStyleSummary}
           missionApproved={missionApproved}
           onApproveAndExecute={onApproveAndExecute}
+          onSkipOpportunity={onSkipOpportunity}
           onSimulate={() => void runSimulateOnly()}
           onSign={() => void runSignOnly()}
           simulateBusy={execState === 'simulating'}

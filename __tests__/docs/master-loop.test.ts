@@ -17,6 +17,8 @@ describe('Master Loop protocol institutionalized', () => {
     const src = readFileSync(path, 'utf8')
     assert.match(src, /alwaysApply:\s*true/)
     assert.match(src, /AUDIT BEFORE BUILD/)
+    assert.match(src, /KERNEL CONNECTION DECLARATION/)
+    assert.match(src, /published Decision only/)
     assert.match(src, /Simulate-before-sign/)
     assert.match(src, /No fabricated data/)
     assert.match(src, /One-Decision|ONE-DECISION/)
@@ -28,6 +30,8 @@ describe('Master Loop protocol institutionalized', () => {
 
   it('canonical docs/MASTER_LOOP.md + .cursorrules pointer', () => {
     const doc = readFileSync(join(root, 'docs/MASTER_LOOP.md'), 'utf8')
+    assert.match(doc, /KERNEL CONNECTION DECLARATION/)
+    assert.match(doc, /capture pipeline/)
     assert.match(doc, /MASTER LOOP/)
     assert.match(doc, /autonomous financial operating system/i)
     assert.match(doc, /Run the Master Loop/)

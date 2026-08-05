@@ -4,50 +4,84 @@ import { decide } from '@/features/terminal-os/ai-trade-like-me/engines/decision
 import { buildMarketIntel } from '@/features/terminal-os/ai-trade-like-me/engines/market-intelligence-engine'
 import { explainDecision } from '@/features/terminal-os/ai-trade-like-me/engines/explainable-engine'
 import { buildPerformanceReport } from '@/features/terminal-os/ai-trade-like-me/engines/performance-analytics-engine'
-import { buildSampleTradeHistory } from '@/features/terminal-os/ai-trade-like-me/lib/sample-trade-history'
+import { captureWalletTradesForDna } from '@/lib/terminal-os/capture-wallet-trades'
+import { getPersistedDna, savePersistedDna } from '@/lib/terminal-os/dna-store'
 import { fetchLiveTopTokens, fetchLiveWhaleMovements } from '@/lib/terminal-os/live-market'
-import type { CapturedTrade } from '@/features/terminal-os/ai-trade-like-me/types'
 import type { ChainId } from '@/features/terminal-os/shared/types'
+import { isValidSolanaMint } from '@/lib/validation/mint'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 /**
- * GET /api/terminal-os/trade-like-me?action=dna|opportunity|status
- * Server-side evaluation — UI stays thin.
+ * GET /api/terminal-os/trade-like-me?action=dna|opportunity|status&wallet=
+ * Real Helius fills → DNA. No sample-trade-history in production path.
  */
 export async function GET(req: NextRequest) {
   const action = (req.nextUrl.searchParams.get('action') || 'status').toLowerCase()
-  const wallet = req.nextUrl.searchParams.get('wallet') || 'DemoWhale1111111111111111111111111111111'
+  const wallet = req.nextUrl.searchParams.get('wallet')?.trim() || ''
   const chain = (req.nextUrl.searchParams.get('chain') || 'solana') as ChainId
 
+  if (!wallet || !isValidSolanaMint(wallet)) {
+    return NextResponse.json(
+      { error: 'Valid Solana wallet required — demo sample DNA path removed' },
+      { status: 400 },
+    )
+  }
+
   try {
-    // Until wallet indexing lands, seed with tagged sample history for DNA demos.
-    const trades: CapturedTrade[] = buildSampleTradeHistory(wallet)
+    const capture = await captureWalletTradesForDna(wallet)
+    const persisted = await getPersistedDna(wallet)
+    const trades = capture.trades
+    const dna =
+      !capture.meta.insufficient && trades.length
+        ? buildTraderDna(wallet, trades)
+        : persisted
+
+    if (dna && !capture.meta.insufficient && (dna.avgHoldingMs ?? 0) > 0) {
+      await savePersistedDna(dna)
+    }
 
     if (action === 'status') {
-      const dna = buildTraderDna(wallet, trades)
       return NextResponse.json({
-        phase: 'ready',
-        learningProgressPct: 100,
-        dna,
-        performance: buildPerformanceReport(trades, dna),
+        phase: dna ? 'ready' : 'awaiting_fills',
+        learningProgressPct: dna
+          ? Math.min(100, Math.round((dna.sampleSize / 8) * 100))
+          : 0,
+        dna: dna ?? null,
+        performance: dna ? buildPerformanceReport(trades, dna) : null,
+        capture: capture.meta,
         autonomy: {
           armed: false,
           blockedReason: 'Autonomous Mode flagged OFF — advise-only',
           wouldExecute: false,
         },
-        statusLine: 'Watching Markets…',
-        sample: true,
+        statusLine: capture.meta.insufficient
+          ? capture.meta.reason ?? 'Need closed priced fills'
+          : 'Watching Markets…',
+        sample: false,
       })
     }
 
     if (action === 'dna') {
-      const dna = buildTraderDna(wallet, trades)
-      return NextResponse.json({ dna, tradeCount: trades.length, sample: true })
+      return NextResponse.json({
+        dna: dna ?? null,
+        tradeCount: trades.length,
+        meta: capture.meta,
+        sample: false,
+      })
     }
 
     if (action === 'opportunity') {
+      if (!dna || capture.meta.insufficient) {
+        return NextResponse.json(
+          {
+            error: capture.meta.reason ?? 'Insufficient real fills for personalized opportunity',
+            meta: capture.meta,
+          },
+          { status: 422 },
+        )
+      }
       const [tokens, whales] = await Promise.all([
         fetchLiveTopTokens(chain, 8),
         fetchLiveWhaleMovements(16),
@@ -56,7 +90,6 @@ export async function GET(req: NextRequest) {
       if (!token) {
         return NextResponse.json({ error: 'No live tokens' }, { status: 502 })
       }
-      const dna = buildTraderDna(wallet, trades)
       const intel = buildMarketIntel({ token, whales })
       const decision = decide(dna, intel)
       const narrative = explainDecision(decision)
@@ -69,7 +102,7 @@ export async function GET(req: NextRequest) {
           confidence: dna.confidenceScore,
           winRate: dna.winRatePct,
         },
-        sampleDna: true,
+        sampleDna: false,
       })
     }
 
@@ -77,27 +110,5 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Trade Like Me error'
     return NextResponse.json({ error: message }, { status: 502 })
-  }
-}
-
-/** POST — teach note or evaluate custom context (no execution) */
-export async function POST(req: NextRequest) {
-  try {
-    const body = (await req.json()) as {
-      action?: string
-      note?: string
-      wallet?: string
-    }
-    if (body.action === 'teach' && body.note?.trim()) {
-      return NextResponse.json({
-        ok: true,
-        received: body.note.trim().slice(0, 500),
-        message: 'Teach note queued for behavioral update (advise-only).',
-      })
-    }
-    return NextResponse.json({ error: 'Unsupported action' }, { status: 400 })
-  } catch (e) {
-    const message = e instanceof Error ? e.message : 'Bad request'
-    return NextResponse.json({ error: message }, { status: 400 })
   }
 }

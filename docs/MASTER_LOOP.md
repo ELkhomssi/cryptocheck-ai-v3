@@ -29,6 +29,16 @@ Before writing any code for any new task:
 1. Search the codebase for existing engines, components, or logic that already do this or something close to it.
 2. State explicitly what already exists and will be reused, versus what's genuinely new.
 3. If something looks duplicated, that's a stop signal — reuse or extend, never build a second version of something that already exists.
+4. **KERNEL CONNECTION DECLARATION** (mandatory before the mission is considered started — not just finished):
+
+```
+KERNEL CONNECTION DECLARATION
+- What real events does this mission emit into the capture pipeline (if any)?
+- What does this mission read from — the published Decision only, or something else?
+- If something else: justify why, or route it through Decision instead.
+```
+
+Any mission that cannot answer this — that would create a new isolated opinion, a new unrecorded user action, or a new orphaned cron — gets redirected before it starts, not caught in a diagnostic weeks later.
 
 This step alone has prevented the most expensive mistakes in this project's history: rebuilding the Intelligence Swap from scratch, duplicating Decision logic across surfaces, recomputing what the Decision Engine already computed.
 

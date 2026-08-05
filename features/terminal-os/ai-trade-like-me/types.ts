@@ -288,6 +288,8 @@ export interface ExplainableDecision {
   estimatedUpsidePct: number
   estimatedDownsidePct: number
   tokenSymbol: string
+  /** Mint / contract when known — required for kernel capture of rejects */
+  tokenAddress?: string
   chain: ChainId
   madeAt: string
   improvesTrader: boolean

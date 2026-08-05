@@ -163,6 +163,28 @@ function buildsFillsFromTxs(
   return { fills, pricedCount, unpricedTokenMoves }
 }
 
+/**
+ * Average entry USD by mint from Helius SOL-paired fills (FIFO remaining lots).
+ * Empty map when history/pricing unavailable — never invents entries.
+ */
+export async function getAvgBuyByMint(walletAddress: string): Promise<Map<string, number>> {
+  const out = new Map<string, number>()
+  const solMarket = await fetchTokenMarket(SOL_MINT)
+  const solUsd = solMarket?.priceUsd && solMarket.priceUsd > 0 ? solMarket.priceUsd : 0
+  if (!(solUsd > 0)) return out
+  const txs = await fetchWalletTransactions(walletAddress, 100)
+  if (!txs) return out
+  const { fills, pricedCount } = buildsFillsFromTxs(walletAddress, txs, solUsd)
+  if (pricedCount === 0) return out
+  const fifo = applyFifoLots(fills)
+  for (const [mint, r] of fifo) {
+    if (r.avgEntryPriceUsd != null && r.avgEntryPriceUsd > 0) {
+      out.set(mint, r.avgEntryPriceUsd)
+    }
+  }
+  return out
+}
+
 async function correlationForHoldings(
   holdings: Array<{ mint: string; symbol: string; valueUsd: number }>,
 ): Promise<PortfolioAnalytics['correlationMatrix']> {

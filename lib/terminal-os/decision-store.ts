@@ -27,6 +27,10 @@ export type DecisionTickMeta = {
   buyCount: number
   /** Subset with action WAIT or DO_NOTHING */
   waitCount: number
+  /** Wallet used for DNA/portfolio when present */
+  wallet?: string | null
+  /** Count of open holdings mints for that wallet */
+  openPositions?: number
 }
 
 export type DecisionHistoryPoint = {

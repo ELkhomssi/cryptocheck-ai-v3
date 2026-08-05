@@ -32,6 +32,7 @@ export function AiGateway({
 }) {
   const { state, refreshOpportunity, busy } = useTradeLikeMeEngine()
   const setFocusedToken = useTerminalOsStore((s) => s.setFocusedToken)
+  const walletAddress = useTerminalOsStore((s) => s.walletAddress)
   const [phase, setPhase] = useState<GatewayPhase>('briefing')
   const [rejected, setRejected] = useState(false)
 
@@ -74,6 +75,23 @@ export function AiGateway({
   const onReject = () => {
     setPhase('idle')
     setRejected(true)
+    // Kernel capture — scanned/not traded is as important as fills for risk DNA
+    const mint = opp?.tokenAddress
+    if (walletAddress && mint && mint.length >= 32) {
+      void fetch('/api/terminal-os/captured-trades', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet: walletAddress,
+          tokenMint: mint,
+          tokenSymbol: opp?.tokenSymbol,
+          side: 'reject',
+          wasRejectedOpportunity: true,
+          rejectionReasonInferred: 'Gateway Reject — Decision shown, not executed',
+          entryWhy: 'Rejected opportunity after Gateway Decision review',
+        }),
+      }).catch(() => {})
+    }
     onAskCoach(
       `I rejected the current recommendation${opp ? ` on $${opp.tokenSymbol}` : ''}. Why might that be wise, and what is the next alternative?`,
     )

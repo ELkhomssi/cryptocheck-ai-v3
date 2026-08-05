@@ -12,6 +12,7 @@ import { useOsMission, useOsPortfolio } from '../hooks/useOsData'
 import { AiOsWalletBar } from './AiOsWalletBar'
 import { AiCoachAssistant } from './AiCoachAssistant'
 import { AiGateway } from './AiGateway'
+import { CapitalRotationPanel } from './CapitalRotationPanel'
 import { HistoryAnalytics } from './HistoryAnalytics'
 import { MissionControlDrawer } from './MissionControlDrawer'
 import { MissionFeed } from './MissionFeed'
@@ -81,6 +82,8 @@ export function AiOsShell() {
           worst={portfolio.worst}
           onAskCoach={askCoach}
         />
+
+        <CapitalRotationPanel />
 
         <MissionFeed events={mission.timeline} loading={mission.timelineLoading} />
 

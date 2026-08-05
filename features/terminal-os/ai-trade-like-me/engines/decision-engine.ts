@@ -293,6 +293,7 @@ export function decide(
     estimatedUpsidePct: pred.expectedRoiPct,
     estimatedDownsidePct: pred.expectedDrawdownPct,
     tokenSymbol: intel.tokenSymbol,
+    tokenAddress: intel.tokenAddress,
     chain: intel.chain,
     madeAt: new Date().toISOString(),
     improvesTrader,
