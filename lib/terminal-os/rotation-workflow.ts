@@ -345,7 +345,6 @@ export async function runCapitalRotationTick(opts: {
 
     const explained = decide(dna && dna.sampleSize >= 3 ? dna : null, intel, {
       hasOpenPosition: true,
-      unavailableEngines: dna && dna.sampleSize >= 3 ? [] : ['trader-dna'],
     })
     const pnlLabel = pnlBasis === 'entry' ? 'from entry' : 'vs 24h (entry unavailable)'
     // Force EXIT action for rotation (position is open + genuine deterioration)
