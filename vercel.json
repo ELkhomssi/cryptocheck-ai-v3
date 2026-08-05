@@ -46,6 +46,14 @@
       "schedule": "*/2 * * * *"
     },
     {
+      "path": "/api/cron/decision-engine",
+      "schedule": "*/2 * * * *"
+    },
+    {
+      "path": "/api/cron/capital-rotation",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/cron/agent-performance",
       "schedule": "0 * * * *"
     },

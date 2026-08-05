@@ -102,6 +102,7 @@ export function GatewayHeroFlow({
   tradingStyleSummary,
   missionApproved,
   onApproveAndExecute,
+  onSkipOpportunity,
   onSimulate,
   onSign,
   simulateBusy,
@@ -123,6 +124,8 @@ export function GatewayHeroFlow({
   tradingStyleSummary: string | null
   missionApproved: boolean
   onApproveAndExecute: () => void
+  /** Record scanned-not-traded into capture pipeline (kernel). */
+  onSkipOpportunity?: () => void
   onSimulate: () => void
   onSign: () => void
   simulateBusy: boolean
@@ -219,6 +222,18 @@ export function GatewayHeroFlow({
             >
               {missionApproved ? 'Approve & Execute »' : 'Approve & Execute »'}
             </button>
+            {onSkipOpportunity ? (
+              <button
+                type="button"
+                className="aios-gw-cta-sec"
+                data-gw-skip="true"
+                disabled={!decision || missionApproved}
+                onClick={onSkipOpportunity}
+                title="Record as watched/not traded — feeds Trader DNA risk profile"
+              >
+                Skip (record)
+              </button>
+            ) : null}
             <div className="aios-gw-cta-secondary" role="group" aria-label="Execution safety steps">
               <button
                 type="button"

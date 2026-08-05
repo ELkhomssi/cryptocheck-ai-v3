@@ -14,8 +14,6 @@ import {
   resilientWhales,
 } from '@/lib/terminal-os/resilient-feed'
 import { buildMarketIntel } from '@/features/terminal-os/ai-trade-like-me/engines/market-intelligence-engine'
-import { decide } from '@/features/terminal-os/ai-trade-like-me/engines/decision-engine'
-import { explainDecision } from '@/features/terminal-os/ai-trade-like-me/engines/explainable-engine'
 import type { Decision } from '@cryptocheck/decision-contracts'
 import type { ChainId, TokenRow, WhaleMovement } from '@/features/terminal-os/shared/types'
 import type {
@@ -102,6 +100,14 @@ export async function assembleIntelligenceChart(input: {
     }
   }
 
+  // Local decide removed from unpublished path — One-Decision kernel.
+  // Zones/strip/confidence only from published Redis Decision.
+  const published = await getDecisionByTokenId(token.id)
+  const lastCandle = candles[candles.length - 1]
+  const lastTime = lastCandle?.time ?? Math.floor(Date.now() / 1000)
+  const price = token.priceUsd || lastCandle?.close || 0
+  const t0 = candles[0]?.time ?? lastTime - 3600
+
   const intel = buildMarketIntel({
     token,
     whales: relatedWhales,
@@ -109,18 +115,10 @@ export async function assembleIntelligenceChart(input: {
     riskScore: scanRisk ?? undefined,
     securityBand,
   })
-  // Local decide kept for strip fallback scores only — zones bind to published Decision.
-  const localDecision = decide(null, intel)
-  const published = await getDecisionByTokenId(token.id)
-  const lastCandle = candles[candles.length - 1]
-  const lastTime = lastCandle?.time ?? Math.floor(Date.now() / 1000)
-  const price = token.priceUsd || lastCandle?.close || 0
-  const t0 = candles[0]?.time ?? lastTime - 3600
 
   const { aiEvents, aiZones, narrativeText, stripConfidence, stripRisk, stripConviction } =
     buildAiOverlays({
       published,
-      localDecision,
       intel,
       price,
       lastTime,
@@ -302,7 +300,6 @@ export async function assembleIntelligenceChart(input: {
 
 function buildAiOverlays(input: {
   published: Decision | null
-  localDecision: ReturnType<typeof decide>
   intel: ReturnType<typeof buildMarketIntel>
   price: number
   lastTime: number
@@ -315,9 +312,8 @@ function buildAiOverlays(input: {
   stripRisk: number
   stripConviction: number
 } {
-  const { published, localDecision, intel, price, lastTime, t0 } = input
+  const { published, intel, price, lastTime, t0 } = input
 
-  // Prefer published Decision — One-Decision boundary. No entry zone without BUY.
   if (published) {
     const symbol =
       published.subject.kind === 'token' ? published.subject.symbol : undefined
@@ -379,7 +375,6 @@ function buildAiOverlays(input: {
         label: 'AI Exit Zone',
       })
     }
-    // Stop Loss / Take Profit / Whale shaded bands: omitted — not on Decision contract.
 
     return {
       aiEvents,
@@ -391,10 +386,7 @@ function buildAiOverlays(input: {
     }
   }
 
-  // No published Decision — honest empty zones (do not invent BUY from local ROI).
-  const explained = explainDecision(localDecision)
-  const narrativeText =
-    'No Decision published yet — chart zones omitted until Decision Engine publishes for this token.'
+  // No published Decision — honest empty (no local decide(null) second opinion)
   return {
     aiEvents: [
       {
@@ -403,16 +395,17 @@ function buildAiOverlays(input: {
         price,
         severity: 'info',
         label: 'No Decision published yet',
-        detail: [explained.headline, explained.confidenceLine].filter(Boolean).join(' · '),
+        detail: 'Chart AI layer waits on the Decision Engine — no local opinion.',
         sourceEngineRef: `decision-store:empty:${intel.tokenAddress}`,
         layerId: 'ai',
       },
     ],
     aiZones: [],
-    narrativeText,
-    stripConfidence: localDecision.opportunity.confidence,
-    stripRisk: localDecision.opportunity.risk,
-    stripConviction: localDecision.opportunity.probability,
+    narrativeText:
+      'No Decision published yet — chart zones omitted until Decision Engine publishes for this token.',
+    stripConfidence: 0,
+    stripRisk: 0,
+    stripConviction: 0,
   }
 }
 

@@ -96,11 +96,21 @@ export function useTradeLikeMeEngine() {
       const histRes = await fetch(
         `/api/terminal-os/trade-history?wallet=${encodeURIComponent(walletAddress)}`,
       )
-      const histBody = (await histRes.json()) as { trades?: CapturedTrade[]; error?: string }
+      const histBody = (await histRes.json()) as {
+        trades?: CapturedTrade[]
+        error?: string
+        meta?: { insufficient?: boolean; reason?: string; closedRounds?: number }
+      }
       if (!histRes.ok) {
-        throw new Error(histBody.error ?? 'Failed to capture on-chain history')
+        throw new Error(histBody.error ?? histBody.meta?.reason ?? 'Failed to capture on-chain history')
       }
       const seeds = histBody.trades ?? []
+      if (histBody.meta?.insufficient || seeds.filter((t) => t.pnlPct != null).length < 3) {
+        throw new Error(
+          histBody.meta?.reason ??
+            'Not enough closed priced trades yet — DNA needs real fills (entry/exit/PnL), not signatures.',
+        )
+      }
       orchRef.current.trainFromWallet(walletAddress, seeds)
       // Force DNA rebuild even below min samples so coach has a wallet-specific profile
       orchRef.current.refreshDna()
