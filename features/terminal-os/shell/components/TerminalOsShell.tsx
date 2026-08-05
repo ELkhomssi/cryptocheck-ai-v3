@@ -5,7 +5,6 @@ import type { ReactNode } from 'react'
 import { LeftRail } from '@/features/terminal-os/shell/components/LeftRail'
 import { TopBar } from '@/features/terminal-os/shell/components/TopBar'
 import { PanelErrorBoundary } from '@/features/terminal-os/shared/components/PanelErrorBoundary'
-import { TopTradersTicker } from '@/features/terminal-os/market-intel/components/TopTradersTicker'
 import { TopTokensToday } from '@/features/terminal-os/market-intel/components/TopTokensToday'
 import { WhaleMarqueeTicker } from '@/features/terminal-os/whale-tracking/components/WhaleMarqueeTicker'
 import { MoneyLifecycleRibbon } from '@/features/terminal-os/money-lifecycle'
@@ -26,6 +25,7 @@ import {
   MissionControlWorkspace,
 } from '@/features/terminal-os/shell/components/MissionAndCoachWorkspaces'
 import { PersistentCoachRail } from '@/features/terminal-os/shell/components/PersistentCoachRail'
+import { TerminalOsHomeDesk } from '@/features/terminal-os/shell/components/TerminalOsHomeDesk'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
 import { useTerminalOsStore } from '@/stores/terminal-os'
@@ -198,21 +198,8 @@ function MainColumn() {
     return <SecondaryNavStub nav={nav} />
   }
 
-  {/* Default Terminal home — AI Gateway centerpiece, then market context + chart */}
-  return (
-    <>
-      <Bound title="AI Gateway">
-        <AiGatewayCenterpiece />
-      </Bound>
-      <Bound title="Top Traders">
-        <TopTradersTicker />
-      </Bound>
-      <Bound title="Top Tokens">
-        <TopTokensToday />
-      </Bound>
-      <ChartSurface />
-    </>
-  )
+  // Default / AI Gateway — full mockup multi-panel desk
+  return <TerminalOsHomeDesk />
 }
 
 function AiGatewayCenterpiece() {

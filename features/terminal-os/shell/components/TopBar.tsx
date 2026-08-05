@@ -9,6 +9,7 @@ import { formatPct, formatUsd } from '@/features/terminal-os/shared/lib/format'
 import { PanelSkeleton, StaleIndicator } from '@/features/terminal-os/shared/components/PanelStates'
 import { AnimatedNumber } from '@/features/terminal-os/shared/components/AnimatedNumber'
 import { useTerminalWallet } from '@/features/terminal-os/wallet/useTerminalWallet'
+import { useRailBadges } from '@/features/terminal-os/shell/hooks/useRailBadges'
 import type { ChainId, TokenRow } from '@/features/terminal-os/shared/types'
 
 function looksLikeMintOrAddress(q: string): boolean {
@@ -97,6 +98,7 @@ export function TopBar() {
 
   const { data: quotes } = useTickerQuotes()
   const stream = useTerminalMarketStream()
+  const rail = useRailBadges()
   const [lkg, setLkg] = useState(quotes)
   useEffect(() => {
     if (quotes?.length) setLkg(quotes)
@@ -116,7 +118,21 @@ export function TopBar() {
   }, [setSearchOpen])
 
   return (
-    <header className="tos-topbar">
+    <header className="tos-topbar" data-tos-topbar="v3">
+      <div className="tos-topbar-brand">
+        <strong>CryptoCheck AI</strong>
+        <span>TERMINAL OS v3.0</span>
+      </div>
+
+      <div
+        className="tos-topbar-sys"
+        data-status={rail.health.status}
+        title={rail.health.label}
+      >
+        <span className="tos-topbar-sys-dot" aria-hidden />
+        <span>{rail.health.label}</span>
+      </div>
+
       <div className="tos-search-wrap">
         <Search size={14} className="tos-search-icon" aria-hidden />
         <input

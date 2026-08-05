@@ -69,10 +69,13 @@ export function LeftRail() {
     <aside className="tos-left-rail" aria-label="Terminal navigation" data-tos-rail="command">
       <div className="tos-nav-brand">
         <div className="tos-nav-brand-mark">
-          CRYPTOCHECK AI
+          MISSION CONTROL
           <br />
-          <span data-tos-label>TERMINAL OS</span> v3.0
+          <span data-tos-label>AI COMMAND CENTER</span>
         </div>
+        <span className="tos-nav-brand-live" aria-hidden>
+          LIVE
+        </span>
       </div>
 
       <nav className="tos-nav-primary" aria-label="Primary">
