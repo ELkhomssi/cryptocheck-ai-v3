@@ -7,8 +7,8 @@ import type {
 } from '@/lib/scout/types'
 
 /**
- * Build today's ranked execution plan from live topics + keyword scores.
- * Counts are targets — actual writes still require quality review + approval.
+ * Build today's ranked execution plan from priority-filtered topics + keyword scores.
+ * V2: blog-first, then multi-channel derivatives after quality/auto-publish.
  */
 export function buildDailyContentPlan(
   topics: ScoutTopic[],
@@ -16,6 +16,9 @@ export function buildDailyContentPlan(
 ): DailyContentPlan {
   const byTopic = new Map(keywords.map((k) => [k.topicId, k]))
   const ranked = [...topics].sort((a, b) => {
+    const pa = a.priorityScore ?? byTopic.get(a.id)?.opportunityScore ?? 0
+    const pb = b.priorityScore ?? byTopic.get(b.id)?.opportunityScore ?? 0
+    if (pb !== pa) return pb - pa
     const ka = byTopic.get(a.id)?.opportunityScore ?? 0
     const kb = byTopic.get(b.id)?.opportunityScore ?? 0
     return kb - ka
@@ -30,22 +33,21 @@ export function buildDailyContentPlan(
       kind: 'blog',
       topicId: t.id,
       title: t.title,
-      expectedImpact: kw?.opportunityScore ?? 40,
+      expectedImpact: t.priorityScore ?? kw?.opportunityScore ?? 40,
       status: 'queued',
-      rationale: kw?.notes ?? t.evidenceLine,
+      rationale: `${t.pillar ?? 'ecosystem'} · ${kw?.notes ?? t.evidenceLine}`,
     })
   }
 
-  // Distribution targets derived from top blog topics (rewrites happen later)
   for (const t of blogTopics.slice(0, 4)) {
     items.push({
       id: randomUUID(),
       kind: 'tweet',
       topicId: t.id,
       title: `X thread: ${t.title}`,
-      expectedImpact: (byTopic.get(t.id)?.opportunityScore ?? 40) * 0.55,
+      expectedImpact: (t.priorityScore ?? 40) * 0.55,
       status: 'queued',
-      rationale: 'Platform-adapted thread from approved blog draft',
+      rationale: 'Platform-adapted thread from published blog draft',
     })
   }
   for (const t of blogTopics.slice(0, 2)) {
@@ -54,9 +56,18 @@ export function buildDailyContentPlan(
       kind: 'linkedin',
       topicId: t.id,
       title: `LinkedIn: ${t.title}`,
-      expectedImpact: (byTopic.get(t.id)?.opportunityScore ?? 40) * 0.5,
+      expectedImpact: (t.priorityScore ?? 40) * 0.5,
       status: 'queued',
       rationale: 'Institutional LinkedIn adaptation',
+    })
+    items.push({
+      id: randomUUID(),
+      kind: 'reddit',
+      topicId: t.id,
+      title: `Reddit: ${t.title}`,
+      expectedImpact: (t.priorityScore ?? 40) * 0.45,
+      status: 'queued',
+      rationale: 'Educational Reddit version — no hype',
     })
   }
   if (ranked[0]) {
@@ -67,10 +78,30 @@ export function buildDailyContentPlan(
       title: `Newsletter: ${ranked[0].title}`,
       expectedImpact: 70,
       status: 'queued',
-      rationale: 'Weekly digest candidate from top opportunity',
+      rationale: 'Digest candidate from top priority topic',
+    })
+    items.push({
+      id: randomUUID(),
+      kind: 'discord',
+      topicId: ranked[0].id,
+      title: `Discord: ${ranked[0].title}`,
+      expectedImpact: 55,
+      status: 'queued',
+      rationale: 'Discord announcement derived from article',
+    })
+    items.push({
+      id: randomUUID(),
+      kind: 'telegram',
+      topicId: ranked[0].id,
+      title: `Telegram: ${ranked[0].title}`,
+      expectedImpact: 55,
+      status: 'queued',
+      rationale: 'Telegram announcement derived from article',
     })
   }
-  for (const t of ranked.filter((x) => x.source === 'scan-gateway' || x.source === 'market-analyst').slice(0, 2)) {
+  for (const t of ranked
+    .filter((x) => x.source === 'scan-gateway' || x.source === 'market-analyst' || x.source === 'ecosystem-pillar')
+    .slice(0, 2)) {
     items.push({
       id: randomUUID(),
       kind: 'research_report',
@@ -78,7 +109,7 @@ export function buildDailyContentPlan(
       title: `Research: ${t.title}`,
       expectedImpact: 75,
       status: 'queued',
-      rationale: 'Long-form research from engine citations only',
+      rationale: 'Long-form research from engine citations + ecosystem pillar',
     })
   }
 

@@ -2,10 +2,19 @@ import 'server-only'
 
 import { randomUUID } from 'crypto'
 import { SCOUT_AUTO_PUBLISH } from '@/lib/scout/constants'
+import { PRIORITY_CONFIDENCE_THRESHOLD } from '@/lib/scout/strategy'
 import { gatherScoutIntelligence } from '@/lib/scout/intelligence-bridge'
+import { filterPublishableTopics } from '@/lib/scout/priority'
 import { buildDailyContentPlan } from '@/lib/scout/modules/content-planner'
 import { buildDistributionBundle } from '@/lib/scout/modules/distributor'
+import { factCheckArticle } from '@/lib/scout/modules/fact-check'
 import { rankKeywordOpportunities } from '@/lib/scout/modules/keyword-intel'
+import {
+  applyLearningToTopics,
+  derivePillarWeights,
+  nextResearchIso,
+  summarizeLearning,
+} from '@/lib/scout/modules/learning'
 import { reviewArticleQuality } from '@/lib/scout/modules/quality-review'
 import { buildArticleSeo } from '@/lib/scout/modules/seo-engine'
 import { notifySearchEnginesOfUrl } from '@/lib/scout/modules/search-notify'
@@ -15,6 +24,7 @@ import {
   computeMetrics,
   emptyScoutState,
   enqueueArticle,
+  listPublishedArticles,
   listQueuedArticles,
   loadScoutState,
   persistDistributions,
@@ -29,63 +39,123 @@ export type ScoutRunOptions = {
 }
 
 /**
- * Full Scout cycle: research → keywords → plan → write → review → queue (approval).
- * Publishing to public blog requires explicit approve unless SCOUT_AUTO_PUBLISH=1.
+ * Scout V2 cycle:
+ * Research → learning boost → priority filter → keywords → plan → write →
+ * SEO → quality → fact-check → auto-publish → distributions → IndexNow → schedule next.
  */
 export async function runScoutCycle(opts: ScoutRunOptions = {}): Promise<ScoutDashboardState> {
   let state = await loadScoutState()
-  state = { ...state, status: 'researching', lastError: null }
+  state = {
+    ...state,
+    version: 'v2',
+    autoPublish: SCOUT_AUTO_PUBLISH,
+    priorityThreshold: PRIORITY_CONFIDENCE_THRESHOLD,
+    status: 'researching',
+    lastError: null,
+  }
 
   try {
     const snapshot = await gatherScoutIntelligence({ focusMint: opts.focusMint })
-    state.trendingTopics = snapshot.topics
+    state.researchSources = snapshot.researchSources
+
+    const learnedTopics = applyLearningToTopics(snapshot.topics, state.learning)
+    const publishable = filterPublishableTopics(learnedTopics)
+    const workingSnapshot = { ...snapshot, topics: publishable }
+    state.trendingTopics = publishable
     state.status = 'planning'
 
-    const keywords = rankKeywordOpportunities(snapshot.topics)
+    const keywords = rankKeywordOpportunities(publishable)
     state.keywordOpportunities = keywords
 
-    const plan = buildDailyContentPlan(snapshot.topics, keywords)
+    const plan = buildDailyContentPlan(publishable, keywords)
     state.todayPlan = plan
     await saveTodayPlan(plan)
 
     state.status = 'writing'
-    const maxArticles = Math.min(opts.maxArticles ?? 3, 5)
+    const maxArticles = Math.min(opts.maxArticles ?? 2, 4)
     const blogItems = plan.items.filter((i) => i.kind === 'blog').slice(0, maxArticles)
     const drafted: ScoutArticleDraft[] = []
+    const published = await listPublishedArticles(200)
+    const existingSlugs = published.map((a) => a.slug)
 
     for (const item of blogItems) {
-      const topic = snapshot.topics.find((t) => t.id === item.topicId)
+      const topic = publishable.find((t) => t.id === item.topicId)
       if (!topic) continue
+      if ((topic.priorityScore ?? 0) < PRIORITY_CONFIDENCE_THRESHOLD) continue
+
       const keyword = keywords.find((k) => k.topicId === topic.id) ?? null
-      let article = writeArticleFromEngines({ topic, keyword, snapshot })
+      let article = writeArticleFromEngines({ topic, keyword, snapshot: workingSnapshot })
 
       state.status = 'reviewing'
-      const quality = reviewArticleQuality(article)
-      article = { ...article, quality, status: quality.passed ? 'in_review' : 'draft', updatedAt: new Date().toISOString() }
+      const quality = reviewArticleQuality(article, { existingSlugs })
+      const facts = factCheckArticle(article, workingSnapshot)
+      const gatesPassed = quality.passed && facts.passed
+
+      article = {
+        ...article,
+        quality: {
+          ...quality,
+          passed: gatesPassed,
+          score: Math.round((quality.score + facts.score) / 2),
+          checks: [
+            ...quality.checks,
+            {
+              id: 'fact_check' as const,
+              passed: facts.passed,
+              detail: facts.findings
+                .filter((f) => !f.passed)
+                .map((f) => f.id)
+                .join(',') || `ok:${facts.score}`,
+            },
+          ],
+        },
+        status: gatesPassed ? 'in_review' : 'draft',
+        updatedAt: new Date().toISOString(),
+      }
       article.seo = buildArticleSeo(article)
 
-      if (!quality.passed) {
+      if (!gatesPassed) {
         await appendLearningSignal({
           id: randomUUID(),
           topicId: topic.id,
           articleId: article.id,
-          signal: `quality_blocked:${quality.checks.filter((c) => !c.passed).map((c) => c.id).join(',')}`,
+          signal: `quality_blocked:${topic.pillar ?? 'unknown'}:${[
+            ...quality.checks.filter((c) => !c.passed).map((c) => c.id),
+            ...facts.findings.filter((f) => !f.passed).map((f) => f.id),
+          ].join(',')}`,
           weight: -1,
           createdAt: new Date().toISOString(),
         })
       } else {
         const distributions = buildDistributionBundle(article)
         await persistDistributions(distributions)
-        state.distributions = [...distributions, ...state.distributions].slice(0, 100)
+        state.distributions = [...distributions, ...state.distributions].slice(0, 120)
 
         if (SCOUT_AUTO_PUBLISH) {
           state.status = 'publishing'
+          const publishedAt = new Date().toISOString()
           article = {
             ...article,
             status: 'published',
-            publishedAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
+            publishedAt,
+            updatedAt: publishedAt,
+            seo: buildArticleSeo({
+              ...article,
+              status: 'published',
+              publishedAt,
+            }),
           }
+          existingSlugs.push(article.slug)
+          // ~50ms estimated — best-effort IndexNow + sitemap ping
+          void notifySearchEnginesOfUrl(`/blog/${article.slug}`)
+          await appendLearningSignal({
+            id: randomUUID(),
+            topicId: topic.id,
+            articleId: article.id,
+            signal: `auto_published:${topic.pillar ?? 'unknown'}:${article.slug}:priority=${article.priorityScore}`,
+            weight: 2,
+            createdAt: new Date().toISOString(),
+          })
         }
       }
 
@@ -98,18 +168,21 @@ export async function runScoutCycle(opts: ScoutRunOptions = {}): Promise<ScoutDa
     state.recentArticles = [...drafted, ...queue].slice(0, 40)
 
     state.status = 'learning'
+    const weights = derivePillarWeights(state.learning)
+    const learnSummary = summarizeLearning(weights)
     await appendLearningSignal({
       id: randomUUID(),
-      topicId: snapshot.topics[0]?.id ?? 'none',
-      signal: `cycle_complete:topics=${snapshot.topics.length}:drafts=${drafted.length}`,
+      topicId: publishable[0]?.id ?? 'none',
+      signal: `v2_cycle:topics=${publishable.length}:drafts=${drafted.length}:published=${drafted.filter((d) => d.status === 'published').length}:auto=${SCOUT_AUTO_PUBLISH}:${learnSummary}`,
       weight: 1,
       createdAt: new Date().toISOString(),
     })
+    state.nextResearchAt = nextResearchIso(new Date(), 3)
     state.learning = [
       {
         id: randomUUID(),
-        topicId: snapshot.topics[0]?.id ?? 'none',
-        signal: `Preferred sources this cycle: ${snapshot.citations.join(', ') || 'none'}`,
+        topicId: publishable[0]?.id ?? 'none',
+        signal: `V2 priority≥${PRIORITY_CONFIDENCE_THRESHOLD}. Sources: ${snapshot.researchSources.join(', ') || 'none'}. Next research ${state.nextResearchAt}. ${learnSummary}`,
         weight: 1,
         createdAt: new Date().toISOString(),
       },
@@ -125,8 +198,12 @@ export async function runScoutCycle(opts: ScoutRunOptions = {}): Promise<ScoutDa
     console.error('[scout] runScoutCycle', err)
     state = {
       ...(state.trendingTopics ? state : emptyScoutState()),
+      version: 'v2',
+      autoPublish: SCOUT_AUTO_PUBLISH,
+      priorityThreshold: PRIORITY_CONFIDENCE_THRESHOLD,
       status: 'error',
       lastError: message,
+      nextResearchAt: nextResearchIso(new Date(), 3),
       updatedAt: new Date().toISOString(),
     }
     await saveScoutState(state)
@@ -134,7 +211,7 @@ export async function runScoutCycle(opts: ScoutRunOptions = {}): Promise<ScoutDa
   }
 }
 
-/** Approval gate — marks article published for blog + sitemap pickup. */
+/** Optional manual gate when SCOUT_AUTO_PUBLISH=0. */
 export async function approveScoutArticle(articleId: string): Promise<ScoutArticleDraft | null> {
   const queue = await listQueuedArticles()
   const article = queue.find((a) => a.id === articleId)
@@ -152,12 +229,14 @@ export async function approveScoutArticle(articleId: string): Promise<ScoutArtic
   }
   await enqueueArticle(published)
 
-  // Best-effort search engine notification after publish (never blocks)
   void notifySearchEnginesOfUrl(`/blog/${published.slug}`)
 
   let state = await loadScoutState()
   state = {
     ...state,
+    version: 'v2',
+    autoPublish: SCOUT_AUTO_PUBLISH,
+    priorityThreshold: PRIORITY_CONFIDENCE_THRESHOLD,
     status: 'publishing',
     recentArticles: [published, ...state.recentArticles.filter((a) => a.id !== published.id)].slice(
       0,

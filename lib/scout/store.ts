@@ -3,11 +3,13 @@ import 'server-only'
 import { redis } from '@/lib/cache/redis'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import {
+  SCOUT_AUTO_PUBLISH,
   SCOUT_LEARNING_KEY,
   SCOUT_PLAN_KEY,
   SCOUT_QUEUE_KEY,
   SCOUT_STATE_KEY,
 } from '@/lib/scout/constants'
+import { PRIORITY_CONFIDENCE_THRESHOLD } from '@/lib/scout/strategy'
 import type {
   DailyContentPlan,
   DistributionDraft,
@@ -24,8 +26,17 @@ function emptyMetrics(): ScoutMetricsSnapshot {
     rankingKeywords: null,
     organicUsers: null,
     trafficGrowthPct: null,
+    googleImpressions: null,
+    googleClicks: null,
+    googleCtr: null,
+    avgPosition: null,
+    accountsCreated: null,
+    walletConnections: null,
+    terminalOsSessions: null,
+    revenueInfluenced: null,
     queueDepth: 0,
     avgQualityScore: null,
+    avgPriorityScore: null,
     generatedAt: new Date().toISOString(),
     sample: true,
   }
@@ -34,6 +45,9 @@ function emptyMetrics(): ScoutMetricsSnapshot {
 export function emptyScoutState(): ScoutDashboardState {
   return {
     status: 'idle',
+    version: 'v2',
+    autoPublish: SCOUT_AUTO_PUBLISH,
+    priorityThreshold: PRIORITY_CONFIDENCE_THRESHOLD,
     trendingTopics: [],
     keywordOpportunities: [],
     todayPlan: null,
@@ -42,6 +56,8 @@ export function emptyScoutState(): ScoutDashboardState {
     distributions: [],
     metrics: emptyMetrics(),
     learning: [],
+    researchSources: [],
+    nextResearchAt: null,
     lastError: null,
     updatedAt: new Date().toISOString(),
   }
@@ -52,7 +68,17 @@ export async function loadScoutState(): Promise<ScoutDashboardState> {
     const raw = await redis.get(SCOUT_STATE_KEY)
     if (raw) {
       const parsed = JSON.parse(raw) as ScoutDashboardState
-      if (parsed && typeof parsed === 'object') return parsed
+      if (parsed && typeof parsed === 'object') {
+        const base = emptyScoutState()
+        return {
+          ...base,
+          ...parsed,
+          version: 'v2',
+          autoPublish: SCOUT_AUTO_PUBLISH,
+          priorityThreshold: PRIORITY_CONFIDENCE_THRESHOLD,
+          metrics: { ...base.metrics, ...parsed.metrics },
+        }
+      }
     }
   } catch {
     /* fall through */
@@ -215,15 +241,29 @@ export async function computeMetrics(state: ScoutDashboardState): Promise<ScoutM
   const scores = state.recentArticles
     .map((a) => a.quality?.score)
     .filter((n): n is number => typeof n === 'number')
+  const priorities = state.recentArticles
+    .map((a) => a.priorityScore)
+    .filter((n): n is number => typeof n === 'number')
   return {
     articlesPublished: published.length,
     articlesIndexed: null,
     rankingKeywords: null,
     organicUsers: null,
     trafficGrowthPct: null,
+    googleImpressions: null,
+    googleClicks: null,
+    googleCtr: null,
+    avgPosition: null,
+    accountsCreated: null,
+    walletConnections: null,
+    terminalOsSessions: null,
+    revenueInfluenced: null,
     queueDepth: state.publicationQueue.filter((a) => a.status !== 'published').length,
     avgQualityScore: scores.length
       ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+      : null,
+    avgPriorityScore: priorities.length
+      ? Math.round(priorities.reduce((a, b) => a + b, 0) / priorities.length)
       : null,
     generatedAt: new Date().toISOString(),
     sample: true,
