@@ -2,10 +2,11 @@
 
 /**
  * Continuously evaluates active alert rules.
- * Prefers SSE (/api/terminal-os/alerts/stream) for real-time push; falls back to POST poll.
+ * Prefers SSE; reconnects on soft-close; falls back to POST poll only if SSE gives up.
  */
 
 import { useEffect } from 'react'
+import { connectTerminalOsSse } from '@/features/terminal-os/shared/lib/sse-client'
 import { useTerminalOsStore } from '@/stores/terminal-os'
 import { useTickerQuotes } from '@/features/terminal-os/shared/hooks/useTerminalQueries'
 import type { FiredAlert } from '@/lib/terminal-os/alert-types'
@@ -18,7 +19,6 @@ export function AlertEvaluateBridge() {
   useEffect(() => {
     if (!wallet) return
 
-    let es: EventSource | null = null
     let poll: ReturnType<typeof setInterval> | null = null
     let stopped = false
 
@@ -52,36 +52,33 @@ export function AlertEvaluateBridge() {
     }
 
     const startPoll = () => {
+      if (poll) return
       void pollOnce()
       poll = setInterval(() => void pollOnce(), 15_000)
     }
 
-    try {
-      es = new EventSource(
-        `/api/terminal-os/alerts/stream?wallet=${encodeURIComponent(wallet)}`,
-      )
-      es.addEventListener('alert', (ev) => {
-        try {
-          const body = JSON.parse((ev as MessageEvent).data) as { fired?: FiredAlert[] }
-          emit(body.fired ?? [])
-        } catch {
-          /* ignore */
-        }
-      })
-      es.onerror = () => {
-        if (es?.readyState === EventSource.CLOSED) {
-          es.close()
-          es = null
+    const handle = connectTerminalOsSse(
+      `/api/terminal-os/alerts/stream?wallet=${encodeURIComponent(wallet)}`,
+      {
+        onEvent: (event, data) => {
+          if (event !== 'alert') return
+          try {
+            const body = JSON.parse(data) as { fired?: FiredAlert[] }
+            emit(body.fired ?? [])
+          } catch {
+            /* ignore */
+          }
+        },
+        onGiveUp: () => {
           if (!stopped) startPoll()
-        }
-      }
-    } catch {
-      startPoll()
-    }
+        },
+      },
+      { namedEvents: ['alert'] },
+    )
 
     return () => {
       stopped = true
-      es?.close()
+      handle.close()
       if (poll) clearInterval(poll)
     }
   }, [wallet, quotes, focused])

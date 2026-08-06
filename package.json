@@ -32,6 +32,7 @@
     "test:mission-narrative": "node --import tsx --test __tests__/api/mission-narrative.test.ts",
     "test:phase18-identity": "node --import tsx --test __tests__/api/phase18-identity.test.ts __tests__/api/mission-narrative.test.ts",
     "test:market-analyst": "node --import tsx --test __tests__/api/market-analyst.test.ts",
+    "test:terminal-os-sse": "npx --yes tsx --test __tests__/api/terminal-os-sse.test.ts",
     "test:sentinel": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/test-sentinel.ts",
     "test:intelligence": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/smoke-intelligence.ts",
     "test:portfolio-alerts": "TS_NODE_PROJECT=tsconfig.scripts.json ts-node scripts/smoke-portfolio-alerts.ts",
