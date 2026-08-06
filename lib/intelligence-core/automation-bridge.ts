@@ -1,44 +1,26 @@
 /**
  * Phase 17 — AutomationBridge
- * Exposes existing Automation (Phase 14/15) state to Mission Control.
- * Does NOT reimplement scheduling, budgets, or lifecycle logic.
- *
- * Grep findings (reuse):
- * - AutomationPanel recipes are UI-side constants → mirrored here as status catalog only
- * - Execution remains POST /api/agents/[agentId]/run
- * - Running state from agent_activity (listAgentActivity / countRunningTasks)
+ * Exposes Automation state to Mission Control / intelligence modules.
+ * Execution: POST /api/agents/[agentId]/run + cron /api/cron/automation-recipes
  */
 
 import 'server-only'
 
 import { countRunningTasks, listAgentActivity } from '@/lib/agents/store'
+import { AUTOMATION_RECIPES } from '@/lib/portfolio-desk/automation-recipes'
+import { countEnabledSchedules } from '@/lib/automation/schedules-store'
 
-/** Recipe catalog mirrored from AutomationPanel — status exposure only. */
-export const AUTOMATION_RECIPE_CATALOG = [
-  {
-    id: 'daily-outlook',
-    title: 'Daily market outlook',
-    module: 'research' as const,
-  },
-  {
-    id: 'liquidity-watch',
-    title: 'Liquidity change scan',
-    module: 'market' as const,
-  },
-  {
-    id: 'portfolio-audit',
-    title: 'Portfolio risk audit',
-    module: 'portfolio' as const,
-  },
-  {
-    id: 'whale-monitor',
-    title: 'Whale / smart-money pulse',
-    module: 'market' as const,
-  },
-] as const
+/** Recipe catalog — status exposure (shared with AutomationPanel). */
+export const AUTOMATION_RECIPE_CATALOG = AUTOMATION_RECIPES.map((r) => ({
+  id: r.id,
+  title: r.title,
+  module: r.module,
+  agentId: r.agentId,
+}))
 
 export type AutomationBridgeStatus = {
   recipesConfigured: number
+  schedulesEnabled: number
   tasksRunning: number
   recentCompletions: Array<{ id: string; description: string; at: string; status: string }>
   /** Honest idle copy when nothing is running. */
@@ -46,9 +28,10 @@ export type AutomationBridgeStatus = {
 }
 
 export async function getAutomationBridgeStatus(): Promise<AutomationBridgeStatus> {
-  const [tasksRunning, activity] = await Promise.all([
+  const [tasksRunning, activity, schedulesEnabled] = await Promise.all([
     countRunningTasks(),
     listAgentActivity(20),
+    countEnabledSchedules(),
   ])
 
   const running = activity.filter((a) => a.status === 'running')
@@ -62,7 +45,6 @@ export async function getAutomationBridgeStatus(): Promise<AutomationBridgeStatu
       status: a.status,
     }))
 
-  // Phase 17.8 — reuse Alive-Never-Fake: only show progress copy bound to real running rows.
   let liveThinking: string | null = null
   if (running.length > 0) {
     const d = (running[0]?.description || '').toLowerCase()
@@ -74,6 +56,7 @@ export async function getAutomationBridgeStatus(): Promise<AutomationBridgeStatu
 
   return {
     recipesConfigured: AUTOMATION_RECIPE_CATALOG.length,
+    schedulesEnabled,
     tasksRunning,
     recentCompletions,
     liveThinking,

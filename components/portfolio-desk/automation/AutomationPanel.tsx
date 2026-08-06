@@ -1,52 +1,33 @@
 'use client'
 
 /**
- * Automation workspace — recipe-style rules backed by agent roster + activity.
- * Presents schedules as recipes, not "assign employee tasks."
+ * Automation workspace — recipes map to real agents; schedules run via cron.
+ * Money path unchanged: agents never auto-sign swaps.
  */
 
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { AgentActivityRow, AIEmployee } from '@/types/agents'
 import { statusCopyForAgentRun } from '@/lib/intelligence/copy'
+import { AUTOMATION_RECIPES } from '@/lib/portfolio-desk/automation-recipes'
 import { ProUpgradePrompt } from '@/components/identity/ProUpgradePrompt'
 
-const RECIPES: {
+type ScheduleRow = {
   id: string
-  title: string
-  blurb: string
-  agentHint: string
-  action: 'report' | 'signals' | 'analysis' | 'optimize'
-}[] = [
-  {
-    id: 'daily-outlook',
-    title: 'Daily market outlook',
-    blurb: 'Generate a structured market outlook from live screener context.',
-    agentHint: 'market-analyst',
-    action: 'report',
-  },
-  {
-    id: 'liquidity-watch',
-    title: 'Liquidity change scan',
-    blurb: 'Scan trending / new listings for liquidity structure changes.',
-    agentHint: 'liquidity-scout',
-    action: 'signals',
-  },
-  {
-    id: 'portfolio-audit',
-    title: 'Portfolio risk audit',
-    blurb: 'Analyze connected wallet holdings for concentration and risk.',
-    agentHint: 'risk-officer',
-    action: 'analysis',
-  },
-  {
-    id: 'whale-monitor',
-    title: 'Whale / smart-money pulse',
-    blurb: 'Pull smart-money leaning signals from live market feeds.',
-    agentHint: 'whale-hunter',
-    action: 'signals',
-  },
-]
+  recipeId: string
+  enabled: boolean
+  intervalMinutes: number
+  nextRunAt: string
+  lastRunAt: string | null
+  lastStatus: string | null
+  lastError: string | null
+}
+
+function formatInterval(mins: number): string {
+  if (mins >= 1440) return `every ${Math.round(mins / 1440)}d`
+  if (mins >= 60) return `every ${Math.round(mins / 60)}h`
+  return `every ${mins}m`
+}
 
 export function AutomationPanel({ walletAddress }: { walletAddress: string | null }) {
   const qc = useQueryClient()
@@ -77,19 +58,32 @@ export function AutomationPanel({ walletAddress }: { walletAddress: string | nul
     refetchInterval: 12_000,
   })
 
+  const schedulesQ = useQuery({
+    queryKey: ['automation-schedules'],
+    queryFn: async () => {
+      const res = await fetch('/api/automation/schedules', { cache: 'no-store' })
+      if (!res.ok) return [] as ScheduleRow[]
+      const body = (await res.json()) as { schedules?: ScheduleRow[] }
+      return body.schedules ?? []
+    },
+    refetchInterval: 20_000,
+  })
+
   const employees = rosterQ.data?.employees ?? []
   const byId = useMemo(() => new Map(employees.map((e) => [e.id, e])), [employees])
+  const scheduleByRecipe = useMemo(() => {
+    const m = new Map<string, ScheduleRow>()
+    for (const s of schedulesQ.data ?? []) m.set(s.recipeId, s)
+    return m
+  }, [schedulesQ.data])
 
   const runMut = useMutation({
     mutationFn: async (recipeId: string) => {
-      const recipe = RECIPES.find((r) => r.id === recipeId)
+      const recipe = AUTOMATION_RECIPES.find((r) => r.id === recipeId)
       if (!recipe) throw new Error('Unknown recipe')
-      const agent =
-        employees.find((e) => e.id.includes(recipe.agentHint.split('-')[0])) ||
-        employees.find((e) => e.actionType === recipe.action) ||
-        employees[0]
-      if (!agent) throw new Error('No agents available')
-      const res = await fetch(`/api/agents/${encodeURIComponent(agent.id)}/run`, {
+      const agent = byId.get(recipe.agentId) || employees.find((e) => e.id === recipe.agentId)
+      if (!agent) throw new Error(`Agent ${recipe.agentId} not in roster`)
+      const res = await fetch(`/api/agents/${encodeURIComponent(recipe.agentId)}/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -123,6 +117,36 @@ export function AutomationPanel({ walletAddress }: { walletAddress: string | nul
     onError: (e) => setMsg(e instanceof Error ? e.message : 'Failed'),
   })
 
+  const scheduleMut = useMutation({
+    mutationFn: async (params: { recipeId: string; enabled: boolean }) => {
+      const res = await fetch('/api/automation/schedules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      })
+      const body = (await res.json().catch(() => ({}))) as {
+        error?: string
+        message?: string
+        note?: string
+        schedule?: ScheduleRow
+      }
+      if (res.status === 401) {
+        throw new Error(body.error || 'Sign in with Solana to enable schedules')
+      }
+      if (res.status === 402) {
+        setShowProUpsell(true)
+        throw new Error(body.message || body.error || 'Pro required for schedules')
+      }
+      if (!res.ok) throw new Error(body.error || 'Schedule update failed')
+      return body
+    },
+    onSuccess: (body) => {
+      setMsg(body.note || 'Schedule updated')
+      void qc.invalidateQueries({ queryKey: ['automation-schedules'] })
+    },
+    onError: (e) => setMsg(e instanceof Error ? e.message : 'Failed'),
+  })
+
   const recent = activityQ.data ?? []
 
   return (
@@ -130,8 +154,11 @@ export function AutomationPanel({ walletAddress }: { walletAddress: string | nul
       <div className="pd-panel" style={{ padding: 16 }}>
         <h2 style={{ margin: '0 0 6px', fontSize: 15 }}>Automation recipes</h2>
         <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--pd-text-dim)' }}>
-          Rules run against live agent orchestrators. Output is framed as activity — not employee
-          avatars. {rosterQ.data?.openaiAvailable === false ? 'LLM key missing — runs stay unavailable.' : ''}
+          Each recipe maps to a real AI Employee. Run now, or enable a schedule so the cron worker
+          executes it unattended (reports/signals only — never auto-swaps).
+          {rosterQ.data?.openaiAvailable === false
+            ? ' LLM key missing — runs stay unavailable.'
+            : ''}
         </p>
         <div
           style={{
@@ -140,30 +167,57 @@ export function AutomationPanel({ walletAddress }: { walletAddress: string | nul
             gap: 12,
           }}
         >
-          {RECIPES.map((r) => (
-            <article
-              key={r.id}
-              style={{
-                border: '1px solid var(--pd-border-soft)',
-                borderRadius: 'var(--pd-radius)',
-                padding: 14,
-                background: 'var(--pd-surface-2)',
-              }}
-            >
-              <h3 style={{ margin: '0 0 6px', fontSize: 14 }}>{r.title}</h3>
-              <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--pd-text-dim)' }}>
-                {r.blurb}
-              </p>
-              <button
-                type="button"
-                className="pd-connect"
-                disabled={runMut.isPending || rosterQ.isLoading || employees.length === 0}
-                onClick={() => runMut.mutate(r.id)}
+          {AUTOMATION_RECIPES.map((r) => {
+            const sched = scheduleByRecipe.get(r.id)
+            const enabled = Boolean(sched?.enabled)
+            const agent = byId.get(r.agentId)
+            return (
+              <article
+                key={r.id}
+                style={{
+                  border: '1px solid var(--pd-border-soft)',
+                  borderRadius: 'var(--pd-radius)',
+                  padding: 14,
+                  background: 'var(--pd-surface-2)',
+                }}
               >
-                {runMut.isPending ? 'Starting…' : 'Run now'}
-              </button>
-            </article>
-          ))}
+                <h3 style={{ margin: '0 0 6px', fontSize: 14 }}>{r.title}</h3>
+                <p style={{ margin: '0 0 8px', fontSize: 12, color: 'var(--pd-text-dim)' }}>
+                  {r.blurb}
+                </p>
+                <p
+                  className="pd-num"
+                  style={{ margin: '0 0 12px', fontSize: 10, color: 'var(--pd-text-faint)' }}
+                >
+                  {agent?.name || r.agentId} · {formatInterval(r.intervalMinutes)}
+                  {enabled && sched?.nextRunAt
+                    ? ` · next ${new Date(sched.nextRunAt).toLocaleString()}`
+                    : ''}
+                  {sched?.lastStatus ? ` · last ${sched.lastStatus}` : ''}
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  <button
+                    type="button"
+                    className="pd-connect"
+                    disabled={runMut.isPending || rosterQ.isLoading || !agent}
+                    onClick={() => runMut.mutate(r.id)}
+                  >
+                    {runMut.isPending ? 'Starting…' : 'Run now'}
+                  </button>
+                  <button
+                    type="button"
+                    className="pd-tab"
+                    disabled={scheduleMut.isPending}
+                    onClick={() =>
+                      scheduleMut.mutate({ recipeId: r.id, enabled: !enabled })
+                    }
+                  >
+                    {enabled ? 'Disable schedule' : 'Enable schedule'}
+                  </button>
+                </div>
+              </article>
+            )
+          })}
         </div>
         {msg ? (
           <p style={{ marginTop: 12, fontSize: 12, color: 'var(--pd-text-dim)' }}>{msg}</p>
@@ -181,7 +235,7 @@ export function AutomationPanel({ walletAddress }: { walletAddress: string | nul
         {!activityQ.isLoading && recent.length === 0 ? (
           <div className="pd-empty" style={{ padding: 18 }}>
             <h3>No automation runs yet</h3>
-            <p>Start a recipe above. Idle is honest — we do not invent activity.</p>
+            <p>Start a recipe or enable a schedule. Idle is honest — we do not invent activity.</p>
           </div>
         ) : null}
         <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>

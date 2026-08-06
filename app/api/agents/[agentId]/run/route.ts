@@ -5,124 +5,24 @@
  */
 
 import { createOpenAI } from '@ai-sdk/openai'
-import { generateText, streamText } from 'ai'
+import { streamText } from 'ai'
 import { NextRequest, NextResponse } from 'next/server'
 import { buildAgentLiveContext } from '@/lib/agents/context'
 import { AGENT_OPENAI_MODEL, getOpenAiApiKey, isOpenAiConfigured } from '@/lib/agents/llm'
-import { parseStructuredAgentOutput } from '@/lib/agents/parse-structured'
+import { runStructuredEmployee } from '@/lib/agents/run-structured'
 import {
-  insertPrediction,
   logAgentActivity,
   resolveEmployee,
   updateAgentActivityStatus,
 } from '@/lib/agents/store'
 import { statusCopyForAgentRun } from '@/lib/intelligence/copy'
-import type { AgentRunRequest, AgentRunStructured } from '@/types/agents'
+import type { AgentRunRequest } from '@/types/agents'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 type RouteCtx = { params: { agentId: string } }
-
-function completenessFromStructured(out: AgentRunStructured): number {
-  let filled = 0
-  const total = 4
-  if (out.summary?.trim()) filled += 1
-  if (out.sections?.length) filled += 1
-  if (out.stats?.length) filled += 1
-  if (out.signals?.length || out.suggestions?.length) filled += 1
-  return Math.round((filled / total) * 100)
-}
-
-async function maybeLogPredictions(
-  agentId: string,
-  formulaId: string,
-  structured: AgentRunStructured,
-  windowHours: number,
-): Promise<void> {
-  const resolveAfter = new Date(Date.now() + windowHours * 3_600_000)
-  const { fetchPrices } = await import('@/lib/providers/jupiter')
-
-  if (formulaId === 'setup_win_rate' || formulaId === 'whale_followthrough') {
-    for (const sig of structured.signals ?? []) {
-      if (!sig.mint) continue
-      let entryPriceUsd: number | undefined
-      try {
-        const prices = await fetchPrices([sig.mint])
-        entryPriceUsd = prices.get(sig.mint)?.priceUsd
-      } catch {
-        /* optional */
-      }
-      await insertPrediction({
-        agentId,
-        kind: formulaId === 'whale_followthrough' ? 'whale_buy' : 'setup',
-        subject: sig.mint,
-        payload: {
-          mint: sig.mint,
-          symbol: sig.symbol,
-          note: sig.note,
-          direction: 'up',
-          entryPriceUsd,
-        },
-        resolveAfter,
-      })
-    }
-  }
-  if (formulaId === 'outlook_directional_accuracy') {
-    const bias = structured.summary.toLowerCase()
-    const direction = bias.includes('bear') ? 'down' : bias.includes('bull') ? 'up' : null
-    if (direction) {
-      const sol = 'So11111111111111111111111111111111111111112'
-      let entryPriceUsd: number | undefined
-      try {
-        const prices = await fetchPrices([sol])
-        entryPriceUsd = prices.get(sol)?.priceUsd
-      } catch {
-        /* optional */
-      }
-      await insertPrediction({
-        agentId,
-        kind: 'outlook',
-        subject: 'SOL',
-        payload: {
-          mint: sol,
-          direction,
-          entryPriceUsd,
-          summary: structured.summary.slice(0, 400),
-        },
-        resolveAfter,
-      })
-    }
-  }
-  if (formulaId === 'launch_approval_safety') {
-    for (const sig of structured.signals ?? []) {
-      if (!sig.mint) continue
-      const severity = (sig.severity || '').toLowerCase()
-      if (severity.includes('danger') || severity.includes('avoid')) continue
-      let entryPriceUsd: number | undefined
-      try {
-        const prices = await fetchPrices([sig.mint])
-        entryPriceUsd = prices.get(sig.mint)?.priceUsd
-      } catch {
-        /* optional */
-      }
-      await insertPrediction({
-        agentId,
-        kind: 'launch_approval',
-        subject: sig.mint,
-        payload: {
-          mint: sig.mint,
-          symbol: sig.symbol,
-          note: sig.note,
-          direction: 'up',
-          entryPriceUsd,
-        },
-        resolveAfter,
-      })
-    }
-  }
-}
 
 /**
  * GET — availability probe (no secrets).
@@ -173,24 +73,6 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
     )
   }
 
-  const { acquireProviderQuota } = await import('@/lib/providers/quota')
-  const quota = await acquireProviderQuota('openai')
-  if (quota.ok === false) {
-    return NextResponse.json(
-      {
-        error: 'AI Employees temporarily rate-limited. Try again shortly.',
-        reason: quota.reason,
-        retryAfterMs: quota.retryAfterMs,
-      },
-      {
-        status: 429,
-        headers: { 'Retry-After': String(Math.ceil(quota.retryAfterMs / 1000)) },
-      },
-    )
-  }
-
-  const action = body.action || employee.actionType
-  void action
   const effectiveAction = employee.builtin ? employee.actionType : body.action || employee.actionType
 
   const message =
@@ -203,37 +85,48 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
     return NextResponse.json({ error: 'message required for chat' }, { status: 400 })
   }
 
-  const activityId = await logAgentActivity({
-    agentId: employee.id,
-    agentName: employee.name,
-    kind: effectiveAction === 'chat' ? 'chat' : effectiveAction,
-    description:
-      effectiveAction === 'chat'
-        ? statusCopyForAgentRun(employee.id, 'running')
-        : statusCopyForAgentRun(employee.id, 'started'),
-    walletAddress: body.walletAddress ?? null,
-    status: 'running',
-    meta: body.mint
-      ? { targetMint: body.mint, investigation: Boolean(body.mint) }
-      : {},
-  })
-
-  // ~50–800ms estimated
-  const liveContext = await buildAgentLiveContext({
-    dataSources: employee.dataSources,
-    walletAddress: body.walletAddress,
-    mint: body.mint,
-    message,
-  })
-
-  const openai = createOpenAI({ apiKey: key })
-  const model = openai(AGENT_OPENAI_MODEL)
-  const system = employee.systemPromptTemplate
-
   if (effectiveAction === 'chat') {
+    const { acquireProviderQuota } = await import('@/lib/providers/quota')
+    const quota = await acquireProviderQuota('openai')
+    if (quota.ok === false) {
+      return NextResponse.json(
+        {
+          error: 'AI Employees temporarily rate-limited. Try again shortly.',
+          reason: quota.reason,
+          retryAfterMs: quota.retryAfterMs,
+        },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(Math.ceil(quota.retryAfterMs / 1000)) },
+        },
+      )
+    }
+
+    const activityId = await logAgentActivity({
+      agentId: employee.id,
+      agentName: employee.name,
+      kind: 'chat',
+      description: statusCopyForAgentRun(employee.id, 'running'),
+      walletAddress: body.walletAddress ?? null,
+      status: 'running',
+      meta: body.mint
+        ? { targetMint: body.mint, investigation: Boolean(body.mint) }
+        : {},
+    })
+
+    // ~50–800ms estimated
+    const liveContext = await buildAgentLiveContext({
+      dataSources: employee.dataSources,
+      walletAddress: body.walletAddress,
+      mint: body.mint,
+      message,
+    })
+
+    const openai = createOpenAI({ apiKey: key })
+    const model = openai(AGENT_OPENAI_MODEL)
     const result = streamText({
       model,
-      system,
+      system: employee.systemPromptTemplate,
       messages: [
         {
           role: 'user',
@@ -249,77 +142,24 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
     return result.toTextStreamResponse()
   }
 
-  try {
-    const result = await generateText({
-      model,
-      system,
-      prompt: [
-        liveContext,
-        '',
-        `ACTION: ${effectiveAction}`,
-        'Respond with a single JSON object matching the schema described in your instructions.',
-        'Do not wrap in markdown unless necessary.',
-        message ? `USER NOTE:\n${message}` : '',
-      ]
-        .filter(Boolean)
-        .join('\n'),
-    })
+  const run = await runStructuredEmployee({
+    agentId: employee.id,
+    walletAddress: body.walletAddress,
+    mint: body.mint,
+    message,
+    action: body.action,
+    source: automationRun ? 'automation' : 'manual',
+  })
 
-    const structured = parseStructuredAgentOutput(result.text)
-    const completeness = completenessFromStructured(structured)
-
-    let coveragePct: number | undefined
-    if (employee.performanceFormula.id === 'portfolio_coverage' && body.walletAddress) {
-      coveragePct = 100
-    }
-
-    if (activityId) {
-      await updateAgentActivityStatus(activityId, 'completed', {
-        completeness,
-        coveragePct,
-        title: structured.title,
-      })
-    } else {
-      await logAgentActivity({
-        agentId: employee.id,
-        agentName: employee.name,
-        kind: effectiveAction,
-        description: `${employee.actionLabel}: ${structured.title}`,
-        walletAddress: body.walletAddress ?? null,
-        status: 'completed',
-        meta: { completeness, coveragePct },
-      })
-    }
-
-    await maybeLogPredictions(
-      employee.id,
-      employee.performanceFormula.id,
-      structured,
-      employee.performanceFormula.verificationWindowHours,
-    )
-
-    if (structured.suggestions?.length) {
-      structured.suggestions = structured.suggestions.map((s, i) => ({
-        ...s,
-        id: s.id || `opt-${i + 1}`,
-      }))
-    }
-
-    return NextResponse.json({
-      agentId: employee.id,
-      action: effectiveAction,
-      result: structured,
-      fetchedAt: new Date().toISOString(),
-    })
-  } catch (e) {
-    if (activityId) {
-      await updateAgentActivityStatus(activityId, 'failed', {
-        error: e instanceof Error ? e.message : 'run failed',
-      })
-    }
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : 'agent run failed' },
-      { status: 500 },
-    )
+  if (!run.ok) {
+    return NextResponse.json({ error: run.error }, { status: run.status })
   }
+
+  return NextResponse.json({
+    agentId: run.agentId,
+    action: run.action,
+    result: run.result,
+    fetchedAt: run.fetchedAt,
+    activityId: run.activityId,
+  })
 }
