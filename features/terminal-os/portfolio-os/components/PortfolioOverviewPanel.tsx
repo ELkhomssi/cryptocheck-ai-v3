@@ -6,21 +6,30 @@ import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/compone
 import { formatUsd } from '@/features/terminal-os/shared/lib/format'
 import { Pct } from '@/features/terminal-os/shared/components/Pct'
 import { useTerminalOsStore } from '@/stores/terminal-os'
-import type { HoldingsResponse } from '@/types/portfolio-desk'
+import type { Holding, HoldingsResponse } from '@/types/portfolio-desk'
 import type { PortfolioHealthSummary } from '@/features/terminal-os/shared/types'
 import { summaryFromHoldings } from '@/features/terminal-os/portfolio-os/lib/summary-from-holdings'
+import { PortfolioAllocationDonut } from '@/features/terminal-os/portfolio-os/components/PortfolioAllocationDonut'
 
-export function PortfolioOverviewPanel() {
+/**
+ * Kernel: Portfolio Intelligence holdings → health scores + allocation donut.
+ * Donut segments = real allocationPct from holdings (Solana today).
+ */
+export function PortfolioOverviewPanel({ compact = false }: { compact?: boolean }) {
   const wallet = useTerminalOsStore((s) => s.walletAddress)
   const walletConnected = useTerminalOsStore((s) => s.walletConnected)
   const chainFamily = useTerminalOsStore((s) => s.walletChainFamily)
   const [data, setData] = useState<PortfolioHealthSummary | null>(null)
+  const [holdings, setHoldings] = useState<Holding[]>([])
+  const [totalValueUsd, setTotalValueUsd] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [tokenCount, setTokenCount] = useState(0)
 
   useEffect(() => {
     let c = false
     setData(null)
+    setHoldings([])
+    setTotalValueUsd(0)
     setError(null)
 
     if (!walletConnected || !wallet) {
@@ -45,6 +54,8 @@ export function PortfolioOverviewPanel() {
       .then((h) => {
         if (c) return
         setTokenCount(h.holdings.length)
+        setHoldings(h.holdings)
+        setTotalValueUsd(h.totalValueUsd)
         setData(summaryFromHoldings(h))
       })
       .catch((e: Error) => {
@@ -56,36 +67,51 @@ export function PortfolioOverviewPanel() {
     }
   }, [wallet, walletConnected, chainFamily])
 
-  return (
-    <Panel title="Market Overview · Portfolio Health">
-      {!walletConnected ? (
-        <EmptyState message="Connect a Solana wallet to load live portfolio health." />
-      ) : error ? (
-        <EmptyState message={error} />
-      ) : !data ? (
-        <PanelSkeleton rows={3} />
-      ) : (
-        <div className="tos-metric-grid">
-          <Metric label="Total assets" value={formatUsd(data.totalAssetsUsd, true)} />
+  const body = !walletConnected ? (
+    <EmptyState message="Connect a Solana wallet to load live portfolio health." />
+  ) : error ? (
+    <EmptyState message={error} />
+  ) : !data ? (
+    <PanelSkeleton rows={3} />
+  ) : (
+    <div className={compact ? 'tos-portfolio-compact' : undefined}>
+      <PortfolioAllocationDonut holdings={holdings} totalValueUsd={totalValueUsd} />
+      <div className="tos-metric-grid">
+        <Metric label="Total assets" value={formatUsd(data.totalAssetsUsd, true)} />
+        <Metric
+          label="24h PNL"
+          value={
+            <>
+              {formatUsd(data.pnl24hUsd, true)} <Pct value={data.pnl24hPct} />
+            </>
+          }
+        />
+        {!compact ? (
+          <>
+            <Metric label="AI Health" value={`${data.aiHealthScore}`} why={data.healthWhy} />
+            <Metric label="Stability" value={`${data.stabilityScore}`} why={data.stabilityWhy} />
+            <Metric
+              label="Diversification"
+              value={`${data.diversificationScore}`}
+              why={tokenCount ? `${tokenCount} holdings` : undefined}
+            />
+          </>
+        ) : (
           <Metric
-            label="24h PNL"
-            value={
-              <>
-                {formatUsd(data.pnl24hUsd, true)} <Pct value={data.pnl24hPct} />
-              </>
-            }
+            label="Holdings"
+            value={`${tokenCount}`}
+            why={tokenCount ? 'From live Solana balances' : 'No holdings yet'}
           />
-          <Metric label="AI Health" value={`${data.aiHealthScore}`} why={data.healthWhy} />
-          <Metric label="Stability" value={`${data.stabilityScore}`} why={data.stabilityWhy} />
-          <Metric
-            label="Diversification"
-            value={`${data.diversificationScore}`}
-            why={tokenCount ? `${tokenCount} holdings` : undefined}
-          />
-        </div>
-      )}
-    </Panel>
+        )}
+      </div>
+    </div>
   )
+
+  if (compact) {
+    return <div className="tos-portfolio-panel-body">{body}</div>
+  }
+
+  return <Panel title="Market Overview · Portfolio Health">{body}</Panel>
 }
 
 function Metric({

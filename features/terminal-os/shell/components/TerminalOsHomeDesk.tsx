@@ -1,8 +1,9 @@
 'use client'
 
 /**
- * Terminal OS home — mockup multi-panel desk composition.
- * Reuses Gateway / Chart / Portfolio / TLM engines; presentation layout only.
+ * Terminal OS home — Image-2 multi-panel desk composition.
+ * Reuses Gateway / Chart / Portfolio / DNA engines; presentation layout only.
+ * 3D globe, bridging, and founder identity remain out of scope.
  */
 
 import dynamic from 'next/dynamic'
@@ -16,21 +17,15 @@ import {
   CurrentMissionsPanel,
   DecisionBrainSpokes,
   LiveExecutionFeed,
+  OnChainHeatmap,
   PositionsSnapshot,
   ScannerDiscoveryStrip,
+  TradeLikeMeDnaCard,
 } from '@/features/terminal-os/shell/components/HomeDeskPanels'
 
 const IntelligenceSwap = dynamic(
   () => import('@/features/ai-os/components/IntelligenceSwap').then((m) => m.IntelligenceSwap),
   { ssr: false, loading: () => <PanelSkeleton rows={8} /> },
-)
-
-const TradeLikeMeWidget = dynamic(
-  () =>
-    import('@/features/terminal-os/ai-trade-like-me/components/TradeLikeMeWidget').then(
-      (m) => m.TradeLikeMeWidget,
-    ),
-  { ssr: false, loading: () => <PanelSkeleton rows={4} /> },
 )
 
 function ChartSurface() {
@@ -85,29 +80,21 @@ export function TerminalOsHomeDesk() {
       <section className="tos-home-row tos-home-row-mid" aria-label="Market row">
         <ChartSurface />
         <LiveExecutionFeed />
-        <div className="tos-home-mid-right">
-          <PanelErrorBoundary title="Portfolio">
-            <div className="tos-desk-panel">
-              <header className="tos-desk-panel-head">
-                <span>Portfolio Overview</span>
-              </header>
-              <PortfolioOverviewPanel />
-            </div>
-          </PanelErrorBoundary>
-          <PanelErrorBoundary title="Trade Like Me">
-            <div className="tos-desk-panel">
-              <header className="tos-desk-panel-head">
-                <span>Trade Like Me (DNA)</span>
-              </header>
-              <TradeLikeMeWidget />
-            </div>
-          </PanelErrorBoundary>
-        </div>
+        <PanelErrorBoundary title="Portfolio">
+          <div className="tos-desk-panel tos-desk-portfolio" data-tos-portfolio="true">
+            <header className="tos-desk-panel-head">
+              <span>Portfolio Overview</span>
+            </header>
+            <PortfolioOverviewPanel compact />
+          </div>
+        </PanelErrorBoundary>
       </section>
 
       <section className="tos-home-row tos-home-row-bot" aria-label="Ops row">
         <ScannerDiscoveryStrip />
+        <OnChainHeatmap />
         <PositionsSnapshot />
+        <TradeLikeMeDnaCard />
         <AutonomousWorkflowStrip />
       </section>
     </div>
