@@ -1,10 +1,8 @@
 'use client'
 
 /**
- * Terminal OS home — Picture-1 multi-panel command desk.
- * Reuses Gateway / Chart / Portfolio / DNA engines; presentation layout only.
- * Founder identity and bridging remain out of scope. Brain Map is orbital SVG
- * bound to Decision.contributingFactors (not a fabricated globe).
+ * Terminal OS home — reference multi-panel command desk (1:1 structure).
+ * KERNEL: every panel reads Decision / holdings / attention / DNA / health — never invents.
  */
 
 import dynamic from 'next/dynamic'
@@ -21,8 +19,8 @@ import {
   OnChainHeatmap,
   PositionsSnapshot,
   ScannerDiscoveryStrip,
-  TradeLikeMeDnaCard,
 } from '@/features/terminal-os/shell/components/HomeDeskPanels'
+import { SystemStatusGauges } from '@/features/terminal-os/shell/components/SystemStatusGauges'
 
 const IntelligenceSwap = dynamic(
   () => import('@/features/ai-os/components/IntelligenceSwap').then((m) => m.IntelligenceSwap),
@@ -57,7 +55,7 @@ export function TerminalOsHomeDesk() {
   const focused = useTerminalOsStore((s) => s.focusedToken)
 
   return (
-    <div className="tos-home-desk" data-tos-home-desk="true">
+    <div className="tos-home-desk" data-tos-home-desk="true" data-tos-ref="v1">
       <section className="tos-home-row tos-home-row-top" aria-label="Decision row">
         <PanelErrorBoundary title="AI Gateway">
           <div className="tos-desk-panel tos-desk-gateway" data-tos-gateway="true">
@@ -92,11 +90,13 @@ export function TerminalOsHomeDesk() {
       </section>
 
       <section className="tos-home-row tos-home-row-bot" aria-label="Ops row">
+        <SystemStatusGauges />
         <ScannerDiscoveryStrip />
         <OnChainHeatmap />
         <PositionsSnapshot />
-        <TradeLikeMeDnaCard />
-        <AutonomousWorkflowStrip />
+        <div className="tos-home-bot-stack">
+          <AutonomousWorkflowStrip />
+        </div>
       </section>
     </div>
   )

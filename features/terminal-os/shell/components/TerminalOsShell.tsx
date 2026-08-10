@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { LeftRail } from '@/features/terminal-os/shell/components/LeftRail'
 import { TopBar } from '@/features/terminal-os/shell/components/TopBar'
 import { PanelErrorBoundary } from '@/features/terminal-os/shared/components/PanelErrorBoundary'
@@ -26,6 +26,9 @@ import {
 } from '@/features/terminal-os/shell/components/MissionAndCoachWorkspaces'
 import { PersistentCoachRail } from '@/features/terminal-os/shell/components/PersistentCoachRail'
 import { TerminalOsHomeDesk } from '@/features/terminal-os/shell/components/TerminalOsHomeDesk'
+import { AiRecommendationCard } from '@/features/terminal-os/shell/components/AiRecommendationCard'
+import { SystemStatusGauges } from '@/features/terminal-os/shell/components/SystemStatusGauges'
+import { TradeLikeMeDnaCard } from '@/features/terminal-os/shell/components/HomeDeskPanels'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
 import { useTerminalOsStore } from '@/stores/terminal-os'
@@ -181,7 +184,39 @@ function MainColumn() {
         <Bound title="Top Tokens">
           <TopTokensToday />
         </Bound>
+      </div>
+    )
+  }
+
+  if (nav === 'chart-intelligence') {
+    return (
+      <div className="tos-stack">
         <ChartSurface />
+      </div>
+    )
+  }
+
+  if (nav === 'backtesting') {
+    return (
+      <Panel title="Backtesting Lab">
+        <EmptyState message="Backtesting Lab awaits persisted strategy simulation runs. Paper/sim results will appear here when the execution audit log records them — no fabricated win rates." />
+      </Panel>
+    )
+  }
+
+  if (nav === 'journal') {
+    return <JournalWorkspace />
+  }
+
+  if (nav === 'settings') {
+    return (
+      <div className="tos-stack">
+        <Bound title="System Health">
+          <SystemStatusGauges />
+        </Bound>
+        <Panel title="System Health">
+          <EmptyState message="Gauges above read live /api/health and provider health. Engine counts never invent 12/12 — they show real check totals." />
+        </Panel>
       </div>
     )
   }
@@ -194,12 +229,78 @@ function MainColumn() {
     )
   }
 
-  if (nav === 'settings' || nav === 'watchlist' || nav === 'copy-trading') {
+  if (nav === 'watchlist' || nav === 'copy-trading') {
     return <SecondaryNavStub nav={nav} />
   }
 
-  // Default / AI Gateway — full mockup multi-panel desk
+  // Default / AI Gateway — full reference multi-panel desk
   return <TerminalOsHomeDesk />
+}
+
+function JournalWorkspace() {
+  const wallet = useTerminalOsStore((s) => s.walletAddress)
+  const connected = useTerminalOsStore((s) => s.walletConnected)
+  return (
+    <Panel title="Directory & Journal" live>
+      {!connected || !wallet ? (
+        <EmptyState message="Connect a Solana wallet to load captured trades and activity." />
+      ) : (
+        <JournalFeed wallet={wallet} />
+      )}
+    </Panel>
+  )
+}
+
+function JournalFeed({ wallet }: { wallet: string }) {
+  const [rows, setRows] = useState<
+    Array<{ id: string; side: string; tokenSymbol: string; entryAt: string; sample?: boolean }>
+  >([])
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let c = false
+    void fetch(`/api/terminal-os/captured-trades?wallet=${encodeURIComponent(wallet)}`, {
+      cache: 'no-store',
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Journal unavailable')
+        const body = (await res.json()) as {
+          trades?: Array<{
+            id: string
+            side: string
+            tokenSymbol: string
+            entryAt: string
+            sample?: boolean
+          }>
+        }
+        if (!c) setRows((body.trades ?? []).filter((t) => !t.sample))
+      })
+      .catch((e: Error) => {
+        if (!c) setError(e.message)
+      })
+    return () => {
+      c = true
+    }
+  }, [wallet])
+
+  if (error) return <EmptyState message={error} />
+  if (!rows.length) {
+    return <EmptyState message="No captured activity yet — fills and rejected Decisions appear here." />
+  }
+  return (
+    <ul className="tos-stack-sm" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+      {rows.slice(0, 40).map((t) => (
+        <li key={t.id} style={{ fontSize: 'var(--tos-fs-sm)' }}>
+          <strong>
+            {t.side.toUpperCase()} ${t.tokenSymbol}
+          </strong>
+          <div className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)' }}>
+            {new Date(t.entryAt).toLocaleString()}
+          </div>
+        </li>
+      ))}
+    </ul>
+  )
 }
 
 function AiGatewayCenterpiece() {
@@ -226,12 +327,6 @@ function AiTradingWorkspace() {
 }
 
 function SecondaryNavStub({ nav }: { nav: TerminalNavId }) {
-  const labels: Partial<Record<TerminalNavId, string>> = {
-    settings: 'Settings',
-    alerts: 'Alerts',
-    watchlist: 'Watchlist',
-    'copy-trading': 'Copy Trading',
-  }
   if (nav === 'watchlist') {
     return (
       <Panel title="Watchlist">
@@ -247,8 +342,8 @@ function SecondaryNavStub({ nav }: { nav: TerminalNavId }) {
     )
   }
   return (
-    <Panel title={labels[nav] ?? nav}>
-      <EmptyState message={`${labels[nav] ?? nav} uses the live wallet session and feature flags already in Terminal OS.`} />
+    <Panel title={nav}>
+      <EmptyState message="This surface uses the live wallet session and feature flags already in Terminal OS." />
     </Panel>
   )
 }
@@ -257,25 +352,24 @@ function RightRail({ homeMode }: { homeMode: boolean }) {
   return (
     <aside className="tos-right-rail" aria-label="AI Coach and tools" data-tos-right="coach">
       <PersistentCoachRail />
-      {!homeMode ? (
+      {homeMode ? (
         <>
-          <div data-tos-home-hide="true">
-            <Bound title="Token Score">
-              <TokenScoreScanCard />
-            </Bound>
-          </div>
-          <div data-tos-home-hide="true">
-            <Bound title="Quick Swap">
-              <QuickSwapCard />
-            </Bound>
-          </div>
-          <div data-tos-home-hide="true">
-            <Bound title="Wallet Score">
-              <WalletScoreScanCard />
-            </Bound>
-          </div>
+          <AiRecommendationCard />
+          <TradeLikeMeDnaCard />
         </>
-      ) : null}
+      ) : (
+        <>
+          <Bound title="Token Score">
+            <TokenScoreScanCard />
+          </Bound>
+          <Bound title="Quick Swap">
+            <QuickSwapCard />
+          </Bound>
+          <Bound title="Wallet Score">
+            <WalletScoreScanCard />
+          </Bound>
+        </>
+      )}
     </aside>
   )
 }

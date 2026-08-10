@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, startTransition } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Bell, LayoutTemplate, Search, Star } from 'lucide-react'
 import { useTerminalOsStore } from '@/stores/terminal-os'
 import { useTickerQuotes } from '@/features/terminal-os/shared/hooks/useTerminalQueries'
@@ -8,9 +9,12 @@ import { useTerminalMarketStream } from '@/features/terminal-os/shared/hooks/use
 import { formatPct, formatUsd } from '@/features/terminal-os/shared/lib/format'
 import { PanelSkeleton, StaleIndicator } from '@/features/terminal-os/shared/components/PanelStates'
 import { AnimatedNumber } from '@/features/terminal-os/shared/components/AnimatedNumber'
+import { Pct } from '@/features/terminal-os/shared/components/Pct'
 import { useTerminalWallet } from '@/features/terminal-os/wallet/useTerminalWallet'
 import { useRailBadges } from '@/features/terminal-os/shell/hooks/useRailBadges'
 import type { ChainId, TokenRow } from '@/features/terminal-os/shared/types'
+import type { HoldingsResponse } from '@/types/portfolio-desk'
+import { summaryFromHoldings } from '@/features/terminal-os/portfolio-os/lib/summary-from-holdings'
 
 function looksLikeMintOrAddress(q: string): boolean {
   const t = q.trim()
@@ -80,7 +84,7 @@ export function TopBar() {
   const setSearchQuery = useTerminalOsStore((s) => s.setSearchQuery)
   const setFocusedToken = useTerminalOsStore((s) => s.setFocusedToken)
   const setChartChainTab = useTerminalOsStore((s) => s.setChartChainTab)
-  const walletBalances = useTerminalOsStore((s) => s.walletBalances)
+  const walletAddress = useTerminalOsStore((s) => s.walletAddress)
   const walletChainFamily = useTerminalOsStore((s) => s.walletChainFamily)
   const [searchBusy, setSearchBusy] = useState(false)
 
@@ -105,6 +109,22 @@ export function TopBar() {
   }, [quotes])
   const shown = quotes?.length ? quotes : lkg
 
+  const holdingsQ = useQuery({
+    queryKey: ['tos', 'topbar-holdings', walletAddress],
+    enabled: Boolean(walletConnected && walletAddress && walletChainFamily !== 'evm'),
+    queryFn: async () => {
+      const res = await fetch(`/api/portfolio/holdings?wallet=${encodeURIComponent(walletAddress!)}`, {
+        cache: 'no-store',
+      })
+      if (!res.ok) return null
+      return (await res.json()) as HoldingsResponse
+    },
+    staleTime: 20_000,
+    refetchInterval: 45_000,
+  })
+
+  const portfolioSummary = holdingsQ.data ? summaryFromHoldings(holdingsQ.data) : null
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -122,6 +142,7 @@ export function TopBar() {
       <div className="tos-topbar-brand">
         <strong>CryptoCheck AI</strong>
         <span>TERMINAL OS v3.0</span>
+        <em className="tos-topbar-tagline">AUTONOMOUS TRADING COMPANY</em>
       </div>
 
       <div
@@ -212,18 +233,31 @@ export function TopBar() {
       </div>
 
       <div className="tos-topbar-actions" style={{ position: 'relative' }}>
-        {walletConnected && walletBalances ? (
-          <span className="tos-muted tos-num" style={{ fontSize: 'var(--tos-fs-xs)' }}>
-            {walletBalances.nativeAmount.toFixed(4)} {walletBalances.nativeSymbol}
-            {walletBalances.totalValueUsd != null
-              ? ` · $${walletBalances.totalValueUsd.toFixed(0)}`
-              : ''}
-            {walletBalances.tokens.length
-              ? ` · ${walletBalances.tokens.length} tokens`
-              : ''}
-            {walletChainFamily ? ` · ${walletChainFamily}` : ''}
-          </span>
-        ) : null}
+        <div className="tos-topbar-portfolio" data-loaded={portfolioSummary ? 'true' : 'false'}>
+          <span className="tos-topbar-portfolio-label">Portfolio value</span>
+          {walletConnected && walletChainFamily === 'evm' ? (
+            <span className="tos-muted">Solana holdings only</span>
+          ) : !walletConnected ? (
+            <span className="tos-muted">Connect wallet</span>
+          ) : portfolioSummary ? (
+            <>
+              <strong className="tos-num">
+                {formatUsd(portfolioSummary.totalAssetsUsd, true)}
+              </strong>
+              <span className="tos-topbar-portfolio-pnl">
+                <AnimatedNumber
+                  value={portfolioSummary.pnl24hUsd}
+                  format={(n) => formatUsd(n, true)}
+                />{' '}
+                <Pct value={portfolioSummary.pnl24hPct} />
+              </span>
+            </>
+          ) : holdingsQ.isLoading ? (
+            <span className="tos-muted">Loading…</span>
+          ) : (
+            <span className="tos-muted">Not enough data yet</span>
+          )}
+        </div>
         <button
           type="button"
           className="tos-btn tos-btn-ghost tos-icon-btn"

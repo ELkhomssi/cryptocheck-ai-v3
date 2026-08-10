@@ -88,6 +88,17 @@ function eventLabel(eventType: string): string {
   }
 }
 
+const BRAIN_SIGNAL_SLOTS: { engine: string | null; label: string }[] = [
+  { engine: 'market-intelligence', label: 'Market Sentiment' },
+  { engine: 'whale-intelligence', label: 'Whale Activity' },
+  { engine: 'liquidity-engine', label: 'Liquidity Flow' },
+  { engine: 'portfolio-intelligence', label: 'On-chain Data' },
+  { engine: 'security-scanner', label: 'Security' },
+  { engine: 'prediction-engine', label: 'Prediction' },
+  { engine: null, label: 'Social Momentum' },
+  { engine: null, label: 'Funding Rate' },
+]
+
 export function DecisionBrainSpokes() {
   const wallet = useTerminalOsStore((s) => s.walletAddress)
   const focused = useTerminalOsStore((s) => s.focusedToken)
@@ -115,7 +126,19 @@ export function DecisionBrainSpokes() {
   })
 
   const d = q.data
-  const factors = d?.contributingFactors?.slice(0, 7) ?? []
+  const byEngine = new Map(
+    (d?.contributingFactors ?? []).map((f) => [String(f.engine), f] as const),
+  )
+  const slots = BRAIN_SIGNAL_SLOTS.map((s) => {
+    if (!s.engine) return { ...s, pct: null as number | null, summary: 'No engine wired yet' }
+    const f = byEngine.get(s.engine)
+    return {
+      ...s,
+      pct: f ? Math.round(f.weight * 100) : null,
+      summary: f?.summary ?? 'Unavailable in this Decision',
+    }
+  })
+  const liveSlots = slots.filter((s) => s.pct != null)
   const cx = 140
   const cy = 140
   const orbitR = 92
@@ -128,18 +151,18 @@ export function DecisionBrainSpokes() {
           {d ? 'Bound to Decision' : 'Waiting'}
         </span>
       </header>
-      {!d || factors.length === 0 ? (
+      {!d ? (
         <div className="tos-brain-orbit tos-brain-orbit--empty" aria-hidden>
           <div className="tos-brain-core">
             <span>WAITING</span>
           </div>
           <p className="tos-desk-empty">
-            Orbital spokes appear when a published Decision includes contributing engines —
-            no placeholder scores.
+            Orbital intelligence layers appear when a Decision publishes contributing engines —
+            unavailable signals stay as —.
           </p>
         </div>
       ) : (
-        <div className="tos-brain-orbit" role="img" aria-label="Decision contributing engines">
+        <div className="tos-brain-orbit" role="img" aria-label="Decision intelligence layers">
           <svg viewBox="0 0 280 280" className="tos-brain-svg">
             <defs>
               <radialGradient id="tosBrainCore" cx="50%" cy="50%" r="50%">
@@ -157,33 +180,50 @@ export function DecisionBrainSpokes() {
             <text x={cx} y={cy + 12} textAnchor="middle" className="tos-brain-core-sub">
               {Math.round(d.confidence)}%
             </text>
-            {factors.map((f, i) => {
-              const angle = (i / factors.length) * Math.PI * 2 - Math.PI / 2
+            {slots.map((s, i) => {
+              const angle = (i / slots.length) * Math.PI * 2 - Math.PI / 2
               const px = cx + Math.cos(angle) * orbitR
               const py = cy + Math.sin(angle) * orbitR
-              const pct = Math.round(f.weight * 100)
+              const live = s.pct != null
               return (
-                <g key={`${f.engine}-${i}`}>
-                  <line x1={cx} y1={cy} x2={px} y2={py} className="tos-brain-spoke-line" />
-                  <circle cx={px} cy={py} r={16 + pct / 12} className="tos-brain-node" />
+                <g key={s.label} opacity={live ? 1 : 0.45}>
+                  <line
+                    x1={cx}
+                    y1={cy}
+                    x2={px}
+                    y2={py}
+                    className="tos-brain-spoke-line"
+                    strokeDasharray={live ? undefined : '3 4'}
+                  />
+                  <circle
+                    cx={px}
+                    cy={py}
+                    r={live ? 16 + (s.pct ?? 0) / 12 : 12}
+                    className="tos-brain-node"
+                  />
                   <text x={px} y={py - 2} textAnchor="middle" className="tos-brain-node-pct">
-                    {pct}%
+                    {live ? `${s.pct}%` : '—'}
                   </text>
                   <text x={px} y={py + 10} textAnchor="middle" className="tos-brain-node-label">
-                    {String(f.engine).replace(/-/g, ' ').slice(0, 10)}
+                    {s.label.slice(0, 12)}
                   </text>
                 </g>
               )
             })}
           </svg>
           <ul className="tos-brain-legend">
-            {factors.map((f) => (
-              <li key={`${f.engine}-leg`}>
-                <strong>{String(f.engine).replace(/-/g, ' ')}</strong>
-                <span>{f.summary}</span>
+            {slots.map((s) => (
+              <li key={s.label} data-live={s.pct != null ? 'true' : 'false'}>
+                <strong>
+                  {s.label} · {s.pct != null ? `${s.pct}%` : '—'}
+                </strong>
+                <span>{s.summary}</span>
               </li>
             ))}
           </ul>
+          {liveSlots.length === 0 ? (
+            <p className="tos-desk-empty">Decision published — no contributing factors yet.</p>
+          ) : null}
         </div>
       )}
     </div>
@@ -218,7 +258,7 @@ export function CurrentMissionsPanel() {
         </span>
       </header>
       {decisions.length === 0 ? (
-        <p className="tos-desk-empty">No actionable Decisions published yet.</p>
+        <p className="tos-desk-empty">No active missions</p>
       ) : (
         <ul className="tos-missions-list">
           {decisions.slice(0, 5).map((d) => {
@@ -326,28 +366,47 @@ export function LiveExecutionFeed() {
   )
 }
 
-/** Kernel: Portfolio Intelligence holdings for the connected wallet. */
+/** Kernel: Portfolio holdings + analytics (entry / unrealized when FIFO available). */
 export function PositionsSnapshot() {
   const wallet = useTerminalOsStore((s) => s.walletAddress)
   const connected = useTerminalOsStore((s) => s.walletConnected)
 
   const q = useQuery({
-    queryKey: ['tos', 'positions-snap', wallet],
+    queryKey: ['tos', 'positions-analytics', wallet],
     enabled: Boolean(connected && wallet),
     queryFn: async () => {
-      const res = await fetch(`/api/portfolio/holdings?wallet=${encodeURIComponent(wallet!)}`, {
-        cache: 'no-store',
-      })
-      if (!res.ok) throw new Error('Holdings unavailable')
-      return (await res.json()) as HoldingsResponse
+      const [holdingsRes, analyticsRes] = await Promise.all([
+        fetch(`/api/portfolio/holdings?wallet=${encodeURIComponent(wallet!)}`, {
+          cache: 'no-store',
+        }),
+        fetch(`/api/portfolio/analytics?wallet=${encodeURIComponent(wallet!)}`, {
+          cache: 'no-store',
+        }),
+      ])
+      if (!holdingsRes.ok) throw new Error('Holdings unavailable')
+      const holdings = (await holdingsRes.json()) as HoldingsResponse
+      const analytics = analyticsRes.ok
+        ? ((await analyticsRes.json()) as {
+            holdings?: Array<{
+              mint: string
+              avgEntryPriceUsd: number | null
+              unrealizedPnlUsd: number | null
+              allocationPct: number
+            }>
+            unrealizedPnl?: number | null
+          })
+        : null
+      return { holdings, analytics }
     },
     staleTime: 20_000,
-    refetchInterval: 30_000,
+    refetchInterval: 45_000,
   })
 
-  const rows = (q.data?.holdings ?? []).slice(0, 6)
-  const totalUnrealizedHint =
-    q.data?.holdings?.reduce((s, h) => s + (h.valueUsd ?? 0), 0) ?? 0
+  const analyticsByMint = new Map(
+    (q.data?.analytics?.holdings ?? []).map((h) => [h.mint, h] as const),
+  )
+  const rows = (q.data?.holdings?.holdings ?? []).slice(0, 6)
+  const totalUnrealized = q.data?.analytics?.unrealizedPnl
 
   return (
     <div className="tos-desk-panel" data-tos-positions="true">
@@ -370,25 +429,49 @@ export function PositionsSnapshot() {
               <tr>
                 <th>Asset</th>
                 <th>Size</th>
-                <th>24h</th>
+                <th>Entry</th>
+                <th>uPnL</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((h) => (
-                <tr key={h.mint}>
-                  <td>{h.symbol || h.mint.slice(0, 4)}</td>
-                  <td className="tos-num">{formatUsd(h.valueUsd ?? 0, true)}</td>
-                  <td>{h.change24hPct != null ? <Pct value={h.change24hPct} /> : '—'}</td>
-                </tr>
-              ))}
+              {rows.map((h) => {
+                const a = analyticsByMint.get(h.mint)
+                return (
+                  <tr key={h.mint}>
+                    <td>
+                      {h.symbol || h.mint.slice(0, 4)}
+                      {a?.allocationPct != null ? (
+                        <span className="tos-muted"> {a.allocationPct.toFixed(0)}%</span>
+                      ) : null}
+                    </td>
+                    <td className="tos-num">{formatUsd(h.valueUsd ?? 0, true)}</td>
+                    <td className="tos-num">
+                      {a?.avgEntryPriceUsd != null ? formatUsd(a.avgEntryPriceUsd) : '—'}
+                    </td>
+                    <td className="tos-num">
+                      {a?.unrealizedPnlUsd != null ? (
+                        <span className={a.unrealizedPnlUsd >= 0 ? 'tos-pos' : 'tos-neg'}>
+                          {formatUsd(a.unrealizedPnlUsd, true)}
+                        </span>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
-          {totalUnrealizedHint > 0 ? (
-            <p className="tos-positions-foot">
-              Marked value <strong className="tos-num">{formatUsd(totalUnrealizedHint, true)}</strong>
-              <span className="tos-muted"> · avg-cost PnL unavailable until fill history</span>
-            </p>
-          ) : null}
+          <p className="tos-positions-foot">
+            {totalUnrealized != null ? (
+              <>
+                Unrealized{' '}
+                <strong className="tos-num">{formatUsd(totalUnrealized, true)}</strong>
+              </>
+            ) : (
+              <span className="tos-muted">Avg-cost PnL unavailable until fill history</span>
+            )}
+          </p>
         </>
       )}
     </div>
@@ -737,7 +820,7 @@ export function TradeLikeMeDnaCard() {
           <p className="tos-desk-empty">
             {dna?.sample
               ? 'Sample DNA is not shown as live — train from real fills.'
-              : 'Training — not enough data yet'}
+              : 'TRAINING — Not enough real trading history yet'}
           </p>
           <button
             type="button"
@@ -770,7 +853,20 @@ export function TradeLikeMeDnaCard() {
               Sample <strong className="tos-num">{dna.sampleSize}</strong>
             </span>
             <span>
-              Trades <strong className="tos-num">{dna.tradeCount}</strong>
+              Risk <strong>{dna.riskAppetiteLabel}</strong>
+            </span>
+            <span>
+              Hold{' '}
+              <strong className="tos-num">
+                {dna.avgHoldingMs > 0
+                  ? dna.avgHoldingMs < 3_600_000
+                    ? `${Math.round(dna.avgHoldingMs / 60_000)}m`
+                    : `${(dna.avgHoldingMs / 3_600_000).toFixed(1)}h`
+                  : '—'}
+              </strong>
+            </span>
+            <span>
+              Loss tol <strong className="tos-num">−{dna.lossTolerancePct}%</strong>
             </span>
           </div>
           <button type="button" className="tos-scanner-buy" onClick={() => setNav('ai-trading')}>

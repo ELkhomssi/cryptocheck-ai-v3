@@ -250,6 +250,7 @@ export type TerminalNavId =
   | 'mission-control'
   | 'ai-scanner'
   | 'market-intel'
+  | 'chart-intelligence'
   | 'whale-tracking'
   | 'execution'
   | 'ai-trading'
@@ -263,3 +264,5 @@ export type TerminalNavId =
   | 'security'
   | 'ai-coach'
   | 'scout'
+  | 'backtesting'
+  | 'journal'
