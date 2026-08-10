@@ -1,20 +1,21 @@
 'use client'
 
 /**
- * Persistent command rail — Picture-1 Mission Control hierarchy.
- * Badges + health from real sources only.
+ * Mission Control rail — reference hierarchy with real destinations + badges.
+ * Subtexts are labels only; badges from useRailBadges (never invent engine totals).
  */
 
 import {
   Activity,
   Bell,
+  BookOpen,
   Brain,
   CandlestickChart,
   Crosshair,
+  FlaskConical,
   LayoutGrid,
   LineChart,
   MessageSquare,
-  Search,
   Settings,
   Sparkles,
   Wallet,
@@ -28,24 +29,49 @@ import { useRailBadges } from '@/features/terminal-os/shell/hooks/useRailBadges'
 type NavItem = {
   id: TerminalNavId
   label: string
+  sub: string
   icon: typeof LayoutGrid
   badgeKey?: 'whale' | 'automation' | 'alerts' | 'dna'
+  liveKey?: 'execution' | 'coach'
 }
 
 const NAV: NavItem[] = [
-  { id: 'terminal', label: 'AI Gateway', icon: LayoutGrid },
-  { id: 'mission-control', label: 'Mission Control', icon: Crosshair },
-  { id: 'market-intel', label: 'Market Intelligence', icon: LineChart },
-  { id: 'market-intel', label: 'Chart Intelligence', icon: CandlestickChart },
-  { id: 'whale-tracking', label: 'Whale Command', icon: Waves, badgeKey: 'whale' },
-  { id: 'portfolio', label: 'Portfolio & Risk', icon: Wallet },
-  { id: 'execution', label: 'Execution Engine', icon: Sparkles },
-  { id: 'ai-trading', label: 'Trade Like Me (DNA)', icon: Brain, badgeKey: 'dna' },
-  { id: 'ai-coach', label: 'AI Coach', icon: MessageSquare },
-  { id: 'alerts', label: 'Automation Hub', icon: Workflow, badgeKey: 'automation' },
-  { id: 'alerts', label: 'Alerts', icon: Bell, badgeKey: 'alerts' },
-  { id: 'scout', label: 'Scout', icon: Search },
-  { id: 'settings', label: 'System Health', icon: Settings },
+  { id: 'terminal', label: 'AI Gateway', sub: 'Command & Decision', icon: LayoutGrid },
+  { id: 'mission-control', label: 'Mission Control', sub: 'Active Missions', icon: Crosshair },
+  { id: 'market-intel', label: 'Market Intelligence', sub: 'Real-time Scanner', icon: LineChart },
+  {
+    id: 'chart-intelligence',
+    label: 'Chart Intelligence',
+    sub: 'AI Technical Analysis',
+    icon: CandlestickChart,
+  },
+  { id: 'whale-tracking', label: 'Whale Command', sub: 'On-chain Tracking', icon: Waves, badgeKey: 'whale' },
+  { id: 'portfolio', label: 'Portfolio & Risk', sub: 'Exposure & Allocation', icon: Wallet },
+  {
+    id: 'execution',
+    label: 'Execution Engine',
+    sub: 'Smart Execution',
+    icon: Sparkles,
+    liveKey: 'execution',
+  },
+  {
+    id: 'ai-trading',
+    label: 'Trade Like Me (DNA)',
+    sub: 'AI Personal Model',
+    icon: Brain,
+    badgeKey: 'dna',
+  },
+  { id: 'ai-coach', label: 'AI Coach', sub: 'Strategy Advisor', icon: MessageSquare, liveKey: 'coach' },
+  { id: 'backtesting', label: 'Backtesting Lab', sub: 'Simulations & Strategy', icon: FlaskConical },
+  {
+    id: 'alerts',
+    label: 'Automation Hub',
+    sub: 'Bots & Workflows',
+    icon: Workflow,
+    badgeKey: 'automation',
+  },
+  { id: 'journal', label: 'Directory & Journal', sub: 'All Activities', icon: BookOpen },
+  { id: 'settings', label: 'System Health', sub: 'All Engines', icon: Settings },
 ]
 
 export function LeftRail() {
@@ -69,8 +95,7 @@ export function LeftRail() {
       ? Math.round((badges.health.ok / badges.health.total) * 100)
       : null
   const ring = 2 * Math.PI * 36
-  const dash =
-    healthPct == null ? ring : ring - (healthPct / 100) * ring
+  const dash = healthPct == null ? ring : ring - (healthPct / 100) * ring
 
   return (
     <aside className="tos-left-rail" aria-label="Terminal navigation" data-tos-rail="command">
@@ -96,15 +121,24 @@ export function LeftRail() {
               key={key}
               type="button"
               onClick={() => setActiveNav(item.id)}
-              title={item.label}
-              className="tos-nav-item"
+              title={`${item.label} — ${item.sub}`}
+              className="tos-nav-item tos-nav-item--ref"
               data-active={active ? 'true' : 'false'}
             >
               <Icon size={16} strokeWidth={2} />
-              <span data-tos-label>{item.label}</span>
+              <span className="tos-nav-item-copy">
+                <span data-tos-label className="tos-nav-item-label">
+                  {item.label}
+                </span>
+                <span className="tos-nav-item-sub">{item.sub}</span>
+              </span>
               {badge ? (
                 <span className="tos-nav-badge" data-tos-badge="true" aria-label={`${item.label} ${badge}`}>
                   {badge}
+                </span>
+              ) : item.liveKey ? (
+                <span className="tos-nav-live-pill" aria-hidden>
+                  LIVE
                 </span>
               ) : null}
             </button>

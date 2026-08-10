@@ -3027,9 +3027,163 @@
   grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.75fr) minmax(0, 0.85fr);
   align-items: stretch;
 }
+[data-tos] .tos-nav-item--ref {
+  align-items: flex-start;
+  min-height: 44px;
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+}
+[data-tos] .tos-nav-item-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  flex: 1;
+}
+[data-tos] .tos-nav-item-label {
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+[data-tos] .tos-nav-item-sub {
+  font-size: 0.55rem;
+  letter-spacing: 0.04em;
+  color: var(--tos-text-muted);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-tos] .tos-nav-item[data-active='true'] .tos-nav-item-sub {
+  color: color-mix(in srgb, var(--tos-accent-cyan) 70%, white);
+}
+[data-tos] .tos-nav-live-pill {
+  font-size: 0.5rem;
+  letter-spacing: 0.1em;
+  color: var(--tos-accent-mint);
+  border: 1px solid color-mix(in srgb, var(--tos-accent-mint) 40%, transparent);
+  border-radius: 999px;
+  padding: 0.1rem 0.3rem;
+  font-family: var(--tos-mono);
+}
+
+[data-tos] .tos-topbar-tagline {
+  display: block;
+  font-style: normal;
+  font-size: 0.5rem;
+  letter-spacing: 0.16em;
+  color: var(--tos-accent-cyan);
+  margin-top: 0.15rem;
+}
+[data-tos] .tos-topbar-portfolio {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+  min-width: 7.5rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: var(--tos-radius-sm);
+  border: 1px solid color-mix(in srgb, var(--tos-accent-gold) 28%, transparent);
+  background: color-mix(in srgb, var(--tos-accent-gold) 8%, transparent);
+}
+[data-tos] .tos-topbar-portfolio-label {
+  font-size: 0.5rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tos-text-muted);
+}
+[data-tos] .tos-topbar-portfolio strong {
+  font-size: 0.85rem;
+  color: var(--tos-text-primary);
+  line-height: 1.1;
+}
+[data-tos] .tos-topbar-portfolio-pnl {
+  font-size: 0.62rem;
+  font-family: var(--tos-mono);
+}
+
+[data-tos] .tos-home-bot-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-width: 0;
+}
 [data-tos] .tos-home-row-bot {
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.85fr) minmax(0, 0.85fr) minmax(0, 0.9fr) minmax(0, 1fr);
-  align-items: stretch;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr) minmax(0, 0.85fr) minmax(0, 0.9fr) minmax(0, 1fr);
+}
+
+[data-tos] .tos-sys-gauges {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr));
+  gap: 0.45rem;
+}
+[data-tos] .tos-sys-gauge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  text-align: center;
+}
+[data-tos] .tos-sys-gauge-ring {
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 2px solid color-mix(in srgb, var(--tos-accent-cyan) 35%, transparent);
+  background: radial-gradient(circle at 40% 30%, color-mix(in srgb, var(--tos-accent-cyan) 18%, transparent), transparent 70%);
+}
+[data-tos] .tos-sys-gauge[data-ok='true'] .tos-sys-gauge-ring {
+  border-color: var(--tos-accent-mint);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--tos-accent-mint) 30%, transparent);
+}
+[data-tos] .tos-sys-gauge[data-ok='false'] .tos-sys-gauge-ring {
+  border-color: var(--tos-warning);
+}
+[data-tos] .tos-sys-gauge-ring strong {
+  font-family: var(--tos-mono);
+  font-size: 0.62rem;
+  color: var(--tos-text-primary);
+}
+[data-tos] .tos-sys-gauge-label {
+  font-size: 0.52rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tos-accent-cyan);
+}
+[data-tos] .tos-sys-gauge-detail {
+  font-size: 0.5rem;
+  color: var(--tos-text-muted);
+  line-height: 1.2;
+}
+
+[data-tos] .tos-rec-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+[data-tos] .tos-rec-headline {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: var(--tos-fw-bold);
+  color: var(--tos-accent-mint);
+}
+[data-tos] .tos-rec-roi {
+  color: var(--tos-accent-gold);
+  font-family: var(--tos-mono);
+  font-size: 0.8rem;
+}
+[data-tos] .tos-rec-reason {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--tos-text-secondary);
+  line-height: 1.4;
+}
+[data-tos] .tos-rec-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  font-size: 0.65rem;
+  color: var(--tos-text-muted);
 }
 [data-tos] .tos-home-mid-right {
   display: flex;

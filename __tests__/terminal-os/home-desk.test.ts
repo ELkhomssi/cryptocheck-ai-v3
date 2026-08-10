@@ -26,9 +26,9 @@ describe('Terminal OS mockup home desk', () => {
     assert.match(desk, /IntelligenceSwap/)
     assert.match(desk, /IntelligenceChart/)
     assert.match(desk, /DecisionBrainSpokes/)
+    assert.match(desk, /SystemStatusGauges/)
     assert.match(desk, /LiveExecutionFeed/)
     assert.match(desk, /OnChainHeatmap/)
-    assert.match(desk, /TradeLikeMeDnaCard/)
     assert.match(desk, /ScannerDiscoveryStrip/)
     assert.match(desk, /AutonomousWorkflowStrip/)
     assert.match(desk, /PositionsSnapshot/)
@@ -64,14 +64,44 @@ describe('Terminal OS mockup home desk', () => {
     assert.match(panels, /No activity yet/)
     assert.match(panels, /No open positions/)
     assert.match(panels, /Scanning — no ranked opportunities yet/)
-    assert.match(panels, /Training — not enough data yet/)
+    assert.match(panels, /Training — not enough data yet|TRAINING — Not enough real trading history yet/)
     assert.match(panels, /Not enough holdings to map yet/)
+    assert.match(panels, /No active missions/)
+    assert.match(panels, /BRAIN_SIGNAL_SLOTS|Market Sentiment/)
     assert.match(panels, /executedFills/)
     assert.match(panels, /KERNEL CONNECTION/)
     assert.doesNotMatch(panels, /87%\s*DNA/)
     // Executed must not alias buyCount
     assert.doesNotMatch(panels, /Executed <strong>\{meta\.buyCount\}/)
     assert.match(panels, /real fills for this wallet/)
+  })
+
+  it('shell wires reference nav destinations and recommendation card', () => {
+    const shell = readFileSync(
+      join(root, 'features/terminal-os/shell/components/TerminalOsShell.tsx'),
+      'utf8',
+    )
+    const rail = readFileSync(
+      join(root, 'features/terminal-os/shell/components/LeftRail.tsx'),
+      'utf8',
+    )
+    assert.match(shell, /AiRecommendationCard/)
+    assert.match(shell, /chart-intelligence/)
+    assert.match(shell, /backtesting/)
+    assert.match(shell, /journal/)
+    assert.match(rail, /Backtesting Lab/)
+    assert.match(rail, /Directory & Journal/)
+    assert.match(rail, /Command & Decision/)
+  })
+
+  it('topbar portfolio value reads holdings not mockup dollars', () => {
+    const top = readFileSync(
+      join(root, 'features/terminal-os/shell/components/TopBar.tsx'),
+      'utf8',
+    )
+    assert.match(top, /AUTONOMOUS TRADING COMPANY/)
+    assert.match(top, /\/api\/portfolio\/holdings/)
+    assert.doesNotMatch(top, /37584/)
   })
 
   it('captured-trades GET exposes executedFills for workflow strip', () => {
