@@ -1,6 +1,6 @@
 /**
- * POST /api/terminal-os/captured-trades
- * Persist a real fill or rejected opportunity into the kernel capture pipeline.
+ * GET  /api/terminal-os/captured-trades?wallet= — real fill counts for workflow strip
+ * POST /api/terminal-os/captured-trades — persist a real fill / rejected opportunity
  * Rebuilds DNA when enough closed fills exist — never from stubs.
  */
 
@@ -17,6 +17,82 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 const TRADE_KEY = (wallet: string) => `ccai:tos:captured:${wallet}`
+
+async function loadMergedTrades(wallet: string): Promise<CapturedTrade[]> {
+  const capture = await captureWalletTradesForDna(wallet)
+  const liveRaw = await redis.get(TRADE_KEY(wallet))
+  let live: CapturedTrade[] = []
+  if (liveRaw) {
+    try {
+      live = JSON.parse(liveRaw) as CapturedTrade[]
+    } catch {
+      live = []
+    }
+  }
+  const byId = new Map<string, CapturedTrade>()
+  for (const t of [...live, ...capture.trades]) {
+    if (t.sample) continue
+    byId.set(t.id, t)
+  }
+  return Array.from(byId.values())
+}
+
+/** Real executed fills only — excludes rejects and sample rows. */
+function countExecutedFills(trades: CapturedTrade[]): number {
+  return trades.filter(
+    (t) =>
+      !t.sample &&
+      !t.wasRejectedOpportunity &&
+      (t.side === 'buy' || t.side === 'sell') &&
+      (t.positionSizeUsd > 0 || t.entryPriceUsd > 0),
+  ).length
+}
+
+/**
+ * GET — honest executed-fill count for Autonomous Workflow strip.
+ * Never invents session stats; returns 0 when the wallet has no real fills.
+ */
+export async function GET(req: NextRequest) {
+  const wallet = req.nextUrl.searchParams.get('wallet')?.trim() ?? ''
+  if (!wallet || !isValidSolanaMint(wallet)) {
+    return NextResponse.json({ error: 'Valid Solana wallet required' }, { status: 400 })
+  }
+
+  try {
+    const all = await loadMergedTrades(wallet)
+    const executedFills = countExecutedFills(all)
+    const rejected = all.filter((t) => t.wasRejectedOpportunity).length
+    return NextResponse.json(
+      {
+        wallet,
+        count: all.length,
+        executedFills,
+        rejected,
+        decisionsPublished: undefined,
+        trades: all.slice(0, 40).map((t) => ({
+          id: t.id,
+          side: t.side,
+          tokenSymbol: t.tokenSymbol,
+          entryAt: t.entryAt,
+          positionSizeUsd: t.positionSizeUsd,
+          wasRejectedOpportunity: t.wasRejectedOpportunity,
+          sample: t.sample ?? false,
+        })),
+      },
+      { headers: { 'cache-control': 'no-store' } },
+    )
+  } catch (e) {
+    return NextResponse.json(
+      {
+        error: e instanceof Error ? e.message : 'Captured trades unavailable',
+        executedFills: 0,
+        count: 0,
+        trades: [],
+      },
+      { status: 200, headers: { 'cache-control': 'no-store' } },
+    )
+  }
+}
 
 async function appendCaptured(wallet: string, trade: CapturedTrade): Promise<number> {
   const key = TRADE_KEY(wallet)

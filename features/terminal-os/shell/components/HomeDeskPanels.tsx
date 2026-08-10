@@ -1,10 +1,22 @@
 'use client'
 
 /**
- * Home-desk satellite panels — presentation only.
- * Every number from Decision / whales / holdings / tickMeta. Never invent mockup literals.
+ * Home-desk satellite panels — presentation only (Layer 4).
+ * Every number traces to Decision / attention / whales / holdings / tickMeta / DNA / real fills.
+ * Never invent mockup literals (no fake confidence %, no inflated executed counts, no stub DNA %).
+ *
+ * KERNEL CONNECTION DECLARATIONS (Step 1 — mandatory per panel):
+ * - DecisionBrainSpokes → Decision.contributingFactors (published Decision only)
+ * - CurrentMissionsPanel → published Decisions with actionable BUY/SELL/EXIT
+ * - LiveExecutionFeed → attention snapshot events + whale movements (real timestamps)
+ * - PositionsSnapshot → Portfolio Intelligence /api/portfolio/holdings
+ * - ScannerDiscoveryStrip → ranked published Decisions (confidence / expectedROI / risk)
+ * - OnChainHeatmap → holdings sized by real valueUsd / allocationPct
+ * - TradeLikeMeDnaCard → TraderDna.confidence, sampleSize, tradingStyleSummary, winRatePct
+ * - AutonomousWorkflowStrip → tickMeta stages + execution bridge + DNA learn + real fill count
  */
 
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { Decision } from '@cryptocheck/decision-contracts'
 import { useWhaleMovements } from '@/features/terminal-os/shared/hooks/useTerminalQueries'
@@ -14,6 +26,67 @@ import { formatUsd } from '@/features/terminal-os/shared/lib/format'
 import { Pct } from '@/features/terminal-os/shared/components/Pct'
 import type { HoldingsResponse } from '@/types/portfolio-desk'
 import type { DecisionTickMeta } from '@/features/ai-os/lib/gateway-phase'
+import { useTradeLikeMeEngine } from '@/features/terminal-os/ai-trade-like-me/hooks/useTradeLikeMeEngine'
+import {
+  IN_FLIGHT_EXECUTION,
+  useExecutionLifecycleBridge,
+} from '@/features/terminal-os/money-lifecycle/execution-lifecycle-bridge'
+
+type AttentionLiveEvent = {
+  seq: number
+  kind: string
+  eventType: string
+  itemId: string
+  at: string
+}
+
+type AttentionItemLite = {
+  id: string
+  sourceEngine: string
+  headline: string
+  createdAt: string
+}
+
+type FeedRow = {
+  id: string
+  at: string
+  title: string
+  detail: string
+}
+
+const WORKFLOW_STAGES = ['Discover', 'Analyze', 'Decide', 'Execute', 'Monitor', 'Learn'] as const
+type WorkflowStage = (typeof WORKFLOW_STAGES)[number]
+
+function relativeTime(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime()
+  if (!Number.isFinite(ms) || ms < 0) return '—'
+  const sec = Math.floor(ms / 1000)
+  if (sec < 60) return `${sec}s ago`
+  const min = Math.floor(sec / 60)
+  if (min < 60) return `${min}m ago`
+  const hr = Math.floor(min / 60)
+  if (hr < 48) return `${hr}h ago`
+  return `${Math.floor(hr / 24)}d ago`
+}
+
+function eventLabel(eventType: string): string {
+  switch (eventType) {
+    case 'DecisionMade':
+      return 'AI Decision'
+    case 'SecurityFlagRaised':
+      return 'Risk check'
+    case 'WhaleFlow':
+      return 'Whale flow'
+    case 'PortfolioChanged':
+      return 'Portfolio'
+    case 'DNAUpdated':
+      return 'DNA update'
+    case 'MarketContextChanged':
+      return 'Market context'
+    default:
+      return eventType.replace(/([A-Z])/g, ' $1').trim()
+  }
+}
 
 export function DecisionBrainSpokes() {
   const wallet = useTerminalOsStore((s) => s.walletAddress)
@@ -80,11 +153,8 @@ export function CurrentMissionsPanel() {
       const qs = new URLSearchParams({ limit: '8' })
       if (wallet) qs.set('wallet', wallet)
       const res = await fetch(`/api/terminal-os/decisions?${qs}`, { cache: 'no-store' })
-      if (!res.ok) return { decisions: [] as Decision[], tickMeta: null as DecisionTickMeta | null }
-      return (await res.json()) as {
-        decisions?: Decision[]
-        tickMeta?: DecisionTickMeta | null
-      }
+      if (!res.ok) return { decisions: [] as Decision[] }
+      return (await res.json()) as { decisions?: Decision[] }
     },
     staleTime: 15_000,
     refetchInterval: 25_000,
@@ -129,35 +199,80 @@ export function CurrentMissionsPanel() {
   )
 }
 
+/**
+ * Kernel: attention live events (Decision / security / whale / portfolio / DNA)
+ * plus whale movements with real occurredAt. Never stocks a fake feed.
+ */
 export function LiveExecutionFeed() {
-  const whalesQ = useWhaleMovements(16)
-  const items = (whalesQ.data ?? []).slice(0, 10)
+  const wallet = useTerminalOsStore((s) => s.walletAddress)
+  const whalesQ = useWhaleMovements(12)
+
+  const attentionQ = useQuery({
+    queryKey: ['tos', 'exec-feed-attention', wallet],
+    queryFn: async () => {
+      const qs = new URLSearchParams()
+      if (wallet) qs.set('wallet', wallet)
+      const res = await fetch(`/api/terminal-os/attention/snapshot?${qs}`, { cache: 'no-store' })
+      if (!res.ok) {
+        return { events: [] as AttentionLiveEvent[], items: [] as AttentionItemLite[] }
+      }
+      return (await res.json()) as {
+        events?: AttentionLiveEvent[]
+        items?: AttentionItemLite[]
+      }
+    },
+    staleTime: 8_000,
+    refetchInterval: 12_000,
+  })
+
+  const rows = useMemo(() => {
+    const byId = new Map<string, AttentionItemLite>()
+    for (const item of attentionQ.data?.items ?? []) byId.set(item.id, item)
+
+    const fromAttention: FeedRow[] = (attentionQ.data?.events ?? []).map((ev) => {
+      const item = byId.get(ev.itemId)
+      return {
+        id: `att-${ev.seq}-${ev.itemId}`,
+        at: ev.at,
+        title: item?.headline ?? eventLabel(ev.eventType),
+        detail: eventLabel(ev.eventType),
+      }
+    })
+
+    const fromWhales: FeedRow[] = (whalesQ.data ?? []).map((w) => ({
+      id: `whale-${w.id}`,
+      at: w.occurredAt,
+      title: `${w.action.toUpperCase()} ${w.assetSymbol} · ${formatUsd(w.usdValue, true)}`,
+      detail: w.classification || 'Whale movement',
+    }))
+
+    return [...fromAttention, ...fromWhales]
+      .filter((r) => r.at && Number.isFinite(new Date(r.at).getTime()))
+      .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+      .slice(0, 12)
+  }, [attentionQ.data, whalesQ.data])
+
+  const live = rows.length > 0
 
   return (
     <div className="tos-desk-panel tos-exec-feed" data-tos-exec-feed="true">
       <header className="tos-desk-panel-head">
         <span>Live Execution Feed</span>
-        <span className="tos-desk-live" data-on={items.length > 0 ? 'true' : 'false'}>
-          {whalesQ.isFetching ? 'Updating' : items.length ? 'Live' : 'Idle'}
+        <span className="tos-desk-live" data-on={live ? 'true' : 'false'}>
+          {attentionQ.isFetching || whalesQ.isFetching ? 'Updating' : live ? 'Live' : 'Idle'}
         </span>
       </header>
-      {items.length === 0 ? (
-        <p className="tos-desk-empty">No recent whale / flow events.</p>
+      {rows.length === 0 ? (
+        <p className="tos-desk-empty">No activity yet</p>
       ) : (
         <ul className="tos-exec-feed-list">
-          {items.map((w) => (
-            <li key={w.id}>
-              <time dateTime={w.occurredAt}>
-                {new Date(w.occurredAt).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
-                })}
+          {rows.map((r) => (
+            <li key={r.id}>
+              <time dateTime={r.at} title={new Date(r.at).toLocaleString()}>
+                {relativeTime(r.at)}
               </time>
-              <span>
-                {w.action.toUpperCase()} {w.assetSymbol} · {formatUsd(w.usdValue, true)}
-              </span>
-              <em>{w.classification}</em>
+              <span>{r.title}</span>
+              <em>{r.detail}</em>
             </li>
           ))}
         </ul>
@@ -166,6 +281,7 @@ export function LiveExecutionFeed() {
   )
 }
 
+/** Kernel: Portfolio Intelligence holdings for the connected wallet. */
 export function PositionsSnapshot() {
   const wallet = useTerminalOsStore((s) => s.walletAddress)
   const connected = useTerminalOsStore((s) => s.walletConnected)
@@ -185,13 +301,15 @@ export function PositionsSnapshot() {
   })
 
   const rows = (q.data?.holdings ?? []).slice(0, 6)
+  const totalUnrealizedHint =
+    q.data?.holdings?.reduce((s, h) => s + (h.valueUsd ?? 0), 0) ?? 0
 
   return (
     <div className="tos-desk-panel" data-tos-positions="true">
       <header className="tos-desk-panel-head">
         <span>Positions</span>
         <span className="tos-desk-live" data-on={rows.length > 0 ? 'true' : 'false'}>
-          {connected ? `${rows.length} shown` : 'Connect'}
+          {connected ? (rows.length ? `${rows.length} open` : 'Empty') : 'Connect'}
         </span>
       </header>
       {!connected ? (
@@ -199,51 +317,128 @@ export function PositionsSnapshot() {
       ) : q.isLoading ? (
         <p className="tos-desk-empty">Loading holdings…</p>
       ) : rows.length === 0 ? (
-        <p className="tos-desk-empty">No positions in this wallet.</p>
+        <p className="tos-desk-empty">No open positions</p>
       ) : (
-        <table className="tos-positions-table">
-          <thead>
-            <tr>
-              <th>Asset</th>
-              <th>Value</th>
-              <th>24h</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((h) => (
-              <tr key={h.mint}>
-                <td>{h.symbol || h.mint.slice(0, 4)}</td>
-                <td className="tos-num">{formatUsd(h.valueUsd ?? 0, true)}</td>
-                <td>
-                  {h.change24hPct != null ? <Pct value={h.change24hPct} /> : '—'}
-                </td>
+        <>
+          <table className="tos-positions-table">
+            <thead>
+              <tr>
+                <th>Asset</th>
+                <th>Size</th>
+                <th>24h</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((h) => (
+                <tr key={h.mint}>
+                  <td>{h.symbol || h.mint.slice(0, 4)}</td>
+                  <td className="tos-num">{formatUsd(h.valueUsd ?? 0, true)}</td>
+                  <td>{h.change24hPct != null ? <Pct value={h.change24hPct} /> : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {totalUnrealizedHint > 0 ? (
+            <p className="tos-positions-foot">
+              Marked value <strong className="tos-num">{formatUsd(totalUnrealizedHint, true)}</strong>
+              <span className="tos-muted"> · avg-cost PnL unavailable until fill history</span>
+            </p>
+          ) : null}
+        </>
       )}
     </div>
   )
 }
 
+/**
+ * Kernel: tickMeta (Discover/Analyze/Decide), execution bridge (Execute),
+ * attention freshness (Monitor), DNA sampleSize (Learn).
+ * "Executed" = real on-chain fills for this wallet — never tickMeta.buyCount.
+ */
 export function AutonomousWorkflowStrip() {
   const wallet = useTerminalOsStore((s) => s.walletAddress)
-  const q = useQuery({
+  const connected = useTerminalOsStore((s) => s.walletConnected)
+  const executionState = useExecutionLifecycleBridge((s) => s.executionState)
+  const { state: tlm } = useTradeLikeMeEngine()
+
+  const tickQ = useQuery({
     queryKey: ['tos', 'workflow-tick', wallet],
     queryFn: async () => {
       const qs = new URLSearchParams({ limit: '1' })
       if (wallet) qs.set('wallet', wallet)
       const res = await fetch(`/api/terminal-os/decisions?${qs}`, { cache: 'no-store' })
       if (!res.ok) return null
-      const body = (await res.json()) as { tickMeta?: DecisionTickMeta | null }
-      return body.tickMeta ?? null
+      const body = (await res.json()) as { tickMeta?: DecisionTickMeta | null; decisions?: Decision[] }
+      return body
     },
     staleTime: 20_000,
     refetchInterval: 30_000,
   })
 
-  const meta = q.data
-  const stages = ['Discover', 'Analyze', 'Decide', 'Execute', 'Monitor', 'Learn'] as const
+  const fillsQ = useQuery({
+    queryKey: ['tos', 'workflow-fills', wallet],
+    enabled: Boolean(connected && wallet),
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/terminal-os/captured-trades?wallet=${encodeURIComponent(wallet!)}`,
+        { cache: 'no-store' },
+      )
+      if (!res.ok) return { executed: 0, decisionsPublished: 0 }
+      const body = (await res.json()) as {
+        executedFills?: number
+        decisionsPublished?: number
+        count?: number
+      }
+      return {
+        executed: body.executedFills ?? 0,
+        decisionsPublished: body.decisionsPublished ?? body.count ?? 0,
+      }
+    },
+    staleTime: 30_000,
+    refetchInterval: 45_000,
+  })
+
+  const attentionQ = useQuery({
+    queryKey: ['tos', 'workflow-attention', wallet],
+    queryFn: async () => {
+      const qs = new URLSearchParams()
+      if (wallet) qs.set('wallet', wallet)
+      const res = await fetch(`/api/terminal-os/attention/snapshot?${qs}`, { cache: 'no-store' })
+      if (!res.ok) return { updatedAt: null as string | null, eventCount: 0 }
+      const body = (await res.json()) as { updatedAt?: string; events?: unknown[] }
+      return {
+        updatedAt: body.updatedAt ?? null,
+        eventCount: body.events?.length ?? 0,
+      }
+    },
+    staleTime: 15_000,
+    refetchInterval: 20_000,
+  })
+
+  const meta = tickQ.data?.tickMeta ?? null
+  const published = meta?.published ?? 0
+  const scanned = meta?.scanned ?? 0
+  const executed = fillsQ.data?.executed ?? 0
+  const decisionsShown = published
+
+  const active = useMemo(() => {
+    const set = new Set<WorkflowStage>()
+    if (scanned > 0) set.add('Discover')
+    if (scanned > 0) set.add('Analyze')
+    if (published > 0) set.add('Decide')
+    if (IN_FLIGHT_EXECUTION.has(executionState) || executionState === 'confirmed') {
+      set.add('Execute')
+    }
+    const attAt = attentionQ.data?.updatedAt
+    if (attAt) {
+      const age = Date.now() - new Date(attAt).getTime()
+      if (Number.isFinite(age) && age < 5 * 60_000 && (attentionQ.data?.eventCount ?? 0) > 0) {
+        set.add('Monitor')
+      }
+    }
+    if (tlm.dna && tlm.dna.sampleSize > 0 && !tlm.dna.sample) set.add('Learn')
+    return set
+  }, [scanned, published, executionState, attentionQ.data, tlm.dna])
 
   return (
     <div className="tos-desk-panel tos-workflow" data-tos-workflow="true">
@@ -253,22 +448,24 @@ export function AutonomousWorkflowStrip() {
           Advise-only default
         </span>
       </header>
-      <ol className="tos-workflow-stages">
-        {stages.map((s) => (
-          <li key={s}>{s}</li>
+      <ol className="tos-workflow-stages" aria-label="Workflow stages">
+        {WORKFLOW_STAGES.map((s) => (
+          <li key={s} data-active={active.has(s) ? 'true' : 'false'}>
+            {s}
+          </li>
         ))}
       </ol>
       <div className="tos-workflow-stats">
-        {meta && meta.scanned > 0 ? (
+        {meta && scanned > 0 ? (
           <>
             <span>
-              Scanned <strong>{meta.scanned}</strong>
+              Decisions <strong>{decisionsShown}</strong>
             </span>
             <span>
-              Published <strong>{meta.published}</strong>
+              Executed <strong>{executed}</strong>
             </span>
-            <span>
-              Buy signals <strong>{meta.buyCount}</strong>
+            <span className="tos-muted tos-workflow-note">
+              Executed = real fills for this wallet, not BUY signals
             </span>
           </>
         ) : (
@@ -279,32 +476,30 @@ export function AutonomousWorkflowStrip() {
   )
 }
 
+/**
+ * Kernel: ranked published Decisions only — confidence / expectedROI / risk from Decision.
+ * Empty: "Scanning — no ranked opportunities yet"
+ */
 export function ScannerDiscoveryStrip() {
+  const wallet = useTerminalOsStore((s) => s.walletAddress)
   const setFocused = useTerminalOsStore((s) => s.setFocusedToken)
   const setNav = useTerminalOsStore((s) => s.setActiveNav)
 
   const q = useQuery({
-    queryKey: ['tos', 'scanner-strip'],
+    queryKey: ['tos', 'scanner-decisions', wallet],
     queryFn: async () => {
-      const res = await fetch('/api/terminal-os/feed?resource=tokens&chain=solana&limit=8', {
-        cache: 'no-store',
-      })
-      if (!res.ok) return []
-      const body = (await res.json()) as {
-        items?: Array<{
-          id: string
-          symbol: string
-          name: string
-          chain: string
-          priceUsd: number
-          change24hPct: number
-          logoUrl?: string
-        }>
-      }
-      return body.items ?? []
+      const qs = new URLSearchParams({ limit: '16' })
+      if (wallet) qs.set('wallet', wallet)
+      const res = await fetch(`/api/terminal-os/decisions?${qs}`, { cache: 'no-store' })
+      if (!res.ok) return [] as Decision[]
+      const body = (await res.json()) as { decisions?: Decision[] }
+      return (body.decisions ?? [])
+        .filter((d) => d.subject.kind === 'token')
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, 6)
     },
-    staleTime: 20_000,
-    refetchInterval: 30_000,
+    staleTime: 15_000,
+    refetchInterval: 25_000,
   })
 
   const rows = q.data ?? []
@@ -312,55 +507,222 @@ export function ScannerDiscoveryStrip() {
   return (
     <div className="tos-desk-panel" data-tos-scanner="true">
       <header className="tos-desk-panel-head">
-        <span>Scanner & Discovery</span>
+        <span>Scanner &amp; Discovery</span>
         <span className="tos-desk-live" data-on={rows.length > 0 ? 'true' : 'false'}>
-          {rows.length ? 'Live feed' : 'Empty'}
+          {rows.length ? 'From Decisions' : 'Scanning'}
         </span>
       </header>
-      {rows.length === 0 ? (
-        <p className="tos-desk-empty">Token feed unavailable.</p>
+      {q.isLoading ? (
+        <p className="tos-desk-empty">Loading ranked Decisions…</p>
+      ) : rows.length === 0 ? (
+        <p className="tos-desk-empty">Scanning — no ranked opportunities yet</p>
       ) : (
         <table className="tos-scanner-table">
           <thead>
             <tr>
               <th>Token</th>
-              <th>Price</th>
-              <th>24h</th>
+              <th>Conf</th>
+              <th>ROI</th>
+              <th>Risk</th>
               <th />
             </tr>
           </thead>
           <tbody>
-            {rows.slice(0, 5).map((t) => (
-              <tr key={t.id}>
-                <td>{t.symbol}</td>
-                <td className="tos-num">{formatUsd(t.priceUsd)}</td>
-                <td>
-                  <Pct value={t.change24hPct} />
-                </td>
-                <td>
-                  <button
-                    type="button"
-                    className="tos-scanner-buy"
-                    onClick={() => {
-                      setFocused({
-                        id: t.id,
-                        symbol: t.symbol,
-                        name: t.name,
-                        chain: 'solana',
-                        priceUsd: t.priceUsd,
-                        logoUrl: t.logoUrl,
-                      })
-                      setNav('terminal')
-                    }}
-                  >
-                    Focus
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {rows.map((d) => {
+              const sym = d.subject.kind === 'token' ? d.subject.symbol : '—'
+              const mint = d.subject.kind === 'token' ? d.subject.address || sym : sym
+              return (
+                <tr key={d.id}>
+                  <td>
+                    <strong>{sym}</strong>
+                    <span className="tos-scanner-act"> {d.action}</span>
+                  </td>
+                  <td className="tos-num">{Math.round(d.confidence)}%</td>
+                  <td className="tos-num">
+                    {d.expectedROI != null ? `${d.expectedROI > 0 ? '+' : ''}${d.expectedROI.toFixed(1)}%` : '—'}
+                  </td>
+                  <td className="tos-num">{Math.round(d.risk)}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="tos-scanner-buy"
+                      onClick={() => {
+                        setFocused({
+                          id: mint,
+                          symbol: sym,
+                          name: sym,
+                          chain: 'solana',
+                          priceUsd: 0,
+                        })
+                        setNav('terminal')
+                      }}
+                    >
+                      Focus
+                    </button>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       )}
     </div>
   )
 }
+
+/**
+ * Kernel: Portfolio holdings sized by real USD value / allocationPct.
+ * No fabricated node sizes — empty when no holdings.
+ */
+export function OnChainHeatmap() {
+  const wallet = useTerminalOsStore((s) => s.walletAddress)
+  const connected = useTerminalOsStore((s) => s.walletConnected)
+  const setFocused = useTerminalOsStore((s) => s.setFocusedToken)
+
+  const q = useQuery({
+    queryKey: ['tos', 'heatmap-holdings', wallet],
+    enabled: Boolean(connected && wallet),
+    queryFn: async () => {
+      const res = await fetch(`/api/portfolio/holdings?wallet=${encodeURIComponent(wallet!)}`, {
+        cache: 'no-store',
+      })
+      if (!res.ok) throw new Error('Holdings unavailable')
+      return (await res.json()) as HoldingsResponse
+    },
+    staleTime: 20_000,
+    refetchInterval: 30_000,
+  })
+
+  const nodes = useMemo(() => {
+    const holdings = (q.data?.holdings ?? []).filter((h) => h.valueUsd > 0).slice(0, 12)
+    const max = Math.max(...holdings.map((h) => h.valueUsd), 1)
+    return holdings.map((h) => ({
+      holding: h,
+      // 0.45–1 scale from real USD — never invented
+      scale: 0.45 + 0.55 * (h.valueUsd / max),
+    }))
+  }, [q.data])
+
+  return (
+    <div className="tos-desk-panel tos-heatmap" data-tos-heatmap="true">
+      <header className="tos-desk-panel-head">
+        <span>On-Chain Heatmap</span>
+        <span className="tos-desk-live" data-on={nodes.length > 0 ? 'true' : 'false'}>
+          {connected ? (nodes.length ? 'By USD value' : 'Empty') : 'Connect'}
+        </span>
+      </header>
+      {!connected ? (
+        <p className="tos-desk-empty">Connect wallet to map real holdings.</p>
+      ) : q.isLoading ? (
+        <p className="tos-desk-empty">Loading holdings…</p>
+      ) : nodes.length === 0 ? (
+        <p className="tos-desk-empty">Not enough holdings to map yet</p>
+      ) : (
+        <div className="tos-heatmap-field" role="list" aria-label="Holdings by USD value">
+          {nodes.map(({ holding: h, scale }) => (
+            <button
+              key={h.mint}
+              type="button"
+              role="listitem"
+              className="tos-heatmap-node"
+              style={{
+                ['--hm-scale' as string]: String(scale),
+                ['--hm-heat' as string]: heatFromChange(h.change24hPct),
+              }}
+              title={`${h.symbol}: ${formatUsd(h.valueUsd, true)} (${h.allocationPct.toFixed(1)}%)`}
+              onClick={() =>
+                setFocused({
+                  id: h.mint,
+                  symbol: h.symbol,
+                  name: h.name,
+                  chain: 'solana',
+                  priceUsd: h.priceUsd,
+                  logoUrl: h.logoUrl ?? undefined,
+                })
+              }
+            >
+              <span className="tos-heatmap-sym">{h.symbol}</span>
+              <span className="tos-heatmap-pct">{h.allocationPct.toFixed(0)}%</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function heatFromChange(pct: number | null): string {
+  if (pct == null) return '0.5'
+  // Map −15..+15 → 0..1 for CSS color mix
+  const t = Math.max(0, Math.min(1, (pct + 15) / 30))
+  return t.toFixed(3)
+}
+
+/**
+ * Kernel: TraderDna from orchestrator / Redis hydrate.
+ * Shows confidence, sampleSize, tradingStyleSummary, winRatePct — or honest training empty.
+ * Never displays a fabricated DNA percentage as live training.
+ */
+export function TradeLikeMeDnaCard() {
+  const connected = useTerminalOsStore((s) => s.walletConnected)
+  const setNav = useTerminalOsStore((s) => s.setActiveNav)
+  const { state, busy, trainAiFromMyTrading } = useTradeLikeMeEngine()
+  const dna = state.dna
+
+  const ready = Boolean(dna && dna.sampleSize > 0 && !dna.sample)
+
+  return (
+    <div className="tos-desk-panel tos-dna-card" data-tos-dna-card="true">
+      <header className="tos-desk-panel-head">
+        <span>Trade Like Me (DNA)</span>
+        <span className="tos-desk-live" data-on={ready ? 'true' : 'false'}>
+          {dna?.sample ? 'Sample' : ready ? 'Trained' : 'Training'}
+        </span>
+      </header>
+
+      {!connected ? (
+        <p className="tos-desk-empty">Connect a Solana wallet to train Trader DNA.</p>
+      ) : !dna || dna.sampleSize < 1 || dna.sample ? (
+        <div className="tos-dna-empty">
+          <p className="tos-desk-empty">
+            {dna?.sample
+              ? 'Sample DNA is not shown as live — train from real fills.'
+              : 'Training — not enough data yet'}
+          </p>
+          <button
+            type="button"
+            className="tos-scanner-buy"
+            disabled={busy}
+            onClick={() => void trainAiFromMyTrading()}
+          >
+            Train from my trading
+          </button>
+        </div>
+      ) : (
+        <div className="tos-dna-compact">
+          <div className="tos-dna-match">
+            <span className="tos-dna-match-val tos-num">{dna.confidence}%</span>
+            <span className="tos-dna-match-label">DNA confidence</span>
+          </div>
+          <p className="tos-dna-style">{dna.tradingStyleSummary}</p>
+          <div className="tos-dna-metrics">
+            <span>
+              Win rate <strong className="tos-num">{dna.winRatePct}%</strong>
+            </span>
+            <span>
+              Sample <strong className="tos-num">{dna.sampleSize}</strong>
+            </span>
+            <span>
+              Trades <strong className="tos-num">{dna.tradeCount}</strong>
+            </span>
+          </div>
+          <button type="button" className="tos-scanner-buy" onClick={() => setNav('ai-trading')}>
+            Open DNA desk
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export { allocationSegments, PortfolioAllocationDonut } from '@/features/terminal-os/portfolio-os/components/PortfolioAllocationDonut'
