@@ -130,7 +130,7 @@ export function TopBar() {
         title={rail.health.label}
       >
         <span className="tos-topbar-sys-dot" aria-hidden />
-        <span>{rail.health.label}</span>
+        <span className="tos-topbar-sys-text">{rail.health.label}</span>
       </div>
 
       <div className="tos-search-wrap">

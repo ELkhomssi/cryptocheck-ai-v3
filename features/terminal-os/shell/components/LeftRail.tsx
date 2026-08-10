@@ -1,7 +1,8 @@
 'use client'
 
 /**
- * Persistent command rail — mockup hierarchy, real badge counts only.
+ * Persistent command rail — Picture-1 Mission Control hierarchy.
+ * Badges + health from real sources only.
  */
 
 import {
@@ -28,11 +29,9 @@ type NavItem = {
   id: TerminalNavId
   label: string
   icon: typeof LayoutGrid
-  /** Which real badge key to show (omit = no badge) */
   badgeKey?: 'whale' | 'automation' | 'alerts' | 'dna'
 }
 
-/** Mockup order — only surfaces that exist in Terminal OS. */
 const NAV: NavItem[] = [
   { id: 'terminal', label: 'AI Gateway', icon: LayoutGrid },
   { id: 'mission-control', label: 'Mission Control', icon: Crosshair },
@@ -41,7 +40,7 @@ const NAV: NavItem[] = [
   { id: 'whale-tracking', label: 'Whale Command', icon: Waves, badgeKey: 'whale' },
   { id: 'portfolio', label: 'Portfolio & Risk', icon: Wallet },
   { id: 'execution', label: 'Execution Engine', icon: Sparkles },
-  { id: 'ai-trading', label: 'Trade Like Me', icon: Brain, badgeKey: 'dna' },
+  { id: 'ai-trading', label: 'Trade Like Me (DNA)', icon: Brain, badgeKey: 'dna' },
   { id: 'ai-coach', label: 'AI Coach', icon: MessageSquare },
   { id: 'alerts', label: 'Automation Hub', icon: Workflow, badgeKey: 'automation' },
   { id: 'alerts', label: 'Alerts', icon: Bell, badgeKey: 'alerts' },
@@ -64,6 +63,14 @@ export function LeftRail() {
     if (key === 'dna' && badges.dnaPct != null) return `${badges.dnaPct}%`
     return null
   }
+
+  const healthPct =
+    badges.health.total > 0
+      ? Math.round((badges.health.ok / badges.health.total) * 100)
+      : null
+  const ring = 2 * Math.PI * 36
+  const dash =
+    healthPct == null ? ring : ring - (healthPct / 100) * ring
 
   return (
     <aside className="tos-left-rail" aria-label="Terminal navigation" data-tos-rail="command">
@@ -114,10 +121,30 @@ export function LeftRail() {
           <Activity size={14} aria-hidden />
           <span data-tos-label>System Status</span>
         </div>
+        <div className="tos-nav-gauge" aria-hidden={healthPct == null}>
+          <svg viewBox="0 0 84 84" className="tos-nav-gauge-svg">
+            <circle cx="42" cy="42" r="36" className="tos-nav-gauge-track" />
+            <circle
+              cx="42"
+              cy="42"
+              r="36"
+              className="tos-nav-gauge-fill"
+              style={{
+                strokeDasharray: `${ring}`,
+                strokeDashoffset: `${dash}`,
+              }}
+              data-status={badges.health.status}
+            />
+          </svg>
+          <div className="tos-nav-gauge-label">
+            <strong>{healthPct != null ? `${healthPct}%` : '—'}</strong>
+            <span>health</span>
+          </div>
+        </div>
         <p className="tos-nav-system-label">{badges.health.label}</p>
         {badges.health.total > 0 ? (
           <p className="tos-nav-system-meters">
-            Checks {badges.health.ok}/{badges.health.total}
+            Engines {badges.health.ok}/{badges.health.total}
           </p>
         ) : null}
       </div>

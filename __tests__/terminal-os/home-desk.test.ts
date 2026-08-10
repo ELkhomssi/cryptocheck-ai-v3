@@ -37,6 +37,25 @@ describe('Terminal OS mockup home desk', () => {
     assert.doesNotMatch(desk, /87% DNA/)
   })
 
+  it('shell home mode hides lifecycle density strip', () => {
+    const shell = readFileSync(
+      join(root, 'features/terminal-os/shell/components/TerminalOsShell.tsx'),
+      'utf8',
+    )
+    assert.match(shell, /data-tos-home/)
+    assert.match(shell, /homeMode/)
+  })
+
+  it('brain map uses orbital Decision factors not placeholder scores', () => {
+    const panels = readFileSync(
+      join(root, 'features/terminal-os/shell/components/HomeDeskPanels.tsx'),
+      'utf8',
+    )
+    assert.match(panels, /tos-brain-orbit/)
+    assert.match(panels, /contributingFactors/)
+    assert.doesNotMatch(panels, /Market Sentiment \(92%\)/)
+  })
+
   it('home desk panels declare honest empty states and kernel sources', () => {
     const panels = readFileSync(
       join(root, 'features/terminal-os/shell/components/HomeDeskPanels.tsx'),

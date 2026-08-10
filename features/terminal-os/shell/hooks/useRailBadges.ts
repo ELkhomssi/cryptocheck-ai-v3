@@ -49,8 +49,8 @@ export function useRailBadges() {
         status,
         label:
           status === 'healthy'
-            ? `All systems online (${ok}/${total})`
-            : `Degraded (${ok}/${total} checks)`,
+            ? `ALL SYSTEMS ONLINE ${ok}/${total} Engines`
+            : `Degraded ${ok}/${total} Engines`,
       }
     },
     staleTime: 30_000,

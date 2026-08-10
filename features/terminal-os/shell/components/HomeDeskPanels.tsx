@@ -116,6 +116,9 @@ export function DecisionBrainSpokes() {
 
   const d = q.data
   const factors = d?.contributingFactors?.slice(0, 7) ?? []
+  const cx = 140
+  const cy = 140
+  const orbitR = 92
 
   return (
     <div className="tos-desk-panel tos-brain" data-tos-brain="true">
@@ -126,20 +129,62 @@ export function DecisionBrainSpokes() {
         </span>
       </header>
       {!d || factors.length === 0 ? (
-        <p className="tos-desk-empty">
-          Multi-layer spokes appear when a published Decision includes contributing engines —
-          no placeholder scores.
-        </p>
+        <div className="tos-brain-orbit tos-brain-orbit--empty" aria-hidden>
+          <div className="tos-brain-core">
+            <span>WAITING</span>
+          </div>
+          <p className="tos-desk-empty">
+            Orbital spokes appear when a published Decision includes contributing engines —
+            no placeholder scores.
+          </p>
+        </div>
       ) : (
-        <ul className="tos-brain-spokes" aria-label="Decision contributing engines">
-          {factors.map((f) => (
-            <li key={`${f.engine}-${f.summary.slice(0, 20)}`}>
-              <span className="tos-brain-spoke-label">{String(f.engine).replace(/-/g, ' ')}</span>
-              <span className="tos-brain-spoke-pct">{Math.round(f.weight * 100)}%</span>
-              <span className="tos-brain-spoke-sum">{f.summary}</span>
-            </li>
-          ))}
-        </ul>
+        <div className="tos-brain-orbit" role="img" aria-label="Decision contributing engines">
+          <svg viewBox="0 0 280 280" className="tos-brain-svg">
+            <defs>
+              <radialGradient id="tosBrainCore" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#00e0ff" stopOpacity="0.55" />
+                <stop offset="70%" stopColor="#0a0e14" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="#0a0e14" stopOpacity="1" />
+              </radialGradient>
+            </defs>
+            <circle cx={cx} cy={cy} r={orbitR} className="tos-brain-ring" />
+            <circle cx={cx} cy={cy} r={orbitR * 0.62} className="tos-brain-ring tos-brain-ring--inner" />
+            <circle cx={cx} cy={cy} r={38} fill="url(#tosBrainCore)" className="tos-brain-core-disk" />
+            <text x={cx} y={cy - 4} textAnchor="middle" className="tos-brain-core-text">
+              {d.subject.kind === 'token' ? d.subject.symbol : 'AI'}
+            </text>
+            <text x={cx} y={cy + 12} textAnchor="middle" className="tos-brain-core-sub">
+              {Math.round(d.confidence)}%
+            </text>
+            {factors.map((f, i) => {
+              const angle = (i / factors.length) * Math.PI * 2 - Math.PI / 2
+              const px = cx + Math.cos(angle) * orbitR
+              const py = cy + Math.sin(angle) * orbitR
+              const pct = Math.round(f.weight * 100)
+              return (
+                <g key={`${f.engine}-${i}`}>
+                  <line x1={cx} y1={cy} x2={px} y2={py} className="tos-brain-spoke-line" />
+                  <circle cx={px} cy={py} r={16 + pct / 12} className="tos-brain-node" />
+                  <text x={px} y={py - 2} textAnchor="middle" className="tos-brain-node-pct">
+                    {pct}%
+                  </text>
+                  <text x={px} y={py + 10} textAnchor="middle" className="tos-brain-node-label">
+                    {String(f.engine).replace(/-/g, ' ').slice(0, 10)}
+                  </text>
+                </g>
+              )
+            })}
+          </svg>
+          <ul className="tos-brain-legend">
+            {factors.map((f) => (
+              <li key={`${f.engine}-leg`}>
+                <strong>{String(f.engine).replace(/-/g, ' ')}</strong>
+                <span>{f.summary}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   )
@@ -684,6 +729,11 @@ export function TradeLikeMeDnaCard() {
         <p className="tos-desk-empty">Connect a Solana wallet to train Trader DNA.</p>
       ) : !dna || dna.sampleSize < 1 || dna.sample ? (
         <div className="tos-dna-empty">
+          <div className="tos-dna-helix" aria-hidden>
+            <i />
+            <i />
+            <i />
+          </div>
           <p className="tos-desk-empty">
             {dna?.sample
               ? 'Sample DNA is not shown as live — train from real fills.'
@@ -700,9 +750,16 @@ export function TradeLikeMeDnaCard() {
         </div>
       ) : (
         <div className="tos-dna-compact">
-          <div className="tos-dna-match">
-            <span className="tos-dna-match-val tos-num">{dna.confidence}%</span>
-            <span className="tos-dna-match-label">DNA confidence</span>
+          <div className="tos-dna-visual">
+            <div className="tos-dna-helix" aria-hidden>
+              <i />
+              <i />
+              <i />
+            </div>
+            <div className="tos-dna-match">
+              <span className="tos-dna-match-val tos-num">{dna.confidence}%</span>
+              <span className="tos-dna-match-label">DNA confidence</span>
+            </div>
           </div>
           <p className="tos-dna-style">{dna.tradingStyleSummary}</p>
           <div className="tos-dna-metrics">

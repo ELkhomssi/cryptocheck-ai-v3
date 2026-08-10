@@ -1,9 +1,10 @@
 'use client'
 
 /**
- * Terminal OS home — Image-2 multi-panel desk composition.
+ * Terminal OS home — Picture-1 multi-panel command desk.
  * Reuses Gateway / Chart / Portfolio / DNA engines; presentation layout only.
- * 3D globe, bridging, and founder identity remain out of scope.
+ * Founder identity and bridging remain out of scope. Brain Map is orbital SVG
+ * bound to Decision.contributingFactors (not a fabricated globe).
  */
 
 import dynamic from 'next/dynamic'
