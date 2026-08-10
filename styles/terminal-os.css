@@ -1,38 +1,40 @@
 /**
  * CryptoCheck AI Terminal OS — dense 3-zone institutional chrome.
+ * Picture-1 command center: deep navy glass + cyan / mint / gold neon.
  * Hex only here. Spacing/type in rem for 4K legibility.
- * Premium black + gold theme.
  */
 
 [data-tos] {
-  --tos-bg-app: #050505;
-  --tos-bg-panel: #0a0a0a;
-  --tos-bg-panel-elevated: #121212;
-  --tos-border-subtle: #1c1c1c;
-  --tos-text-primary: #f5f5f2;
-  --tos-text-secondary: #9a9588;
-  --tos-text-muted: #858074; /* AA ≥4.5 on --tos-bg-app / panel */
-  --tos-accent-gold: #d4af37;
-  --tos-accent-gold-bright: #f0c14b;
-  --tos-accent-gold-dim: color-mix(in srgb, #d4af37 18%, transparent);
-  --tos-accent-blue: #3d8bfd;
-  --tos-accent-purple: #8b5cf6;
-  --tos-accent-purple-dim: color-mix(in srgb, #8b5cf6 22%, transparent);
-  --tos-positive: #16c784;
-  --tos-negative: #ea3943;
-  --tos-warning: #f5a623;
-  --tos-score-excellent: #16c784;
-  --tos-score-good: #8bc34a;
-  --tos-score-caution: #f5a623;
-  --tos-score-danger: #ea3943;
-  --tos-radius: var(--radius-lg, 0.75rem);
+  --tos-bg-app: #0a0e14;
+  --tos-bg-panel: #0c121c;
+  --tos-bg-panel-elevated: #121a28;
+  --tos-border-subtle: #1a2740;
+  --tos-text-primary: #e8eef8;
+  --tos-text-secondary: #8b9bb4;
+  --tos-text-muted: #6b7c94; /* AA ≥4.5 on --tos-bg-app / panel */
+  --tos-accent-gold: #ffb800;
+  --tos-accent-gold-bright: #ffd45a;
+  --tos-accent-gold-dim: color-mix(in srgb, #ffb800 18%, transparent);
+  --tos-accent-blue: #00e0ff;
+  --tos-accent-cyan: #00e0ff;
+  --tos-accent-mint: #00ffa3;
+  --tos-accent-purple: #7c9cff;
+  --tos-accent-purple-dim: color-mix(in srgb, #7c9cff 22%, transparent);
+  --tos-positive: #00ffa3;
+  --tos-negative: #ff4d6a;
+  --tos-warning: #ffb800;
+  --tos-score-excellent: #00ffa3;
+  --tos-score-good: #3ee0a0;
+  --tos-score-caution: #ffb800;
+  --tos-score-danger: #ff4d6a;
+  --tos-radius: 0.75rem;
   --tos-radius-sm: 0.5rem;
   --tos-radius-xs: var(--radius-xs, 0.1875rem);
   --tos-radius-full: var(--radius-full, 999px);
-  --tos-left-rail: 15rem;
-  --tos-right-rail: 21rem;
-  --tos-topbar: 3.5rem;
-  --tos-whale-bar: 5.75rem;
+  --tos-left-rail: 14.5rem;
+  --tos-right-rail: 20rem;
+  --tos-topbar: 3.25rem;
+  --tos-whale-bar: 3.25rem;
   --tos-lifecycle-bar: auto;
   --tos-max: 160rem; /* 2560px — 4K-ready */
   --tos-gap: var(--space-3, 0.75rem);
@@ -55,10 +57,10 @@
   --tos-space-6: var(--space-6, 2rem);
   --tos-space-8: var(--space-8, 3rem);
   --tos-shadow-1: var(--shadow-1, 0 1px 3px color-mix(in srgb, #000 40%, transparent));
-  --tos-shadow-2: var(--shadow-2, 0 8px 24px color-mix(in srgb, #000 35%, transparent));
+  --tos-shadow-2: var(--shadow-2, 0 8px 24px color-mix(in srgb, #000 45%, transparent));
   --tos-shadow-3: var(--shadow-3, 0 24px 80px color-mix(in srgb, #000 55%, transparent));
-  --tos-shadow-focus: 0 0 0 2px var(--tos-accent-gold-bright);
-  --tos-shadow-glow: 0 0 24px color-mix(in srgb, var(--tos-accent-gold) 22%, transparent);
+  --tos-shadow-focus: 0 0 0 2px var(--tos-accent-cyan);
+  --tos-shadow-glow: 0 0 28px color-mix(in srgb, var(--tos-accent-cyan) 28%, transparent);
   --tos-motion-micro: var(--motion-micro, 150ms);
   --tos-motion-panel: var(--motion-panel, 240ms);
   --tos-motion-state: var(--motion-state, 320ms);
@@ -67,8 +69,8 @@
   --tos-ease-micro: var(--ease-micro, ease-out);
   --tos-ease-panel: var(--ease-panel, ease-in-out);
   --tos-ease-state: var(--ease-state, cubic-bezier(0.22, 1, 0.36, 1));
-  --tos-glass: color-mix(in srgb, #0a0a0a 72%, transparent);
-  --tos-glass-border: color-mix(in srgb, var(--tos-accent-gold) 28%, #2a2a2a);
+  --tos-glass: color-mix(in srgb, #0c121c 78%, transparent);
+  --tos-glass-border: color-mix(in srgb, var(--tos-accent-cyan) 32%, #1a2740);
 
   color-scheme: dark;
   background: var(--tos-bg-app);
@@ -102,9 +104,22 @@
   height: 100dvh;
   overflow: hidden;
   background:
-    radial-gradient(ellipse 90% 45% at 50% -15%, color-mix(in srgb, var(--tos-accent-gold) 9%, transparent), transparent),
-    radial-gradient(ellipse 40% 30% at 100% 100%, color-mix(in srgb, var(--tos-accent-gold) 4%, transparent), transparent),
+    radial-gradient(ellipse 80% 50% at 18% -10%, color-mix(in srgb, var(--tos-accent-cyan) 16%, transparent), transparent),
+    radial-gradient(ellipse 55% 40% at 92% 8%, color-mix(in srgb, var(--tos-accent-mint) 10%, transparent), transparent),
+    radial-gradient(ellipse 40% 30% at 70% 100%, color-mix(in srgb, var(--tos-accent-gold) 6%, transparent), transparent),
     var(--tos-bg-app);
+}
+
+/* Home desk: reclaim vertical density — hide Money Lifecycle strip */
+[data-tos] .tos-shell[data-tos-home='true'] {
+  --tos-lifecycle-bar: 0px;
+  --tos-whale-bar: 2.75rem;
+}
+[data-tos] .tos-shell[data-tos-home='true'] .tos-lifecycle-slot {
+  display: none;
+}
+[data-tos] .tos-shell[data-tos-home='true'] .tos-right-rail [data-tos-home-hide='true'] {
+  display: none;
 }
 
 [data-tos] .tos-lifecycle-slot {
@@ -166,10 +181,13 @@
   width: var(--tos-left-rail);
   min-width: var(--tos-left-rail);
   max-width: var(--tos-left-rail);
-  border-right: 1px solid var(--tos-border-subtle);
-  background: var(--tos-bg-panel);
+  border-right: 1px solid var(--tos-glass-border);
+  background: color-mix(in srgb, var(--tos-bg-panel) 88%, transparent);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
   overflow: hidden;
   min-height: 0;
+  box-shadow: inset -1px 0 0 color-mix(in srgb, var(--tos-accent-cyan) 12%, transparent);
 }
 
 [data-tos] .tos-main {
@@ -2184,9 +2202,10 @@
 }
 
 [data-tos] .tos-nav-item[data-active='true'] {
-  background: var(--tos-accent-gold-dim);
-  color: var(--tos-accent-gold);
+  background: color-mix(in srgb, var(--tos-accent-cyan) 16%, transparent);
+  color: var(--tos-accent-cyan);
   font-weight: var(--tos-fw-bold);
+  box-shadow: inset 2px 0 0 var(--tos-accent-cyan);
 }
 
 [data-tos] .tos-nav-item:disabled {
@@ -2217,17 +2236,23 @@
   font-weight: var(--tos-fw-bold);
   letter-spacing: 0.02em;
   color: var(--tos-bg-app);
-  background: var(--tos-accent-gold);
+  background: var(--tos-accent-mint);
   text-align: center;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--tos-accent-mint) 40%, transparent);
 }
 
 [data-tos] .tos-nav-system {
   margin-top: auto;
   padding: var(--tos-space-3);
-  border-top: 1px solid var(--tos-border-subtle);
+  border-top: 1px solid var(--tos-glass-border);
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.45rem;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    color-mix(in srgb, var(--tos-accent-cyan) 6%, transparent)
+  );
 }
 
 [data-tos] .tos-nav-system-head {
@@ -2237,16 +2262,70 @@
   font-size: 0.65rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--tos-text-muted);
+  color: var(--tos-accent-cyan);
   font-weight: var(--tos-fw-semibold);
+}
+
+[data-tos] .tos-nav-gauge {
+  position: relative;
+  width: 5.25rem;
+  height: 5.25rem;
+  margin: 0.15rem auto 0.25rem;
+}
+[data-tos] .tos-nav-gauge-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+[data-tos] .tos-nav-gauge-track {
+  fill: none;
+  stroke: color-mix(in srgb, var(--tos-border-subtle) 90%, transparent);
+  stroke-width: 6;
+}
+[data-tos] .tos-nav-gauge-fill {
+  fill: none;
+  stroke: var(--tos-accent-mint);
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset var(--tos-motion-state) var(--tos-ease-state);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--tos-accent-mint) 55%, transparent));
+}
+[data-tos] .tos-nav-gauge-fill[data-status='degraded'] {
+  stroke: var(--tos-warning);
+}
+[data-tos] .tos-nav-gauge-fill[data-status='unknown'] {
+  stroke: var(--tos-text-muted);
+}
+[data-tos] .tos-nav-gauge-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+[data-tos] .tos-nav-gauge-label strong {
+  font-family: var(--tos-mono);
+  font-size: 0.95rem;
+  color: var(--tos-accent-mint);
+  line-height: 1;
+}
+[data-tos] .tos-nav-gauge-label span {
+  font-size: 0.55rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tos-text-muted);
+  margin-top: 0.15rem;
 }
 
 [data-tos] .tos-nav-system-label {
   margin: 0;
-  font-size: var(--tos-fs-sm);
+  font-size: 0.68rem;
   font-weight: var(--tos-fw-semibold);
   color: var(--tos-text-secondary);
   line-height: 1.35;
+  text-align: center;
 }
 
 [data-tos] .tos-nav-system[data-tos-system-status='healthy'] .tos-nav-system-label {
@@ -2263,6 +2342,7 @@
   font-size: 0.65rem;
   color: var(--tos-text-muted);
   letter-spacing: 0.04em;
+  text-align: center;
 }
 
 [data-tos] .tos-nav-aside-stack {
@@ -2863,13 +2943,21 @@
   align-items: center;
   gap: 0.4rem;
   flex: 0 1 auto;
-  max-width: 14rem;
-  font-size: 0.62rem;
-  letter-spacing: 0.06em;
+  max-width: 18rem;
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--tos-text-muted);
   font-family: var(--tos-mono);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--tos-accent-mint) 25%, transparent);
+  background: color-mix(in srgb, var(--tos-accent-mint) 8%, transparent);
+}
+[data-tos] .tos-topbar-sys-text {
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -3023,6 +3111,142 @@
   min-height: 18rem;
 }
 
+[data-tos] .tos-brain-orbit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-height: 14rem;
+}
+[data-tos] .tos-brain-orbit--empty {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.75rem;
+}
+[data-tos] .tos-brain-core {
+  width: 5.5rem;
+  height: 5.5rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--tos-accent-cyan) 40%, transparent);
+  background: radial-gradient(circle at 40% 35%, color-mix(in srgb, var(--tos-accent-cyan) 35%, transparent), #0a0e14 70%);
+  box-shadow: 0 0 28px color-mix(in srgb, var(--tos-accent-cyan) 30%, transparent);
+  animation: tos-brain-pulse 2.8s ease-in-out infinite;
+}
+[data-tos] .tos-brain-core span {
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  color: var(--tos-accent-cyan);
+  font-family: var(--tos-mono);
+}
+@keyframes tos-brain-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 18px color-mix(in srgb, var(--tos-accent-cyan) 22%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 36px color-mix(in srgb, var(--tos-accent-cyan) 45%, transparent);
+  }
+}
+[data-tos] .tos-brain-svg {
+  width: 100%;
+  max-height: 16rem;
+  display: block;
+}
+[data-tos] .tos-brain-ring {
+  fill: none;
+  stroke: color-mix(in srgb, var(--tos-accent-cyan) 28%, transparent);
+  stroke-width: 1;
+  stroke-dasharray: 4 6;
+  animation: tos-brain-spin 28s linear infinite;
+  transform-origin: 140px 140px;
+}
+[data-tos] .tos-brain-ring--inner {
+  stroke: color-mix(in srgb, var(--tos-accent-mint) 22%, transparent);
+  animation-direction: reverse;
+  animation-duration: 18s;
+}
+@keyframes tos-brain-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+[data-tos] .tos-brain-core-disk {
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--tos-accent-cyan) 50%, transparent));
+}
+[data-tos] .tos-brain-core-text {
+  fill: var(--tos-text-primary);
+  font-size: 13px;
+  font-weight: 800;
+  font-family: var(--tos-font);
+}
+[data-tos] .tos-brain-core-sub {
+  fill: var(--tos-accent-mint);
+  font-size: 10px;
+  font-family: var(--tos-mono);
+}
+[data-tos] .tos-brain-spoke-line {
+  stroke: color-mix(in srgb, var(--tos-accent-cyan) 45%, transparent);
+  stroke-width: 1.25;
+}
+[data-tos] .tos-brain-node {
+  fill: color-mix(in srgb, var(--tos-bg-app) 70%, #0c2233);
+  stroke: var(--tos-accent-mint);
+  stroke-width: 1.5;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--tos-accent-mint) 40%, transparent));
+}
+[data-tos] .tos-brain-node-pct {
+  fill: var(--tos-accent-mint);
+  font-size: 8px;
+  font-family: var(--tos-mono);
+  font-weight: 700;
+}
+[data-tos] .tos-brain-node-label {
+  fill: var(--tos-text-secondary);
+  font-size: 6.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+[data-tos] .tos-brain-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 5.5rem;
+  overflow: auto;
+}
+[data-tos] .tos-brain-legend li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  font-size: 0.65rem;
+  padding: 0.25rem 0.35rem;
+  border-left: 2px solid var(--tos-accent-cyan);
+  background: color-mix(in srgb, var(--tos-accent-cyan) 6%, transparent);
+}
+[data-tos] .tos-brain-legend strong {
+  color: var(--tos-accent-cyan);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+[data-tos] .tos-brain-legend span {
+  color: var(--tos-text-muted);
+  line-height: 1.3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-tos] .tos-brain-core,
+  [data-tos] .tos-brain-ring,
+  [data-tos] .tos-brain-ring--inner,
+  [data-tos] .tos-dna-helix i {
+    animation: none !important;
+  }
+}
+
 [data-tos] .tos-brain-spokes {
   list-style: none;
   margin: 0;
@@ -3037,20 +3261,20 @@
   gap: 0.15rem 0.5rem;
   padding: 0.4rem 0.45rem;
   border-radius: var(--tos-radius-sm);
-  border: 1px solid color-mix(in srgb, var(--tos-desk-cyan, #00e5ff) 18%, transparent);
-  background: color-mix(in srgb, var(--tos-desk-navy, #060b1a) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tos-accent-cyan) 18%, transparent);
+  background: color-mix(in srgb, var(--tos-bg-panel-elevated) 70%, transparent);
 }
 [data-tos] .tos-brain-spoke-label {
   font-size: 0.65rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--tos-desk-cyan, #00e5ff);
+  color: var(--tos-accent-cyan);
   grid-column: 1;
 }
 [data-tos] .tos-brain-spoke-pct {
   font-family: var(--tos-mono);
   font-size: 0.75rem;
-  color: var(--tos-desk-mint, var(--tos-positive));
+  color: var(--tos-positive);
   grid-column: 2;
   grid-row: 1 / span 2;
   align-self: center;
@@ -3326,7 +3550,65 @@
   margin-top: 0.25rem;
 }
 
-/* Compact DNA card */
+/* Compact DNA card + helix decoration */
+[data-tos] .tos-dna-visual {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+[data-tos] .tos-dna-helix {
+  position: relative;
+  width: 2.4rem;
+  height: 4.2rem;
+  flex-shrink: 0;
+}
+[data-tos] .tos-dna-helix i {
+  position: absolute;
+  left: 50%;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-left: -0.275rem;
+  border-radius: 50%;
+  background: var(--tos-accent-mint);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--tos-accent-mint) 55%, transparent);
+  animation: tos-dna-float 2.4s ease-in-out infinite;
+}
+[data-tos] .tos-dna-helix i:nth-child(1) {
+  top: 0.2rem;
+  animation-delay: 0s;
+}
+[data-tos] .tos-dna-helix i:nth-child(2) {
+  top: 1.7rem;
+  background: var(--tos-accent-cyan);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--tos-accent-cyan) 55%, transparent);
+  animation-delay: 0.35s;
+}
+[data-tos] .tos-dna-helix i:nth-child(3) {
+  top: 3.2rem;
+  animation-delay: 0.7s;
+}
+[data-tos] .tos-dna-helix::before,
+[data-tos] .tos-dna-helix::after {
+  content: '';
+  position: absolute;
+  inset: 0.15rem 0.55rem;
+  border: 1.5px solid color-mix(in srgb, var(--tos-accent-cyan) 45%, transparent);
+  border-radius: 999px;
+  transform: skewY(-18deg);
+}
+[data-tos] .tos-dna-helix::after {
+  transform: skewY(18deg);
+  border-color: color-mix(in srgb, var(--tos-accent-mint) 40%, transparent);
+}
+@keyframes tos-dna-float {
+  0%,
+  100% {
+    transform: translateX(-4px);
+  }
+  50% {
+    transform: translateX(4px);
+  }
+}
 [data-tos] .tos-dna-compact {
   display: flex;
   flex-direction: column;
@@ -3340,8 +3622,8 @@
 [data-tos] .tos-dna-match-val {
   font-size: 1.55rem;
   line-height: 1;
-  color: var(--tos-desk-mint, #00ffa3);
-  text-shadow: 0 0 18px color-mix(in srgb, var(--tos-desk-mint, #00ffa3) 35%, transparent);
+  color: var(--tos-accent-mint);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--tos-accent-mint) 35%, transparent);
 }
 [data-tos] .tos-dna-match-label {
   font-size: 0.58rem;

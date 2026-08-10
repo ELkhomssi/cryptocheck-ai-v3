@@ -253,26 +253,39 @@ function SecondaryNavStub({ nav }: { nav: TerminalNavId }) {
   )
 }
 
-function RightRail() {
+function RightRail({ homeMode }: { homeMode: boolean }) {
   return (
     <aside className="tos-right-rail" aria-label="AI Coach and tools" data-tos-right="coach">
       <PersistentCoachRail />
-      <Bound title="Token Score">
-        <TokenScoreScanCard />
-      </Bound>
-      <Bound title="Quick Swap">
-        <QuickSwapCard />
-      </Bound>
-      <Bound title="Wallet Score">
-        <WalletScoreScanCard />
-      </Bound>
+      {!homeMode ? (
+        <>
+          <div data-tos-home-hide="true">
+            <Bound title="Token Score">
+              <TokenScoreScanCard />
+            </Bound>
+          </div>
+          <div data-tos-home-hide="true">
+            <Bound title="Quick Swap">
+              <QuickSwapCard />
+            </Bound>
+          </div>
+          <div data-tos-home-hide="true">
+            <Bound title="Wallet Score">
+              <WalletScoreScanCard />
+            </Bound>
+          </div>
+        </>
+      ) : null}
     </aside>
   )
 }
 
 export function TerminalOsShell() {
+  const activeNav = useTerminalOsStore((s) => s.activeNav)
+  const homeMode = activeNav === 'terminal'
+
   return (
-    <div className="tos-shell" data-tos-shell>
+    <div className="tos-shell" data-tos-shell data-tos-home={homeMode ? 'true' : undefined}>
       <TopBar />
       <AlertEvaluateBridge />
       <AlertToastHost />
@@ -281,14 +294,18 @@ export function TerminalOsShell() {
           <WhaleMarqueeTicker fixed title="Top Whale Movements" />
         </Bound>
       </div>
-      <div className="tos-lifecycle-slot">
-        <MoneyLifecycleRibbon />
-      </div>
+      {!homeMode ? (
+        <div className="tos-lifecycle-slot">
+          <MoneyLifecycleRibbon />
+        </div>
+      ) : (
+        <div className="tos-lifecycle-slot" aria-hidden />
+      )}
       <LeftRail />
       <main className="tos-main">
         <MainColumn />
       </main>
-      <RightRail />
+      <RightRail homeMode={homeMode} />
     </div>
   )
 }
