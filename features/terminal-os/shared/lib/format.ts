@@ -3,22 +3,24 @@
  */
 
 export function formatUsd(n: number, compact = false): string {
-  if (compact && Math.abs(n) >= 1_000_000) {
-    return `$${(n / 1_000_000).toFixed(1)}M`
+  const v = typeof n === 'number' && Number.isFinite(n) ? n : 0
+  if (compact && Math.abs(v) >= 1_000_000) {
+    return `$${(v / 1_000_000).toFixed(1)}M`
   }
-  if (compact && Math.abs(n) >= 1_000) {
-    return `$${(n / 1_000).toFixed(1)}K`
+  if (compact && Math.abs(v) >= 1_000) {
+    return `$${(v / 1_000).toFixed(1)}K`
   }
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    maximumFractionDigits: n < 1 ? 6 : 2,
-  }).format(n)
+    maximumFractionDigits: v < 1 ? 6 : 2,
+  }).format(v)
 }
 
 export function formatPct(n: number, digits = 2): string {
-  const sign = n > 0 ? '+' : ''
-  return `${sign}${n.toFixed(digits)}%`
+  const v = typeof n === 'number' && Number.isFinite(n) ? n : 0
+  const sign = v > 0 ? '+' : ''
+  return `${sign}${v.toFixed(digits)}%`
 }
 
 export function timeAgo(iso: string): string {

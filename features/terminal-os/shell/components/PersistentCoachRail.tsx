@@ -16,25 +16,27 @@ import { selectHeroDecision } from '@/features/ai-os/lib/gateway-round2'
 type CoachBullet = {
   id: string
   text: string
-  source: 'decision' | 'factor' | 'dna'
+  source: 'decision' | 'factor' | 'dna' | 'wallet-scan'
 }
 
 function bulletsFromDecision(d: Decision): CoachBullet[] {
   const out: CoachBullet[] = []
-  const symbol = d.subject.kind === 'token' ? d.subject.symbol : null
+  const symbol = d.subject?.kind === 'token' ? d.subject.symbol : null
   out.push({
     id: `${d.id}-action`,
     text: symbol
-      ? `Published Decision: ${d.action} $${symbol} · confidence ${Math.round(d.confidence)}%`
-      : `Published Decision: ${d.action} · confidence ${Math.round(d.confidence)}%`,
+      ? `Published Decision: ${d.action} $${symbol} · confidence ${Math.round(d.confidence ?? 0)}%`
+      : `Published Decision: ${d.action} · confidence ${Math.round(d.confidence ?? 0)}%`,
     source: 'decision',
   })
-  for (const f of d.contributingFactors.slice(0, 4)) {
+  for (const f of d.contributingFactors ?? []) {
+    if (!f) continue
     out.push({
-      id: `${d.id}-${f.engine}-${f.summary.slice(0, 24)}`,
-      text: `${String(f.engine).replace(/-/g, ' ')}: ${f.summary}`,
+      id: `${d.id}-${f.engine}-${String(f.summary ?? '').slice(0, 24)}`,
+      text: `${String(f.engine).replace(/-/g, ' ')}: ${f.summary ?? '—'}`,
       source: 'factor',
     })
+    if (out.length >= 5) break
   }
   if (d.expectedROI != null && Number.isFinite(d.expectedROI)) {
     out.push({
@@ -73,6 +75,23 @@ export function PersistentCoachRail() {
     retry: 1,
   })
 
+  const walletFeedbackQ = useQuery({
+    queryKey: ['tos', 'wallet-scan-feedback', wallet],
+    enabled: Boolean(wallet && wallet.length >= 32),
+    queryFn: async () => {
+      const qs = new URLSearchParams({ wallet: wallet! })
+      const res = await fetch(`/api/terminal-os/wallet-feedback?${qs}`, { cache: 'no-store' })
+      if (!res.ok) return null
+      const body = (await res.json()) as {
+        feedback?: { coachLines?: string[]; at?: string; holdingsScanned?: number } | null
+      }
+      return body.feedback ?? null
+    },
+    staleTime: 120_000,
+    refetchInterval: 300_000,
+    retry: 1,
+  })
+
   const coachAvailQ = useQuery({
     queryKey: ['tos', 'coach-api-available'],
     queryFn: async () => {
@@ -86,6 +105,7 @@ export function PersistentCoachRail() {
 
   const decision = decisionQ.data ?? null
   const bullets = decision ? bulletsFromDecision(decision) : []
+  const scanLines = (walletFeedbackQ.data?.coachLines ?? []).slice(0, 3)
   const online = coachAvailQ.data === true
   const statusLabel = coachAvailQ.isLoading
     ? 'Checking…'
@@ -130,12 +150,30 @@ export function PersistentCoachRail() {
         </p>
       )}
 
+      {scanLines.length > 0 ? (
+        <ul className="tos-coach-rail-bullets" aria-label="Wallet scan feedback" data-tos-wallet-scan="true">
+          {scanLines.map((line, i) => (
+            <li key={`wallet-scan-${i}`} data-source="wallet-scan">
+              {line}
+            </li>
+          ))}
+        </ul>
+      ) : wallet ? (
+        <p className="tos-coach-rail-empty">
+          Wallet registered for 6h Security Scanner feedback — first report appears after the next
+          scan cycle (or on demand via wallet-feedback API).
+        </p>
+      ) : null}
+
       {decision?.reasoning ? (
         <div className="tos-coach-rail-rec" data-tos-coach-rec="true">
           <p className="tos-coach-rail-rec-label">From Decision reasoning</p>
-          <p className="tos-coach-rail-rec-body">{decision.reasoning.slice(0, 220)}</p>
+          <p className="tos-coach-rail-rec-body">{String(decision.reasoning).slice(0, 220)}</p>
           <p className="tos-coach-rail-rec-meta">
-            Confidence {Math.round(decision.confidence)}%
+            Confidence{' '}
+            {typeof decision.confidence === 'number' && Number.isFinite(decision.confidence)
+              ? `${Math.round(decision.confidence)}%`
+              : '—'}
             {decision.confidenceMode === 'personalized' ? ' · Personalized' : ' · Market'}
           </p>
         </div>

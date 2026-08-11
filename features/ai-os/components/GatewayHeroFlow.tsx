@@ -292,7 +292,11 @@ export function GatewayHeroFlow({
             <summary>Evidence / Details</summary>
 
             <div className="aios-gw-confidence" data-gw-freshness="true">
-              <span className="aios-gw-confidence-value">{Math.round(decision.confidence)}%</span>
+              <span className="aios-gw-confidence-value">
+                {typeof decision.confidence === 'number' && Number.isFinite(decision.confidence)
+                  ? `${Math.round(decision.confidence)}%`
+                  : '—'}
+              </span>
               <span className="aios-gw-confidence-meta">
                 {decision.confidenceMode === 'personalized' ? 'Personalized' : 'Market'}
                 {' · '}
@@ -310,11 +314,16 @@ export function GatewayHeroFlow({
             </div>
 
             <p className="aios-gw-confidence-meta">
-              market {Math.round(decision.marketConfidence)}%
-              {decision.personalizedConfidence != null
+              market{' '}
+              {typeof decision.marketConfidence === 'number' &&
+              Number.isFinite(decision.marketConfidence)
+                ? `${Math.round(decision.marketConfidence)}%`
+                : '—'}
+              {decision.personalizedConfidence != null &&
+              Number.isFinite(decision.personalizedConfidence)
                 ? ` · DNA ${Math.round(decision.personalizedConfidence)}%`
                 : ''}
-              {decision.expectedDrawdown != null
+              {decision.expectedDrawdown != null && Number.isFinite(decision.expectedDrawdown)
                 ? ` · DD ${decision.expectedDrawdown.toFixed(1)}%`
                 : ''}
             </p>
@@ -325,13 +334,17 @@ export function GatewayHeroFlow({
               decisionLoading={decisionLoading}
             />
 
-            {decision.contributingFactors.length > 0 ? (
+            {decision.contributingFactors?.length ? (
               <ul className="aios-gw-sources" aria-label="AI sources">
                 {decision.contributingFactors.slice(0, 5).map((f, i) => (
                   <li key={`${f.engine}-${i}`}>
                     <strong>{String(f.engine)}</strong>
-                    <span>{f.summary}</span>
-                    <span>{Math.round(f.weight * 100)}%</span>
+                    <span>{f.summary ?? '—'}</span>
+                    <span>
+                      {typeof f.weight === 'number' && Number.isFinite(f.weight)
+                        ? `${Math.round(f.weight * 100)}%`
+                        : '—'}
+                    </span>
                   </li>
                 ))}
               </ul>

@@ -3193,16 +3193,18 @@
 }
 
 [data-tos] .tos-desk-panel {
-  background: color-mix(in srgb, var(--tos-desk-navy) 72%, transparent);
-  border: 1px solid color-mix(in srgb, var(--tos-desk-cyan) 28%, #1a2744);
+  background: color-mix(in srgb, var(--tos-desk-navy) 68%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tos-desk-cyan) 34%, #1a2744);
   border-radius: var(--tos-radius);
-  backdrop-filter: blur(18px) saturate(1.2);
-  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  backdrop-filter: blur(22px) saturate(1.35);
+  -webkit-backdrop-filter: blur(22px) saturate(1.35);
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--tos-desk-cyan) 8%, transparent),
-    0 12px 40px color-mix(in srgb, #000 45%, transparent);
-  padding: 0.65rem 0.7rem 0.75rem;
+    0 0 0 1px color-mix(in srgb, var(--tos-desk-cyan) 12%, transparent),
+    0 0 32px color-mix(in srgb, var(--tos-desk-cyan) 10%, transparent),
+    0 16px 48px color-mix(in srgb, #000 50%, transparent);
+  padding: 0.7rem 0.75rem 0.8rem;
   min-width: 0;
+  min-height: 8.5rem;
   overflow: hidden;
   animation: tos-desk-panel-in var(--tos-motion-panel) var(--tos-ease-state) both;
 }
@@ -3817,4 +3819,73 @@
   [data-tos] .tos-home-row-bot {
     grid-template-columns: 1fr;
   }
+}
+
+/* Pro command-center — Algorithm Mesh (real Decision cites only) */
+[data-tos] .tos-kernel-algo {
+  min-height: 7.5rem;
+}
+[data-tos] .tos-kernel-algo-flow {
+  margin: 0 0 0.45rem;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tos-accent-cyan);
+  font-family: var(--tos-mono);
+}
+[data-tos] .tos-kernel-algo-engines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+[data-tos] .tos-kernel-algo-engines li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.35rem 0.4rem;
+  border-radius: var(--tos-radius-sm);
+  border: 1px solid color-mix(in srgb, var(--tos-border-subtle) 80%, transparent);
+  background: color-mix(in srgb, var(--tos-bg-panel-elevated) 55%, transparent);
+  min-height: 44px;
+}
+[data-tos] .tos-kernel-algo-engines li[data-live='true'] {
+  border-color: color-mix(in srgb, var(--tos-accent-mint) 45%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--tos-accent-mint) 18%, transparent);
+}
+[data-tos] .tos-kernel-algo-engines strong {
+  font-size: 0.58rem;
+  letter-spacing: 0.04em;
+  text-transform: capitalize;
+  color: var(--tos-text-primary);
+}
+[data-tos] .tos-kernel-algo-engines span {
+  font-size: 0.55rem;
+  font-family: var(--tos-mono);
+  color: var(--tos-text-muted);
+}
+[data-tos] .tos-kernel-algo-engines li[data-live='true'] span {
+  color: var(--tos-accent-mint);
+}
+[data-tos] .tos-kernel-algo-meta {
+  margin: 0.45rem 0 0;
+  font-size: 0.58rem;
+  color: var(--tos-text-secondary);
+  line-height: 1.35;
+}
+
+[data-tos] .tos-home-desk {
+  gap: 0.55rem;
+}
+[data-tos] .tos-desk-gateway {
+  min-height: 22rem;
+}
+[data-tos] .tos-brain {
+  min-height: 18rem;
+}
+[data-tos] .tos-coach-rail-bullets li[data-source='wallet-scan'] {
+  border-left: 2px solid var(--tos-accent-gold);
+  padding-left: 0.45rem;
 }

@@ -7,7 +7,9 @@
  *
  * KERNEL CONNECTION DECLARATIONS (Step 1 — mandatory per panel):
  * - DecisionBrainSpokes → Decision.contributingFactors (published Decision only)
- * - CurrentMissionsPanel → published Decisions with actionable BUY/SELL/EXIT
+ * - CurrentMissionsPanel → published Decisions (BUY/SELL/EXIT active + WAIT/DO_NOTHING as MONITOR)
+ * - WalletScanFeedback (Coach) → /api/terminal-os/wallet-feedback from 6h cron + scan gateway
+ * - Decision tick → multi-chain resilientTokens (Solana security via scan gateway; other chains mark security degraded)
  * - LiveExecutionFeed → attention snapshot events + whale movements (real timestamps)
  * - PositionsSnapshot → Portfolio Intelligence /api/portfolio/holdings
  * - ScannerDiscoveryStrip → ranked published Decisions (confidence / expectedROI / risk)
@@ -88,15 +90,14 @@ function eventLabel(eventType: string): string {
   }
 }
 
-const BRAIN_SIGNAL_SLOTS: { engine: string | null; label: string }[] = [
+const BRAIN_SIGNAL_SLOTS: { engine: string; label: string }[] = [
   { engine: 'market-intelligence', label: 'Market Sentiment' },
   { engine: 'whale-intelligence', label: 'Whale Activity' },
   { engine: 'liquidity-engine', label: 'Liquidity Flow' },
   { engine: 'portfolio-intelligence', label: 'On-chain Data' },
   { engine: 'security-scanner', label: 'Security' },
   { engine: 'prediction-engine', label: 'Prediction' },
-  { engine: null, label: 'Social Momentum' },
-  { engine: null, label: 'Funding Rate' },
+  { engine: 'trader-dna', label: 'Trader DNA' },
 ]
 
 export function DecisionBrainSpokes() {
@@ -129,15 +130,29 @@ export function DecisionBrainSpokes() {
   const byEngine = new Map(
     (d?.contributingFactors ?? []).map((f) => [String(f.engine), f] as const),
   )
-  const slots = BRAIN_SIGNAL_SLOTS.map((s) => {
-    if (!s.engine) return { ...s, pct: null as number | null, summary: 'No engine wired yet' }
+  const slots: {
+    engine: string
+    label: string
+    pct: number | null
+    summary: string
+  }[] = BRAIN_SIGNAL_SLOTS.map((s) => {
     const f = byEngine.get(s.engine)
     return {
       ...s,
-      pct: f ? Math.round(f.weight * 100) : null,
+      pct: f && typeof f.weight === 'number' ? Math.round(f.weight * 100) : null,
       summary: f?.summary ?? 'Unavailable in this Decision',
     }
   })
+  // Append any extra contributing engines not in the fixed orbit (keep Brain honest + dense)
+  for (const [engine, f] of byEngine) {
+    if (BRAIN_SIGNAL_SLOTS.some((s) => s.engine === engine)) continue
+    slots.push({
+      engine,
+      label: String(engine).replace(/-/g, ' '),
+      pct: typeof f.weight === 'number' ? Math.round(f.weight * 100) : null,
+      summary: f.summary ?? '—',
+    })
+  }
   const liveSlots = slots.filter((s) => s.pct != null)
   const cx = 140
   const cy = 140
@@ -175,7 +190,7 @@ export function DecisionBrainSpokes() {
             <circle cx={cx} cy={cy} r={orbitR * 0.62} className="tos-brain-ring tos-brain-ring--inner" />
             <circle cx={cx} cy={cy} r={38} fill="url(#tosBrainCore)" className="tos-brain-core-disk" />
             <text x={cx} y={cy - 4} textAnchor="middle" className="tos-brain-core-text">
-              {d.subject.kind === 'token' ? d.subject.symbol : 'AI'}
+              {d.subject?.kind === 'token' ? d.subject.symbol : 'AI'}
             </text>
             <text x={cx} y={cy + 12} textAnchor="middle" className="tos-brain-core-sub">
               {Math.round(d.confidence)}%
@@ -245,32 +260,38 @@ export function CurrentMissionsPanel() {
     refetchInterval: 25_000,
   })
 
-  const decisions = (q.data?.decisions ?? []).filter(
-    (d) => d.action === 'BUY' || d.action === 'SELL' || d.action === 'EXIT',
-  )
+  const all = q.data?.decisions ?? []
+  // Actionable first; WAIT/DO_NOTHING still show as MONITOR missions so Mission Control isn't empty when the engine is working
+  const actionable = all.filter((d) => d.action === 'BUY' || d.action === 'SELL' || d.action === 'EXIT')
+  const monitoring = all
+    .filter((d) => d.action === 'WAIT' || d.action === 'DO_NOTHING')
+    .sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0))
+  const decisions = [...actionable, ...monitoring].slice(0, 6)
 
   return (
     <div className="tos-desk-panel" data-tos-missions="true">
       <header className="tos-desk-panel-head">
         <span>Current Missions</span>
         <span className="tos-desk-live" data-on={decisions.length > 0 ? 'true' : 'false'}>
-          {decisions.length ? `${decisions.length} active` : 'None'}
+          {decisions.length
+            ? `${actionable.length} active · ${monitoring.length} monitor`
+            : 'None'}
         </span>
       </header>
       {decisions.length === 0 ? (
         <p className="tos-desk-empty">No active missions</p>
       ) : (
         <ul className="tos-missions-list">
-          {decisions.slice(0, 5).map((d) => {
-            const sym = d.subject.kind === 'token' ? d.subject.symbol : '—'
-            const pct = Math.min(100, Math.max(8, Math.round(d.confidence)))
+          {decisions.map((d) => {
+            const sym = d.subject?.kind === 'token' ? d.subject.symbol : '—'
+            const pct = Math.min(100, Math.max(8, Math.round(d.confidence ?? 0)))
+            const label =
+              d.action === 'WAIT' || d.action === 'DO_NOTHING' ? `MONITOR ${sym}` : `${d.action} ${sym}`
             return (
               <li key={d.id}>
                 <div className="tos-missions-row">
-                  <strong>
-                    {d.action} {sym}
-                  </strong>
-                  <span>{Math.round(d.confidence)}%</span>
+                  <strong>{label}</strong>
+                  <span>{Math.round(d.confidence ?? 0)}%</span>
                 </div>
                 <div className="tos-missions-bar" aria-hidden>
                   <i style={{ width: `${pct}%` }} />
@@ -622,8 +643,8 @@ export function ScannerDiscoveryStrip() {
       if (!res.ok) return [] as Decision[]
       const body = (await res.json()) as { decisions?: Decision[] }
       return (body.decisions ?? [])
-        .filter((d) => d.subject.kind === 'token')
-        .sort((a, b) => b.confidence - a.confidence)
+        .filter((d) => d.subject?.kind === 'token')
+        .sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0))
         .slice(0, 6)
     },
     staleTime: 15_000,
@@ -657,19 +678,21 @@ export function ScannerDiscoveryStrip() {
           </thead>
           <tbody>
             {rows.map((d) => {
-              const sym = d.subject.kind === 'token' ? d.subject.symbol : '—'
-              const mint = d.subject.kind === 'token' ? d.subject.address || sym : sym
+              const sym = d.subject?.kind === 'token' ? d.subject.symbol : '—'
+              const mint = d.subject?.kind === 'token' ? d.subject.address || sym : sym
               return (
                 <tr key={d.id}>
                   <td>
                     <strong>{sym}</strong>
                     <span className="tos-scanner-act"> {d.action}</span>
                   </td>
-                  <td className="tos-num">{Math.round(d.confidence)}%</td>
+                  <td className="tos-num">{Math.round(d.confidence ?? 0)}%</td>
                   <td className="tos-num">
-                    {d.expectedROI != null ? `${d.expectedROI > 0 ? '+' : ''}${d.expectedROI.toFixed(1)}%` : '—'}
+                    {d.expectedROI != null && typeof d.expectedROI === 'number'
+                      ? `${d.expectedROI > 0 ? '+' : ''}${d.expectedROI.toFixed(1)}%`
+                      : '—'}
                   </td>
-                  <td className="tos-num">{Math.round(d.risk)}</td>
+                  <td className="tos-num">{Math.round(d.risk ?? 0)}</td>
                   <td>
                     <button
                       type="button"
@@ -722,12 +745,12 @@ export function OnChainHeatmap() {
   })
 
   const nodes = useMemo(() => {
-    const holdings = (q.data?.holdings ?? []).filter((h) => h.valueUsd > 0).slice(0, 12)
-    const max = Math.max(...holdings.map((h) => h.valueUsd), 1)
+    const holdings = (q.data?.holdings ?? []).filter((h) => (h.valueUsd ?? 0) > 0).slice(0, 12)
+    const max = Math.max(...holdings.map((h) => h.valueUsd ?? 0), 1)
     return holdings.map((h) => ({
       holding: h,
       // 0.45–1 scale from real USD — never invented
-      scale: 0.45 + 0.55 * (h.valueUsd / max),
+      scale: 0.45 + 0.55 * ((h.valueUsd ?? 0) / max),
     }))
   }, [q.data])
 
@@ -757,7 +780,7 @@ export function OnChainHeatmap() {
                 ['--hm-scale' as string]: String(scale),
                 ['--hm-heat' as string]: heatFromChange(h.change24hPct),
               }}
-              title={`${h.symbol}: ${formatUsd(h.valueUsd, true)} (${h.allocationPct.toFixed(1)}%)`}
+              title={`${h.symbol}: ${formatUsd(h.valueUsd ?? 0, true)} (${(h.allocationPct ?? 0).toFixed(1)}%)`}
               onClick={() =>
                 setFocused({
                   id: h.mint,
@@ -770,7 +793,7 @@ export function OnChainHeatmap() {
               }
             >
               <span className="tos-heatmap-sym">{h.symbol}</span>
-              <span className="tos-heatmap-pct">{h.allocationPct.toFixed(0)}%</span>
+              <span className="tos-heatmap-pct">{(h.allocationPct ?? 0).toFixed(0)}%</span>
             </button>
           ))}
         </div>
@@ -858,15 +881,15 @@ export function TradeLikeMeDnaCard() {
             <span>
               Hold{' '}
               <strong className="tos-num">
-                {dna.avgHoldingMs > 0
-                  ? dna.avgHoldingMs < 3_600_000
-                    ? `${Math.round(dna.avgHoldingMs / 60_000)}m`
-                    : `${(dna.avgHoldingMs / 3_600_000).toFixed(1)}h`
+                {(dna.avgHoldingMs ?? 0) > 0
+                  ? (dna.avgHoldingMs ?? 0) < 3_600_000
+                    ? `${Math.round((dna.avgHoldingMs ?? 0) / 60_000)}m`
+                    : `${((dna.avgHoldingMs ?? 0) / 3_600_000).toFixed(1)}h`
                   : '—'}
               </strong>
             </span>
             <span>
-              Loss tol <strong className="tos-num">−{dna.lossTolerancePct}%</strong>
+              Loss tol <strong className="tos-num">−{dna.lossTolerancePct ?? '—'}%</strong>
             </span>
           </div>
           <button type="button" className="tos-scanner-buy" onClick={() => setNav('ai-trading')}>
@@ -879,3 +902,88 @@ export function TradeLikeMeDnaCard() {
 }
 
 export { allocationSegments, PortfolioAllocationDonut } from '@/features/terminal-os/portfolio-os/components/PortfolioAllocationDonut'
+
+/**
+ * Kernel algorithm mesh — shows Decision tickMeta + engines cited on published Decisions.
+ * Presentation only: proves algorithms are attached (Market → Whales → Security → DNA → Decision).
+ */
+export function KernelAlgorithmStrip() {
+  const wallet = useTerminalOsStore((s) => s.walletAddress)
+  const q = useQuery({
+    queryKey: ['tos', 'kernel-algo-strip', wallet],
+    queryFn: async () => {
+      const qs = new URLSearchParams({ limit: '16' })
+      if (wallet) qs.set('wallet', wallet)
+      const res = await fetch(`/api/terminal-os/decisions?${qs}`, { cache: 'no-store' })
+      if (!res.ok) return { tickMeta: null as DecisionTickMeta | null, decisions: [] as Decision[] }
+      return (await res.json()) as { tickMeta?: DecisionTickMeta | null; decisions?: Decision[] }
+    },
+    staleTime: 15_000,
+    refetchInterval: 25_000,
+  })
+
+  const meta = q.data?.tickMeta ?? null
+  const decisions = q.data?.decisions ?? []
+  const engineHits = new Map<string, number>()
+  const chains = new Map<string, number>()
+  for (const d of decisions) {
+    if (d.subject?.kind === 'token' && 'chain' in d.subject) {
+      const c = String((d.subject as { chain?: string }).chain ?? 'unknown')
+      chains.set(c, (chains.get(c) ?? 0) + 1)
+    }
+    for (const f of d.contributingFactors ?? []) {
+      const id = String(f.engine)
+      engineHits.set(id, (engineHits.get(id) ?? 0) + 1)
+    }
+  }
+  const engineRows = [
+    'market-intelligence',
+    'whale-intelligence',
+    'security-scanner',
+    'prediction-engine',
+    'trader-dna',
+    'portfolio-intelligence',
+  ].map((id) => ({
+    id,
+    label: id.replace(/-/g, ' '),
+    hits: engineHits.get(id) ?? 0,
+  }))
+  const chainLabel =
+    chains.size > 0
+      ? [...chains.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .map(([c, n]) => `${c}:${n}`)
+          .join(' · ')
+      : '—'
+
+  return (
+    <div className="tos-desk-panel tos-kernel-algo" data-tos-kernel-algo="true">
+      <header className="tos-desk-panel-head">
+        <span>Algorithm Mesh</span>
+        <span className="tos-desk-live" data-on={meta ? 'true' : 'false'}>
+          {meta ? `${meta.published}/${meta.scanned} published` : 'Waiting tick'}
+        </span>
+      </header>
+      <p className="tos-kernel-algo-flow" aria-label="Engine pipeline">
+        Discover → Analyze → Decide → Execute → Monitor → Learn
+      </p>
+      <ul className="tos-kernel-algo-engines">
+        {engineRows.map((e) => (
+          <li key={e.id} data-live={e.hits > 0 ? 'true' : 'false'}>
+            <strong>{e.label}</strong>
+            <span>{e.hits > 0 ? `${e.hits} cites` : 'idle'}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="tos-kernel-algo-meta">
+        Chains in last tick Decisions: <span className="tos-num">{chainLabel}</span>
+        {meta?.buyCount != null ? (
+          <>
+            {' '}
+            · BUY {meta.buyCount} · WAIT {meta.waitCount}
+          </>
+        ) : null}
+      </p>
+    </div>
+  )
+}
