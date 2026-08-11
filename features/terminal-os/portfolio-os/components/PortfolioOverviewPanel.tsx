@@ -13,7 +13,7 @@ import { PortfolioAllocationDonut } from '@/features/terminal-os/portfolio-os/co
 
 /**
  * Kernel: Portfolio Intelligence holdings → health scores + allocation donut.
- * Donut segments = real allocationPct from holdings (Solana today).
+ * Donut segments = real allocationPct from holdings (Solana + EVM).
  */
 export function PortfolioOverviewPanel({ compact = false }: { compact?: boolean }) {
   const wallet = useTerminalOsStore((s) => s.walletAddress)
@@ -24,6 +24,7 @@ export function PortfolioOverviewPanel({ compact = false }: { compact?: boolean 
   const [totalValueUsd, setTotalValueUsd] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [tokenCount, setTokenCount] = useState(0)
+  const [chainLabel, setChainLabel] = useState<string>('solana')
 
   useEffect(() => {
     let c = false
@@ -38,12 +39,10 @@ export function PortfolioOverviewPanel({ compact = false }: { compact?: boolean 
       return
     }
 
-    if (chainFamily === 'evm') {
-      setError('Portfolio health uses Solana holdings today — connect a Solana wallet.')
-      return
-    }
+    const qs = new URLSearchParams({ wallet })
+    if (chainFamily === 'evm') qs.set('chain', 'ethereum')
 
-    void fetch(`/api/portfolio/holdings?wallet=${encodeURIComponent(wallet)}`, { cache: 'no-store' })
+    void fetch(`/api/portfolio/holdings?${qs}`, { cache: 'no-store' })
       .then(async (res) => {
         if (!res.ok) {
           const body = (await res.json().catch(() => ({}))) as { error?: string }
@@ -56,6 +55,7 @@ export function PortfolioOverviewPanel({ compact = false }: { compact?: boolean 
         setTokenCount(h.holdings.length)
         setHoldings(h.holdings)
         setTotalValueUsd(h.totalValueUsd)
+        setChainLabel(h.chain || h.chainFamily || (chainFamily === 'evm' ? 'evm' : 'solana'))
         setData(summaryFromHoldings(h))
       })
       .catch((e: Error) => {
@@ -68,13 +68,17 @@ export function PortfolioOverviewPanel({ compact = false }: { compact?: boolean 
   }, [wallet, walletConnected, chainFamily])
 
   const body = !walletConnected ? (
-    <EmptyState message="Connect a Solana wallet to load live portfolio health." />
+    <EmptyState message="Connect a Solana or EVM wallet to load live portfolio health." />
   ) : error ? (
     <EmptyState message={error} />
   ) : !data ? (
     <PanelSkeleton rows={3} />
   ) : (
     <div className={compact ? 'tos-portfolio-compact' : undefined}>
+      <p className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)', margin: '0 0 0.5rem' }}>
+        Chain: {chainLabel}
+        {chainFamily === 'evm' ? ' · EVM swap capital path not enabled (Jupiter/Solana only)' : ''}
+      </p>
       <PortfolioAllocationDonut holdings={holdings} totalValueUsd={totalValueUsd} />
       <div className="tos-metric-grid">
         <Metric label="Total assets" value={formatUsd(data.totalAssetsUsd, true)} />
@@ -100,7 +104,13 @@ export function PortfolioOverviewPanel({ compact = false }: { compact?: boolean 
           <Metric
             label="Holdings"
             value={`${tokenCount}`}
-            why={tokenCount ? 'From live Solana balances' : 'No holdings yet'}
+            why={
+              tokenCount
+                ? chainFamily === 'evm'
+                  ? 'From live EVM balances'
+                  : 'From live Solana balances'
+                : 'No holdings yet'
+            }
           />
         )}
       </div>

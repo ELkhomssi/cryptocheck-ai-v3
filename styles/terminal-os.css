@@ -4003,3 +4003,53 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Brain Map — 3D hologram depth (Decision factors only; no fake %) */
+[data-tos] .tos-brain-orbit--holo {
+  position: relative;
+  perspective: 900px;
+  transform-style: preserve-3d;
+}
+[data-tos] .tos-brain-holo-glow {
+  position: absolute;
+  inset: 8% 12%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 40%, color-mix(in srgb, #00e0ff 28%, transparent), transparent 62%),
+    radial-gradient(circle at 50% 70%, color-mix(in srgb, #00ffa3 14%, transparent), transparent 55%);
+  filter: blur(8px);
+  pointer-events: none;
+  animation: tos-brain-pulse 3.2s ease-in-out infinite;
+}
+[data-tos] .tos-brain-svg--3d {
+  position: relative;
+  z-index: 1;
+  transform: rotateX(18deg) rotateZ(-4deg);
+  transform-origin: 50% 55%;
+  filter: drop-shadow(0 12px 28px color-mix(in srgb, #00e0ff 25%, transparent));
+}
+[data-tos] .tos-brain-ellipse {
+  stroke: url(#tosBrainRing);
+  stroke-width: 1.25;
+  opacity: 0.85;
+}
+[data-tos] .tos-brain-ellipse--outer {
+  stroke: color-mix(in srgb, #00e0ff 55%, transparent);
+  animation: tos-brain-spin 36s linear infinite;
+  transform-origin: 140px 148px;
+}
+[data-tos] .tos-brain-ellipse--mid {
+  stroke: color-mix(in srgb, #00ffa3 45%, transparent);
+  animation: tos-brain-spin 22s linear infinite reverse;
+  transform-origin: 140px 144px;
+}
+[data-tos] .tos-brain-core-halo {
+  stroke: color-mix(in srgb, #7cffef 55%, transparent);
+  stroke-width: 1.5;
+  animation: tos-brain-pulse 2.4s ease-in-out infinite;
+}
+[data-tos] .tos-brain-node[data-live='true'] {
+  fill: color-mix(in srgb, #00e0ff 35%, #0a1220);
+  stroke: #00ffa3;
+  stroke-width: 1.5;
+}

@@ -25,7 +25,7 @@ export function QuickSwapCard() {
   if (walletConnected && walletChainFamily === 'evm') {
     return (
       <Panel title="Quick Swap">
-        <EmptyState message="Secure Execution is Solana-routed today. Switch to a Solana wallet to execute." />
+        <EmptyState message="EVM holdings are live; swap capital path stays Solana/Jupiter for now. Switch to a Solana wallet to execute." />
         <button
           type="button"
           className="tos-btn tos-btn-gold"

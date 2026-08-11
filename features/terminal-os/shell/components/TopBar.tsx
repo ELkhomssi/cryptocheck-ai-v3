@@ -110,10 +110,12 @@ export function TopBar() {
   const shown = quotes?.length ? quotes : lkg
 
   const holdingsQ = useQuery({
-    queryKey: ['tos', 'topbar-holdings', walletAddress],
-    enabled: Boolean(walletConnected && walletAddress && walletChainFamily !== 'evm'),
+    queryKey: ['tos', 'topbar-holdings', walletAddress, walletChainFamily],
+    enabled: Boolean(walletConnected && walletAddress),
     queryFn: async () => {
-      const res = await fetch(`/api/portfolio/holdings?wallet=${encodeURIComponent(walletAddress!)}`, {
+      const qs = new URLSearchParams({ wallet: walletAddress! })
+      if (walletChainFamily === 'evm') qs.set('chain', 'ethereum')
+      const res = await fetch(`/api/portfolio/holdings?${qs}`, {
         cache: 'no-store',
       })
       if (!res.ok) return null
@@ -235,8 +237,8 @@ export function TopBar() {
       <div className="tos-topbar-actions" style={{ position: 'relative' }}>
         <div className="tos-topbar-portfolio" data-loaded={portfolioSummary ? 'true' : 'false'}>
           <span className="tos-topbar-portfolio-label">Portfolio value</span>
-          {walletConnected && walletChainFamily === 'evm' ? (
-            <span className="tos-muted">Solana holdings only</span>
+          {walletConnected && walletChainFamily === 'evm' && !portfolioSummary ? (
+            <span className="tos-muted">{holdingsQ.isLoading ? 'Loading EVM…' : 'Not enough data yet'}</span>
           ) : !walletConnected ? (
             <span className="tos-muted">Connect wallet</span>
           ) : portfolioSummary ? (
