@@ -53,6 +53,7 @@ function histKey(id: string) {
 }
 
 function subjectId(decision: Decision): string {
+  if (!decision.subject) return decision.id
   return decision.subject.kind === 'token'
     ? decision.subject.address || decision.subject.symbol
     : decision.subject.address
@@ -67,7 +68,7 @@ async function appendHistory(id: string, decision: Decision): Promise<void> {
     personalizedConfidence: decision.personalizedConfidence,
     confidenceMode: decision.confidenceMode,
     risk: decision.risk,
-    reasoning: decision.reasoning.slice(0, 240),
+    reasoning: decision.reasoning?.slice?.(0, 240) ?? '',
   }
   const raw = await redis.get(histKey(id))
   let points: DecisionHistoryPoint[] = []

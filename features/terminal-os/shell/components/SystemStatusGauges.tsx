@@ -15,8 +15,10 @@ type HealthPayload = {
   checks?: Record<string, { ok?: boolean; latency_ms?: number }>
 }
 
+type ProviderProbe = { ok?: boolean; latencyMs?: number | null }
 type ProviderHealth = {
-  providers?: Record<string, { ok?: boolean; latencyMs?: number }>
+  /** API returns Probe[] (see /api/terminal/provider-health); Record kept for compat. */
+  providers?: ProviderProbe[] | Record<string, ProviderProbe>
 }
 
 function Gauge({
@@ -73,15 +75,21 @@ export function SystemStatusGauges() {
   const enginesLabel =
     enginesTotal > 0 ? `${enginesOk}/${enginesTotal}` : '—'
 
-  const providers = Object.entries(providersQ.data?.providers ?? {})
-  const feedsOk = providers.filter(([, p]) => p?.ok).length
-  const feedsTotal = providers.length
+  // provider-health returns `providers: Probe[]` (not a Record). Normalize before counting.
+  const rawProviders = providersQ.data?.providers
+  const providerList: ProviderProbe[] = Array.isArray(rawProviders)
+    ? rawProviders
+    : rawProviders && typeof rawProviders === 'object'
+      ? Object.values(rawProviders)
+      : []
+  const feedsOk = providerList.filter((p) => p?.ok).length
+  const feedsTotal = providerList.length
   const feedsLabel = feedsTotal > 0 ? `${feedsOk}/${feedsTotal}` : '—'
 
   const latencyCandidates = [
     healthQ.data?.latency_ms,
     ...checks.map((c) => c?.latency_ms).filter((n): n is number => typeof n === 'number'),
-    ...providers.map(([, p]) => p?.latencyMs).filter((n): n is number => typeof n === 'number'),
+    ...providerList.map((p) => p?.latencyMs).filter((n): n is number => typeof n === 'number'),
   ].filter((n): n is number => typeof n === 'number' && Number.isFinite(n))
   const latencyMs =
     latencyCandidates.length > 0

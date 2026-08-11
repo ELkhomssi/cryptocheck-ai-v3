@@ -38,7 +38,7 @@ export function AiRecommendationCard() {
   })
 
   const d = q.data
-  const sym = d?.subject.kind === 'token' ? d.subject.symbol : null
+  const sym = d?.subject?.kind === 'token' ? d.subject.symbol : null
 
   return (
     <div className="tos-desk-panel tos-rec-card" data-tos-rec="true">
@@ -55,7 +55,7 @@ export function AiRecommendationCard() {
           <p className="tos-rec-headline">
             {d.action}
             {sym ? ` $${sym}` : ''}
-            {d.expectedROI != null ? (
+            {d.expectedROI != null && typeof d.expectedROI === 'number' && Number.isFinite(d.expectedROI) ? (
               <span className="tos-rec-roi">
                 {' '}
                 · {d.expectedROI > 0 ? '+' : ''}
@@ -66,10 +66,18 @@ export function AiRecommendationCard() {
           <p className="tos-rec-reason">{heroReason(d.reasoning, 140)}</p>
           <div className="tos-rec-meta">
             <span>
-              Confidence <strong className="tos-num">{Math.round(d.confidence)}%</strong>
+              Confidence{' '}
+              <strong className="tos-num">
+                {typeof d.confidence === 'number' && Number.isFinite(d.confidence)
+                  ? `${Math.round(d.confidence)}%`
+                  : '—'}
+              </strong>
             </span>
             <span>
-              Risk <strong className="tos-num">{Math.round(d.risk)}</strong>
+              Risk{' '}
+              <strong className="tos-num">
+                {typeof d.risk === 'number' && Number.isFinite(d.risk) ? Math.round(d.risk) : '—'}
+              </strong>
             </span>
           </div>
         </div>
