@@ -175,7 +175,7 @@ export function DecisionBrainSpokes() {
             <circle cx={cx} cy={cy} r={orbitR * 0.62} className="tos-brain-ring tos-brain-ring--inner" />
             <circle cx={cx} cy={cy} r={38} fill="url(#tosBrainCore)" className="tos-brain-core-disk" />
             <text x={cx} y={cy - 4} textAnchor="middle" className="tos-brain-core-text">
-              {d.subject.kind === 'token' ? d.subject.symbol : 'AI'}
+              {d.subject?.kind === 'token' ? d.subject.symbol : 'AI'}
             </text>
             <text x={cx} y={cy + 12} textAnchor="middle" className="tos-brain-core-sub">
               {Math.round(d.confidence)}%
@@ -262,15 +262,15 @@ export function CurrentMissionsPanel() {
       ) : (
         <ul className="tos-missions-list">
           {decisions.slice(0, 5).map((d) => {
-            const sym = d.subject.kind === 'token' ? d.subject.symbol : '—'
-            const pct = Math.min(100, Math.max(8, Math.round(d.confidence)))
+            const sym = d.subject?.kind === 'token' ? d.subject.symbol : '—'
+            const pct = Math.min(100, Math.max(8, Math.round(d.confidence ?? 0)))
             return (
               <li key={d.id}>
                 <div className="tos-missions-row">
                   <strong>
                     {d.action} {sym}
                   </strong>
-                  <span>{Math.round(d.confidence)}%</span>
+                  <span>{Math.round(d.confidence ?? 0)}%</span>
                 </div>
                 <div className="tos-missions-bar" aria-hidden>
                   <i style={{ width: `${pct}%` }} />
@@ -622,8 +622,8 @@ export function ScannerDiscoveryStrip() {
       if (!res.ok) return [] as Decision[]
       const body = (await res.json()) as { decisions?: Decision[] }
       return (body.decisions ?? [])
-        .filter((d) => d.subject.kind === 'token')
-        .sort((a, b) => b.confidence - a.confidence)
+        .filter((d) => d.subject?.kind === 'token')
+        .sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0))
         .slice(0, 6)
     },
     staleTime: 15_000,
@@ -657,19 +657,21 @@ export function ScannerDiscoveryStrip() {
           </thead>
           <tbody>
             {rows.map((d) => {
-              const sym = d.subject.kind === 'token' ? d.subject.symbol : '—'
-              const mint = d.subject.kind === 'token' ? d.subject.address || sym : sym
+              const sym = d.subject?.kind === 'token' ? d.subject.symbol : '—'
+              const mint = d.subject?.kind === 'token' ? d.subject.address || sym : sym
               return (
                 <tr key={d.id}>
                   <td>
                     <strong>{sym}</strong>
                     <span className="tos-scanner-act"> {d.action}</span>
                   </td>
-                  <td className="tos-num">{Math.round(d.confidence)}%</td>
+                  <td className="tos-num">{Math.round(d.confidence ?? 0)}%</td>
                   <td className="tos-num">
-                    {d.expectedROI != null ? `${d.expectedROI > 0 ? '+' : ''}${d.expectedROI.toFixed(1)}%` : '—'}
+                    {d.expectedROI != null && typeof d.expectedROI === 'number'
+                      ? `${d.expectedROI > 0 ? '+' : ''}${d.expectedROI.toFixed(1)}%`
+                      : '—'}
                   </td>
-                  <td className="tos-num">{Math.round(d.risk)}</td>
+                  <td className="tos-num">{Math.round(d.risk ?? 0)}</td>
                   <td>
                     <button
                       type="button"
@@ -722,12 +724,12 @@ export function OnChainHeatmap() {
   })
 
   const nodes = useMemo(() => {
-    const holdings = (q.data?.holdings ?? []).filter((h) => h.valueUsd > 0).slice(0, 12)
-    const max = Math.max(...holdings.map((h) => h.valueUsd), 1)
+    const holdings = (q.data?.holdings ?? []).filter((h) => (h.valueUsd ?? 0) > 0).slice(0, 12)
+    const max = Math.max(...holdings.map((h) => h.valueUsd ?? 0), 1)
     return holdings.map((h) => ({
       holding: h,
       // 0.45–1 scale from real USD — never invented
-      scale: 0.45 + 0.55 * (h.valueUsd / max),
+      scale: 0.45 + 0.55 * ((h.valueUsd ?? 0) / max),
     }))
   }, [q.data])
 
@@ -757,7 +759,7 @@ export function OnChainHeatmap() {
                 ['--hm-scale' as string]: String(scale),
                 ['--hm-heat' as string]: heatFromChange(h.change24hPct),
               }}
-              title={`${h.symbol}: ${formatUsd(h.valueUsd, true)} (${h.allocationPct.toFixed(1)}%)`}
+              title={`${h.symbol}: ${formatUsd(h.valueUsd ?? 0, true)} (${(h.allocationPct ?? 0).toFixed(1)}%)`}
               onClick={() =>
                 setFocused({
                   id: h.mint,
@@ -770,7 +772,7 @@ export function OnChainHeatmap() {
               }
             >
               <span className="tos-heatmap-sym">{h.symbol}</span>
-              <span className="tos-heatmap-pct">{h.allocationPct.toFixed(0)}%</span>
+              <span className="tos-heatmap-pct">{(h.allocationPct ?? 0).toFixed(0)}%</span>
             </button>
           ))}
         </div>
@@ -858,15 +860,15 @@ export function TradeLikeMeDnaCard() {
             <span>
               Hold{' '}
               <strong className="tos-num">
-                {dna.avgHoldingMs > 0
-                  ? dna.avgHoldingMs < 3_600_000
-                    ? `${Math.round(dna.avgHoldingMs / 60_000)}m`
-                    : `${(dna.avgHoldingMs / 3_600_000).toFixed(1)}h`
+                {(dna.avgHoldingMs ?? 0) > 0
+                  ? (dna.avgHoldingMs ?? 0) < 3_600_000
+                    ? `${Math.round((dna.avgHoldingMs ?? 0) / 60_000)}m`
+                    : `${((dna.avgHoldingMs ?? 0) / 3_600_000).toFixed(1)}h`
                   : '—'}
               </strong>
             </span>
             <span>
-              Loss tol <strong className="tos-num">−{dna.lossTolerancePct}%</strong>
+              Loss tol <strong className="tos-num">−{dna.lossTolerancePct ?? '—'}%</strong>
             </span>
           </div>
           <button type="button" className="tos-scanner-buy" onClick={() => setNav('ai-trading')}>

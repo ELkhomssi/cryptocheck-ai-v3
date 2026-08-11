@@ -21,20 +21,22 @@ type CoachBullet = {
 
 function bulletsFromDecision(d: Decision): CoachBullet[] {
   const out: CoachBullet[] = []
-  const symbol = d.subject.kind === 'token' ? d.subject.symbol : null
+  const symbol = d.subject?.kind === 'token' ? d.subject.symbol : null
   out.push({
     id: `${d.id}-action`,
     text: symbol
-      ? `Published Decision: ${d.action} $${symbol} · confidence ${Math.round(d.confidence)}%`
-      : `Published Decision: ${d.action} · confidence ${Math.round(d.confidence)}%`,
+      ? `Published Decision: ${d.action} $${symbol} · confidence ${Math.round(d.confidence ?? 0)}%`
+      : `Published Decision: ${d.action} · confidence ${Math.round(d.confidence ?? 0)}%`,
     source: 'decision',
   })
-  for (const f of d.contributingFactors.slice(0, 4)) {
+  for (const f of d.contributingFactors ?? []) {
+    if (!f) continue
     out.push({
-      id: `${d.id}-${f.engine}-${f.summary.slice(0, 24)}`,
-      text: `${String(f.engine).replace(/-/g, ' ')}: ${f.summary}`,
+      id: `${d.id}-${f.engine}-${String(f.summary ?? '').slice(0, 24)}`,
+      text: `${String(f.engine).replace(/-/g, ' ')}: ${f.summary ?? '—'}`,
       source: 'factor',
     })
+    if (out.length >= 5) break
   }
   if (d.expectedROI != null && Number.isFinite(d.expectedROI)) {
     out.push({

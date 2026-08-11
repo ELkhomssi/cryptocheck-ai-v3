@@ -72,13 +72,19 @@ export function TerminalOsHomeDesk() {
           </div>
         </PanelErrorBoundary>
 
-        <DecisionBrainSpokes />
-        <CurrentMissionsPanel />
+        <PanelErrorBoundary title="AI Brain Map">
+          <DecisionBrainSpokes />
+        </PanelErrorBoundary>
+        <PanelErrorBoundary title="Current Missions">
+          <CurrentMissionsPanel />
+        </PanelErrorBoundary>
       </section>
 
       <section className="tos-home-row tos-home-row-mid" aria-label="Market row">
         <ChartSurface />
-        <LiveExecutionFeed />
+        <PanelErrorBoundary title="Live Execution">
+          <LiveExecutionFeed />
+        </PanelErrorBoundary>
         <PanelErrorBoundary title="Portfolio">
           <div className="tos-desk-panel tos-desk-portfolio" data-tos-portfolio="true">
             <header className="tos-desk-panel-head">
@@ -90,12 +96,22 @@ export function TerminalOsHomeDesk() {
       </section>
 
       <section className="tos-home-row tos-home-row-bot" aria-label="Ops row">
-        <SystemStatusGauges />
-        <ScannerDiscoveryStrip />
-        <OnChainHeatmap />
-        <PositionsSnapshot />
+        <PanelErrorBoundary title="System Status">
+          <SystemStatusGauges />
+        </PanelErrorBoundary>
+        <PanelErrorBoundary title="Scanner">
+          <ScannerDiscoveryStrip />
+        </PanelErrorBoundary>
+        <PanelErrorBoundary title="Heatmap">
+          <OnChainHeatmap />
+        </PanelErrorBoundary>
+        <PanelErrorBoundary title="Positions">
+          <PositionsSnapshot />
+        </PanelErrorBoundary>
         <div className="tos-home-bot-stack">
-          <AutonomousWorkflowStrip />
+          <PanelErrorBoundary title="Workflow">
+            <AutonomousWorkflowStrip />
+          </PanelErrorBoundary>
         </div>
       </section>
     </div>
