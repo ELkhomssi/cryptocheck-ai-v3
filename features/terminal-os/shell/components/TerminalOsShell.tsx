@@ -29,6 +29,7 @@ import { TerminalOsHomeDesk } from '@/features/terminal-os/shell/components/Term
 import { AiRecommendationCard } from '@/features/terminal-os/shell/components/AiRecommendationCard'
 import { SystemStatusGauges } from '@/features/terminal-os/shell/components/SystemStatusGauges'
 import { TradeLikeMeDnaCard } from '@/features/terminal-os/shell/components/HomeDeskPanels'
+import { ChartIntelligenceWorkspace } from '@/features/terminal-os/chart-intelligence/components/ChartIntelligenceWorkspace'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
 import { useTerminalOsStore } from '@/stores/terminal-os'
@@ -190,9 +191,9 @@ function MainColumn() {
 
   if (nav === 'chart-intelligence') {
     return (
-      <div className="tos-stack">
-        <ChartSurface />
-      </div>
+      <Bound title="Chart Intelligence">
+        <ChartIntelligenceWorkspace />
+      </Bound>
     )
   }
 
@@ -348,12 +349,13 @@ function SecondaryNavStub({ nav }: { nav: TerminalNavId }) {
   )
 }
 
-function RightRail({ homeMode }: { homeMode: boolean }) {
+function RightRail({ homeMode, chartMode }: { homeMode: boolean; chartMode: boolean }) {
   return (
     <aside className="tos-right-rail" aria-label="AI Coach and tools" data-tos-right="coach">
       <Bound title="AI Coach">
         <PersistentCoachRail />
-      </Bound>      {homeMode ? (
+      </Bound>
+      {homeMode ? (
         <>
           <Bound title="AI Recommendation">
             <AiRecommendationCard />
@@ -362,6 +364,10 @@ function RightRail({ homeMode }: { homeMode: boolean }) {
             <TradeLikeMeDnaCard />
           </Bound>
         </>
+      ) : chartMode ? (
+        <Bound title="Quick Swap">
+          <QuickSwapCard />
+        </Bound>
       ) : (
         <>
           <Bound title="Token Score">
@@ -382,9 +388,15 @@ function RightRail({ homeMode }: { homeMode: boolean }) {
 export function TerminalOsShell() {
   const activeNav = useTerminalOsStore((s) => s.activeNav)
   const homeMode = activeNav === 'terminal'
+  const chartMode = activeNav === 'chart-intelligence'
 
   return (
-    <div className="tos-shell" data-tos-shell data-tos-home={homeMode ? 'true' : undefined}>
+    <div
+      className="tos-shell"
+      data-tos-shell
+      data-tos-home={homeMode ? 'true' : undefined}
+      data-tos-chart={chartMode ? 'true' : undefined}
+    >
       <Bound title="Top Bar">
         <TopBar />
       </Bound>
@@ -410,7 +422,7 @@ export function TerminalOsShell() {
       <main className="tos-main">
         <MainColumn />
       </main>
-      <RightRail homeMode={homeMode} />
+      <RightRail homeMode={homeMode} chartMode={chartMode} />
     </div>
   )
 }
