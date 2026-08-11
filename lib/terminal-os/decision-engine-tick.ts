@@ -89,10 +89,24 @@ export async function runDecisionTick(opts?: {
   limit?: number
 }): Promise<DecisionTickResult> {
   const limit = Math.min(24, Math.max(4, opts?.limit ?? 12))
-  const [tokensEnv, whalesEnv] = await Promise.all([
-    loadMultiChainTokens(Math.max(limit, 16)),
-    resilientWhales(24),
-  ])
+  let tokensEnv: { data: TokenRow[]; sources: string[] }
+  try {
+    tokensEnv = await loadMultiChainTokens(Math.max(limit, 16))
+  } catch (err) {
+    console.error('[decision-tick] multi-chain token load failed — Solana fallback', err)
+    const sol = await resilientTokens('solana', Math.max(limit, 16))
+    tokensEnv = { data: sol.data ?? [], sources: [String(sol.source ?? 'solana')] }
+  }
+  const whalesEnv = await resilientWhales(24).catch(() => ({
+    data: [] as Awaited<ReturnType<typeof resilientWhales>>['data'],
+    source: 'unavailable',
+  }))
+
+  // If multi-chain yielded nothing usable, force Solana resilient feed (may include demo-tagged envelope)
+  if (!(tokensEnv.data ?? []).length) {
+    const sol = await resilientTokens('solana', Math.max(limit, 16))
+    tokensEnv = { data: sol.data ?? [], sources: [String(sol.source ?? 'solana-fallback')] }
+  }
 
   const primaryWallet = opts?.wallet?.trim() || (await loadWatchWallets())[0] || null
   const dna =
@@ -105,65 +119,70 @@ export async function runDecisionTick(opts?: {
   const tokens = (tokensEnv.data ?? []).slice(0, limit)
 
   for (const token of tokens) {
-    const related = (whalesEnv.data ?? []).filter(
-      (w) => w.assetSymbol.toUpperCase() === token.symbol.toUpperCase(),
-    )
-    const unavailable: EngineId[] = []
-    if (!dna) unavailable.push('trader-dna')
-    if (!related.length) unavailable.push('whale-intelligence')
-    if (!primaryWallet) unavailable.push('portfolio-intelligence')
-
-    // ~80–200ms estimated — Security Scanner via scan gateway (Solana mints only)
-    let tokenScore: number | undefined
-    let riskScore: number | undefined
-    let securityBand: 'excellent' | 'good' | 'caution' | 'danger' | undefined
     try {
-      const isSolana =
-        token.chain === 'solana' || /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(token.id)
-      if (isSolana) {
-        const assess = await assessRiskByMint(token.id, 'solana', 'fast')
-        tokenScore = assess.safetyScore
-        riskScore = assess.riskScore
-        securityBand =
-          assess.safetyScore >= 80
-            ? 'excellent'
-            : assess.safetyScore >= 65
-              ? 'good'
-              : assess.safetyScore >= 45
-                ? 'caution'
-                : 'danger'
-      } else {
-        // Honest: EVM/other chains publish Decision from market/whales; security not scanned yet
+      const related = (whalesEnv.data ?? []).filter(
+        (w) => w.assetSymbol.toUpperCase() === token.symbol.toUpperCase(),
+      )
+      const unavailable: EngineId[] = []
+      if (!dna) unavailable.push('trader-dna')
+      if (!related.length) unavailable.push('whale-intelligence')
+      if (!primaryWallet) unavailable.push('portfolio-intelligence')
+
+      // ~80–200ms estimated — Security Scanner via scan gateway (Solana mints only)
+      let tokenScore: number | undefined
+      let riskScore: number | undefined
+      let securityBand: 'excellent' | 'good' | 'caution' | 'danger' | undefined
+      try {
+        const isSolana =
+          token.chain === 'solana' || /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(token.id)
+        if (isSolana) {
+          const assess = await assessRiskByMint(token.id, 'solana', 'fast')
+          tokenScore = assess.safetyScore
+          riskScore = assess.riskScore
+          securityBand =
+            assess.safetyScore >= 80
+              ? 'excellent'
+              : assess.safetyScore >= 65
+                ? 'good'
+                : assess.safetyScore >= 45
+                  ? 'caution'
+                  : 'danger'
+        } else {
+          unavailable.push('security-scanner')
+        }
+      } catch {
         unavailable.push('security-scanner')
       }
-    } catch {
-      unavailable.push('security-scanner')
+
+      const hasOpenPosition = openMints.has(token.id)
+
+      const intel = buildMarketIntel({
+        token,
+        whales: related.length ? related : whalesEnv.data ?? [],
+        tokenScore,
+        riskScore,
+        securityBand,
+      })
+      const hasDna = Boolean(
+        dna &&
+          dna.sampleSize >= 3 &&
+          ((dna.avgHoldingMs ?? 0) > 0 || (dna.entryConditionProfile?.length ?? 0) > 0),
+      )
+      const explained = decide(hasDna ? dna : null, intel, {
+        hasOpenPosition,
+      })
+      const decision = toCanonicalDecision(explained, {
+        degradedInputs: unavailable,
+        tokenAddress: token.id,
+        personalized: hasDna,
+      })
+      await saveDecision(decision).catch((err) => {
+        console.error('[decision-tick] saveDecision failed', token.id, err)
+      })
+      decisions.push(decision)
+    } catch (err) {
+      console.error('[decision-tick] token failed', token?.id, err)
     }
-
-    const hasOpenPosition = openMints.has(token.id)
-
-    const intel = buildMarketIntel({
-      token,
-      whales: related.length ? related : whalesEnv.data ?? [],
-      tokenScore,
-      riskScore,
-      securityBand,
-    })
-    const hasDna = Boolean(
-      dna &&
-        dna.sampleSize >= 3 &&
-        ((dna.avgHoldingMs ?? 0) > 0 || (dna.entryConditionProfile?.length ?? 0) > 0),
-    )
-    const explained = decide(hasDna ? dna : null, intel, {
-      hasOpenPosition,
-    })
-    const decision = toCanonicalDecision(explained, {
-      degradedInputs: unavailable,
-      tokenAddress: token.id,
-      personalized: hasDna,
-    })
-    await saveDecision(decision)
-    decisions.push(decision)
   }
 
   const at = new Date().toISOString()
@@ -175,6 +194,8 @@ export async function runDecisionTick(opts?: {
     waitCount: decisions.filter((d) => d.action === 'WAIT' || d.action === 'DO_NOTHING').length,
     wallet: primaryWallet,
     openPositions: openMints.size,
+  }).catch((err) => {
+    console.error('[decision-tick] saveDecisionTickMeta failed', err)
   })
 
   return { computed: decisions.length, decisions, at }

@@ -53,7 +53,7 @@ describe('EVM holdings + ChainDataPort', () => {
 })
 
 describe('Brain 3D hologram', () => {
-  it('DecisionBrainSpokes renders hologram depth markup without fabricated %', () => {
+  it('DecisionBrainSpokes always renders hologram depth (even while waiting)', () => {
     const panels = readFileSync(
       join(root, 'features/terminal-os/shell/components/HomeDeskPanels.tsx'),
       'utf8',
@@ -62,7 +62,10 @@ describe('Brain 3D hologram', () => {
     assert.match(panels, /tos-brain-orbit--holo/)
     assert.match(panels, /data-tos-brain-3d/)
     assert.match(panels, /tosBrainGlow/)
+    assert.match(panels, /waiting \? BRAIN_SIGNAL_SLOTS/)
+    assert.match(panels, /Hologram online/)
     assert.match(css, /tos-brain-svg--3d/)
+    assert.match(css, /tos-brain-orbit--holo\.tos-brain-orbit--empty/)
     assert.doesNotMatch(panels, /Market Sentiment \(92%\)/)
     assert.doesNotMatch(panels, /37,?584/)
   })

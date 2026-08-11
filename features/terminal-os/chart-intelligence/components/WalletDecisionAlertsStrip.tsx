@@ -74,18 +74,19 @@ export function WalletDecisionAlertsStrip() {
         <span className="tos-desk-live" data-on={alerts.length > 0 ? 'true' : 'false'}>
           {!connected
             ? 'Connect wallet'
-            : chainFamily === 'evm'
-              ? 'Solana holdings only'
-              : alerts.length
-                ? `${alerts.length} live`
+            : alerts.length
+              ? `${alerts.length} live`
+              : chainFamily === 'evm'
+                ? 'EVM holdings · quiet'
                 : 'Quiet'}
         </span>
       </header>
 
       {!connected || !wallet ? (
         <p className="tos-desk-empty">
-          Connect a Solana wallet — EXIT/SELL Decisions on holdings surface here as exit alerts; BUY
-          Decisions with whale/rise evidence surface as entry alerts. Real Decision Engine only.
+          Connect a Solana or EVM wallet — EXIT/SELL Decisions on holdings surface here as exit
+          alerts; BUY Decisions with whale/rise evidence surface as entry alerts. Real Decision
+          Engine only.
         </p>
       ) : holdingsQ.isLoading && !holdingsQ.data ? (
         <p className="tos-desk-empty">Loading holdings…</p>

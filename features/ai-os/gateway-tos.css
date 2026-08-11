@@ -351,6 +351,25 @@
   align-self: flex-end;
 }
 
+[data-tos] [data-aios-gateway] .aios-gw-sources li:has(span:first-of-type:is([aria-label='standby'])) ,
+[data-tos] [data-aios-gateway] .aios-gw-decision[data-phase='waiting'] .aios-gw-sources li {
+  border-style: dashed;
+  background: color-mix(in srgb, var(--tos-accent-cyan) 4%, transparent);
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-standby {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 0.35rem;
+  animation: aios-gw-in 0.45s var(--tos-ease-state, ease) both;
+}
+
+[data-tos] [data-aios-gateway] .aios-gw-standby .aios-gw-metric[data-available='false'] {
+  min-height: 3.25rem;
+  border-style: dashed;
+}
+
 /* Iteration 4 — touch targets ≥44px */
 [data-tos] [data-aios-gateway] .aios-swap-execute,
 [data-tos] [data-aios-gateway] .aios-swap-override,

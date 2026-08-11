@@ -4053,3 +4053,46 @@
   stroke: #00ffa3;
   stroke-width: 1.5;
 }
+
+/* Waiting hologram — keep density (dashed spokes), not a lone circle */
+[data-tos] .tos-brain-orbit--holo.tos-brain-orbit--empty {
+  align-items: stretch;
+  justify-content: flex-start;
+  text-align: left;
+  min-height: 18rem;
+}
+[data-tos] .tos-brain-orbit--holo.tos-brain-orbit--empty .tos-brain-svg--3d {
+  opacity: 0.92;
+  animation: tos-brain-holo-idle 5.5s ease-in-out infinite;
+}
+@keyframes tos-brain-holo-idle {
+  0%,
+  100% {
+    filter: drop-shadow(0 10px 22px color-mix(in srgb, #00e0ff 18%, transparent));
+  }
+  50% {
+    filter: drop-shadow(0 14px 32px color-mix(in srgb, #00e0ff 38%, transparent));
+  }
+}
+[data-tos] .tos-missions-standby {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+[data-tos] .tos-missions-list--standby li[data-standby='true'] {
+  opacity: 0.72;
+  border-style: dashed;
+}
+[data-tos] .tos-missions-bar--standby i {
+  background: color-mix(in srgb, var(--tos-accent-cyan) 35%, transparent);
+  animation: tos-missions-pulse 2.8s ease-in-out infinite;
+}
+@keyframes tos-missions-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
