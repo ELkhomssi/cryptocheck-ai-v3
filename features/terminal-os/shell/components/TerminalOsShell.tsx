@@ -351,11 +351,16 @@ function SecondaryNavStub({ nav }: { nav: TerminalNavId }) {
 function RightRail({ homeMode }: { homeMode: boolean }) {
   return (
     <aside className="tos-right-rail" aria-label="AI Coach and tools" data-tos-right="coach">
-      <PersistentCoachRail />
-      {homeMode ? (
+      <Bound title="AI Coach">
+        <PersistentCoachRail />
+      </Bound>      {homeMode ? (
         <>
-          <AiRecommendationCard />
-          <TradeLikeMeDnaCard />
+          <Bound title="AI Recommendation">
+            <AiRecommendationCard />
+          </Bound>
+          <Bound title="Trade Like Me DNA">
+            <TradeLikeMeDnaCard />
+          </Bound>
         </>
       ) : (
         <>
@@ -380,7 +385,9 @@ export function TerminalOsShell() {
 
   return (
     <div className="tos-shell" data-tos-shell data-tos-home={homeMode ? 'true' : undefined}>
-      <TopBar />
+      <Bound title="Top Bar">
+        <TopBar />
+      </Bound>
       <AlertEvaluateBridge />
       <AlertToastHost />
       <div className="tos-whale-slot">
@@ -390,12 +397,16 @@ export function TerminalOsShell() {
       </div>
       {!homeMode ? (
         <div className="tos-lifecycle-slot">
-          <MoneyLifecycleRibbon />
+          <Bound title="Money Lifecycle">
+            <MoneyLifecycleRibbon />
+          </Bound>
         </div>
       ) : (
         <div className="tos-lifecycle-slot" aria-hidden />
       )}
-      <LeftRail />
+      <Bound title="Navigation">
+        <LeftRail />
+      </Bound>
       <main className="tos-main">
         <MainColumn />
       </main>

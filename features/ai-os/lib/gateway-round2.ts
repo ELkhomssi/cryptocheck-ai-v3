@@ -112,8 +112,11 @@ export function selectHeroDecision(decisions: Decision[]): Decision | null {
 }
 
 /** 1–2 line reason for hero — not the full contributingFactors dump. */
-export function heroReason(reasoning: string, maxChars = 160): string {
-  const cleaned = reasoning.replace(/\s+/g, ' ').trim()
+export function heroReason(reasoning: string | null | undefined, maxChars = 160): string {
+  // Published Decisions may omit reasoning under degradation; never call .replace on null.
+  const cleaned = String(reasoning ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
   if (!cleaned) return ''
   const sentences = cleaned.split(/(?<=[.!?])\s+/).filter(Boolean)
   let out = sentences.slice(0, 2).join(' ')
@@ -182,7 +185,7 @@ export function engineChecklist(opts: {
   }
   const degraded = new Set(d.degradedInputs ?? [])
   const contributed = new Set(
-    d.contributingFactors.map((f) => String(f.engine) as EngineId | string),
+    (d.contributingFactors ?? []).map((f) => String(f.engine) as EngineId | string),
   )
 
   return ENGINE_ROWS.map((r) => {
@@ -275,16 +278,17 @@ export function buildMissionSummary(
   opts?: { avgHoldingMs?: number | null },
 ): MissionSummary {
   const symbol =
-    decision.subject.kind === 'token' ? decision.subject.symbol : undefined
+    decision.subject?.kind === 'token' ? decision.subject.symbol : undefined
   const actionLine = symbol ? `${decision.action} ${symbol}` : decision.action
   const roi =
     decision.expectedROI != null && Number.isFinite(decision.expectedROI)
       ? `${decision.expectedROI > 0 ? '+' : ''}${decision.expectedROI.toFixed(1)}%`
       : null
+  const riskNum = typeof decision.risk === 'number' && Number.isFinite(decision.risk) ? decision.risk : 50
   return {
     actionLine,
     reason: heroReason(decision.reasoning, 120),
-    risk: riskBand(decision.risk),
+    risk: riskBand(riskNum),
     expectedRoi: roi,
     holding: formatHoldingFromDna(opts?.avgHoldingMs),
   }
@@ -311,14 +315,20 @@ export function buildHeroMetrics(
     sampleSize: opts?.dnaSampleSize,
     tradingStyleSummary: opts?.tradingStyleSummary,
   })
-  const risk = riskBand(decision.risk)
+  const confidence =
+    typeof decision.confidence === 'number' && Number.isFinite(decision.confidence)
+      ? decision.confidence
+      : 0
+  const riskNum =
+    typeof decision.risk === 'number' && Number.isFinite(decision.risk) ? decision.risk : 50
+  const risk = riskBand(riskNum)
 
   return {
     primary: [
       {
         label: 'Confidence',
-        value: `${Math.round(decision.confidence)}%`,
-        available: true,
+        value: `${Math.round(confidence)}%`,
+        available: typeof decision.confidence === 'number' && Number.isFinite(decision.confidence),
         hint:
           decision.confidenceMode === 'personalized' ? 'Personalized' : 'Market',
       },
@@ -329,8 +339,8 @@ export function buildHeroMetrics(
       },
       {
         label: 'Risk Level',
-        value: `${risk} (${Math.round(decision.risk)})`,
-        available: true,
+        value: `${risk} (${Math.round(riskNum)})`,
+        available: typeof decision.risk === 'number' && Number.isFinite(decision.risk),
       },
       {
         label: 'Position Size',
