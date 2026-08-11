@@ -68,6 +68,10 @@
     {
       "path": "/api/cron/scout-cycle",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/wallet-scan-feedback",
+      "schedule": "0 */6 * * *"
     }
   ],
   "redirects": [

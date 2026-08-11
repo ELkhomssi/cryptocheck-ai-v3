@@ -15,6 +15,7 @@ import {
   AutonomousWorkflowStrip,
   CurrentMissionsPanel,
   DecisionBrainSpokes,
+  KernelAlgorithmStrip,
   LiveExecutionFeed,
   OnChainHeatmap,
   PositionsSnapshot,
@@ -109,6 +110,9 @@ export function TerminalOsHomeDesk() {
           <PositionsSnapshot />
         </PanelErrorBoundary>
         <div className="tos-home-bot-stack">
+          <PanelErrorBoundary title="Algorithm Mesh">
+            <KernelAlgorithmStrip />
+          </PanelErrorBoundary>
           <PanelErrorBoundary title="Workflow">
             <AutonomousWorkflowStrip />
           </PanelErrorBoundary>

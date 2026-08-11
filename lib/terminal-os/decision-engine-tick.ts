@@ -9,6 +9,7 @@
 import 'server-only'
 
 import type { Decision, EngineId } from '@cryptocheck/decision-contracts'
+import type { ChainId, TokenRow } from '@/features/terminal-os/shared/types'
 import { resilientTokens, resilientWhales } from '@/lib/terminal-os/resilient-feed'
 import { saveDecision, saveDecisionTickMeta } from '@/lib/terminal-os/decision-store'
 import { buildMarketIntel } from '@/features/terminal-os/ai-trade-like-me/engines/market-intelligence-engine'
@@ -53,13 +54,43 @@ async function loadWatchWallets(): Promise<string[]> {
   }
 }
 
+const TICK_CHAINS: ChainId[] = ['solana', 'ethereum', 'bnb', 'base', 'arbitrum']
+
+async function loadMultiChainTokens(limit: number): Promise<{
+  data: TokenRow[]
+  sources: string[]
+}> {
+  const perChain = Math.max(4, Math.ceil(limit / 2))
+  const envelopes = await Promise.all(TICK_CHAINS.map((c) => resilientTokens(c, perChain)))
+  const seen = new Set<string>()
+  const merged: TokenRow[] = []
+  const sources: string[] = []
+  // Prefer Solana first (scan gateway depth), then other chains for Mission/Scanner density
+  const ordered = [
+    ...envelopes.filter((_, i) => TICK_CHAINS[i] === 'solana'),
+    ...envelopes.filter((_, i) => TICK_CHAINS[i] !== 'solana'),
+  ]
+  for (const env of ordered) {
+    if (env.source) sources.push(String(env.source))
+    for (const t of env.data ?? []) {
+      const key = `${t.chain}:${t.id}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      merged.push(t)
+      if (merged.length >= limit) break
+    }
+    if (merged.length >= limit) break
+  }
+  return { data: merged.slice(0, limit), sources }
+}
+
 export async function runDecisionTick(opts?: {
   wallet?: string | null
   limit?: number
 }): Promise<DecisionTickResult> {
   const limit = Math.min(24, Math.max(4, opts?.limit ?? 12))
   const [tokensEnv, whalesEnv] = await Promise.all([
-    resilientTokens('solana', Math.max(limit, 16)),
+    loadMultiChainTokens(Math.max(limit, 16)),
     resilientWhales(24),
   ])
 
@@ -82,12 +113,14 @@ export async function runDecisionTick(opts?: {
     if (!related.length) unavailable.push('whale-intelligence')
     if (!primaryWallet) unavailable.push('portfolio-intelligence')
 
-    // ~80–200ms estimated — Security Scanner via scan gateway (not heuristics)
+    // ~80–200ms estimated — Security Scanner via scan gateway (Solana mints only)
     let tokenScore: number | undefined
     let riskScore: number | undefined
     let securityBand: 'excellent' | 'good' | 'caution' | 'danger' | undefined
     try {
-      if (token.chain === 'solana' || /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(token.id)) {
+      const isSolana =
+        token.chain === 'solana' || /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(token.id)
+      if (isSolana) {
         const assess = await assessRiskByMint(token.id, 'solana', 'fast')
         tokenScore = assess.safetyScore
         riskScore = assess.riskScore
@@ -100,6 +133,7 @@ export async function runDecisionTick(opts?: {
                 ? 'caution'
                 : 'danger'
       } else {
+        // Honest: EVM/other chains publish Decision from market/whales; security not scanned yet
         unavailable.push('security-scanner')
       }
     } catch {
