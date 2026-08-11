@@ -102,14 +102,16 @@ POST /api/v1/scan
 | Scan Gateway | `lib/connect/scan-gateway.ts` | ✅ Sole API entry; `assessRiskByMint`, event bus |
 | Fast pipeline | `lib/services/scanner/fast-pipeline.ts` | ✅ `depth=fast` skips sim/fingerprint/dex |
 | Async canonical | `lib/connect/canonical-async.ts` | ✅ I7 — non-blocking merge into cache |
-| Chain router | `lib/connect/chain-port.ts` | ✅ Solana port registered |
+| Chain router | `lib/connect/chain-port.ts` | ✅ Solana + EVM market enrichment ports |
 
 #### ChainDataPort registry
 
 | Chain | Port | Status |
 |-------|------|--------|
-| `solana` | `SolanaChainPort` | ✅ |
-| `ethereum` / `base` | — | ❌ Not started |
+| `solana` | `SolanaChainPort` | ✅ Security-scanner enrichment path |
+| `ethereum` / `base` / `bnb` / `arbitrum` | `EvmChainPort` | ✅ DexScreener market enrichment only (risk scores remain Solana-path) |
+| EVM holdings | `lib/portfolio-desk/evm-holdings-service.ts` | ✅ RPC native + Ethplorer ERC-20 (ethereum) + Dex/CG prices |
+| EVM swap capital path | Jupiter / risk-gated-swap | ❌ Still Solana-only (honest UI empty state) |
 
 ---
 

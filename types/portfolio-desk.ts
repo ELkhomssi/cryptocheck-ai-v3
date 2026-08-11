@@ -20,6 +20,8 @@ export type Holding = {
   avgBuyPriceUsd: number | null
   allocationPct: number
   decimals: number
+  /** Optional chain tag — Solana holdings omit or use solana; EVM rows set ethereum|base|… */
+  chain?: string
 }
 
 export type HoldingsResponse = {
@@ -28,6 +30,12 @@ export type HoldingsResponse = {
   holdings: Holding[]
   availableSol: number
   availableSolUsd: number
+  /** EVM native (ETH/BNB) when chainFamily=evm */
+  availableNative?: number
+  availableNativeUsd?: number
+  nativeSymbol?: string
+  chainFamily?: 'solana' | 'evm'
+  chain?: string
   fetchedAt: string
 }
 

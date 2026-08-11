@@ -177,31 +177,78 @@ export function DecisionBrainSpokes() {
           </p>
         </div>
       ) : (
-        <div className="tos-brain-orbit" role="img" aria-label="Decision intelligence layers">
-          <svg viewBox="0 0 280 280" className="tos-brain-svg">
+        <div
+          className="tos-brain-orbit tos-brain-orbit--holo"
+          role="img"
+          aria-label="Decision intelligence layers"
+          data-tos-brain-3d="true"
+        >
+          <div className="tos-brain-holo-glow" aria-hidden />
+          <svg viewBox="0 0 280 280" className="tos-brain-svg tos-brain-svg--3d">
             <defs>
-              <radialGradient id="tosBrainCore" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#00e0ff" stopOpacity="0.55" />
-                <stop offset="70%" stopColor="#0a0e14" stopOpacity="0.9" />
-                <stop offset="100%" stopColor="#0a0e14" stopOpacity="1" />
+              <radialGradient id="tosBrainCore" cx="50%" cy="35%" r="55%">
+                <stop offset="0%" stopColor="#7cffef" stopOpacity="0.95" />
+                <stop offset="35%" stopColor="#00e0ff" stopOpacity="0.65" />
+                <stop offset="70%" stopColor="#0a1628" stopOpacity="0.92" />
+                <stop offset="100%" stopColor="#05080f" stopOpacity="1" />
               </radialGradient>
+              <filter id="tosBrainGlow" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur stdDeviation="2.2" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
             </defs>
-            <circle cx={cx} cy={cy} r={orbitR} className="tos-brain-ring" />
-            <circle cx={cx} cy={cy} r={orbitR * 0.62} className="tos-brain-ring tos-brain-ring--inner" />
-            <circle cx={cx} cy={cy} r={38} fill="url(#tosBrainCore)" className="tos-brain-core-disk" />
+            <ellipse
+              cx={cx}
+              cy={cy + 8}
+              rx={orbitR + 8}
+              ry={orbitR * 0.42}
+              className="tos-brain-ellipse tos-brain-ellipse--outer"
+              fill="none"
+            />
+            <ellipse
+              cx={cx}
+              cy={cy + 4}
+              rx={orbitR * 0.78}
+              ry={orbitR * 0.32}
+              className="tos-brain-ellipse tos-brain-ellipse--mid"
+              fill="none"
+            />
+            <circle cx={cx} cy={cy} r={orbitR} className="tos-brain-ring" fill="none" />
+            <circle
+              cx={cx}
+              cy={cy}
+              r={orbitR * 0.62}
+              className="tos-brain-ring tos-brain-ring--inner"
+              fill="none"
+            />
+            <circle
+              cx={cx}
+              cy={cy}
+              r={42}
+              fill="url(#tosBrainCore)"
+              className="tos-brain-core-disk"
+              filter="url(#tosBrainGlow)"
+            />
+            <circle cx={cx} cy={cy} r={48} className="tos-brain-core-halo" fill="none" />
             <text x={cx} y={cy - 4} textAnchor="middle" className="tos-brain-core-text">
               {d.subject?.kind === 'token' ? d.subject.symbol : 'AI'}
             </text>
             <text x={cx} y={cy + 12} textAnchor="middle" className="tos-brain-core-sub">
-              {Math.round(d.confidence)}%
+              {typeof d.confidence === 'number' && Number.isFinite(d.confidence)
+                ? `${Math.round(d.confidence)}%`
+                : '—'}
             </text>
             {slots.map((s, i) => {
               const angle = (i / slots.length) * Math.PI * 2 - Math.PI / 2
+              const depth = 0.55 + 0.45 * Math.sin(angle + Math.PI / 2)
               const px = cx + Math.cos(angle) * orbitR
-              const py = cy + Math.sin(angle) * orbitR
+              const py = cy + Math.sin(angle) * orbitR * (0.72 + 0.28 * depth)
               const live = s.pct != null
               return (
-                <g key={s.label} opacity={live ? 1 : 0.45}>
+                <g key={s.label} opacity={live ? 1 : 0.4} filter={live ? 'url(#tosBrainGlow)' : undefined}>
                   <line
                     x1={cx}
                     y1={cy}
@@ -213,8 +260,9 @@ export function DecisionBrainSpokes() {
                   <circle
                     cx={px}
                     cy={py}
-                    r={live ? 16 + (s.pct ?? 0) / 12 : 12}
+                    r={live ? 15 + (s.pct ?? 0) / 14 : 11}
                     className="tos-brain-node"
+                    data-live={live ? 'true' : 'false'}
                   />
                   <text x={px} y={py - 2} textAnchor="middle" className="tos-brain-node-pct">
                     {live ? `${s.pct}%` : '—'}
