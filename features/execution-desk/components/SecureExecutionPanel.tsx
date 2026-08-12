@@ -66,12 +66,9 @@ async function postAudit(payload: ExecutionAuditPayload) {
 export function SecureExecutionPanel({
   query,
   builder,
-  ctaLabel,
 }: {
   query: string
   builder: ExecutionBuilderState | null
-  /** Mission Control reference copy — same engine, different label */
-  ctaLabel?: string
 }) {
   const { connection } = useConnection()
   const wallet = useWallet()
@@ -440,7 +437,7 @@ export function SecureExecutionPanel({
         disabled={executeDisabled || (isLarge && !largeOk)}
         onClick={() => void executeSecurely()}
       >
-        {ctaLabel ?? 'Execute Securely'}
+        Execute Securely
       </button>
 
       {error ? <p className="ex-danger">{error}</p> : null}

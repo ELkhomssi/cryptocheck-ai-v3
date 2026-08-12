@@ -298,21 +298,12 @@ export function IntelligenceSwap({
     const qs = new URLSearchParams({ limit: '16' })
     if (walletAddress) qs.set('wallet', walletAddress)
     void fetch(`/api/terminal-os/decisions?${qs}`, { cache: 'no-store' })
-      .then(async (r) => {
-        if (!r.ok) return null
-        return (await r.json().catch(() => null)) as {
-          decisions?: Decision[]
-          tickMeta?: DecisionTickMeta | null
-        } | null
-      })
-      .then((body) => {
-        if (cancelled || !body) {
-          if (!cancelled) setHeroBootstrapped(true)
-          return
-        }
+      .then((r) => r.json())
+      .then((body: { decisions?: Decision[]; tickMeta?: DecisionTickMeta | null }) => {
+        if (cancelled) return
         setTickMeta(body.tickMeta ?? null)
         const hero = selectHeroDecision(body.decisions ?? [])
-        if (hero?.subject?.kind === 'token') {
+        if (hero?.subject.kind === 'token') {
           const addr = hero.subject.address
           if (addr && addr.length >= 32) {
             setBuyToken({
@@ -349,25 +340,19 @@ export function IntelligenceSwap({
     const qs = new URLSearchParams({ token: buyMint, history: '1' })
     if (walletAddress) qs.set('wallet', walletAddress)
     void fetch(`/api/terminal-os/decisions?${qs}`, { cache: 'no-store' })
-      .then(async (r) => {
-        if (!r.ok) return null
-        return (await r.json().catch(() => null)) as {
+      .then((r) => r.json())
+      .then(
+        (body: {
           decision?: Decision | null
           tickMeta?: DecisionTickMeta | null
           history?: GatewayHistoryPoint[]
-        } | null
-      })
-      .then((body) => {
-        if (cancelled) return
-        if (!body) {
-          setDecision(null)
-          setDecisionHistory(null)
-          return
-        }
-        setDecision(body.decision ?? null)
-        if (body.tickMeta) setTickMeta(body.tickMeta)
-        setDecisionHistory(body.history ?? null)
-      })
+        }) => {
+          if (cancelled) return
+          setDecision(body.decision ?? null)
+          if (body.tickMeta) setTickMeta(body.tickMeta)
+          setDecisionHistory(body.history ?? null)
+        },
+      )
       .catch(() => {
         if (!cancelled) {
           setDecision(null)
@@ -781,7 +766,7 @@ export function IntelligenceSwap({
 
   const onSkipOpportunity = () => {
     const mint =
-      decision?.subject?.kind === 'token'
+      decision?.subject.kind === 'token'
         ? decision.subject.address || buyMint
         : buyMint
     if (walletAddress && mint && mint.length >= 32) {
@@ -792,7 +777,7 @@ export function IntelligenceSwap({
           wallet: walletAddress,
           tokenMint: mint,
           tokenSymbol:
-            (decision?.subject?.kind === 'token' ? decision.subject.symbol : null) ||
+            (decision?.subject.kind === 'token' ? decision.subject.symbol : null) ||
             buyToken?.symbol ||
             mint.slice(0, 4),
           side: 'reject',
@@ -830,7 +815,7 @@ export function IntelligenceSwap({
     quote && buyMint ? formatBaseAmount(quote.outputAmountBase, buyMint) : null
 
   const subjectSymbol =
-    decision?.subject?.kind === 'token' ? decision.subject.symbol : buyToken?.symbol
+    decision?.subject.kind === 'token' ? decision.subject.symbol : buyToken?.symbol
   const dir = decision ? decisionDirection(decision.action) : 'neutral'
   const displayName = resolveGatewayDisplayName({ walletLabel })
   const portfolioReviewed = Boolean(walletConnected && walletBalances)

@@ -66,7 +66,7 @@ describe('Gateway Round 2 helpers', () => {
       now: new Date('2026-08-03T20:00:00Z'),
     })
     assert.match(empty.lines[0]!, /Good evening —/)
-    assert.match(empty.lines.join(' '), /AI Gateway ready|bank-simple|Simulate/)
+    assert.match(empty.lines.join(' '), /Still gathering data/)
 
     const named = buildGatewayGreeting({
       displayName: 'Alex',
@@ -108,29 +108,10 @@ describe('Gateway Round 2 helpers', () => {
   it('hero reason truncates; holding omitted without DNA', () => {
     const long = 'A'.repeat(200) + '. Second sentence here.'
     assert.ok(heroReason(long).length <= 161)
-    assert.equal(heroReason(null), '')
-    assert.equal(heroReason(undefined), '')
     const m = buildMissionSummary(sampleDecision({ action: 'BUY', confidence: 80 }))
     assert.equal(m.holding, null)
     assert.equal(formatHoldingFromDna(6 * 3_600_000), '~6h')
     assert.equal(formatHoldingFromDna(0), null)
-  })
-
-  it('engine checklist / mission summary tolerate missing contributingFactors and subject', () => {
-    const d = sampleDecision({
-      action: 'BUY',
-      confidence: 70,
-      contributingFactors: undefined as unknown as Decision['contributingFactors'],
-    })
-    // Force undefined after spread — sampleDecision may overwrite
-    ;(d as { contributingFactors?: Decision['contributingFactors'] }).contributingFactors = undefined
-    const rows = engineChecklist({ decisionLoading: false, decision: d })
-    assert.ok(rows.every((r) => r.status === 'live' || r.status === 'unavailable'))
-    const orphan = sampleDecision({ action: 'WAIT', confidence: 40 })
-    ;(orphan as { subject?: Decision['subject'] }).subject = undefined as unknown as Decision['subject']
-    const summary = buildMissionSummary(orphan)
-    assert.equal(summary.actionLine, 'WAIT')
-    assert.equal(typeof summary.reason, 'string')
   })
 
   it('age/freshness from real Decision timestamps; trend needs ≥2 points', () => {
@@ -152,8 +133,6 @@ describe('Gateway Round 2 helpers', () => {
   it('engine checklist reflects degradedInputs honestly', () => {
     const loading = engineChecklist({ decisionLoading: true, decision: null })
     assert.ok(loading.every((e) => e.status === 'loading'))
-    const standby = engineChecklist({ decisionLoading: false, decision: null })
-    assert.ok(standby.every((e) => e.status === 'standby'))
     const d = sampleDecision({
       action: 'BUY',
       confidence: 70,

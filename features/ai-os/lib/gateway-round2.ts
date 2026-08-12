@@ -77,10 +77,7 @@ export function buildGatewayGreeting(opts: {
 
   if (!meta || !(meta.scanned > 0)) {
     return {
-      lines: [
-        head,
-        'AI Gateway ready — Review → Simulate → Sign. Your wallet stays in control (bank-simple desk).',
-      ],
+      lines: [head, 'Still gathering data for your first session.'],
       hasCycleData: false,
     }
   }
@@ -115,11 +112,8 @@ export function selectHeroDecision(decisions: Decision[]): Decision | null {
 }
 
 /** 1–2 line reason for hero — not the full contributingFactors dump. */
-export function heroReason(reasoning: string | null | undefined, maxChars = 160): string {
-  // Published Decisions may omit reasoning under degradation; never call .replace on null.
-  const cleaned = String(reasoning ?? '')
-    .replace(/\s+/g, ' ')
-    .trim()
+export function heroReason(reasoning: string, maxChars = 160): string {
+  const cleaned = reasoning.replace(/\s+/g, ' ').trim()
   if (!cleaned) return ''
   const sentences = cleaned.split(/(?<=[.!?])\s+/).filter(Boolean)
   let out = sentences.slice(0, 2).join(' ')
@@ -153,7 +147,7 @@ export function decisionFreshnessLabel(staleAfter: string, now = Date.now()): st
   return `Fresh ${min}m`
 }
 
-export type EngineCheckStatus = 'live' | 'unavailable' | 'loading' | 'standby'
+export type EngineCheckStatus = 'live' | 'unavailable' | 'loading'
 
 export type EngineCheckRow = {
   id: EngineId
@@ -174,7 +168,6 @@ const ENGINE_ROWS: { id: EngineId; label: string }[] = [
  * live = contributed (factor present) or completed without being marked degraded
  * unavailable = listed in degradedInputs
  * loading = Decision still fetching
- * standby = no Decision yet — engines armed, not scored (honest empty, dense chrome)
  */
 export function engineChecklist(opts: {
   decisionLoading: boolean
@@ -185,11 +178,11 @@ export function engineChecklist(opts: {
   }
   const d = opts.decision
   if (!d) {
-    return ENGINE_ROWS.map((r) => ({ ...r, status: 'standby' as const }))
+    return ENGINE_ROWS.map((r) => ({ ...r, status: 'unavailable' as const }))
   }
   const degraded = new Set(d.degradedInputs ?? [])
   const contributed = new Set(
-    (d.contributingFactors ?? []).map((f) => String(f.engine) as EngineId | string),
+    d.contributingFactors.map((f) => String(f.engine) as EngineId | string),
   )
 
   return ENGINE_ROWS.map((r) => {
@@ -207,7 +200,6 @@ export function engineChecklist(opts: {
 export function engineStatusMark(status: EngineCheckStatus): string {
   if (status === 'live') return '✓'
   if (status === 'loading') return '…'
-  if (status === 'standby') return '○'
   return '—'
 }
 
@@ -243,23 +235,6 @@ export type HeroMetrics = {
 }
 
 export const UNAVAILABLE = 'Unavailable' as const
-
-/** Dense waiting metric chrome — labels only; every value Unavailable until Decision. */
-export function standbyHeroMetrics(): HeroMetrics {
-  return {
-    primary: [
-      { label: 'Confidence', value: UNAVAILABLE, available: false, hint: 'Awaiting Decision' },
-      { label: 'Expected ROI', value: UNAVAILABLE, available: false },
-      { label: 'Risk Level', value: UNAVAILABLE, available: false },
-      { label: 'Position Size', value: UNAVAILABLE, available: false },
-    ],
-    secondary: [
-      { label: 'Time Horizon', value: UNAVAILABLE, available: false },
-      { label: 'Strategy', value: UNAVAILABLE, available: false },
-      { label: 'Capital Allocation', value: UNAVAILABLE, available: false },
-    ],
-  }
-}
 
 /** Conviction badge gated on real Decision.confidence — never unconditional. */
 export function convictionBadgeLabel(confidence: number): string | null {
@@ -300,17 +275,16 @@ export function buildMissionSummary(
   opts?: { avgHoldingMs?: number | null },
 ): MissionSummary {
   const symbol =
-    decision.subject?.kind === 'token' ? decision.subject.symbol : undefined
+    decision.subject.kind === 'token' ? decision.subject.symbol : undefined
   const actionLine = symbol ? `${decision.action} ${symbol}` : decision.action
   const roi =
     decision.expectedROI != null && Number.isFinite(decision.expectedROI)
       ? `${decision.expectedROI > 0 ? '+' : ''}${decision.expectedROI.toFixed(1)}%`
       : null
-  const riskNum = typeof decision.risk === 'number' && Number.isFinite(decision.risk) ? decision.risk : 50
   return {
     actionLine,
     reason: heroReason(decision.reasoning, 120),
-    risk: riskBand(riskNum),
+    risk: riskBand(decision.risk),
     expectedRoi: roi,
     holding: formatHoldingFromDna(opts?.avgHoldingMs),
   }
@@ -337,20 +311,14 @@ export function buildHeroMetrics(
     sampleSize: opts?.dnaSampleSize,
     tradingStyleSummary: opts?.tradingStyleSummary,
   })
-  const confidence =
-    typeof decision.confidence === 'number' && Number.isFinite(decision.confidence)
-      ? decision.confidence
-      : 0
-  const riskNum =
-    typeof decision.risk === 'number' && Number.isFinite(decision.risk) ? decision.risk : 50
-  const risk = riskBand(riskNum)
+  const risk = riskBand(decision.risk)
 
   return {
     primary: [
       {
         label: 'Confidence',
-        value: `${Math.round(confidence)}%`,
-        available: typeof decision.confidence === 'number' && Number.isFinite(decision.confidence),
+        value: `${Math.round(decision.confidence)}%`,
+        available: true,
         hint:
           decision.confidenceMode === 'personalized' ? 'Personalized' : 'Market',
       },
@@ -361,8 +329,8 @@ export function buildHeroMetrics(
       },
       {
         label: 'Risk Level',
-        value: `${risk} (${Math.round(riskNum)})`,
-        available: typeof decision.risk === 'number' && Number.isFinite(decision.risk),
+        value: `${risk} (${Math.round(decision.risk)})`,
+        available: true,
       },
       {
         label: 'Position Size',

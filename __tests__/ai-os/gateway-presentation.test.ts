@@ -46,7 +46,8 @@ describe('AI Gateway presentation integrity', () => {
       'utf8',
     )
     assert.match(shell, /IntelligenceSwap/)
-    assert.match(shell, /AiGatewayCenterpiece|AI Gateway/)
+    assert.match(shell, /AI Gateway/)
+    assert.match(shell, /AiGatewayCenterpiece/)
     const page = readFileSync(join(root, 'app/terminalOS/page.tsx'), 'utf8')
     const pageCode = page.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
     assert.match(pageCode, /TerminalOsShell/)

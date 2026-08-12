@@ -65,12 +65,9 @@
   flex-direction: column;
   gap: 0.65rem;
   padding: 1.15rem 1.15rem 1rem;
-  border-radius: var(--tos-radius);
-  border: 1px solid color-mix(in srgb, var(--tos-accent-cyan) 35%, transparent);
-  background:
-    radial-gradient(ellipse 80% 60% at 10% 0%, color-mix(in srgb, var(--tos-accent-gold) 12%, transparent), transparent),
-    color-mix(in srgb, var(--tos-bg-panel-elevated) 90%, transparent);
-  box-shadow: 0 0 32px color-mix(in srgb, var(--tos-accent-cyan) 12%, transparent);
+  border-radius: var(--tos-radius-sm);
+  border: 1px solid var(--tos-glass-border);
+  background: color-mix(in srgb, var(--tos-bg-panel-elevated) 88%, transparent);
 }
 
 [data-tos] [data-aios-gateway] .aios-gw-thinking {
@@ -316,29 +313,25 @@
   list-style: none;
   margin: 0.35rem 0 0;
   padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
-  gap: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
 }
 
 [data-tos] [data-aios-gateway] .aios-gw-sources li {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
+  display: grid;
+  grid-template-columns: 7.5rem 1fr auto;
+  gap: 0.5rem;
   font-size: var(--tos-fs-sm);
   color: var(--tos-text-secondary);
   font-variant-numeric: tabular-nums;
-  padding: 0.45rem 0.5rem;
-  border-radius: var(--tos-radius-sm);
-  border: 1px solid color-mix(in srgb, var(--tos-accent-cyan) 22%, transparent);
-  background: color-mix(in srgb, var(--tos-accent-cyan) 7%, transparent);
 }
 
 [data-tos] [data-aios-gateway] .aios-gw-sources strong {
-  color: var(--tos-accent-cyan);
+  color: var(--tos-accent-gold);
   font-weight: var(--tos-fw-semibold);
-  font-size: 0.62rem;
-  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -348,26 +341,6 @@
 [data-tos] [data-aios-gateway] .aios-gw-sources span:last-child {
   font-family: var(--tos-mono);
   color: var(--tos-text-muted);
-  align-self: flex-end;
-}
-
-[data-tos] [data-aios-gateway] .aios-gw-sources li:has(span:first-of-type:is([aria-label='standby'])) ,
-[data-tos] [data-aios-gateway] .aios-gw-decision[data-phase='waiting'] .aios-gw-sources li {
-  border-style: dashed;
-  background: color-mix(in srgb, var(--tos-accent-cyan) 4%, transparent);
-}
-
-[data-tos] [data-aios-gateway] .aios-gw-standby {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  margin-top: 0.35rem;
-  animation: aios-gw-in 0.45s var(--tos-ease-state, ease) both;
-}
-
-[data-tos] [data-aios-gateway] .aios-gw-standby .aios-gw-metric[data-available='false'] {
-  min-height: 3.25rem;
-  border-style: dashed;
 }
 
 /* Iteration 4 — touch targets ≥44px */
@@ -378,15 +351,12 @@
 }
 
 [data-tos] [data-aios-gateway] .aios-swap-execute {
-  background: linear-gradient(135deg, #ffd45a 0%, #ffb800 45%, #ff8a00 100%);
+  /* Evolution #4 — present, not competing with Decision hero */
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tos-accent-gold-bright) 88%, #fff), var(--tos-accent-gold));
   color: #120f08;
-  font-weight: var(--tos-fw-extrabold);
+  font-weight: var(--tos-fw-semibold);
   font-size: 0.95rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  box-shadow:
-    0 0 24px color-mix(in srgb, var(--tos-accent-gold) 45%, transparent),
-    0 8px 20px color-mix(in srgb, #000 35%, transparent);
+  box-shadow: none;
 }
 
 [data-tos] [data-aios-gateway] .aios-swap-execute:focus-visible,
