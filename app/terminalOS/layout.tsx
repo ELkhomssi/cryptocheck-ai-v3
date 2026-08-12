@@ -17,7 +17,6 @@ export default function TerminalOsLayout({ children }: { children: React.ReactNo
   return (
     <div
       data-tos
-      data-theme="brass"
       className={`${GeistSans.variable} ${GeistMono.variable}`}
       style={{
         minHeight: '100vh',

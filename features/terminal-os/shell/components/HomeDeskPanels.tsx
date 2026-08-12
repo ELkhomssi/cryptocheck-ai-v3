@@ -178,9 +178,9 @@ export function DecisionBrainSpokes() {
         <svg viewBox="0 0 280 280" className="tos-brain-svg tos-brain-svg--3d">
           <defs>
             <radialGradient id="tosBrainCore" cx="50%" cy="35%" r="55%">
-              <stop offset="0%" stopColor="#ffd700" stopOpacity="0.95" />
+              <stop offset="0%" stopColor="#f0c14b" stopOpacity="0.95" />
               <stop offset="35%" stopColor="#d4af37" stopOpacity="0.65" />
-              <stop offset="70%" stopColor="#1a1508" stopOpacity="0.92" />
+              <stop offset="70%" stopColor="#121212" stopOpacity="0.92" />
               <stop offset="100%" stopColor="#050505" stopOpacity="1" />
             </radialGradient>
             <filter id="tosBrainGlow" x="-40%" y="-40%" width="180%" height="180%">

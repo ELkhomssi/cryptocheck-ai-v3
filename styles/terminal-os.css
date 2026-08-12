@@ -1,56 +1,38 @@
 /**
- * CryptoCheck AI Terminal OS — Gold / Black / Luxury institutional chrome.
- * Restored from archive: Intelligence Chart #d4af37 + brass #c9a05a + brand #FFD700.
- * Green/red remain semantic (PnL / risk) only — gold is identity.
+ * CryptoCheck AI Terminal OS — dense 3-zone institutional chrome.
  * Hex only here. Spacing/type in rem for 4K legibility.
+ * Premium black + gold theme.
  */
 
 [data-tos] {
-  /* Near-black luxury surfaces (archive + brand restore) */
   --tos-bg-app: #050505;
-  --tos-bg-panel: #0c0c0c;
-  --tos-bg-panel-elevated: #111111;
-  --tos-border-subtle: #1a1a1a;
-  --tos-text-primary: #f2eee3;
-  --tos-text-secondary: #a89f8c;
-  --tos-text-muted: #6e6758; /* AA ≥4.5 on near-black panels */
-  /* Gold identity — IC archive #d4af37, metallic #FFD700, brass #c9a05a */
-  --cc-gold: #ffd700;
-  --cc-gold-deep: #c9a227;
-  --cc-gold-soft: #e5c35a;
-  --cc-gold-dark: #8a6a00;
-  --cc-gold-brass: #c9a05a;
-  --cc-gold-archive: #d4af37;
+  --tos-bg-panel: #0a0a0a;
+  --tos-bg-panel-elevated: #121212;
+  --tos-border-subtle: #1c1c1c;
+  --tos-text-primary: #f5f5f2;
+  --tos-text-secondary: #9a9588;
+  --tos-text-muted: #858074; /* AA ≥4.5 on --tos-bg-app / panel */
   --tos-accent-gold: #d4af37;
-  --tos-accent-gold-bright: #ffd700;
+  --tos-accent-gold-bright: #f0c14b;
   --tos-accent-gold-dim: color-mix(in srgb, #d4af37 18%, transparent);
-  /* Former orange MC chrome → gold (no orange identity) */
-  --tos-accent-orange: #d4af37;
-  --tos-accent-orange-bright: #ffd700;
-  --tos-accent-orange-dim: color-mix(in srgb, #d4af37 18%, transparent);
-  /* Former cyan/mint identity chrome → gold family (rules keep var names) */
-  --tos-accent-blue: #c9a05a;
-  --tos-accent-cyan: #d4af37;
-  --tos-accent-mint: #e5c35a;
-  --tos-accent-purple: #b8a078;
-  --tos-accent-purple-dim: color-mix(in srgb, #b8a078 22%, transparent);
-  /* Semantic only */
-  --tos-positive: #00d084;
-  --tos-negative: #ff4d4d;
-  --tos-warning: #ffd700;
-  --tos-score-excellent: #00d084;
-  --tos-score-good: #3ee0a0;
-  --tos-score-caution: #d4af37;
-  --tos-score-danger: #ff4d4d;
-  --tos-on-accent: #12100a;
-  --tos-radius: 0.375rem;
-  --tos-radius-sm: 0.25rem;
-  --tos-radius-xs: var(--radius-xs, 0.125rem);
+  --tos-accent-blue: #3d8bfd;
+  --tos-accent-purple: #8b5cf6;
+  --tos-accent-purple-dim: color-mix(in srgb, #8b5cf6 22%, transparent);
+  --tos-positive: #16c784;
+  --tos-negative: #ea3943;
+  --tos-warning: #f5a623;
+  --tos-score-excellent: #16c784;
+  --tos-score-good: #8bc34a;
+  --tos-score-caution: #f5a623;
+  --tos-score-danger: #ea3943;
+  --tos-radius: var(--radius-lg, 0.75rem);
+  --tos-radius-sm: 0.5rem;
+  --tos-radius-xs: var(--radius-xs, 0.1875rem);
   --tos-radius-full: var(--radius-full, 999px);
-  --tos-left-rail: 14.5rem;
-  --tos-right-rail: 20rem;
-  --tos-topbar: 3.25rem;
-  --tos-whale-bar: 3.25rem;
+  --tos-left-rail: 15rem;
+  --tos-right-rail: 21rem;
+  --tos-topbar: 3.5rem;
+  --tos-whale-bar: 5.75rem;
   --tos-lifecycle-bar: auto;
   --tos-max: 160rem; /* 2560px — 4K-ready */
   --tos-gap: var(--space-3, 0.75rem);
@@ -73,10 +55,10 @@
   --tos-space-6: var(--space-6, 2rem);
   --tos-space-8: var(--space-8, 3rem);
   --tos-shadow-1: var(--shadow-1, 0 1px 3px color-mix(in srgb, #000 40%, transparent));
-  --tos-shadow-2: var(--shadow-2, 0 8px 24px color-mix(in srgb, #000 45%, transparent));
+  --tos-shadow-2: var(--shadow-2, 0 8px 24px color-mix(in srgb, #000 35%, transparent));
   --tos-shadow-3: var(--shadow-3, 0 24px 80px color-mix(in srgb, #000 55%, transparent));
-  --tos-shadow-focus: 0 0 0 2px var(--tos-accent-gold);
-  --tos-shadow-glow: 0 0 28px color-mix(in srgb, var(--tos-accent-gold) 22%, transparent);
+  --tos-shadow-focus: 0 0 0 2px var(--tos-accent-gold-bright);
+  --tos-shadow-glow: 0 0 24px color-mix(in srgb, var(--tos-accent-gold) 22%, transparent);
   --tos-motion-micro: var(--motion-micro, 150ms);
   --tos-motion-panel: var(--motion-panel, 240ms);
   --tos-motion-state: var(--motion-state, 320ms);
@@ -85,9 +67,8 @@
   --tos-ease-micro: var(--ease-micro, ease-out);
   --tos-ease-panel: var(--ease-panel, ease-in-out);
   --tos-ease-state: var(--ease-state, cubic-bezier(0.22, 1, 0.36, 1));
-  --tos-glass: color-mix(in srgb, #0c0c0c 82%, transparent);
-  --tos-glass-border: rgba(255, 215, 0, 0.16);
-  --tos-border-active: rgba(255, 215, 0, 0.55);
+  --tos-glass: color-mix(in srgb, #0a0a0a 72%, transparent);
+  --tos-glass-border: color-mix(in srgb, var(--tos-accent-gold) 28%, #2a2a2a);
 
   color-scheme: dark;
   background: var(--tos-bg-app);
@@ -121,12 +102,13 @@
   height: 100dvh;
   overflow: hidden;
   background:
-    radial-gradient(ellipse 80% 50% at 18% -10%, color-mix(in srgb, var(--tos-accent-gold) 14%, transparent), transparent),
-    radial-gradient(ellipse 55% 40% at 92% 8%, color-mix(in srgb, var(--tos-accent-gold-bright) 7%, transparent), transparent),
-    radial-gradient(ellipse 40% 30% at 70% 100%, color-mix(in srgb, var(--cc-gold-brass) 5%, transparent), transparent),
+    radial-gradient(ellipse 90% 45% at 50% -15%, color-mix(in srgb, var(--tos-accent-gold) 9%, transparent), transparent),
+    radial-gradient(ellipse 40% 30% at 100% 100%, color-mix(in srgb, var(--tos-accent-gold) 4%, transparent), transparent),
     var(--tos-bg-app);
 }
 
+
+/* Classic PRO shell (functionality #103) — gold-era chrome */
 /* Classic Terminal PRO home: keep whale + lifecycle + right rail always on */
 [data-tos] .tos-shell[data-tos-classic='v6'] {
   --tos-lifecycle-bar: auto;
@@ -150,6 +132,7 @@
 [data-tos] .tos-shell[data-tos-home='true'] .tos-right-rail [data-tos-home-hide='true'] {
   display: none;
 }
+
 
 [data-tos] .tos-lifecycle-slot {
   grid-area: lifecycle;
@@ -195,13 +178,12 @@
   align-items: center;
   gap: 1rem;
   padding: 0 1rem;
-  border-bottom: 1px solid var(--tos-glass-border);
-  background: color-mix(in srgb, var(--tos-bg-panel) 94%, transparent);
-  backdrop-filter: blur(10px) saturate(1.15);
+  border-bottom: 1px solid var(--tos-border-subtle);
+  background: color-mix(in srgb, var(--tos-bg-panel) 92%, transparent);
+  backdrop-filter: blur(8px);
   /* Above whale marquee / panels so Connect menu + wallet modal stack correctly */
   z-index: 90;
   overflow: visible;
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--tos-accent-gold) 8%, transparent);
 }
 
 [data-tos] .tos-left-rail {
@@ -211,13 +193,10 @@
   width: var(--tos-left-rail);
   min-width: var(--tos-left-rail);
   max-width: var(--tos-left-rail);
-  border-right: 1px solid var(--tos-glass-border);
-  background: color-mix(in srgb, var(--tos-bg-panel) 88%, transparent);
-  backdrop-filter: blur(18px) saturate(1.2);
-  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  border-right: 1px solid var(--tos-border-subtle);
+  background: var(--tos-bg-panel);
   overflow: hidden;
   min-height: 0;
-  box-shadow: inset -1px 0 0 color-mix(in srgb, var(--tos-accent-cyan) 12%, transparent);
 }
 
 [data-tos] .tos-main {
@@ -363,16 +342,12 @@
 }
 
 [data-tos] .tos-panel {
-  background: color-mix(in srgb, var(--tos-bg-panel-elevated) 92%, transparent);
-  border: 1px solid var(--tos-glass-border);
+  background: var(--tos-bg-panel-elevated);
+  border: 1px solid var(--tos-border-subtle);
   border-radius: var(--tos-radius);
   overflow: hidden;
   flex-shrink: 0;
-  box-shadow:
-    0 1px 0 color-mix(in srgb, var(--tos-accent-gold) 6%, transparent),
-    0 8px 24px color-mix(in srgb, #000 45%, transparent);
-  backdrop-filter: blur(10px) saturate(1.1);
-  -webkit-backdrop-filter: blur(10px) saturate(1.1);
+  box-shadow: 0 1px 0 color-mix(in srgb, #fff 3%, transparent), 0 8px 24px color-mix(in srgb, #000 35%, transparent);
 }
 
 [data-tos] .tos-panel-head {
@@ -393,9 +368,9 @@
 [data-tos] .tos-panel-title {
   font-size: var(--tos-fs-sm);
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--tos-accent-gold);
+  color: var(--tos-text-secondary);
   margin: 0;
 }
 
@@ -437,26 +412,13 @@
 }
 
 [data-tos] .tos-btn-gold {
-  background: linear-gradient(
-    180deg,
-    var(--tos-accent-gold-bright) 0%,
-    var(--tos-accent-gold) 48%,
-    var(--cc-gold-deep) 100%
-  );
-  color: var(--tos-on-accent);
+  background: var(--tos-accent-gold);
+  color: var(--tos-bg-app);
   padding: 0.5rem 0.875rem;
-  border: 1px solid color-mix(in srgb, var(--tos-accent-gold-bright) 55%, transparent);
-  box-shadow:
-    0 0 18px color-mix(in srgb, var(--tos-accent-gold) 28%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #fff 35%, transparent);
-  text-shadow: 0 1px 0 color-mix(in srgb, #000 18%, transparent);
 }
 
 [data-tos] .tos-btn-gold:hover:not(:disabled) {
-  filter: brightness(1.08);
-  box-shadow:
-    0 0 24px color-mix(in srgb, var(--tos-accent-gold) 40%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #fff 40%, transparent);
+  filter: brightness(1.06);
 }
 
 [data-tos] .tos-btn-ghost {
@@ -2249,12 +2211,9 @@
 }
 
 [data-tos] .tos-nav-item[data-active='true'] {
-  background: color-mix(in srgb, var(--tos-accent-gold) 14%, transparent);
-  color: var(--tos-accent-gold-bright);
+  background: var(--tos-accent-gold-dim);
+  color: var(--tos-accent-gold);
   font-weight: var(--tos-fw-bold);
-  box-shadow:
-    inset 2px 0 0 var(--tos-accent-gold),
-    0 0 18px color-mix(in srgb, var(--tos-accent-gold) 12%, transparent);
 }
 
 [data-tos] .tos-nav-item:disabled {
@@ -2284,24 +2243,18 @@
   font-size: 0.625rem;
   font-weight: var(--tos-fw-bold);
   letter-spacing: 0.02em;
-  color: var(--tos-on-accent);
-  background: linear-gradient(180deg, var(--tos-accent-gold-bright), var(--tos-accent-gold));
+  color: var(--tos-bg-app);
+  background: var(--tos-accent-gold);
   text-align: center;
-  box-shadow: 0 0 10px color-mix(in srgb, var(--tos-accent-gold) 40%, transparent);
 }
 
 [data-tos] .tos-nav-system {
   margin-top: auto;
   padding: var(--tos-space-3);
-  border-top: 1px solid var(--tos-glass-border);
+  border-top: 1px solid var(--tos-border-subtle);
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
-  background: linear-gradient(
-    180deg,
-    transparent,
-    color-mix(in srgb, var(--tos-accent-cyan) 6%, transparent)
-  );
+  gap: 0.35rem;
 }
 
 [data-tos] .tos-nav-system-head {
@@ -2311,70 +2264,16 @@
   font-size: 0.65rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--tos-accent-cyan);
-  font-weight: var(--tos-fw-semibold);
-}
-
-[data-tos] .tos-nav-gauge {
-  position: relative;
-  width: 5.25rem;
-  height: 5.25rem;
-  margin: 0.15rem auto 0.25rem;
-}
-[data-tos] .tos-nav-gauge-svg {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-[data-tos] .tos-nav-gauge-track {
-  fill: none;
-  stroke: color-mix(in srgb, var(--tos-border-subtle) 90%, transparent);
-  stroke-width: 6;
-}
-[data-tos] .tos-nav-gauge-fill {
-  fill: none;
-  stroke: var(--tos-accent-mint);
-  stroke-width: 6;
-  stroke-linecap: round;
-  transition: stroke-dashoffset var(--tos-motion-state) var(--tos-ease-state);
-  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--tos-accent-mint) 55%, transparent));
-}
-[data-tos] .tos-nav-gauge-fill[data-status='degraded'] {
-  stroke: var(--tos-warning);
-}
-[data-tos] .tos-nav-gauge-fill[data-status='unknown'] {
-  stroke: var(--tos-text-muted);
-}
-[data-tos] .tos-nav-gauge-label {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-[data-tos] .tos-nav-gauge-label strong {
-  font-family: var(--tos-mono);
-  font-size: 0.95rem;
-  color: var(--tos-accent-mint);
-  line-height: 1;
-}
-[data-tos] .tos-nav-gauge-label span {
-  font-size: 0.55rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   color: var(--tos-text-muted);
-  margin-top: 0.15rem;
+  font-weight: var(--tos-fw-semibold);
 }
 
 [data-tos] .tos-nav-system-label {
   margin: 0;
-  font-size: 0.68rem;
+  font-size: var(--tos-fs-sm);
   font-weight: var(--tos-fw-semibold);
   color: var(--tos-text-secondary);
   line-height: 1.35;
-  text-align: center;
 }
 
 [data-tos] .tos-nav-system[data-tos-system-status='healthy'] .tos-nav-system-label {
@@ -2391,7 +2290,6 @@
   font-size: 0.65rem;
   color: var(--tos-text-muted);
   letter-spacing: 0.04em;
-  text-align: center;
 }
 
 [data-tos] .tos-nav-aside-stack {
@@ -2992,21 +2890,13 @@
   align-items: center;
   gap: 0.4rem;
   flex: 0 1 auto;
-  max-width: 18rem;
-  font-size: 0.58rem;
-  letter-spacing: 0.1em;
+  max-width: 14rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--tos-text-muted);
   font-family: var(--tos-mono);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding: 0.25rem 0.55rem;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--tos-accent-mint) 25%, transparent);
-  background: color-mix(in srgb, var(--tos-accent-mint) 8%, transparent);
-}
-[data-tos] .tos-topbar-sys-text {
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -3047,11 +2937,275 @@
   font-family: var(--tos-mono);
 }
 
-/* Home desk — Gold / Black luxury composition (presentation tokens scoped to desk) */
+[data-tos] .tos-home-desk {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-height: 0;
+  width: 100%;
+}
+[data-tos] .tos-home-row {
+  display: grid;
+  gap: 0.65rem;
+  min-width: 0;
+}
+[data-tos] .tos-home-row-top {
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.9fr) minmax(0, 0.75fr);
+  align-items: stretch;
+}
+[data-tos] .tos-home-row-mid {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.7fr) minmax(0, 0.85fr);
+  align-items: stretch;
+}
+[data-tos] .tos-home-row-bot {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr) minmax(0, 1fr);
+  align-items: stretch;
+}
+[data-tos] .tos-home-mid-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+[data-tos] .tos-desk-panel {
+  background: var(--tos-glass);
+  border: 1px solid var(--tos-glass-border);
+  border-radius: var(--tos-radius);
+  backdrop-filter: blur(16px) saturate(1.1);
+  -webkit-backdrop-filter: blur(16px) saturate(1.1);
+  box-shadow: var(--tos-shadow-2);
+  padding: 0.65rem 0.7rem 0.75rem;
+  min-width: 0;
+  overflow: hidden;
+}
+[data-tos] .tos-desk-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tos-accent-gold);
+  font-weight: var(--tos-fw-semibold);
+}
+[data-tos] .tos-desk-live {
+  font-family: var(--tos-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  color: var(--tos-text-muted);
+  border: 1px solid var(--tos-border-subtle);
+  border-radius: 999px;
+  padding: 0.12rem 0.4rem;
+}
+[data-tos] .tos-desk-live[data-on='true'] {
+  color: var(--tos-positive);
+  border-color: color-mix(in srgb, var(--tos-positive) 35%, transparent);
+}
+[data-tos] .tos-desk-empty {
+  margin: 0;
+  font-size: var(--tos-fs-sm);
+  color: var(--tos-text-muted);
+  line-height: 1.45;
+}
+[data-tos] .tos-desk-gateway .aios-section-label {
+  display: none;
+}
+[data-tos] .tos-desk-gateway .aios-swap-card {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  padding: 0;
+}
+[data-tos] .tos-desk-chart {
+  min-height: 22rem;
+}
+[data-tos] .tos-desk-chart .ic-shell,
+[data-tos] .tos-desk-chart [data-ic] {
+  min-height: 18rem;
+}
+
+[data-tos] .tos-brain-spokes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+[data-tos] .tos-brain-spokes li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.15rem 0.5rem;
+  padding: 0.4rem 0.45rem;
+  border-radius: var(--tos-radius-sm);
+  border: 1px solid var(--tos-border-subtle);
+  background: color-mix(in srgb, var(--tos-bg-panel-elevated) 70%, transparent);
+}
+[data-tos] .tos-brain-spoke-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tos-accent-gold);
+  grid-column: 1;
+}
+[data-tos] .tos-brain-spoke-pct {
+  font-family: var(--tos-mono);
+  font-size: 0.75rem;
+  color: var(--tos-positive);
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+[data-tos] .tos-brain-spoke-sum {
+  font-size: 0.7rem;
+  color: var(--tos-text-secondary);
+  grid-column: 1;
+  line-height: 1.3;
+}
+
+[data-tos] .tos-missions-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+[data-tos] .tos-missions-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--tos-fs-sm);
+}
+[data-tos] .tos-missions-bar {
+  height: 0.3rem;
+  border-radius: 999px;
+  background: var(--tos-border-subtle);
+  overflow: hidden;
+  margin-top: 0.25rem;
+}
+[data-tos] .tos-missions-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--tos-accent-gold), var(--tos-positive));
+}
+
+[data-tos] .tos-exec-feed-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 22rem;
+  overflow: auto;
+}
+[data-tos] .tos-exec-feed-list li {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr;
+  gap: 0.1rem 0.45rem;
+  font-size: 0.7rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--tos-border-subtle);
+}
+[data-tos] .tos-exec-feed-list time {
+  font-family: var(--tos-mono);
+  color: var(--tos-text-muted);
+  grid-row: 1 / span 2;
+}
+[data-tos] .tos-exec-feed-list em {
+  font-style: normal;
+  color: var(--tos-text-muted);
+  font-size: 0.65rem;
+  grid-column: 2;
+}
+
+[data-tos] .tos-positions-table,
+[data-tos] .tos-scanner-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+}
+[data-tos] .tos-positions-table th,
+[data-tos] .tos-scanner-table th {
+  text-align: left;
+  color: var(--tos-text-muted);
+  font-weight: var(--tos-fw-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.58rem;
+  padding: 0.25rem 0.3rem;
+  border-bottom: 1px solid var(--tos-border-subtle);
+}
+[data-tos] .tos-positions-table td,
+[data-tos] .tos-scanner-table td {
+  padding: 0.35rem 0.3rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--tos-border-subtle) 70%, transparent);
+}
+[data-tos] .tos-scanner-buy {
+  min-height: 32px;
+  padding: 0.25rem 0.45rem;
+  border-radius: var(--tos-radius-sm);
+  border: 1px solid var(--tos-glass-border);
+  background: transparent;
+  color: var(--tos-accent-gold);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+[data-tos] .tos-scanner-buy:hover {
+  background: var(--tos-accent-gold-dim);
+}
+
+[data-tos] .tos-workflow-stages {
+  list-style: none;
+  margin: 0 0 0.65rem;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+[data-tos] .tos-workflow-stages li {
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--tos-glass-border);
+  color: var(--tos-text-secondary);
+  font-family: var(--tos-mono);
+}
+[data-tos] .tos-workflow-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.7rem;
+  color: var(--tos-text-secondary);
+}
+[data-tos] .tos-workflow-stats strong {
+  color: var(--tos-accent-gold-bright);
+  font-family: var(--tos-mono);
+}
+
+@media (max-width: 1280px) {
+  [data-tos] .tos-home-row-top,
+  [data-tos] .tos-home-row-mid,
+  [data-tos] .tos-home-row-bot {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Post-Image-2 / post-Picture-1 feature classes — sanitized to gold archive f941f0e^ */
+/* Visual source: Premium black + gold (#050505 / #d4af37). Cyan/mint identity removed. */
+/* Home desk — home desk chrome (gold archive) (presentation tokens scoped to desk) */
 [data-tos] .tos-home-desk {
   --tos-desk-cyan: #d4af37;
-  --tos-desk-mint: #e5c35a;
-  --tos-desk-gold: #ffd700;
+  --tos-desk-mint: #f0c14b;
+  --tos-desk-gold: #d4af37;
   --tos-desk-navy: #050505;
   display: flex;
   flex-direction: column;
@@ -3060,8 +3214,8 @@
   width: 100%;
   padding: 0.15rem 0 0.5rem;
   background:
-    radial-gradient(ellipse 70% 40% at 20% 0%, color-mix(in srgb, var(--tos-desk-gold) 10%, transparent), transparent),
-    radial-gradient(ellipse 50% 35% at 90% 10%, color-mix(in srgb, var(--tos-desk-cyan) 7%, transparent), transparent);
+    radial-gradient(ellipse 70% 40% at 20% 0%, color-mix(in srgb, var(--tos-desk-cyan) 12%, transparent), transparent),
+    radial-gradient(ellipse 50% 35% at 90% 10%, color-mix(in srgb, var(--tos-desk-mint) 8%, transparent), transparent);
 }
 [data-tos] .tos-home-row {
   display: grid;
@@ -3103,13 +3257,13 @@
   text-overflow: ellipsis;
 }
 [data-tos] .tos-nav-item[data-active='true'] .tos-nav-item-sub {
-  color: color-mix(in srgb, var(--tos-accent-cyan) 70%, white);
+  color: color-mix(in srgb, var(--tos-accent-gold) 70%, white);
 }
 [data-tos] .tos-nav-live-pill {
   font-size: 0.5rem;
   letter-spacing: 0.1em;
-  color: var(--tos-accent-mint);
-  border: 1px solid color-mix(in srgb, var(--tos-accent-mint) 40%, transparent);
+  color: var(--tos-accent-gold-bright);
+  border: 1px solid color-mix(in srgb, var(--tos-accent-gold-bright) 40%, transparent);
   border-radius: 999px;
   padding: 0.1rem 0.3rem;
   font-family: var(--tos-mono);
@@ -3120,7 +3274,7 @@
   font-style: normal;
   font-size: 0.5rem;
   letter-spacing: 0.16em;
-  color: var(--tos-accent-cyan);
+  color: var(--tos-accent-gold);
   margin-top: 0.15rem;
 }
 [data-tos] .tos-topbar-portfolio {
@@ -3178,12 +3332,12 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  border: 2px solid color-mix(in srgb, var(--tos-accent-cyan) 35%, transparent);
-  background: radial-gradient(circle at 40% 30%, color-mix(in srgb, var(--tos-accent-cyan) 18%, transparent), transparent 70%);
+  border: 2px solid color-mix(in srgb, var(--tos-accent-gold) 35%, transparent);
+  background: radial-gradient(circle at 40% 30%, color-mix(in srgb, var(--tos-accent-gold) 18%, transparent), transparent 70%);
 }
 [data-tos] .tos-sys-gauge[data-ok='true'] .tos-sys-gauge-ring {
-  border-color: var(--tos-accent-mint);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--tos-accent-mint) 30%, transparent);
+  border-color: var(--tos-accent-gold-bright);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--tos-accent-gold-bright) 30%, transparent);
 }
 [data-tos] .tos-sys-gauge[data-ok='false'] .tos-sys-gauge-ring {
   border-color: var(--tos-warning);
@@ -3197,7 +3351,7 @@
   font-size: 0.52rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--tos-accent-cyan);
+  color: var(--tos-accent-gold);
 }
 [data-tos] .tos-sys-gauge-detail {
   font-size: 0.5rem;
@@ -3214,7 +3368,7 @@
   margin: 0;
   font-size: 0.95rem;
   font-weight: var(--tos-fw-bold);
-  color: var(--tos-accent-mint);
+  color: var(--tos-accent-gold-bright);
 }
 [data-tos] .tos-rec-roi {
   color: var(--tos-accent-gold);
@@ -3243,7 +3397,7 @@
 
 [data-tos] .tos-desk-panel {
   background: color-mix(in srgb, var(--tos-desk-navy) 68%, transparent);
-  border: 1px solid color-mix(in srgb, var(--tos-desk-cyan) 34%, #1a2744);
+  border: 1px solid color-mix(in srgb, var(--tos-desk-cyan) 34%, #1c1c1c);
   border-radius: var(--tos-radius);
   backdrop-filter: blur(22px) saturate(1.35);
   -webkit-backdrop-filter: blur(22px) saturate(1.35);
@@ -3334,24 +3488,24 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  border: 1px solid color-mix(in srgb, var(--tos-accent-cyan) 40%, transparent);
-  background: radial-gradient(circle at 40% 35%, color-mix(in srgb, var(--tos-accent-cyan) 35%, transparent), #0a0e14 70%);
-  box-shadow: 0 0 28px color-mix(in srgb, var(--tos-accent-cyan) 30%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tos-accent-gold) 40%, transparent);
+  background: radial-gradient(circle at 40% 35%, color-mix(in srgb, var(--tos-accent-gold) 35%, transparent), #050505 70%);
+  box-shadow: 0 0 28px color-mix(in srgb, var(--tos-accent-gold) 30%, transparent);
   animation: tos-brain-pulse 2.8s ease-in-out infinite;
 }
 [data-tos] .tos-brain-core span {
   font-size: 0.58rem;
   letter-spacing: 0.16em;
-  color: var(--tos-accent-cyan);
+  color: var(--tos-accent-gold);
   font-family: var(--tos-mono);
 }
 @keyframes tos-brain-pulse {
   0%,
   100% {
-    box-shadow: 0 0 18px color-mix(in srgb, var(--tos-accent-cyan) 22%, transparent);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--tos-accent-gold) 22%, transparent);
   }
   50% {
-    box-shadow: 0 0 36px color-mix(in srgb, var(--tos-accent-cyan) 45%, transparent);
+    box-shadow: 0 0 36px color-mix(in srgb, var(--tos-accent-gold) 45%, transparent);
   }
 }
 [data-tos] .tos-brain-svg {
@@ -3361,14 +3515,14 @@
 }
 [data-tos] .tos-brain-ring {
   fill: none;
-  stroke: color-mix(in srgb, var(--tos-accent-cyan) 28%, transparent);
+  stroke: color-mix(in srgb, var(--tos-accent-gold) 28%, transparent);
   stroke-width: 1;
   stroke-dasharray: 4 6;
   animation: tos-brain-spin 28s linear infinite;
   transform-origin: 140px 140px;
 }
 [data-tos] .tos-brain-ring--inner {
-  stroke: color-mix(in srgb, var(--tos-accent-mint) 22%, transparent);
+  stroke: color-mix(in srgb, var(--tos-accent-gold-bright) 22%, transparent);
   animation-direction: reverse;
   animation-duration: 18s;
 }
@@ -3378,7 +3532,7 @@
   }
 }
 [data-tos] .tos-brain-core-disk {
-  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--tos-accent-cyan) 50%, transparent));
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--tos-accent-gold) 50%, transparent));
 }
 [data-tos] .tos-brain-core-text {
   fill: var(--tos-text-primary);
@@ -3387,22 +3541,22 @@
   font-family: var(--tos-font);
 }
 [data-tos] .tos-brain-core-sub {
-  fill: var(--tos-accent-mint);
+  fill: var(--tos-accent-gold-bright);
   font-size: 10px;
   font-family: var(--tos-mono);
 }
 [data-tos] .tos-brain-spoke-line {
-  stroke: color-mix(in srgb, var(--tos-accent-cyan) 45%, transparent);
+  stroke: color-mix(in srgb, var(--tos-accent-gold) 45%, transparent);
   stroke-width: 1.25;
 }
 [data-tos] .tos-brain-node {
   fill: color-mix(in srgb, var(--tos-bg-app) 70%, #0c2233);
-  stroke: var(--tos-accent-mint);
+  stroke: var(--tos-accent-gold-bright);
   stroke-width: 1.5;
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--tos-accent-mint) 40%, transparent));
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--tos-accent-gold-bright) 40%, transparent));
 }
 [data-tos] .tos-brain-node-pct {
-  fill: var(--tos-accent-mint);
+  fill: var(--tos-accent-gold-bright);
   font-size: 8px;
   font-family: var(--tos-mono);
   font-weight: 700;
@@ -3429,11 +3583,11 @@
   gap: 0.05rem;
   font-size: 0.65rem;
   padding: 0.25rem 0.35rem;
-  border-left: 2px solid var(--tos-accent-cyan);
-  background: color-mix(in srgb, var(--tos-accent-cyan) 6%, transparent);
+  border-left: 2px solid var(--tos-accent-gold);
+  background: color-mix(in srgb, var(--tos-accent-gold) 6%, transparent);
 }
 [data-tos] .tos-brain-legend strong {
-  color: var(--tos-accent-cyan);
+  color: var(--tos-accent-gold);
   font-size: 0.58rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -3466,14 +3620,14 @@
   gap: 0.15rem 0.5rem;
   padding: 0.4rem 0.45rem;
   border-radius: var(--tos-radius-sm);
-  border: 1px solid color-mix(in srgb, var(--tos-accent-cyan) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tos-accent-gold) 18%, transparent);
   background: color-mix(in srgb, var(--tos-bg-panel-elevated) 70%, transparent);
 }
 [data-tos] .tos-brain-spoke-label {
   font-size: 0.65rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--tos-accent-cyan);
+  color: var(--tos-accent-gold);
   grid-column: 1;
 }
 [data-tos] .tos-brain-spoke-pct {
@@ -3514,7 +3668,7 @@
 [data-tos] .tos-missions-bar i {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, var(--tos-desk-cyan, #d4af37), var(--tos-desk-mint, #e5c35a));
+  background: linear-gradient(90deg, var(--tos-desk-cyan, #d4af37), var(--tos-desk-mint, #f0c14b));
 }
 
 [data-tos] .tos-exec-feed-list {
@@ -3628,8 +3782,8 @@
 }
 [data-tos] .tos-workflow-stages li[data-active='true'] {
   opacity: 1;
-  color: var(--tos-desk-navy, #060b1a);
-  background: linear-gradient(135deg, var(--tos-desk-cyan, #d4af37), var(--tos-desk-mint, #e5c35a));
+  color: var(--tos-desk-navy, #050505);
+  background: linear-gradient(135deg, var(--tos-desk-cyan, #d4af37), var(--tos-desk-mint, #f0c14b));
   border-color: transparent;
   box-shadow: 0 0 16px color-mix(in srgb, var(--tos-desk-cyan, #d4af37) 45%, transparent);
 }
@@ -3671,8 +3825,8 @@
   border: 1px solid color-mix(in srgb, var(--tos-desk-cyan, #d4af37) 35%, transparent);
   background: color-mix(
     in srgb,
-    var(--tos-desk-mint, #e5c35a) calc(var(--hm-heat) * 70%),
-    color-mix(in srgb, #ea3943 calc((1 - var(--hm-heat)) * 55%), var(--tos-desk-navy, #060b1a))
+    var(--tos-desk-mint, #f0c14b) calc(var(--hm-heat) * 70%),
+    color-mix(in srgb, #ea3943 calc((1 - var(--hm-heat)) * 55%), var(--tos-desk-navy, #050505))
   );
   color: var(--tos-text-primary);
   display: flex;
@@ -3720,7 +3874,7 @@
   width: 3.4rem;
   height: 3.4rem;
   border-radius: 50%;
-  background: var(--tos-desk-navy, #060b1a);
+  background: var(--tos-desk-navy, #050505);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3774,8 +3928,8 @@
   height: 0.55rem;
   margin-left: -0.275rem;
   border-radius: 50%;
-  background: var(--tos-accent-mint);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--tos-accent-mint) 55%, transparent);
+  background: var(--tos-accent-gold-bright);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--tos-accent-gold-bright) 55%, transparent);
   animation: tos-dna-float 2.4s ease-in-out infinite;
 }
 [data-tos] .tos-dna-helix i:nth-child(1) {
@@ -3784,8 +3938,8 @@
 }
 [data-tos] .tos-dna-helix i:nth-child(2) {
   top: 1.7rem;
-  background: var(--tos-accent-cyan);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--tos-accent-cyan) 55%, transparent);
+  background: var(--tos-accent-gold);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--tos-accent-gold) 55%, transparent);
   animation-delay: 0.35s;
 }
 [data-tos] .tos-dna-helix i:nth-child(3) {
@@ -3797,13 +3951,13 @@
   content: '';
   position: absolute;
   inset: 0.15rem 0.55rem;
-  border: 1.5px solid color-mix(in srgb, var(--tos-accent-cyan) 45%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--tos-accent-gold) 45%, transparent);
   border-radius: 999px;
   transform: skewY(-18deg);
 }
 [data-tos] .tos-dna-helix::after {
   transform: skewY(18deg);
-  border-color: color-mix(in srgb, var(--tos-accent-mint) 40%, transparent);
+  border-color: color-mix(in srgb, var(--tos-accent-gold-bright) 40%, transparent);
 }
 @keyframes tos-dna-float {
   0%,
@@ -3827,8 +3981,8 @@
 [data-tos] .tos-dna-match-val {
   font-size: 1.55rem;
   line-height: 1;
-  color: var(--tos-accent-mint);
-  text-shadow: 0 0 18px color-mix(in srgb, var(--tos-accent-mint) 35%, transparent);
+  color: var(--tos-accent-gold-bright);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--tos-accent-gold-bright) 35%, transparent);
 }
 [data-tos] .tos-dna-match-label {
   font-size: 0.58rem;
@@ -3879,7 +4033,7 @@
   font-size: 0.58rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--tos-accent-cyan);
+  color: var(--tos-accent-gold);
   font-family: var(--tos-mono);
 }
 [data-tos] .tos-kernel-algo-engines {
@@ -3901,8 +4055,8 @@
   min-height: 44px;
 }
 [data-tos] .tos-kernel-algo-engines li[data-live='true'] {
-  border-color: color-mix(in srgb, var(--tos-accent-mint) 45%, transparent);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--tos-accent-mint) 18%, transparent);
+  border-color: color-mix(in srgb, var(--tos-accent-gold-bright) 45%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--tos-accent-gold-bright) 18%, transparent);
 }
 [data-tos] .tos-kernel-algo-engines strong {
   font-size: 0.58rem;
@@ -3916,7 +4070,7 @@
   color: var(--tos-text-muted);
 }
 [data-tos] .tos-kernel-algo-engines li[data-live='true'] span {
-  color: var(--tos-accent-mint);
+  color: var(--tos-accent-gold-bright);
 }
 [data-tos] .tos-kernel-algo-meta {
   margin: 0.45rem 0 0;
@@ -3948,7 +4102,7 @@
   width: 100%;
 }
 [data-tos] .tos-chart-ws-alerts {
-  background: color-mix(in srgb, var(--tos-desk-navy, #060b1a) 70%, transparent);
+  background: color-mix(in srgb, var(--tos-desk-navy, #050505) 70%, transparent);
   border: 1px solid color-mix(in srgb, var(--tos-accent-gold) 32%, transparent);
   border-radius: var(--tos-radius);
   padding: 0.55rem 0.7rem 0.65rem;
@@ -3983,7 +4137,7 @@
   border-color: color-mix(in srgb, var(--tos-negative) 50%, transparent);
 }
 [data-tos] .tos-chart-ws-alerts-list li[data-kind='entry'] {
-  border-color: color-mix(in srgb, var(--tos-accent-mint) 45%, transparent);
+  border-color: color-mix(in srgb, var(--tos-accent-gold-bright) 45%, transparent);
 }
 [data-tos] .tos-chart-ws-alerts-list li[data-kind='watch'] {
   border-color: color-mix(in srgb, var(--tos-warning) 40%, transparent);
@@ -4014,7 +4168,7 @@
   color: var(--tos-negative);
 }
 [data-tos] .tos-chart-ws-alerts-list li[data-kind='entry'] .tos-chart-ws-alert-kind {
-  color: var(--tos-accent-mint);
+  color: var(--tos-accent-gold-bright);
 }
 [data-tos] .tos-chart-ws-alert-btn strong {
   flex: 1;
@@ -4065,7 +4219,7 @@
   border-radius: 50%;
   background:
     radial-gradient(circle at 50% 40%, color-mix(in srgb, #d4af37 28%, transparent), transparent 62%),
-    radial-gradient(circle at 50% 70%, color-mix(in srgb, #e5c35a 14%, transparent), transparent 55%);
+    radial-gradient(circle at 50% 70%, color-mix(in srgb, #f0c14b 14%, transparent), transparent 55%);
   filter: blur(8px);
   pointer-events: none;
   animation: tos-brain-pulse 3.2s ease-in-out infinite;
@@ -4088,18 +4242,18 @@
   transform-origin: 140px 148px;
 }
 [data-tos] .tos-brain-ellipse--mid {
-  stroke: color-mix(in srgb, #e5c35a 45%, transparent);
+  stroke: color-mix(in srgb, #f0c14b 45%, transparent);
   animation: tos-brain-spin 22s linear infinite reverse;
   transform-origin: 140px 144px;
 }
 [data-tos] .tos-brain-core-halo {
-  stroke: color-mix(in srgb, #ffd700 55%, transparent);
+  stroke: color-mix(in srgb, #f0c14b 55%, transparent);
   stroke-width: 1.5;
   animation: tos-brain-pulse 2.4s ease-in-out infinite;
 }
 [data-tos] .tos-brain-node[data-live='true'] {
   fill: color-mix(in srgb, #d4af37 35%, #0a0a0a);
-  stroke: #e5c35a;
+  stroke: #f0c14b;
   stroke-width: 1.5;
 }
 
@@ -4133,7 +4287,7 @@
   border-style: dashed;
 }
 [data-tos] .tos-missions-bar--standby i {
-  background: color-mix(in srgb, var(--tos-accent-cyan) 35%, transparent);
+  background: color-mix(in srgb, var(--tos-accent-gold) 35%, transparent);
   animation: tos-missions-pulse 2.8s ease-in-out infinite;
 }
 @keyframes tos-missions-pulse {
@@ -4150,15 +4304,15 @@
    Mission Control 1:1 — orange command center (full-width desk)
    ═══════════════════════════════════════════════════════════ */
 [data-tos] .tos-mc-desk {
-  --tos-desk-cyan: var(--tos-accent-orange);
-  --tos-desk-mint: var(--tos-accent-mint);
-  --tos-desk-gold: var(--tos-accent-orange-bright);
-  --tos-desk-navy: #0b0d10;
+  --tos-desk-cyan: #d4af37;
+  --tos-desk-mint: #f0c14b;
+  --tos-desk-gold: #d4af37;
+  --tos-desk-navy: #050505;
   gap: 0.55rem;
   padding: 0.35rem 0.45rem 0.55rem;
   background:
-    radial-gradient(ellipse 60% 35% at 12% 0%, color-mix(in srgb, var(--tos-accent-orange) 10%, transparent), transparent),
-    radial-gradient(ellipse 45% 30% at 88% 8%, color-mix(in srgb, var(--tos-accent-mint) 6%, transparent), transparent);
+    radial-gradient(ellipse 60% 35% at 12% 0%, color-mix(in srgb, var(--tos-accent-gold) 10%, transparent), transparent),
+    radial-gradient(ellipse 45% 30% at 88% 8%, color-mix(in srgb, var(--tos-accent-gold-bright) 6%, transparent), transparent);
   min-height: 100%;
   width: 100%;
 }
@@ -4221,7 +4375,7 @@
   font-size: 0.62rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--tos-accent-orange-bright);
+  color: var(--tos-accent-gold-bright);
   margin-bottom: 0.45rem;
 }
 [data-tos] .tos-mc-metrics-grid {
@@ -4278,8 +4432,8 @@
   stroke-linecap: round;
   transition: stroke-dashoffset 0.4s var(--tos-ease-state);
 }
-[data-tos] .tos-mc-gauge[data-tone='orange'] .tos-mc-gauge-fill { stroke: var(--tos-accent-orange); }
-[data-tos] .tos-mc-gauge[data-tone='mint'] .tos-mc-gauge-fill { stroke: var(--tos-accent-mint); }
+[data-tos] .tos-mc-gauge[data-tone='orange'] .tos-mc-gauge-fill { stroke: var(--tos-accent-gold); }
+[data-tos] .tos-mc-gauge[data-tone='mint'] .tos-mc-gauge-fill { stroke: var(--tos-accent-gold-bright); }
 [data-tos] .tos-mc-gauge[data-tone='red'] .tos-mc-gauge-fill { stroke: var(--tos-negative); }
 [data-tos] .tos-mc-gauge[data-tone='muted'] .tos-mc-gauge-fill { stroke: var(--tos-text-muted); }
 [data-tos] .tos-mc-gauge-label {
@@ -4363,9 +4517,9 @@
   cursor: pointer;
 }
 [data-tos] .tos-mc-tab[data-active='true'] {
-  border-color: var(--tos-accent-orange);
-  color: var(--tos-accent-orange-bright);
-  background: var(--tos-accent-orange-dim);
+  border-color: var(--tos-accent-gold);
+  color: var(--tos-accent-gold-bright);
+  background: var(--tos-accent-gold-dim);
 }
 [data-tos] .tos-mc-signals-list,
 [data-tos] .tos-mc-news-list {
@@ -4393,7 +4547,7 @@
 }
 [data-tos] .tos-mc-signal-btn strong {
   font-size: 0.68rem;
-  color: var(--tos-accent-orange-bright);
+  color: var(--tos-accent-gold-bright);
 }
 [data-tos] .tos-mc-signal-btn span {
   font-size: 0.62rem;
@@ -4446,7 +4600,7 @@
   color: var(--tos-text-secondary);
 }
 [data-tos] .tos-mc-footer li[data-ok='true'] strong {
-  color: var(--tos-positive);
+  color: var(--tos-accent-gold-bright);
 }
 [data-tos] .tos-mc-footer-right {
   display: flex;
@@ -4462,18 +4616,17 @@
   text-transform: uppercase;
   padding: 0.15rem 0.4rem;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--tos-positive) 40%, transparent);
-  color: var(--tos-positive);
+  border: 1px solid color-mix(in srgb, var(--tos-accent-gold-bright) 40%, transparent);
+  color: var(--tos-accent-gold-bright);
 }
 [data-tos] .tos-mc-live-pill[data-on='false'] {
   border-color: color-mix(in srgb, var(--tos-warning) 40%, transparent);
   color: var(--tos-warning);
 }
 [data-tos] .tos-topbar-brand-accent {
-  color: var(--tos-accent-gold-bright);
+  color: var(--tos-accent-gold);
   font-style: normal;
   font-weight: var(--tos-fw-extrabold);
-  text-shadow: 0 0 16px color-mix(in srgb, var(--tos-accent-gold) 35%, transparent);
 }
 [data-tos] .tos-topbar-mkt {
   display: flex;
@@ -4504,16 +4657,14 @@
 [data-tos] .tos-nav-item--mc[data-active='true'] {
   color: var(--tos-accent-gold-bright);
   background: var(--tos-accent-gold-dim);
-  box-shadow:
-    inset 2px 0 0 var(--tos-accent-gold),
-    0 0 16px color-mix(in srgb, var(--tos-accent-gold) 10%, transparent);
+  box-shadow: inset 2px 0 0 var(--tos-accent-gold);
 }
 [data-tos] .tos-nav-upgrade {
   margin: 0.5rem 0.55rem;
   padding: 0.65rem 0.7rem;
   border-radius: var(--tos-radius);
   background: linear-gradient(135deg, color-mix(in srgb, #d4af37 35%, #1a1208), #1a140c);
-  border: 1px solid color-mix(in srgb, var(--tos-accent-orange) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tos-accent-gold) 45%, transparent);
 }
 [data-tos] .tos-nav-upgrade strong {
   display: block;
@@ -4533,7 +4684,7 @@
   min-height: 32px;
   padding: 0.25rem 0.65rem;
   border-radius: var(--tos-radius-sm);
-  background: var(--tos-accent-orange);
+  background: var(--tos-accent-gold);
   color: #120f08;
   font-size: 0.65rem;
   font-weight: var(--tos-fw-bold);
@@ -4550,8 +4701,8 @@
   display: inline-block;
 }
 [data-tos] .tos-nav-sys-dot[data-on='true'] {
-  background: var(--tos-accent-mint);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--tos-accent-mint) 55%, transparent);
+  background: var(--tos-accent-gold-bright);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--tos-accent-gold-bright) 55%, transparent);
 }
 [data-tos] .tos-nav-copy {
   margin: 0.45rem 0 0;
@@ -4630,7 +4781,7 @@
 }
 [data-tos] .tos-mc-trade .ex-btn-primary,
 [data-tos] .tos-mc-execute {
-  background: linear-gradient(135deg, #ffd700 0%, #d4af37 45%, #c9a227 100%) !important;
+  background: linear-gradient(135deg, #f0c14b 0%, #d4af37 45%, #b8860b 100%) !important;
   color: #120f08 !important;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -4666,7 +4817,7 @@
 }
 [data-tos] .ex-mission-receive strong {
   font-size: 1.05rem;
-  color: var(--tos-accent-mint);
+  color: var(--tos-accent-gold-bright);
 }
 [data-tos] .ex-derived--mission {
   display: grid;
@@ -4730,9 +4881,9 @@
   place-items: center;
   font-size: 0.65rem;
   font-weight: 800;
-  background: var(--tos-accent-orange-dim);
-  color: var(--tos-accent-orange-bright);
-  border: 1px solid color-mix(in srgb, var(--tos-accent-orange) 40%, transparent);
+  background: var(--tos-accent-gold-dim);
+  color: var(--tos-accent-gold-bright);
+  border: 1px solid color-mix(in srgb, var(--tos-accent-gold) 40%, transparent);
 }
 [data-tos] .tos-mc-rec-list strong {
   font-size: 0.72rem;
@@ -4748,7 +4899,7 @@
   font-style: normal;
   font-size: 0.62rem;
   font-family: var(--tos-mono);
-  color: var(--tos-accent-mint);
+  color: var(--tos-accent-gold-bright);
 }
 [data-tos] .tos-mc-coach-more {
   margin-top: 0.45rem;

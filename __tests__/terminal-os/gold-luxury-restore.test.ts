@@ -1,5 +1,7 @@
 /**
- * Gold / Black / Luxury TerminalOS visual restore (presentation only).
+ * Restore TerminalOS Premium black + gold from git history.
+ * Source of truth: git commit f941f0e^ (last Premium black + gold before Image-2 teal desk / Picture-1 cyan).
+ * Picture-1 (552c4a7) introduced navy/cyan/mint — that redesign is NOT restored.
  * Run: node --import tsx --test __tests__/terminal-os/gold-luxury-restore.test.ts
  */
 
@@ -7,54 +9,72 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { execSync } from 'node:child_process'
 
 const root = process.cwd()
+const GOLD_REV = 'f941f0e^'
 
-describe('TerminalOS gold luxury restore', () => {
-  it('centralizes CryptoCheck gold tokens (archive #d4af37 + brand #ffd700)', () => {
+describe('TerminalOS gold restoration from git history', () => {
+  it('CSS root matches last pure Premium black + gold tokens', () => {
     const css = readFileSync(join(root, 'styles/terminal-os.css'), 'utf8')
+    const goldEra = execSync(`git show ${GOLD_REV}:styles/terminal-os.css`, {
+      encoding: 'utf8',
+      cwd: root,
+    })
+    const goldHeader = goldEra.slice(0, goldEra.indexOf('[data-tos] *'))
+    const cssHeader = css.slice(0, css.indexOf('[data-tos] *'))
+
+    assert.match(css, /Premium black \+ gold theme/)
     assert.match(css, /--tos-accent-gold:\s*#d4af37/)
-    assert.match(css, /--tos-accent-gold-bright:\s*#ffd700/)
-    assert.match(css, /--cc-gold:\s*#ffd700/)
-    assert.match(css, /--cc-gold-brass:\s*#c9a05a/)
+    assert.match(css, /--tos-accent-gold-bright:\s*#f0c14b/)
     assert.match(css, /--tos-bg-app:\s*#050505/)
-    assert.match(css, /--tos-bg-panel:\s*#0c0c0c/)
-    assert.match(css, /--tos-glass-border:\s*rgba\(255,\s*215,\s*0,\s*0\.16\)/)
-    /* Identity chrome remapped off cyan/mint/orange dashboards */
-    assert.match(css, /--tos-accent-cyan:\s*#d4af37/)
-    assert.match(css, /--tos-accent-mint:\s*#e5c35a/)
-    assert.match(css, /--tos-accent-orange:\s*#d4af37/)
-    assert.doesNotMatch(css, /--tos-accent-cyan:\s*#00e0ff/)
-    assert.doesNotMatch(css, /--tos-accent-mint:\s*#00ffa3/)
-    assert.doesNotMatch(css, /--tos-accent-orange:\s*#f97316/)
+    assert.match(css, /--tos-bg-panel:\s*#0a0a0a/)
+    assert.match(css, /--tos-glass-border:\s*color-mix\(in srgb, var\(--tos-accent-gold\)/)
+    assert.match(css, /--tos-shadow-focus:\s*0 0 0 2px var\(--tos-accent-gold-bright\)/)
+
+    assert.doesNotMatch(cssHeader, /--tos-accent-cyan:/)
+    assert.doesNotMatch(cssHeader, /--tos-accent-mint:/)
+    assert.doesNotMatch(cssHeader, /--tos-bg-app:\s*#0a0e14/)
+    assert.doesNotMatch(cssHeader, /--tos-accent-gold:\s*#ffb800/)
+
+    for (const line of [
+      '--tos-bg-app: #050505;',
+      '--tos-accent-gold: #d4af37;',
+      '--tos-accent-gold-bright: #f0c14b;',
+      '--tos-positive: #16c784;',
+      '--tos-negative: #ea3943;',
+    ]) {
+      assert.ok(goldHeader.includes(line), `gold era missing ${line}`)
+      assert.ok(cssHeader.includes(line), `restored CSS missing archive token ${line}`)
+    }
   })
 
-  it('keeps green/red semantic (not brand identity)', () => {
+  it('nav active state uses gold-era treatment (not cyan)', () => {
     const css = readFileSync(join(root, 'styles/terminal-os.css'), 'utf8')
-    assert.match(css, /--tos-positive:\s*#00d084/)
-    assert.match(css, /--tos-negative:\s*#ff4d4d/)
+    assert.match(
+      css,
+      /\.tos-nav-item\[data-active='true'\]\s*\{[^}]*background:\s*var\(--tos-accent-gold-dim\)/,
+    )
+    assert.match(
+      css,
+      /\.tos-nav-item\[data-active='true'\]\s*\{[^}]*color:\s*var\(--tos-accent-gold\)/,
+    )
   })
 
-  it('nav active + gold CTA use gold language', () => {
-    const css = readFileSync(join(root, 'styles/terminal-os.css'), 'utf8')
-    assert.match(css, /\.tos-nav-item\[data-active='true'\][\s\S]*?var\(--tos-accent-gold/)
-    assert.match(css, /\.tos-btn-gold[\s\S]*?linear-gradient[\s\S]*?--tos-accent-gold/)
-    assert.match(css, /\.tos-mc-execute[\s\S]*?#d4af37/)
-  })
-
-  it('layout scopes brass theme under Terminal OS only', () => {
+  it('layout stays data-tos only (no invented brass theme wrapper)', () => {
     const layout = readFileSync(join(root, 'app/terminalOS/layout.tsx'), 'utf8')
     assert.match(layout, /data-tos/)
-    assert.match(layout, /data-theme=["']brass["']/)
+    assert.doesNotMatch(layout, /data-theme=["']brass["']/)
   })
 
-  it('gateway execute CTA is archive gold (no orange tail)', () => {
+  it('gateway execute CTA uses archive gold stops (no orange redesign tail)', () => {
     const gw = readFileSync(join(root, 'features/ai-os/gateway-tos.css'), 'utf8')
-    assert.match(gw, /aios-swap-execute[\s\S]*?#d4af37/)
+    assert.match(gw, /#d4af37/)
     assert.doesNotMatch(gw, /#ff8a00/)
+    assert.doesNotMatch(gw, /#00e0ff/)
   })
 
-  it('does not alter classic PRO product structure', () => {
+  it('preserves current classic PRO functionality wiring', () => {
     const desk = readFileSync(
       join(root, 'features/terminal-os/shell/components/TerminalOsHomeDesk.tsx'),
       'utf8',
