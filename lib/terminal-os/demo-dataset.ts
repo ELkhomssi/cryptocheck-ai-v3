@@ -36,6 +36,20 @@ function spark(): number[] {
 
 export const DEMO_TOKENS: TokenRow[] = [
   {
+    id: 'So11111111111111111111111111111111111111112',
+    symbol: 'SOL',
+    name: 'Solana',
+    chain: 'solana',
+    priceUsd: 168.42,
+    change24hPct: 2.35,
+    volume24hUsd: 1.2e9,
+    liquidityUsd: 4.5e8,
+    marketCapUsd: 7.8e10,
+    txCount24h: 120_000,
+    buySellRatio: 1.05,
+    sparkline: spark(),
+  },
+  {
     id: 'demo-wif',
     symbol: 'WIF',
     name: 'dogwifhat',

@@ -159,7 +159,11 @@ export function MissionMetricsStrip() {
           <span className="tos-mc-metric-label">Active Alerts</span>
           <strong className="tos-num">{connected ? alertCount : '—'}</strong>
           <span className="tos-mc-metric-sub">
-            {connected ? 'Fired rules for this wallet' : 'Connect wallet'}
+            {connected
+              ? alertCount > 0
+                ? 'Fired for this wallet'
+                : 'Quiet — no fires yet'
+              : 'Connect wallet'}
           </span>
         </article>
         <article className="tos-mc-metric tos-mc-metric--gauge">
@@ -206,9 +210,21 @@ export function MissionMarketOverview() {
   })
   const tokensQ = useTopTokens('all')
   const rows = tokensQ.data ?? []
-  const sorted = [...rows].sort((a, b) => (b.change24hPct ?? 0) - (a.change24hPct ?? 0))
+  // Dedupe by symbol (highest volume wins) — avoid PEPE×N spam from single-seed feeds
+  const bySym = new Map<string, (typeof rows)[0]>()
+  for (const t of rows) {
+    const key = t.symbol.toUpperCase()
+    const prev = bySym.get(key)
+    if (!prev || (t.volume24hUsd ?? 0) > (prev.volume24hUsd ?? 0)) bySym.set(key, t)
+  }
+  const unique = [...bySym.values()]
+  const sorted = [...unique].sort((a, b) => (b.change24hPct ?? 0) - (a.change24hPct ?? 0))
   const gainers = sorted.filter((t) => (t.change24hPct ?? 0) > 0).slice(0, 3)
-  const losers = [...sorted].reverse().filter((t) => (t.change24hPct ?? 0) < 0).slice(0, 3)
+  const gainerIds = new Set(gainers.map((t) => t.id))
+  const losers = [...sorted]
+    .reverse()
+    .filter((t) => (t.change24hPct ?? 0) < 0 && !gainerIds.has(t.id))
+    .slice(0, 3)
   const fng = fngQ.data?.fearGreed ?? null
 
   return (
@@ -347,7 +363,7 @@ export function MissionTradeSuite() {
       </header>
       {tab === 'Quick Trade' ? (
         <div className="tos-mc-trade-body" data-tos-mc-quick="true">
-          <QuickSwapCard />
+          <QuickSwapCard variant="mission" />
         </div>
       ) : (
         <p className="tos-desk-empty">
@@ -356,6 +372,71 @@ export function MissionTradeSuite() {
         </p>
       )}
     </section>
+  )
+}
+
+/** Numbered coach recommendations from published Decision only. */
+export function MissionCoachRecommendations() {
+  const wallet = useTerminalOsStore((s) => s.walletAddress)
+  const q = useQuery({
+    queryKey: ['tos', 'mc-coach-recs', wallet],
+    queryFn: async (): Promise<Decision | null> => {
+      const qs = new URLSearchParams({ limit: '12' })
+      if (wallet) qs.set('wallet', wallet)
+      const res = await fetch(`/api/terminal-os/decisions?${qs}`, { cache: 'no-store' })
+      if (!res.ok) return null
+      const body = (await res.json()) as { decisions?: Decision[] }
+      return selectHeroDecision(body.decisions ?? [])
+    },
+    staleTime: 12_000,
+    refetchInterval: 20_000,
+  })
+  const d = q.data
+  const items: { title: string; detail: string; confidence: string }[] = []
+  if (d) {
+    const sym = d.subject?.kind === 'token' ? d.subject.symbol : null
+    items.push({
+      title: sym ? `${d.action} $${sym}` : d.action,
+      detail: (d.reasoning ?? '').slice(0, 140) || 'Published Decision',
+      confidence:
+        typeof d.confidence === 'number' && Number.isFinite(d.confidence)
+          ? `${Math.round(d.confidence)}%`
+          : '—',
+    })
+    for (const f of d.contributingFactors ?? []) {
+      if (!f || items.length >= 3) break
+      items.push({
+        title: String(f.engine).replace(/-/g, ' '),
+        detail: f.summary ?? '—',
+        confidence:
+          typeof f.weight === 'number' && Number.isFinite(f.weight)
+            ? `${Math.round(f.weight * 100)}%`
+            : '—',
+      })
+    }
+  }
+
+  return (
+    <div className="tos-mc-coach-recs" data-tos-mc-coach-recs="true">
+      {!d ? (
+        <p className="tos-desk-empty">
+          Coach recommendations appear when the Decision Engine publishes — no mock advice.
+        </p>
+      ) : (
+        <ul className="tos-mc-rec-list">
+          {items.map((it, i) => (
+            <li key={`${it.title}-${i}`}>
+              <span className="tos-mc-rec-rank">{i + 1}</span>
+              <div>
+                <strong>{it.title}</strong>
+                <p>{it.detail}</p>
+              </div>
+              <em>{it.confidence}</em>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }
 

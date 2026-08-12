@@ -83,13 +83,25 @@ const CHAIN_TO_DEX: Record<Exclude<ChainId, 'all'>, string> = {
 }
 
 const CHAIN_SEARCH: Record<ChainId, string> = {
-  all: 'PEPE',
-  solana: 'BONK',
-  bnb: 'CAKE',
-  ethereum: 'PEPE',
-  base: 'DEGEN',
-  arbitrum: 'ARB',
+  all: 'SOL',
+  solana: 'SOL',
+  bnb: 'BNB',
+  ethereum: 'ETH',
+  base: 'ETH',
+  arbitrum: 'ETH',
 }
+
+/** Diversified seeds for multi-asset top lists (avoid single-meme bias). */
+const CHAIN_SEARCH_SEEDS: Record<ChainId, string[]> = {
+  all: ['SOL', 'ETH', 'BTC', 'BNB', 'JUP', 'WIF'],
+  solana: ['SOL', 'JUP', 'WIF', 'BONK', 'RAY'],
+  bnb: ['BNB', 'CAKE'],
+  ethereum: ['ETH', 'PEPE', 'LINK'],
+  base: ['ETH', 'DEGEN'],
+  arbitrum: ['ETH', 'ARB'],
+}
+
+const SOL_MINT = 'So11111111111111111111111111111111111111112'
 
 const COIN_OHLC_IDS: Partial<Record<ChainId, string>> = {
   solana: 'solana',
@@ -230,6 +242,34 @@ export async function resolveTokenByQuery(
   const q = query.trim()
   if (!q) return null
   const needle = q.toLowerCase()
+
+  // Hard short-circuit majors (SOL mint / ticker) before Dex search — chart home default
+  if (
+    needle === 'sol' ||
+    needle === SOL_MINT.toLowerCase() ||
+    q === SOL_MINT
+  ) {
+    try {
+      const fromDex = await cachedJson(`tos:resolve:sol-mint`, TOKEN_TTL, async () => {
+        const pairs = await searchDexPairs('SOL', 24)
+        const solPairs = pairs.filter(
+          (p) =>
+            p.chainId === 'solana' &&
+            (p.baseToken?.address === SOL_MINT ||
+              p.baseToken?.symbol?.toUpperCase() === 'SOL'),
+        )
+        const best = solPairs.sort(
+          (a, b) => num(b.liquidity?.usd) - num(a.liquidity?.usd),
+        )[0]
+        if (!best) return null
+        return pairToToken(best, 'solana')
+      })
+      if (fromDex) return fromDex
+    } catch {
+      /* fall through */
+    }
+  }
+
   return cachedJson(`tos:resolve:ic:${chain}:${needle.slice(0, 64)}`, TOKEN_TTL, async () => {
     const want = chain === 'all' ? null : CHAIN_TO_DEX[chain]
     const byKey = new Map<string, TokenRow>()
@@ -258,20 +298,26 @@ export async function resolveTokenByQuery(
 /** Top tokens by chain via DexScreener search (no key). */
 export async function fetchLiveTopTokens(chain: ChainId, limit = 12): Promise<TokenRow[]> {
   const lim = Math.min(Math.max(4, limit), 16)
-  return cachedJson(`tos:tokens:${chain}:${lim}`, TOKEN_TTL, async () => {
-    const q = CHAIN_SEARCH[chain] || 'SOL'
-    const pairs = await searchDexPairs(q, 40)
+  return cachedJson(`tos:tokens:v2:${chain}:${lim}`, TOKEN_TTL, async () => {
+    const seeds = CHAIN_SEARCH_SEEDS[chain] ?? [CHAIN_SEARCH[chain] || 'SOL']
     const want = chain === 'all' ? null : CHAIN_TO_DEX[chain]
     const seen = new Set<string>()
+    const seenSym = new Set<string>()
     const out: TokenRow[] = []
-    for (const p of pairs) {
-      if (want && p.chainId !== want) continue
-      const mapped = pairToToken(p, chain === 'all' ? mapDexChain(p.chainId) : chain)
-      if (!mapped || seen.has(mapped.id)) continue
-      // Prefer liquid pairs
-      if (mapped.liquidityUsd < 5_000 && mapped.volume24hUsd < 20_000) continue
-      seen.add(mapped.id)
-      out.push(mapped)
+    const pairBatches = await Promise.all(seeds.map((s) => searchDexPairs(s, 24)))
+    for (const pairs of pairBatches) {
+      for (const p of pairs) {
+        if (want && p.chainId !== want) continue
+        const mapped = pairToToken(p, chain === 'all' ? mapDexChain(p.chainId) : chain)
+        if (!mapped || seen.has(mapped.id)) continue
+        const symKey = `${mapped.chain}:${mapped.symbol.toUpperCase()}`
+        if (seenSym.has(symKey)) continue
+        if (mapped.liquidityUsd < 5_000 && mapped.volume24hUsd < 20_000) continue
+        seen.add(mapped.id)
+        seenSym.add(symKey)
+        out.push(mapped)
+        if (out.length >= lim) break
+      }
       if (out.length >= lim) break
     }
     out.sort((a, b) => b.volume24hUsd - a.volume24hUsd)

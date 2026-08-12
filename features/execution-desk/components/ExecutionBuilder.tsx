@@ -38,9 +38,11 @@ async function estimateFeesUsd(
 export function ExecutionBuilder({
   query,
   onBuilderChange,
+  presentation = 'default',
 }: {
   query: string
   onBuilderChange?: (state: ExecutionBuilderState) => void
+  presentation?: 'default' | 'mission'
 }) {
   const wallet = useWallet()
   const { connection } = useConnection()
@@ -49,6 +51,8 @@ export function ExecutionBuilder({
   const liq = bundle?.token.liquidityUsd ?? 0
   const solUsd =
     bundle?.token.symbol?.toUpperCase() === 'SOL' && price > 0 ? price : 150
+  const mission = presentation === 'mission'
+  const symbol = bundle?.token.symbol ?? 'TOKEN'
 
   const [side, setSide] = useState<ExecutionSide>('buy')
   const [orderType, setOrderType] = useState<OrderType>('market')
@@ -123,6 +127,84 @@ export function ExecutionBuilder({
   }, [state, onBuilderChange])
 
   const large = amountUsd >= LARGE_TRADE_USD_THRESHOLD
+
+  if (mission) {
+    return (
+      <section className="ex-panel ex-panel--mission" aria-label="Quick Trade" data-ex-mission="true">
+        <div className="ex-field-row">
+          <button
+            type="button"
+            className="ex-seg"
+            data-active={side === 'buy'}
+            onClick={() => setSide('buy')}
+          >
+            Buy
+          </button>
+          <button
+            type="button"
+            className="ex-seg"
+            data-active={side === 'sell'}
+            onClick={() => setSide('sell')}
+          >
+            Sell
+          </button>
+        </div>
+
+        <label className="ex-label">
+          You Pay (USD)
+          <input
+            className="ex-input ex-input--lg"
+            type="number"
+            min={0}
+            step={1}
+            value={amountUsd}
+            onChange={(e) => setAmountUsd(Number(e.target.value) || 0)}
+          />
+        </label>
+
+        <div className="ex-mission-receive">
+          <span className="ex-label">You Receive</span>
+          <strong className="tos-num">
+            {price > 0
+              ? `${state.positionSizeUnits.toPrecision(6)} ${symbol}`
+              : 'Waiting for price…'}
+          </strong>
+          {price > 0 ? (
+            <span className="ex-muted">@ ${price.toLocaleString(undefined, { maximumFractionDigits: 6 })}</span>
+          ) : null}
+        </div>
+
+        <label className="ex-label">
+          Slippage (bps)
+          <input
+            className="ex-input"
+            type="number"
+            min={1}
+            max={1000}
+            value={slippageBps}
+            onChange={(e) => setSlippageBps(Number(e.target.value) || 50)}
+          />
+        </label>
+
+        <dl className="ex-derived ex-derived--mission">
+          <div>
+            <dt>Network fee</dt>
+            <dd>~${(gasUsd + priorityUsd).toFixed(4)}</dd>
+          </div>
+          <div>
+            <dt>MEV</dt>
+            <dd>Protection on</dd>
+          </div>
+          {large ? (
+            <div>
+              <dt>Size</dt>
+              <dd className="ex-badge ex-badge-warn">Large</dd>
+            </div>
+          ) : null}
+        </dl>
+      </section>
+    )
+  }
 
   return (
     <section className="ex-panel" aria-label="Execution Builder">
