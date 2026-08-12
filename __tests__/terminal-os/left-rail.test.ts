@@ -11,7 +11,7 @@ import { join } from 'node:path'
 const root = process.cwd()
 
 describe('Terminal OS command rail', () => {
-  it('LeftRail uses mockup hierarchy + real badge hooks (no fabricated 12/12)', () => {
+  it('LeftRail uses Mission Control hierarchy + real badge hooks (no fabricated 12/12)', () => {
     const rail = readFileSync(
       join(root, 'features/terminal-os/shell/components/LeftRail.tsx'),
       'utf8',
@@ -20,15 +20,14 @@ describe('Terminal OS command rail', () => {
       join(root, 'features/terminal-os/shell/hooks/useRailBadges.ts'),
       'utf8',
     )
-    assert.match(rail, /AI Gateway/)
     assert.match(rail, /Mission Control/)
-    assert.match(rail, /Whale Command/)
+    assert.match(rail, /Wallet Intelligence/)
     assert.match(rail, /Trade Like Me/)
-    assert.match(rail, /Automation Hub/)
+    assert.match(rail, /Alerts/)
     assert.match(rail, /useRailBadges/)
-    assert.match(rail, /tos-nav-gauge/)
+    assert.match(rail, /Upgrade Plan/)
     assert.doesNotMatch(rail, /12\/12/)
-    assert.doesNotMatch(rail, /100%/)
+    assert.doesNotMatch(rail, /AI Gateway/)
     assert.match(hooks, /\/api\/health/)
     assert.match(hooks, /useWhaleMovements/)
     assert.match(hooks, /\/api\/terminal-os\/alerts/)

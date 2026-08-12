@@ -26,9 +26,7 @@ import {
 } from '@/features/terminal-os/shell/components/MissionAndCoachWorkspaces'
 import { PersistentCoachRail } from '@/features/terminal-os/shell/components/PersistentCoachRail'
 import { TerminalOsHomeDesk } from '@/features/terminal-os/shell/components/TerminalOsHomeDesk'
-import { AiRecommendationCard } from '@/features/terminal-os/shell/components/AiRecommendationCard'
 import { SystemStatusGauges } from '@/features/terminal-os/shell/components/SystemStatusGauges'
-import { TradeLikeMeDnaCard } from '@/features/terminal-os/shell/components/HomeDeskPanels'
 import { ChartIntelligenceWorkspace } from '@/features/terminal-os/chart-intelligence/components/ChartIntelligenceWorkspace'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
@@ -330,8 +328,8 @@ function AiTradingWorkspace() {
 function SecondaryNavStub({ nav }: { nav: TerminalNavId }) {
   if (nav === 'watchlist') {
     return (
-      <Panel title="Watchlist">
-        <EmptyState message="Focus a token anywhere in Terminal OS — it drives Chart, Scanner, and Execution. Dedicated watchlist persistence ships next without changing this layout." />
+      <Panel title="API Access">
+        <EmptyState message="Partner / API keys surface via CCAI Connect and /api/b2b — no fabricated key inventory here. Watchlist persistence ships next." />
       </Panel>
     )
   }
@@ -350,21 +348,15 @@ function SecondaryNavStub({ nav }: { nav: TerminalNavId }) {
 }
 
 function RightRail({ homeMode, chartMode }: { homeMode: boolean; chartMode: boolean }) {
+  // Mission Control home embeds coach/heatmap/allocation in the 3-column desk — hide duplicate rail
+  if (homeMode) return null
+
   return (
     <aside className="tos-right-rail" aria-label="AI Coach and tools" data-tos-right="coach">
       <Bound title="AI Coach">
         <PersistentCoachRail />
       </Bound>
-      {homeMode ? (
-        <>
-          <Bound title="AI Recommendation">
-            <AiRecommendationCard />
-          </Bound>
-          <Bound title="Trade Like Me DNA">
-            <TradeLikeMeDnaCard />
-          </Bound>
-        </>
-      ) : chartMode ? (
+      {chartMode ? (
         <Bound title="Quick Swap">
           <QuickSwapCard />
         </Bound>
@@ -396,17 +388,22 @@ export function TerminalOsShell() {
       data-tos-shell
       data-tos-home={homeMode ? 'true' : undefined}
       data-tos-chart={chartMode ? 'true' : undefined}
+      data-tos-mc={homeMode ? 'true' : undefined}
     >
       <Bound title="Top Bar">
         <TopBar />
       </Bound>
       <AlertEvaluateBridge />
       <AlertToastHost />
-      <div className="tos-whale-slot">
-        <Bound title="Top Whale Movements">
-          <WhaleMarqueeTicker fixed title="Top Whale Movements" />
-        </Bound>
-      </div>
+      {!homeMode ? (
+        <div className="tos-whale-slot">
+          <Bound title="Top Whale Movements">
+            <WhaleMarqueeTicker fixed title="Top Whale Movements" />
+          </Bound>
+        </div>
+      ) : (
+        <div className="tos-whale-slot" aria-hidden />
+      )}
       {!homeMode ? (
         <div className="tos-lifecycle-slot">
           <Bound title="Money Lifecycle">

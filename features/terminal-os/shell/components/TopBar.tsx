@@ -6,6 +6,7 @@ import { Bell, LayoutTemplate, Search, Star } from 'lucide-react'
 import { useTerminalOsStore } from '@/stores/terminal-os'
 import { useTickerQuotes } from '@/features/terminal-os/shared/hooks/useTerminalQueries'
 import { useTerminalMarketStream } from '@/features/terminal-os/shared/hooks/useTerminalMarketStream'
+import { useMarketOverview } from '@/features/terminal-os/shared/hooks/useTerminalQueries'
 import { formatPct, formatUsd } from '@/features/terminal-os/shared/lib/format'
 import { PanelSkeleton, StaleIndicator } from '@/features/terminal-os/shared/components/PanelStates'
 import { AnimatedNumber } from '@/features/terminal-os/shared/components/AnimatedNumber'
@@ -101,6 +102,7 @@ export function TopBar() {
   const [menuOpen, setMenuOpen] = useState(false)
 
   const { data: quotes } = useTickerQuotes()
+  const { data: overview } = useMarketOverview()
   const stream = useTerminalMarketStream()
   const rail = useRailBadges()
   const [lkg, setLkg] = useState(quotes)
@@ -142,9 +144,9 @@ export function TopBar() {
   return (
     <header className="tos-topbar" data-tos-topbar="v3">
       <div className="tos-topbar-brand">
-        <strong>CryptoCheck AI</strong>
-        <span>TERMINAL OS v3.0</span>
-        <em className="tos-topbar-tagline">AUTONOMOUS TRADING COMPANY</em>
+        <strong>
+          CryptoCheck AI <em className="tos-topbar-brand-accent">TERMINAL OS</em>
+        </strong>
       </div>
 
       <div
@@ -232,6 +234,21 @@ export function TopBar() {
             />
           </>
         )}
+      </div>
+
+      <div className="tos-topbar-mkt" aria-label="Global market stats">
+        <div>
+          <span>TOTAL MKT CAP</span>
+          <strong className="tos-num">
+            {overview ? formatUsd(overview.marketCapUsd, true) : '—'}
+          </strong>
+        </div>
+        <div>
+          <span>24H VOLUME</span>
+          <strong className="tos-num">
+            {overview ? formatUsd(overview.volume24hUsd, true) : '—'}
+          </strong>
+        </div>
       </div>
 
       <div className="tos-topbar-actions" style={{ position: 'relative' }}>
