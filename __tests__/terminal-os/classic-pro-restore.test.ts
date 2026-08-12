@@ -46,7 +46,7 @@ describe('Classic Terminal PRO restore', () => {
       join(root, 'features/terminal-os/shell/components/LeftRail.tsx'),
       'utf8',
     )
-    assert.match(rail, /TERMINAL.*v6\.0|v6\.0/)
+    assert.match(rail, /TERMINAL OS|TERMINAL.*v6/)
     assert.match(rail, /AiTradeLikeMeCard/)
     assert.match(rail, /AiStatusCard/)
     assert.match(rail, /label: 'Terminal'/)

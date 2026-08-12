@@ -1,38 +1,51 @@
 /**
- * CryptoCheck AI Terminal OS — classic PRO institutional chrome.
- * Deep navy glass + gold / cyan / mint (Terminal v6 command center).
+ * CryptoCheck AI Terminal OS — Gold / Black / Luxury institutional chrome.
+ * Restored from archive: Intelligence Chart #d4af37 + brass #c9a05a + brand #FFD700.
+ * Green/red remain semantic (PnL / risk) only — gold is identity.
  * Hex only here. Spacing/type in rem for 4K legibility.
  */
 
 [data-tos] {
-  --tos-bg-app: #0a0e14;
-  --tos-bg-panel: #0c121c;
-  --tos-bg-panel-elevated: #121a28;
-  --tos-border-subtle: #1a2740;
-  --tos-text-primary: #e8eef8;
-  --tos-text-secondary: #8b9bb4;
-  --tos-text-muted: #6b7c94; /* AA ≥4.5 on --tos-bg-app / panel */
-  --tos-accent-orange: #f97316;
-  --tos-accent-orange-bright: #fb923c;
-  --tos-accent-orange-dim: color-mix(in srgb, #f97316 18%, transparent);
-  --tos-accent-gold: #ffb800;
-  --tos-accent-gold-bright: #ffd45a;
-  --tos-accent-gold-dim: color-mix(in srgb, #ffb800 18%, transparent);
-  --tos-accent-blue: #00e0ff;
-  --tos-accent-cyan: #00e0ff;
-  --tos-accent-mint: #00ffa3;
-  --tos-accent-purple: #7c9cff;
-  --tos-accent-purple-dim: color-mix(in srgb, #7c9cff 22%, transparent);
-  --tos-positive: #00ffa3;
-  --tos-negative: #ff4d6a;
-  --tos-warning: #ffb800;
-  --tos-score-excellent: #00ffa3;
+  /* Near-black luxury surfaces (archive + brand restore) */
+  --tos-bg-app: #050505;
+  --tos-bg-panel: #0c0c0c;
+  --tos-bg-panel-elevated: #111111;
+  --tos-border-subtle: #1a1a1a;
+  --tos-text-primary: #f2eee3;
+  --tos-text-secondary: #a89f8c;
+  --tos-text-muted: #6e6758; /* AA ≥4.5 on near-black panels */
+  /* Gold identity — IC archive #d4af37, metallic #FFD700, brass #c9a05a */
+  --cc-gold: #ffd700;
+  --cc-gold-deep: #c9a227;
+  --cc-gold-soft: #e5c35a;
+  --cc-gold-dark: #8a6a00;
+  --cc-gold-brass: #c9a05a;
+  --cc-gold-archive: #d4af37;
+  --tos-accent-gold: #d4af37;
+  --tos-accent-gold-bright: #ffd700;
+  --tos-accent-gold-dim: color-mix(in srgb, #d4af37 18%, transparent);
+  /* Former orange MC chrome → gold (no orange identity) */
+  --tos-accent-orange: #d4af37;
+  --tos-accent-orange-bright: #ffd700;
+  --tos-accent-orange-dim: color-mix(in srgb, #d4af37 18%, transparent);
+  /* Former cyan/mint identity chrome → gold family (rules keep var names) */
+  --tos-accent-blue: #c9a05a;
+  --tos-accent-cyan: #d4af37;
+  --tos-accent-mint: #e5c35a;
+  --tos-accent-purple: #b8a078;
+  --tos-accent-purple-dim: color-mix(in srgb, #b8a078 22%, transparent);
+  /* Semantic only */
+  --tos-positive: #00d084;
+  --tos-negative: #ff4d4d;
+  --tos-warning: #ffd700;
+  --tos-score-excellent: #00d084;
   --tos-score-good: #3ee0a0;
-  --tos-score-caution: #ffb800;
-  --tos-score-danger: #ff4d6a;
-  --tos-radius: 0.75rem;
-  --tos-radius-sm: 0.5rem;
-  --tos-radius-xs: var(--radius-xs, 0.1875rem);
+  --tos-score-caution: #d4af37;
+  --tos-score-danger: #ff4d4d;
+  --tos-on-accent: #12100a;
+  --tos-radius: 0.375rem;
+  --tos-radius-sm: 0.25rem;
+  --tos-radius-xs: var(--radius-xs, 0.125rem);
   --tos-radius-full: var(--radius-full, 999px);
   --tos-left-rail: 14.5rem;
   --tos-right-rail: 20rem;
@@ -72,8 +85,9 @@
   --tos-ease-micro: var(--ease-micro, ease-out);
   --tos-ease-panel: var(--ease-panel, ease-in-out);
   --tos-ease-state: var(--ease-state, cubic-bezier(0.22, 1, 0.36, 1));
-  --tos-glass: color-mix(in srgb, #0c121c 78%, transparent);
-  --tos-glass-border: color-mix(in srgb, var(--tos-accent-gold) 28%, #1a2740);
+  --tos-glass: color-mix(in srgb, #0c0c0c 82%, transparent);
+  --tos-glass-border: rgba(255, 215, 0, 0.16);
+  --tos-border-active: rgba(255, 215, 0, 0.55);
 
   color-scheme: dark;
   background: var(--tos-bg-app);
@@ -107,9 +121,9 @@
   height: 100dvh;
   overflow: hidden;
   background:
-    radial-gradient(ellipse 80% 50% at 18% -10%, color-mix(in srgb, var(--tos-accent-cyan) 16%, transparent), transparent),
-    radial-gradient(ellipse 55% 40% at 92% 8%, color-mix(in srgb, var(--tos-accent-mint) 10%, transparent), transparent),
-    radial-gradient(ellipse 40% 30% at 70% 100%, color-mix(in srgb, var(--tos-accent-gold) 6%, transparent), transparent),
+    radial-gradient(ellipse 80% 50% at 18% -10%, color-mix(in srgb, var(--tos-accent-gold) 14%, transparent), transparent),
+    radial-gradient(ellipse 55% 40% at 92% 8%, color-mix(in srgb, var(--tos-accent-gold-bright) 7%, transparent), transparent),
+    radial-gradient(ellipse 40% 30% at 70% 100%, color-mix(in srgb, var(--cc-gold-brass) 5%, transparent), transparent),
     var(--tos-bg-app);
 }
 
@@ -181,12 +195,13 @@
   align-items: center;
   gap: 1rem;
   padding: 0 1rem;
-  border-bottom: 1px solid var(--tos-border-subtle);
-  background: color-mix(in srgb, var(--tos-bg-panel) 92%, transparent);
-  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--tos-glass-border);
+  background: color-mix(in srgb, var(--tos-bg-panel) 94%, transparent);
+  backdrop-filter: blur(10px) saturate(1.15);
   /* Above whale marquee / panels so Connect menu + wallet modal stack correctly */
   z-index: 90;
   overflow: visible;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--tos-accent-gold) 8%, transparent);
 }
 
 [data-tos] .tos-left-rail {
@@ -348,12 +363,16 @@
 }
 
 [data-tos] .tos-panel {
-  background: var(--tos-bg-panel-elevated);
-  border: 1px solid var(--tos-border-subtle);
+  background: color-mix(in srgb, var(--tos-bg-panel-elevated) 92%, transparent);
+  border: 1px solid var(--tos-glass-border);
   border-radius: var(--tos-radius);
   overflow: hidden;
   flex-shrink: 0;
-  box-shadow: 0 1px 0 color-mix(in srgb, #fff 3%, transparent), 0 8px 24px color-mix(in srgb, #000 35%, transparent);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--tos-accent-gold) 6%, transparent),
+    0 8px 24px color-mix(in srgb, #000 45%, transparent);
+  backdrop-filter: blur(10px) saturate(1.1);
+  -webkit-backdrop-filter: blur(10px) saturate(1.1);
 }
 
 [data-tos] .tos-panel-head {
@@ -374,9 +393,9 @@
 [data-tos] .tos-panel-title {
   font-size: var(--tos-fs-sm);
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--tos-text-secondary);
+  color: var(--tos-accent-gold);
   margin: 0;
 }
 
@@ -418,13 +437,26 @@
 }
 
 [data-tos] .tos-btn-gold {
-  background: var(--tos-accent-gold);
-  color: var(--tos-bg-app);
+  background: linear-gradient(
+    180deg,
+    var(--tos-accent-gold-bright) 0%,
+    var(--tos-accent-gold) 48%,
+    var(--cc-gold-deep) 100%
+  );
+  color: var(--tos-on-accent);
   padding: 0.5rem 0.875rem;
+  border: 1px solid color-mix(in srgb, var(--tos-accent-gold-bright) 55%, transparent);
+  box-shadow:
+    0 0 18px color-mix(in srgb, var(--tos-accent-gold) 28%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 35%, transparent);
+  text-shadow: 0 1px 0 color-mix(in srgb, #000 18%, transparent);
 }
 
 [data-tos] .tos-btn-gold:hover:not(:disabled) {
-  filter: brightness(1.06);
+  filter: brightness(1.08);
+  box-shadow:
+    0 0 24px color-mix(in srgb, var(--tos-accent-gold) 40%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 40%, transparent);
 }
 
 [data-tos] .tos-btn-ghost {
@@ -2217,10 +2249,12 @@
 }
 
 [data-tos] .tos-nav-item[data-active='true'] {
-  background: color-mix(in srgb, var(--tos-accent-cyan) 16%, transparent);
-  color: var(--tos-accent-cyan);
+  background: color-mix(in srgb, var(--tos-accent-gold) 14%, transparent);
+  color: var(--tos-accent-gold-bright);
   font-weight: var(--tos-fw-bold);
-  box-shadow: inset 2px 0 0 var(--tos-accent-cyan);
+  box-shadow:
+    inset 2px 0 0 var(--tos-accent-gold),
+    0 0 18px color-mix(in srgb, var(--tos-accent-gold) 12%, transparent);
 }
 
 [data-tos] .tos-nav-item:disabled {
@@ -2250,10 +2284,10 @@
   font-size: 0.625rem;
   font-weight: var(--tos-fw-bold);
   letter-spacing: 0.02em;
-  color: var(--tos-bg-app);
-  background: var(--tos-accent-mint);
+  color: var(--tos-on-accent);
+  background: linear-gradient(180deg, var(--tos-accent-gold-bright), var(--tos-accent-gold));
   text-align: center;
-  box-shadow: 0 0 10px color-mix(in srgb, var(--tos-accent-mint) 40%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--tos-accent-gold) 40%, transparent);
 }
 
 [data-tos] .tos-nav-system {
@@ -3013,12 +3047,12 @@
   font-family: var(--tos-mono);
 }
 
-/* Home desk — Image-2 teal/glass composition (presentation tokens scoped to desk) */
+/* Home desk — Gold / Black luxury composition (presentation tokens scoped to desk) */
 [data-tos] .tos-home-desk {
-  --tos-desk-cyan: #00e5ff;
-  --tos-desk-mint: #00ffa3;
-  --tos-desk-gold: #ffb800;
-  --tos-desk-navy: #060b1a;
+  --tos-desk-cyan: #d4af37;
+  --tos-desk-mint: #e5c35a;
+  --tos-desk-gold: #ffd700;
+  --tos-desk-navy: #050505;
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
@@ -3026,8 +3060,8 @@
   width: 100%;
   padding: 0.15rem 0 0.5rem;
   background:
-    radial-gradient(ellipse 70% 40% at 20% 0%, color-mix(in srgb, var(--tos-desk-cyan) 12%, transparent), transparent),
-    radial-gradient(ellipse 50% 35% at 90% 10%, color-mix(in srgb, var(--tos-desk-mint) 8%, transparent), transparent);
+    radial-gradient(ellipse 70% 40% at 20% 0%, color-mix(in srgb, var(--tos-desk-gold) 10%, transparent), transparent),
+    radial-gradient(ellipse 50% 35% at 90% 10%, color-mix(in srgb, var(--tos-desk-cyan) 7%, transparent), transparent);
 }
 [data-tos] .tos-home-row {
   display: grid;
@@ -3480,7 +3514,7 @@
 [data-tos] .tos-missions-bar i {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, var(--tos-desk-cyan, #00e5ff), var(--tos-desk-mint, #00ffa3));
+  background: linear-gradient(90deg, var(--tos-desk-cyan, #d4af37), var(--tos-desk-mint, #e5c35a));
 }
 
 [data-tos] .tos-exec-feed-list {
@@ -3499,11 +3533,11 @@
   gap: 0.1rem 0.45rem;
   font-size: 0.7rem;
   padding-bottom: 0.35rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--tos-desk-cyan, #00e5ff) 12%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--tos-desk-cyan, #d4af37) 12%, transparent);
 }
 [data-tos] .tos-exec-feed-list time {
   font-family: var(--tos-mono);
-  color: var(--tos-desk-cyan, #00e5ff);
+  color: var(--tos-desk-cyan, #d4af37);
   grid-row: 1 / span 2;
   opacity: 0.85;
 }
@@ -3552,9 +3586,9 @@
   min-width: 44px;
   padding: 0.35rem 0.55rem;
   border-radius: var(--tos-radius-sm);
-  border: 1px solid color-mix(in srgb, var(--tos-desk-cyan, #00e5ff) 40%, transparent);
-  background: color-mix(in srgb, var(--tos-desk-cyan, #00e5ff) 12%, transparent);
-  color: var(--tos-desk-cyan, #00e5ff);
+  border: 1px solid color-mix(in srgb, var(--tos-desk-cyan, #d4af37) 40%, transparent);
+  background: color-mix(in srgb, var(--tos-desk-cyan, #d4af37) 12%, transparent);
+  color: var(--tos-desk-cyan, #d4af37);
   font-size: 0.62rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -3562,10 +3596,10 @@
   transition: background var(--tos-motion-micro) var(--tos-ease-micro);
 }
 [data-tos] .tos-scanner-buy:hover {
-  background: color-mix(in srgb, var(--tos-desk-cyan, #00e5ff) 24%, transparent);
+  background: color-mix(in srgb, var(--tos-desk-cyan, #d4af37) 24%, transparent);
 }
 [data-tos] .tos-scanner-buy:focus-visible {
-  outline: 2px solid var(--tos-desk-cyan, #00e5ff);
+  outline: 2px solid var(--tos-desk-cyan, #d4af37);
   outline-offset: 2px;
 }
 
@@ -3583,7 +3617,7 @@
   text-transform: uppercase;
   padding: 0.3rem 0.45rem;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--tos-desk-cyan, #00e5ff) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tos-desk-cyan, #d4af37) 22%, transparent);
   color: var(--tos-text-muted);
   font-family: var(--tos-mono);
   opacity: 0.55;
@@ -3595,9 +3629,9 @@
 [data-tos] .tos-workflow-stages li[data-active='true'] {
   opacity: 1;
   color: var(--tos-desk-navy, #060b1a);
-  background: linear-gradient(135deg, var(--tos-desk-cyan, #00e5ff), var(--tos-desk-mint, #00ffa3));
+  background: linear-gradient(135deg, var(--tos-desk-cyan, #d4af37), var(--tos-desk-mint, #e5c35a));
   border-color: transparent;
-  box-shadow: 0 0 16px color-mix(in srgb, var(--tos-desk-cyan, #00e5ff) 45%, transparent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--tos-desk-cyan, #d4af37) 45%, transparent);
 }
 [data-tos] .tos-workflow-stats {
   display: flex;
@@ -3634,10 +3668,10 @@
   min-width: 44px;
   min-height: 44px;
   border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--tos-desk-cyan, #00e5ff) 35%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tos-desk-cyan, #d4af37) 35%, transparent);
   background: color-mix(
     in srgb,
-    var(--tos-desk-mint, #00ffa3) calc(var(--hm-heat) * 70%),
+    var(--tos-desk-mint, #e5c35a) calc(var(--hm-heat) * 70%),
     color-mix(in srgb, #ea3943 calc((1 - var(--hm-heat)) * 55%), var(--tos-desk-navy, #060b1a))
   );
   color: var(--tos-text-primary);
@@ -3646,13 +3680,13 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 0 18px color-mix(in srgb, var(--tos-desk-cyan, #00e5ff) 22%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--tos-desk-cyan, #d4af37) 22%, transparent);
   transition: transform var(--tos-motion-micro) var(--tos-ease-micro);
 }
 [data-tos] .tos-heatmap-node:hover,
 [data-tos] .tos-heatmap-node:focus-visible {
   transform: scale(1.06);
-  outline: 2px solid var(--tos-desk-cyan, #00e5ff);
+  outline: 2px solid var(--tos-desk-cyan, #d4af37);
   outline-offset: 2px;
 }
 [data-tos] .tos-heatmap-sym {
@@ -3680,7 +3714,7 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  box-shadow: 0 0 24px color-mix(in srgb, var(--tos-desk-cyan, #00e5ff) 20%, transparent);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--tos-desk-cyan, #d4af37) 20%, transparent);
 }
 [data-tos] .tos-donut-hole {
   width: 3.4rem;
@@ -4030,8 +4064,8 @@
   inset: 8% 12%;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 50% 40%, color-mix(in srgb, #00e0ff 28%, transparent), transparent 62%),
-    radial-gradient(circle at 50% 70%, color-mix(in srgb, #00ffa3 14%, transparent), transparent 55%);
+    radial-gradient(circle at 50% 40%, color-mix(in srgb, #d4af37 28%, transparent), transparent 62%),
+    radial-gradient(circle at 50% 70%, color-mix(in srgb, #e5c35a 14%, transparent), transparent 55%);
   filter: blur(8px);
   pointer-events: none;
   animation: tos-brain-pulse 3.2s ease-in-out infinite;
@@ -4041,7 +4075,7 @@
   z-index: 1;
   transform: rotateX(18deg) rotateZ(-4deg);
   transform-origin: 50% 55%;
-  filter: drop-shadow(0 12px 28px color-mix(in srgb, #00e0ff 25%, transparent));
+  filter: drop-shadow(0 12px 28px color-mix(in srgb, #d4af37 25%, transparent));
 }
 [data-tos] .tos-brain-ellipse {
   stroke: url(#tosBrainRing);
@@ -4049,23 +4083,23 @@
   opacity: 0.85;
 }
 [data-tos] .tos-brain-ellipse--outer {
-  stroke: color-mix(in srgb, #00e0ff 55%, transparent);
+  stroke: color-mix(in srgb, #d4af37 55%, transparent);
   animation: tos-brain-spin 36s linear infinite;
   transform-origin: 140px 148px;
 }
 [data-tos] .tos-brain-ellipse--mid {
-  stroke: color-mix(in srgb, #00ffa3 45%, transparent);
+  stroke: color-mix(in srgb, #e5c35a 45%, transparent);
   animation: tos-brain-spin 22s linear infinite reverse;
   transform-origin: 140px 144px;
 }
 [data-tos] .tos-brain-core-halo {
-  stroke: color-mix(in srgb, #7cffef 55%, transparent);
+  stroke: color-mix(in srgb, #ffd700 55%, transparent);
   stroke-width: 1.5;
   animation: tos-brain-pulse 2.4s ease-in-out infinite;
 }
 [data-tos] .tos-brain-node[data-live='true'] {
-  fill: color-mix(in srgb, #00e0ff 35%, #0a1220);
-  stroke: #00ffa3;
+  fill: color-mix(in srgb, #d4af37 35%, #0a0a0a);
+  stroke: #e5c35a;
   stroke-width: 1.5;
 }
 
@@ -4083,10 +4117,10 @@
 @keyframes tos-brain-holo-idle {
   0%,
   100% {
-    filter: drop-shadow(0 10px 22px color-mix(in srgb, #00e0ff 18%, transparent));
+    filter: drop-shadow(0 10px 22px color-mix(in srgb, #d4af37 18%, transparent));
   }
   50% {
-    filter: drop-shadow(0 14px 32px color-mix(in srgb, #00e0ff 38%, transparent));
+    filter: drop-shadow(0 14px 32px color-mix(in srgb, #d4af37 38%, transparent));
   }
 }
 [data-tos] .tos-missions-standby {
@@ -4412,7 +4446,7 @@
   color: var(--tos-text-secondary);
 }
 [data-tos] .tos-mc-footer li[data-ok='true'] strong {
-  color: var(--tos-accent-mint);
+  color: var(--tos-positive);
 }
 [data-tos] .tos-mc-footer-right {
   display: flex;
@@ -4428,17 +4462,18 @@
   text-transform: uppercase;
   padding: 0.15rem 0.4rem;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--tos-accent-mint) 40%, transparent);
-  color: var(--tos-accent-mint);
+  border: 1px solid color-mix(in srgb, var(--tos-positive) 40%, transparent);
+  color: var(--tos-positive);
 }
 [data-tos] .tos-mc-live-pill[data-on='false'] {
   border-color: color-mix(in srgb, var(--tos-warning) 40%, transparent);
   color: var(--tos-warning);
 }
 [data-tos] .tos-topbar-brand-accent {
-  color: var(--tos-accent-orange);
+  color: var(--tos-accent-gold-bright);
   font-style: normal;
   font-weight: var(--tos-fw-extrabold);
+  text-shadow: 0 0 16px color-mix(in srgb, var(--tos-accent-gold) 35%, transparent);
 }
 [data-tos] .tos-topbar-mkt {
   display: flex;
@@ -4467,15 +4502,17 @@
   padding: 0.35rem 0.55rem;
 }
 [data-tos] .tos-nav-item--mc[data-active='true'] {
-  color: var(--tos-accent-orange-bright);
-  background: var(--tos-accent-orange-dim);
-  box-shadow: inset 2px 0 0 var(--tos-accent-orange);
+  color: var(--tos-accent-gold-bright);
+  background: var(--tos-accent-gold-dim);
+  box-shadow:
+    inset 2px 0 0 var(--tos-accent-gold),
+    0 0 16px color-mix(in srgb, var(--tos-accent-gold) 10%, transparent);
 }
 [data-tos] .tos-nav-upgrade {
   margin: 0.5rem 0.55rem;
   padding: 0.65rem 0.7rem;
   border-radius: var(--tos-radius);
-  background: linear-gradient(135deg, color-mix(in srgb, #f97316 35%, #1a1208), #1a140c);
+  background: linear-gradient(135deg, color-mix(in srgb, #d4af37 35%, #1a1208), #1a140c);
   border: 1px solid color-mix(in srgb, var(--tos-accent-orange) 45%, transparent);
 }
 [data-tos] .tos-nav-upgrade strong {
@@ -4593,7 +4630,7 @@
 }
 [data-tos] .tos-mc-trade .ex-btn-primary,
 [data-tos] .tos-mc-execute {
-  background: linear-gradient(135deg, #fb923c 0%, #f97316 45%, #ea580c 100%) !important;
+  background: linear-gradient(135deg, #ffd700 0%, #d4af37 45%, #c9a227 100%) !important;
   color: #120f08 !important;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -4602,7 +4639,7 @@
   width: 100%;
   border: 0;
   border-radius: var(--tos-radius-sm);
-  box-shadow: 0 0 20px color-mix(in srgb, #f97316 35%, transparent);
+  box-shadow: 0 0 20px color-mix(in srgb, #d4af37 35%, transparent);
   cursor: pointer;
 }
 [data-tos] .ex-panel--mission {

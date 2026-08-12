@@ -50,7 +50,10 @@ describe('Mission Control workspace (not default home)', () => {
     const css = readFileSync(join(root, 'styles/terminal-os.css'), 'utf8')
     assert.match(shell, /data-tos-classic/)
     assert.match(shell, /WhaleMarqueeTicker/)
-    assert.match(css, /--tos-accent-gold:\s*#ffb800/)
+    assert.match(css, /--tos-accent-gold:\s*#d4af37/)
+    assert.match(css, /--cc-gold:\s*#ffd700/)
+    assert.doesNotMatch(css, /--tos-accent-cyan:\s*#00e0ff/)
+    assert.doesNotMatch(css, /--tos-accent-orange:\s*#f97316/)
   })
 
   it('left rail includes Mission Control in classic hierarchy', () => {

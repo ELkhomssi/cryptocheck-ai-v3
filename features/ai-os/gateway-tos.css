@@ -378,15 +378,17 @@
 }
 
 [data-tos] [data-aios-gateway] .aios-swap-execute {
-  background: linear-gradient(135deg, #ffd45a 0%, #ffb800 45%, #ff8a00 100%);
+  background: linear-gradient(135deg, #ffd700 0%, #d4af37 45%, #c9a227 100%);
   color: #120f08;
   font-weight: var(--tos-fw-extrabold);
   font-size: 0.95rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  border: 1px solid color-mix(in srgb, #ffd700 50%, transparent);
   box-shadow:
     0 0 24px color-mix(in srgb, var(--tos-accent-gold) 45%, transparent),
-    0 8px 20px color-mix(in srgb, #000 35%, transparent);
+    0 8px 20px color-mix(in srgb, #000 35%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 30%, transparent);
 }
 
 [data-tos] [data-aios-gateway] .aios-swap-execute:focus-visible,
