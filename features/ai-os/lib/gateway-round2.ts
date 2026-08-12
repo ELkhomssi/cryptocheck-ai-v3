@@ -79,7 +79,7 @@ export function buildGatewayGreeting(opts: {
     return {
       lines: [
         head,
-        'Command desk online — Decision Engine tick pending. Engine mesh stays on standby until a Decision publishes (real weights only — no mock scores).',
+        'AI Gateway ready — Review → Simulate → Sign. Your wallet stays in control (bank-simple desk).',
       ],
       hasCycleData: false,
     }

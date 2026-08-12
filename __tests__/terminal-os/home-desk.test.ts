@@ -1,5 +1,5 @@
 /**
- * Mission Control home desk composition — 1:1 reference panels, kernel-backed.
+ * Classic Terminal PRO home desk composition.
  * Run: node --import tsx --test __tests__/terminal-os/home-desk.test.ts
  */
 
@@ -23,25 +23,24 @@ describe('Terminal OS mockup home desk', () => {
     )
     assert.match(shell, /TerminalOsHomeDesk/)
     assert.match(desk, /tos-home-desk/)
-    assert.match(desk, /tos-mc-grid/)
-    assert.match(desk, /MissionTradeSuite|QuickSwapCard/)
+    assert.match(desk, /IntelligenceSwap/)
     assert.match(desk, /IntelligenceChart/)
-    assert.match(desk, /MissionMetricsStrip/)
-    assert.match(desk, /OnChainHeatmap/)
-    assert.match(desk, /PositionsSnapshot/)
-    assert.match(desk, /MissionFooterStatus/)
+    assert.match(desk, /TopTradersTicker/)
+    assert.match(desk, /TopTokensToday/)
     assert.doesNotMatch(desk, /94%/)
     assert.doesNotMatch(desk, /37,?584/)
     assert.doesNotMatch(desk, /87% DNA/)
   })
 
-  it('shell home mode hides lifecycle density strip', () => {
+  it('shell home mode keeps classic whale + lifecycle chrome', () => {
     const shell = readFileSync(
       join(root, 'features/terminal-os/shell/components/TerminalOsShell.tsx'),
       'utf8',
     )
     assert.match(shell, /data-tos-home/)
     assert.match(shell, /homeMode/)
+    assert.match(shell, /WhaleMarqueeTicker/)
+    assert.match(shell, /MoneyLifecycleRibbon/)
   })
 
   it('brain map helpers remain Decision-factor based (no placeholder scores)', () => {
@@ -59,15 +58,8 @@ describe('Terminal OS mockup home desk', () => {
       join(root, 'features/terminal-os/shell/components/HomeDeskPanels.tsx'),
       'utf8',
     )
-    const mc = readFileSync(
-      join(root, 'features/terminal-os/shell/components/MissionControlPanels.tsx'),
-      'utf8',
-    )
     assert.match(panels, /No activity yet|No open positions|Scanning — no ranked opportunities yet/)
     assert.match(panels, /executedFills/)
-    assert.match(mc, /Not enough data yet|Unavailable|Connect wallet/)
-    assert.match(mc, /KERNEL|summaryFromHoldings|selectHeroDecision/)
-    assert.doesNotMatch(mc, /87%\s*DNA/)
     assert.doesNotMatch(panels, /Executed <strong>\{meta\.buyCount\}/)
   })
 
@@ -81,10 +73,9 @@ describe('Terminal OS mockup home desk', () => {
       'utf8',
     )
     assert.match(shell, /chart-intelligence/)
-    assert.match(shell, /backtesting/)
-    assert.match(rail, /Backtesting/)
     assert.match(rail, /Mission Control/)
-    assert.match(rail, /Chart Analysis/)
+    assert.match(rail, /Chart Intelligence|Terminal/)
+    assert.match(rail, /AiTradeLikeMeCard/)
   })
 
   it('topbar portfolio value reads holdings not mockup dollars', () => {
@@ -94,7 +85,6 @@ describe('Terminal OS mockup home desk', () => {
     )
     assert.match(top, /TERMINAL OS/)
     assert.match(top, /\/api\/portfolio\/holdings/)
-    assert.match(top, /TOTAL MKT CAP|useMarketOverview/)
     assert.doesNotMatch(top, /37584/)
   })
 

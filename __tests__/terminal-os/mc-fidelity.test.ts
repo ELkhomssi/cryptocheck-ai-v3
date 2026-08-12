@@ -55,13 +55,9 @@ describe('Mission Control reference fidelity', () => {
     assert.match(swap, /Execute Trade/)
   })
 
-  it('coach recommendations + heatmap grid + gainers dedupe wired', () => {
+  it('coach recommendations + heatmap grid + gainers dedupe still available in MC panels', () => {
     const mc = readFileSync(
       join(root, 'features/terminal-os/shell/components/MissionControlPanels.tsx'),
-      'utf8',
-    )
-    const desk = readFileSync(
-      join(root, 'features/terminal-os/shell/components/TerminalOsHomeDesk.tsx'),
       'utf8',
     )
     const panels = readFileSync(
@@ -70,7 +66,6 @@ describe('Mission Control reference fidelity', () => {
     )
     assert.match(mc, /MissionCoachRecommendations/)
     assert.match(mc, /bySym|seenSym|Dedupe by symbol/)
-    assert.match(desk, /MissionCoachRecommendations/)
     assert.match(panels, /tos-heatmap-grid|tos-heatmap-cell/)
     assert.doesNotMatch(mc, /18420/)
   })

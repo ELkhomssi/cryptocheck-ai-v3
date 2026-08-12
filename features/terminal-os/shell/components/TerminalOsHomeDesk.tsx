@@ -1,60 +1,35 @@
 'use client'
 
 /**
- * Mission Control home — 1:1 reference composition (full-width 3 columns).
- * KERNEL: Decision / holdings / market / whales / alerts / coach — never invents scores.
- *
- * Layout (matches reference A→Z):
- * LEFT: metrics · market overview · chart · liquidity
- * MIDDLE: Trade Like Me · AI Signals + Wallet Intelligence · positions
- * RIGHT: AI Coach · risk heatmap · allocation · news/alerts
- * FOOTER: system status bar
+ * Classic Terminal PRO home — AI Gateway (bank-simple) + market ribbons + Chart Intelligence.
+ * KERNEL: Decision / DNA / scan gateway / risk-gated swap — never invents scores.
  */
 
+import dynamic from 'next/dynamic'
 import { IntelligenceChart } from '@/features/intelligence-chart'
-import { PortfolioOverviewPanel } from '@/features/terminal-os/portfolio-os/components/PortfolioOverviewPanel'
 import { PanelErrorBoundary } from '@/features/terminal-os/shared/components/PanelErrorBoundary'
+import { PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
+import { TopTradersTicker } from '@/features/terminal-os/market-intel/components/TopTradersTicker'
+import { TopTokensToday } from '@/features/terminal-os/market-intel/components/TopTokensToday'
 import { useTerminalOsStore } from '@/stores/terminal-os'
 import { SOL_MINT } from '@/lib/portfolio-desk/constants'
-import {
-  OnChainHeatmap,
-  PositionsSnapshot,
-} from '@/features/terminal-os/shell/components/HomeDeskPanels'
-import { PersistentCoachRail } from '@/features/terminal-os/shell/components/PersistentCoachRail'
-import { WalletScoreScanCard } from '@/features/terminal-os/security-center/components/WalletScoreScanCard'
-import {
-  MissionAiSignals,
-  MissionAllocationPanel,
-  MissionCoachRecommendations,
-  MissionFooterStatus,
-  MissionLiquidityPanel,
-  MissionMarketOverview,
-  MissionMetricsStrip,
-  MissionNewsAlerts,
-  MissionTradeSuite,
-} from '@/features/terminal-os/shell/components/MissionControlPanels'
+
+const IntelligenceSwap = dynamic(
+  () => import('@/features/ai-os/components/IntelligenceSwap').then((m) => m.IntelligenceSwap),
+  { ssr: false, loading: () => <PanelSkeleton rows={8} /> },
+)
 
 function ChartSurface() {
   const focused = useTerminalOsStore((s) => s.focusedToken)
   const setFocused = useTerminalOsStore((s) => s.setFocusedToken)
-  // Prefer mint — ticker "SOL" often fails Dex search when meme-seeded lists dominate
   const query = focused?.id || focused?.symbol || SOL_MINT
-  const chain = focused?.chain || 'solana'
-  const label = focused?.symbol ?? 'SOL'
+  const chain = focused?.chain && focused.chain !== 'all' ? focused.chain : 'solana'
   return (
-    <PanelErrorBoundary title="Trading Chart">
-      <div className="tos-mc-chart" data-tos-mc-chart="true">
-        <header className="tos-mc-panel-head">
-          <span>
-            Trading Chart · {label}/USDC
-          </span>
-          <span className="tos-desk-live" data-on="true">
-            AI Overlay
-          </span>
-        </header>
+    <PanelErrorBoundary title="Intelligence Chart">
+      <div className="tos-classic-chart" data-tos-classic-chart="true">
         <IntelligenceChart
           query={query}
-          chain={chain === 'all' ? 'solana' : chain}
+          chain={chain}
           onClose={focused ? () => setFocused(null) : undefined}
         />
       </div>
@@ -62,91 +37,65 @@ function ChartSurface() {
   )
 }
 
+/**
+ * Honest wallet-risk shield — Security Scanner + Decision DANGER gating.
+ * NOT a guarantee of fewer losses (Step 2 carve-out).
+ */
+function WalletRiskShield() {
+  return (
+    <aside className="tos-wallet-shield" data-tos-wallet-shield="true" aria-label="Wallet risk shield">
+      <strong>Wallet risk shield</strong>
+      <p>
+        Before you sign, Security Scanner + Decision Engine can <em>block DANGER</em> entries and
+        surface EXIT when evidence turns against a holding. Trade Like Me learns <em>your</em> method
+        (entries + exits) — advise-only until you opt in. Not a guarantee of fewer losses · DYOR.
+      </p>
+    </aside>
+  )
+}
+
 export function TerminalOsHomeDesk() {
+  const focused = useTerminalOsStore((s) => s.focusedToken)
+
   return (
     <div
-      className="tos-home-desk tos-mc-desk"
+      className="tos-home-desk tos-classic-desk"
       data-tos-home-desk="true"
-      data-tos-mc="v1"
-      data-tos-ref="mission-control-1to1"
+      data-tos-classic="v6"
+      data-tos-ref="terminal-pro"
     >
-      <div className="tos-mc-grid" aria-label="Mission Control command center">
-        <div className="tos-mc-col tos-mc-col-left">
-          <PanelErrorBoundary title="Mission metrics">
-            <MissionMetricsStrip />
-          </PanelErrorBoundary>
-          <PanelErrorBoundary title="Market Overview">
-            <MissionMarketOverview />
-          </PanelErrorBoundary>
-          <ChartSurface />
-          <PanelErrorBoundary title="Liquidity">
-            <MissionLiquidityPanel />
-          </PanelErrorBoundary>
-        </div>
+      <WalletRiskShield />
 
-        <div className="tos-mc-col tos-mc-col-mid">
-          <PanelErrorBoundary title="Trade Like Me">
-            <MissionTradeSuite />
-          </PanelErrorBoundary>
-          <div className="tos-mc-dual">
-            <PanelErrorBoundary title="AI Signals">
-              <MissionAiSignals />
-            </PanelErrorBoundary>
-            <PanelErrorBoundary title="Wallet Intelligence">
-              <div className="tos-mc-wallet" data-tos-mc-wallet="true">
-                <header className="tos-mc-panel-head">
-                  <span>Wallet Intelligence</span>
-                </header>
-                <WalletScoreScanCard />
-              </div>
-            </PanelErrorBoundary>
-          </div>
-          <PanelErrorBoundary title="Position Overview">
-            <div className="tos-mc-positions" data-tos-mc-positions="true">
-              <header className="tos-mc-panel-head">
-                <span>Position Overview</span>
-              </header>
-              <PositionsSnapshot />
-              <div className="tos-mc-positions-compact">
-                <PortfolioOverviewPanel compact />
-              </div>
+      <PanelErrorBoundary title="AI Gateway">
+        <div className="tos-classic-gateway" data-tos-gateway-bank="true">
+          <header className="tos-classic-gateway-head">
+            <div>
+              <h2>AI Gateway</h2>
+              <p>
+                Bank-simple desk — review the Decision, see total cost, Simulate, then your wallet
+                signs. Same risk-gated Jupiter path.
+              </p>
             </div>
-          </PanelErrorBoundary>
+            <span className="tos-desk-live" data-on="true">
+              Pro
+            </span>
+          </header>
+          <IntelligenceSwap
+            initialBuyMint={focused?.id ?? null}
+            initialBuySymbol={focused?.symbol ?? null}
+          />
         </div>
-
-        <div className="tos-mc-col tos-mc-col-right">
-          <PanelErrorBoundary title="AI Coaching">
-            <div className="tos-mc-coach" data-tos-mc-coach="true">
-              <header className="tos-mc-panel-head">
-                <span>AI Coaching</span>
-              </header>
-              <MissionCoachRecommendations />
-              <details className="tos-mc-coach-more">
-                <summary>Ask Coach / Master Advisor</summary>
-                <PersistentCoachRail />
-              </details>
-            </div>
-          </PanelErrorBoundary>
-          <PanelErrorBoundary title="Risk Heatmap">
-            <div className="tos-mc-heat" data-tos-mc-heat="true">
-              <header className="tos-mc-panel-head">
-                <span>Risk Heatmap</span>
-              </header>
-              <OnChainHeatmap />
-            </div>
-          </PanelErrorBoundary>
-          <PanelErrorBoundary title="Portfolio Allocation">
-            <MissionAllocationPanel />
-          </PanelErrorBoundary>
-          <PanelErrorBoundary title="News & Alerts">
-            <MissionNewsAlerts />
-          </PanelErrorBoundary>
-        </div>
-      </div>
-
-      <PanelErrorBoundary title="System status">
-        <MissionFooterStatus />
       </PanelErrorBoundary>
+
+      <PanelErrorBoundary title="Top Traders">
+        <TopTradersTicker />
+      </PanelErrorBoundary>
+
+      <PanelErrorBoundary title="Top Tokens">
+        <TopTokensToday />
+      </PanelErrorBoundary>
+
+      <ChartSurface />
     </div>
   )
 }

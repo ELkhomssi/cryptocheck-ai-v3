@@ -1,96 +1,95 @@
 'use client'
 
 /**
- * Mission Control rail — reference hierarchy (A→Z match).
- * Badges from useRailBadges only — never invent engine totals.
+ * Classic Terminal v6 rail — Trade Like Me is the moat activator.
+ * Badges/status from real DNA engine only — never invent progress.
  */
 
 import {
+  Activity,
   Bell,
+  Bookmark,
   Brain,
   CandlestickChart,
+  Copy,
   Crosshair,
-  FlaskConical,
-  KeyRound,
+  LayoutGrid,
   LineChart,
   MessageSquare,
+  Radar,
+  Search,
   Settings,
-  ShieldAlert,
-  Sparkles,
   Wallet,
   Waves,
 } from 'lucide-react'
 import { useTerminalOsStore } from '@/stores/terminal-os'
 import type { TerminalNavId } from '@/features/terminal-os/shared/types'
+import { AiTradeLikeMeCard } from '@/features/terminal-os/ai-trade-like-me/components/AiTradeLikeMeCard'
+import { AiStatusCard } from '@/features/terminal-os/ai-trade-like-me/components/AiStatusCard'
+import { AiAlertsFeed } from '@/features/terminal-os/ai-trade-like-me/components/AiAlertsFeed'
 import { useRailBadges } from '@/features/terminal-os/shell/hooks/useRailBadges'
 
-type NavItem = {
-  id: TerminalNavId
-  label: string
-  icon: typeof Crosshair
-  badgeKey?: 'whale' | 'automation' | 'alerts' | 'dna'
-}
-
-/** Reference order — Mission Control first (home = terminal). */
-const NAV: NavItem[] = [
-  { id: 'terminal', label: 'Mission Control', icon: Crosshair },
-  { id: 'ai-trading', label: 'Trade Like Me', icon: Brain, badgeKey: 'dna' },
-  { id: 'ai-coach', label: 'AI Coaching', icon: MessageSquare },
-  { id: 'market-intel', label: 'Market Intelligence', icon: LineChart },
-  { id: 'chart-intelligence', label: 'Chart Analysis', icon: CandlestickChart },
-  { id: 'whale-tracking', label: 'Wallet Intelligence', icon: Waves, badgeKey: 'whale' },
-  { id: 'security', label: 'Risk Engine', icon: ShieldAlert },
-  { id: 'discovery', label: 'AI Signals', icon: Sparkles },
-  { id: 'ai-scanner', label: 'Rug Forensics', icon: ShieldAlert },
-  { id: 'backtesting', label: 'Backtesting', icon: FlaskConical },
-  { id: 'scout', label: 'Scout', icon: Sparkles },
+const NAV: { id: TerminalNavId; label: string; icon: typeof LayoutGrid; gated?: boolean }[] = [
+  { id: 'terminal', label: 'Terminal', icon: LayoutGrid },
+  { id: 'mission-control', label: 'Mission Control', icon: Crosshair },
+  { id: 'ai-scanner', label: 'AI Scanner', icon: Radar },
+  { id: 'market-intel', label: 'Market Intel', icon: LineChart },
+  { id: 'whale-tracking', label: 'Whale Tracking', icon: Waves },
+  { id: 'chart-intelligence', label: 'Chart Intelligence', icon: CandlestickChart },
+  { id: 'execution', label: 'Execution Desk', icon: CandlestickChart },
+  { id: 'ai-trading', label: 'AI Trading', icon: Brain },
+  { id: 'ai-coach', label: 'AI Coach', icon: MessageSquare },
+  { id: 'scout', label: 'Scout', icon: Search },
+  { id: 'copy-trading', label: 'Copy Trading', icon: Copy, gated: true },
   { id: 'portfolio', label: 'Portfolio', icon: Wallet },
-  { id: 'alerts', label: 'Alerts', icon: Bell, badgeKey: 'alerts' },
-  { id: 'watchlist', label: 'API Access', icon: KeyRound },
+  { id: 'alerts', label: 'Alerts', icon: Bell },
+  { id: 'watchlist', label: 'Watchlist', icon: Bookmark },
   { id: 'settings', label: 'Settings', icon: Settings },
 ]
 
 export function LeftRail() {
   const activeNav = useTerminalOsStore((s) => s.activeNav)
   const setActiveNav = useTerminalOsStore((s) => s.setActiveNav)
+  const flags = useTerminalOsStore((s) => s.featureFlags)
   const badges = useRailBadges()
 
-  const resolveBadge = (key: NavItem['badgeKey']): string | null => {
-    if (!key) return null
-    if (key === 'whale' && badges.whaleBadge != null) return String(badges.whaleBadge)
-    if (key === 'automation' && badges.automationBadge != null) {
-      return String(badges.automationBadge)
-    }
-    if (key === 'alerts' && badges.alertBadge != null) return String(badges.alertBadge)
-    if (key === 'dna' && badges.dnaPct != null) return `${badges.dnaPct}%`
-    return null
-  }
-
-  const healthy = badges.health.status === 'healthy'
-
   return (
-    <aside className="tos-left-rail" aria-label="Terminal navigation" data-tos-rail="mission">
+    <aside className="tos-left-rail" aria-label="Terminal navigation" data-tos-rail="classic">
+      <div className="tos-nav-brand">
+        <div className="tos-nav-brand-mark">
+          CRYPTOCHECK AI
+          <br />
+          <span data-tos-label>TERMINAL</span> v6.0
+        </div>
+        <span className="tos-nav-brand-live" aria-hidden>
+          PRO
+        </span>
+      </div>
+
       <nav className="tos-nav-primary" aria-label="Primary">
-        {NAV.map((item, idx) => {
+        {NAV.map((item) => {
           const Icon = item.icon
+          const disabled = item.gated && !flags.copyTrading
           const active = activeNav === item.id
-          const badge = resolveBadge(item.badgeKey)
+          const whale =
+            item.id === 'whale-tracking' && badges.whaleBadge != null
+              ? String(badges.whaleBadge)
+              : null
           return (
             <button
-              key={`${item.id}-${idx}`}
+              key={item.id}
               type="button"
+              disabled={disabled}
               onClick={() => setActiveNav(item.id)}
-              title={item.label}
-              className="tos-nav-item tos-nav-item--mc"
+              title={disabled ? 'Copy Trading gated (feature flag OFF)' : item.label}
+              className="tos-nav-item"
               data-active={active ? 'true' : 'false'}
             >
               <Icon size={16} strokeWidth={2} />
-              <span data-tos-label className="tos-nav-item-label">
-                {item.label}
-              </span>
-              {badge ? (
-                <span className="tos-nav-badge" data-tos-badge="true" aria-label={`${item.label} ${badge}`}>
-                  {badge}
+              <span data-tos-label>{item.label}</span>
+              {whale ? (
+                <span className="tos-nav-badge" data-tos-badge="true">
+                  {whale}
                 </span>
               ) : null}
             </button>
@@ -98,27 +97,19 @@ export function LeftRail() {
         })}
       </nav>
 
-      <div className="tos-nav-upgrade" data-tos-upgrade="true">
-        <strong>Upgrade Plan</strong>
-        <p>Unlock deeper Decision history and coach capacity.</p>
-        <a className="tos-nav-upgrade-btn" href="/api/billing/pro-checkout">
-          Upgrade
-        </a>
+      <div className="tos-nav-aside-stack">
+        <AiTradeLikeMeCard />
+        <AiStatusCard />
+        <AiAlertsFeed />
       </div>
 
-      <div
-        className="tos-nav-system tos-nav-system--mc"
-        data-tos-system-status={badges.health.status}
-        aria-live="polite"
-      >
-        <div className="tos-nav-system-head">
-          <span className="tos-nav-sys-dot" data-on={healthy ? 'true' : 'false'} aria-hidden />
-          <span data-tos-label>SYSTEM STATUS</span>
-        </div>
-        <p className="tos-nav-system-label">
-          {healthy ? 'All Systems Operational' : badges.health.label}
-        </p>
-        <p className="tos-nav-copy">© {new Date().getFullYear()} CryptoCheck AI</p>
+      <div className="tos-nav-footer">
+        <Activity size={14} color="var(--tos-accent-gold)" />
+        <span data-tos-label>
+          {badges.health.status === 'healthy'
+            ? 'Pro · Institutional'
+            : badges.health.label}
+        </span>
       </div>
     </aside>
   )

@@ -24,13 +24,13 @@ import {
   AiCoachWorkspace,
   MissionControlWorkspace,
 } from '@/features/terminal-os/shell/components/MissionAndCoachWorkspaces'
-import { PersistentCoachRail } from '@/features/terminal-os/shell/components/PersistentCoachRail'
 import { TerminalOsHomeDesk } from '@/features/terminal-os/shell/components/TerminalOsHomeDesk'
 import { SystemStatusGauges } from '@/features/terminal-os/shell/components/SystemStatusGauges'
 import { ChartIntelligenceWorkspace } from '@/features/terminal-os/chart-intelligence/components/ChartIntelligenceWorkspace'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
 import { useTerminalOsStore } from '@/stores/terminal-os'
+import { SOL_MINT } from '@/lib/portfolio-desk/constants'
 import type { TerminalNavId } from '@/features/terminal-os/shared/types'
 
 /** Code-split flagship widget — home JS shouldn't pay for TLM until visited */
@@ -56,8 +56,8 @@ function Bound({ title, children }: { title: string; children: ReactNode }) {
 function ChartSurface() {
   const focused = useTerminalOsStore((s) => s.focusedToken)
   const setFocused = useTerminalOsStore((s) => s.setFocusedToken)
-  const query = focused?.id || focused?.symbol || 'SOL'
-  const chain = focused?.chain || 'solana'
+  const query = focused?.id || focused?.symbol || SOL_MINT
+  const chain = focused?.chain && focused.chain !== 'all' ? focused.chain : 'solana'
   return (
     <Bound title="Intelligence Chart">
       <IntelligenceChart
@@ -347,32 +347,18 @@ function SecondaryNavStub({ nav }: { nav: TerminalNavId }) {
   )
 }
 
-function RightRail({ homeMode, chartMode }: { homeMode: boolean; chartMode: boolean }) {
-  // Mission Control home embeds coach/heatmap/allocation in the 3-column desk — hide duplicate rail
-  if (homeMode) return null
-
+function RightRail() {
   return (
-    <aside className="tos-right-rail" aria-label="AI Coach and tools" data-tos-right="coach">
-      <Bound title="AI Coach">
-        <PersistentCoachRail />
+    <aside className="tos-right-rail" aria-label="Scan and execution" data-tos-right="classic">
+      <Bound title="Token Score">
+        <TokenScoreScanCard />
       </Bound>
-      {chartMode ? (
-        <Bound title="Quick Swap">
-          <QuickSwapCard />
-        </Bound>
-      ) : (
-        <>
-          <Bound title="Token Score">
-            <TokenScoreScanCard />
-          </Bound>
-          <Bound title="Quick Swap">
-            <QuickSwapCard />
-          </Bound>
-          <Bound title="Wallet Score">
-            <WalletScoreScanCard />
-          </Bound>
-        </>
-      )}
+      <Bound title="Quick Swap">
+        <QuickSwapCard />
+      </Bound>
+      <Bound title="Wallet Score">
+        <WalletScoreScanCard />
+      </Bound>
     </aside>
   )
 }
@@ -386,40 +372,32 @@ export function TerminalOsShell() {
     <div
       className="tos-shell"
       data-tos-shell
+      data-tos-classic="v6"
       data-tos-home={homeMode ? 'true' : undefined}
       data-tos-chart={chartMode ? 'true' : undefined}
-      data-tos-mc={homeMode ? 'true' : undefined}
     >
       <Bound title="Top Bar">
         <TopBar />
       </Bound>
       <AlertEvaluateBridge />
       <AlertToastHost />
-      {!homeMode ? (
-        <div className="tos-whale-slot">
-          <Bound title="Top Whale Movements">
-            <WhaleMarqueeTicker fixed title="Top Whale Movements" />
-          </Bound>
-        </div>
-      ) : (
-        <div className="tos-whale-slot" aria-hidden />
-      )}
-      {!homeMode ? (
-        <div className="tos-lifecycle-slot">
-          <Bound title="Money Lifecycle">
-            <MoneyLifecycleRibbon />
-          </Bound>
-        </div>
-      ) : (
-        <div className="tos-lifecycle-slot" aria-hidden />
-      )}
+      <div className="tos-whale-slot">
+        <Bound title="Top Whale Movements">
+          <WhaleMarqueeTicker fixed title="Top Whale Movements" />
+        </Bound>
+      </div>
+      <div className="tos-lifecycle-slot">
+        <Bound title="Money Lifecycle">
+          <MoneyLifecycleRibbon />
+        </Bound>
+      </div>
       <Bound title="Navigation">
         <LeftRail />
       </Bound>
       <main className="tos-main">
         <MainColumn />
       </main>
-      <RightRail homeMode={homeMode} chartMode={chartMode} />
+      <RightRail />
     </div>
   )
 }

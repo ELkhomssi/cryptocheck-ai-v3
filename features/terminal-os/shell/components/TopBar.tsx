@@ -144,9 +144,8 @@ export function TopBar() {
   return (
     <header className="tos-topbar" data-tos-topbar="v3">
       <div className="tos-topbar-brand">
-        <strong>
-          CryptoCheck AI <em className="tos-topbar-brand-accent">TERMINAL OS</em>
-        </strong>
+        <strong>CryptoCheck AI</strong>
+        <span>TERMINAL OS v6.0</span>
       </div>
 
       <div

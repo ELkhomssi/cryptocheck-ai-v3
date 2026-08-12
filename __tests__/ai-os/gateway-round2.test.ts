@@ -66,7 +66,7 @@ describe('Gateway Round 2 helpers', () => {
       now: new Date('2026-08-03T20:00:00Z'),
     })
     assert.match(empty.lines[0]!, /Good evening —/)
-    assert.match(empty.lines.join(' '), /Command desk online|Decision Engine tick pending|standby/)
+    assert.match(empty.lines.join(' '), /AI Gateway ready|bank-simple|Simulate/)
 
     const named = buildGatewayGreeting({
       displayName: 'Alex',
