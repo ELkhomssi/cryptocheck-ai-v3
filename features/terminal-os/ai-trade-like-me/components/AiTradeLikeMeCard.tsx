@@ -21,7 +21,8 @@ export function AiTradeLikeMeCard() {
           <span className="tos-tlm-beta">AI</span>
         </div>
         <p className="tos-tlm-rail-copy">
-          Adaptive AI that learns <em>why</em> you trade — not copy-trading.
+          Adaptive AI that learns <em>why</em> you trade — entries, exits, and risk timing — not
+          blind copy-trading.
         </p>
         <div className="tos-tlm-rail-meta">
           <span>{state.phase.replace(/_/g, ' ')}</span>
@@ -30,7 +31,7 @@ export function AiTradeLikeMeCard() {
         <button
           type="button"
           className="tos-btn tos-btn-gold"
-          style={{ width: '100%', marginBottom: 'var(--tos-space-1)' }}
+          style={{ width: '100%', marginBottom: 'var(--tos-space-1)', minHeight: 44 }}
           disabled={busy}
           onClick={() => void trainAiFromMyTrading()}
         >
@@ -39,11 +40,15 @@ export function AiTradeLikeMeCard() {
         <button
           type="button"
           className="tos-btn tos-btn-ghost"
-          style={{ width: '100%' }}
+          style={{ width: '100%', minHeight: 44 }}
           onClick={() => setActiveNav('ai-trading')}
         >
           Open Desk
         </button>
+        <p className="tos-muted tos-tlm-rail-note">
+          After training, advice follows your method + Decision risk gate (DANGER blocked before
+          sign). Autonomy OFF by default — you approve. Not a guarantee of fewer losses · DYOR.
+        </p>
         {!autonomous ? (
           <p className="tos-muted tos-tlm-rail-note">Autonomy OFF — explainable advice only.</p>
         ) : null}

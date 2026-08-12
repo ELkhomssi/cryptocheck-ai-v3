@@ -35,7 +35,7 @@ describe('Terminal OS pro command center', () => {
     assert.match(vercel, /0 \*\/6 \* \* \*/)
   })
 
-  it('Home desk is Mission Control 1:1; Coach reads wallet scan; MONITOR missions remain in panels', () => {
+  it('Home desk is classic PRO; Coach reads wallet scan; MONITOR missions remain in panels', () => {
     const desk = readFileSync(
       join(root, 'features/terminal-os/shell/components/TerminalOsHomeDesk.tsx'),
       'utf8',
@@ -48,8 +48,8 @@ describe('Terminal OS pro command center', () => {
       join(root, 'features/terminal-os/shell/components/PersistentCoachRail.tsx'),
       'utf8',
     )
-    assert.match(desk, /tos-mc-grid|MissionMetricsStrip/)
-    assert.match(desk, /MissionTradeSuite|MissionFooterStatus/)
+    assert.match(desk, /tos-classic-desk|IntelligenceSwap/)
+    assert.match(desk, /TopTradersTicker|TopTokensToday/)
     assert.match(panels, /MONITOR/)
     assert.match(panels, /Algorithm Mesh/)
     assert.match(coach, /wallet-feedback/)
