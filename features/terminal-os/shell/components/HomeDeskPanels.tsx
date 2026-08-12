@@ -831,11 +831,11 @@ export function OnChainHeatmap() {
   }, [q.data])
 
   return (
-    <div className="tos-desk-panel tos-heatmap" data-tos-heatmap="true">
+    <div className="tos-desk-panel tos-heatmap tos-heatmap--grid" data-tos-heatmap="true">
       <header className="tos-desk-panel-head">
-        <span>On-Chain Heatmap</span>
+        <span>Risk Heatmap</span>
         <span className="tos-desk-live" data-on={nodes.length > 0 ? 'true' : 'false'}>
-          {connected ? (nodes.length ? 'By USD value' : 'Empty') : 'Connect'}
+          {connected ? (nodes.length ? 'By 24h move' : 'Empty') : 'Connect'}
         </span>
       </header>
       {!connected ? (
@@ -845,18 +845,18 @@ export function OnChainHeatmap() {
       ) : nodes.length === 0 ? (
         <p className="tos-desk-empty">Not enough holdings to map yet</p>
       ) : (
-        <div className="tos-heatmap-field" role="list" aria-label="Holdings by USD value">
+        <div className="tos-heatmap-grid" role="list" aria-label="Holdings risk by 24h change">
           {nodes.map(({ holding: h, scale }) => (
             <button
               key={h.mint}
               type="button"
               role="listitem"
-              className="tos-heatmap-node"
+              className="tos-heatmap-cell"
               style={{
-                ['--hm-scale' as string]: String(scale),
                 ['--hm-heat' as string]: heatFromChange(h.change24hPct),
+                opacity: 0.55 + 0.45 * scale,
               }}
-              title={`${h.symbol}: ${formatUsd(h.valueUsd ?? 0, true)} (${(h.allocationPct ?? 0).toFixed(1)}%)`}
+              title={`${h.symbol}: ${formatUsd(h.valueUsd ?? 0, true)} · 24h ${h.change24hPct?.toFixed?.(1) ?? '—'}%`}
               onClick={() =>
                 setFocused({
                   id: h.mint,

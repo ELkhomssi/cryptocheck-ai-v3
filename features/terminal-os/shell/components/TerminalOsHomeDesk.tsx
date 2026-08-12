@@ -15,16 +15,17 @@ import { IntelligenceChart } from '@/features/intelligence-chart'
 import { PortfolioOverviewPanel } from '@/features/terminal-os/portfolio-os/components/PortfolioOverviewPanel'
 import { PanelErrorBoundary } from '@/features/terminal-os/shared/components/PanelErrorBoundary'
 import { useTerminalOsStore } from '@/stores/terminal-os'
+import { SOL_MINT } from '@/lib/portfolio-desk/constants'
 import {
   OnChainHeatmap,
   PositionsSnapshot,
 } from '@/features/terminal-os/shell/components/HomeDeskPanels'
 import { PersistentCoachRail } from '@/features/terminal-os/shell/components/PersistentCoachRail'
-import { AiRecommendationCard } from '@/features/terminal-os/shell/components/AiRecommendationCard'
 import { WalletScoreScanCard } from '@/features/terminal-os/security-center/components/WalletScoreScanCard'
 import {
   MissionAiSignals,
   MissionAllocationPanel,
+  MissionCoachRecommendations,
   MissionFooterStatus,
   MissionLiquidityPanel,
   MissionMarketOverview,
@@ -36,14 +37,16 @@ import {
 function ChartSurface() {
   const focused = useTerminalOsStore((s) => s.focusedToken)
   const setFocused = useTerminalOsStore((s) => s.setFocusedToken)
-  const query = focused?.id || focused?.symbol || 'SOL'
+  // Prefer mint — ticker "SOL" often fails Dex search when meme-seeded lists dominate
+  const query = focused?.id || focused?.symbol || SOL_MINT
   const chain = focused?.chain || 'solana'
+  const label = focused?.symbol ?? 'SOL'
   return (
     <PanelErrorBoundary title="Trading Chart">
       <div className="tos-mc-chart" data-tos-mc-chart="true">
         <header className="tos-mc-panel-head">
           <span>
-            Trading Chart · {focused?.symbol ?? 'SOL'}/USDC
+            Trading Chart · {label}/USDC
           </span>
           <span className="tos-desk-live" data-on="true">
             AI Overlay
@@ -51,7 +54,7 @@ function ChartSurface() {
         </header>
         <IntelligenceChart
           query={query}
-          chain={chain}
+          chain={chain === 'all' ? 'solana' : chain}
           onClose={focused ? () => setFocused(null) : undefined}
         />
       </div>
@@ -117,8 +120,11 @@ export function TerminalOsHomeDesk() {
               <header className="tos-mc-panel-head">
                 <span>AI Coaching</span>
               </header>
-              <PersistentCoachRail />
-              <AiRecommendationCard />
+              <MissionCoachRecommendations />
+              <details className="tos-mc-coach-more">
+                <summary>Ask Coach / Master Advisor</summary>
+                <PersistentCoachRail />
+              </details>
             </div>
           </PanelErrorBoundary>
           <PanelErrorBoundary title="Risk Heatmap">

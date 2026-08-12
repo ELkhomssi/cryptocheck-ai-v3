@@ -4,16 +4,18 @@
 
 export function formatUsd(n: number, compact = false): string {
   const v = typeof n === 'number' && Number.isFinite(n) ? n : 0
-  if (compact && Math.abs(v) >= 1_000_000) {
-    return `$${(v / 1_000_000).toFixed(1)}M`
-  }
-  if (compact && Math.abs(v) >= 1_000) {
-    return `$${(v / 1_000).toFixed(1)}K`
+  if (compact) {
+    const abs = Math.abs(v)
+    const sign = v < 0 ? '-' : ''
+    if (abs >= 1_000_000_000_000) return `${sign}$${(abs / 1_000_000_000_000).toFixed(2)}T`
+    if (abs >= 1_000_000_000) return `${sign}$${(abs / 1_000_000_000).toFixed(2)}B`
+    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`
+    if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}K`
   }
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    maximumFractionDigits: v < 1 ? 6 : 2,
+    maximumFractionDigits: Math.abs(v) < 1 ? 6 : 2,
   }).format(v)
 }
 
