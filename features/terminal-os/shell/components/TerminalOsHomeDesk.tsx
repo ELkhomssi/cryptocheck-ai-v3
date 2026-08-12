@@ -1,32 +1,37 @@
 'use client'
 
 /**
- * Terminal OS home — reference multi-panel command desk (1:1 structure).
- * KERNEL: every panel reads Decision / holdings / attention / DNA / health — never invents.
+ * Mission Control home — 1:1 reference composition (full-width 3 columns).
+ * KERNEL: Decision / holdings / market / whales / alerts / coach — never invents scores.
+ *
+ * Layout (matches reference A→Z):
+ * LEFT: metrics · market overview · chart · liquidity
+ * MIDDLE: Trade Like Me · AI Signals + Wallet Intelligence · positions
+ * RIGHT: AI Coach · risk heatmap · allocation · news/alerts
+ * FOOTER: system status bar
  */
 
-import dynamic from 'next/dynamic'
 import { IntelligenceChart } from '@/features/intelligence-chart'
 import { PortfolioOverviewPanel } from '@/features/terminal-os/portfolio-os/components/PortfolioOverviewPanel'
 import { PanelErrorBoundary } from '@/features/terminal-os/shared/components/PanelErrorBoundary'
-import { PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
 import { useTerminalOsStore } from '@/stores/terminal-os'
 import {
-  AutonomousWorkflowStrip,
-  CurrentMissionsPanel,
-  DecisionBrainSpokes,
-  KernelAlgorithmStrip,
-  LiveExecutionFeed,
   OnChainHeatmap,
   PositionsSnapshot,
-  ScannerDiscoveryStrip,
 } from '@/features/terminal-os/shell/components/HomeDeskPanels'
-import { SystemStatusGauges } from '@/features/terminal-os/shell/components/SystemStatusGauges'
-
-const IntelligenceSwap = dynamic(
-  () => import('@/features/ai-os/components/IntelligenceSwap').then((m) => m.IntelligenceSwap),
-  { ssr: false, loading: () => <PanelSkeleton rows={8} /> },
-)
+import { PersistentCoachRail } from '@/features/terminal-os/shell/components/PersistentCoachRail'
+import { AiRecommendationCard } from '@/features/terminal-os/shell/components/AiRecommendationCard'
+import { WalletScoreScanCard } from '@/features/terminal-os/security-center/components/WalletScoreScanCard'
+import {
+  MissionAiSignals,
+  MissionAllocationPanel,
+  MissionFooterStatus,
+  MissionLiquidityPanel,
+  MissionMarketOverview,
+  MissionMetricsStrip,
+  MissionNewsAlerts,
+  MissionTradeSuite,
+} from '@/features/terminal-os/shell/components/MissionControlPanels'
 
 function ChartSurface() {
   const focused = useTerminalOsStore((s) => s.focusedToken)
@@ -34,12 +39,14 @@ function ChartSurface() {
   const query = focused?.id || focused?.symbol || 'SOL'
   const chain = focused?.chain || 'solana'
   return (
-    <PanelErrorBoundary title="Chart Intelligence">
-      <div className="tos-desk-panel tos-desk-chart" data-tos-chart="true">
-        <header className="tos-desk-panel-head">
-          <span>Chart Intelligence</span>
+    <PanelErrorBoundary title="Trading Chart">
+      <div className="tos-mc-chart" data-tos-mc-chart="true">
+        <header className="tos-mc-panel-head">
+          <span>
+            Trading Chart · {focused?.symbol ?? 'SOL'}/USDC
+          </span>
           <span className="tos-desk-live" data-on="true">
-            {focused?.symbol ?? 'SOL'}
+            AI Overlay
           </span>
         </header>
         <IntelligenceChart
@@ -53,71 +60,87 @@ function ChartSurface() {
 }
 
 export function TerminalOsHomeDesk() {
-  const focused = useTerminalOsStore((s) => s.focusedToken)
-
   return (
-    <div className="tos-home-desk" data-tos-home-desk="true" data-tos-ref="v1">
-      <section className="tos-home-row tos-home-row-top" aria-label="Decision row">
-        <PanelErrorBoundary title="AI Gateway">
-          <div className="tos-desk-panel tos-desk-gateway" data-tos-gateway="true">
-            <header className="tos-desk-panel-head">
-              <span>AI Gateway — The Brain</span>
-              <span className="tos-desk-live" data-on="true">
-                Primary
-              </span>
-            </header>
-            <IntelligenceSwap
-              initialBuyMint={focused?.id ?? null}
-              initialBuySymbol={focused?.symbol ?? null}
-            />
-          </div>
-        </PanelErrorBoundary>
-
-        <PanelErrorBoundary title="AI Brain Map">
-          <DecisionBrainSpokes />
-        </PanelErrorBoundary>
-        <PanelErrorBoundary title="Current Missions">
-          <CurrentMissionsPanel />
-        </PanelErrorBoundary>
-      </section>
-
-      <section className="tos-home-row tos-home-row-mid" aria-label="Market row">
-        <ChartSurface />
-        <PanelErrorBoundary title="Live Execution">
-          <LiveExecutionFeed />
-        </PanelErrorBoundary>
-        <PanelErrorBoundary title="Portfolio">
-          <div className="tos-desk-panel tos-desk-portfolio" data-tos-portfolio="true">
-            <header className="tos-desk-panel-head">
-              <span>Portfolio Overview</span>
-            </header>
-            <PortfolioOverviewPanel compact />
-          </div>
-        </PanelErrorBoundary>
-      </section>
-
-      <section className="tos-home-row tos-home-row-bot" aria-label="Ops row">
-        <PanelErrorBoundary title="System Status">
-          <SystemStatusGauges />
-        </PanelErrorBoundary>
-        <PanelErrorBoundary title="Scanner">
-          <ScannerDiscoveryStrip />
-        </PanelErrorBoundary>
-        <PanelErrorBoundary title="Heatmap">
-          <OnChainHeatmap />
-        </PanelErrorBoundary>
-        <PanelErrorBoundary title="Positions">
-          <PositionsSnapshot />
-        </PanelErrorBoundary>
-        <div className="tos-home-bot-stack">
-          <PanelErrorBoundary title="Algorithm Mesh">
-            <KernelAlgorithmStrip />
+    <div
+      className="tos-home-desk tos-mc-desk"
+      data-tos-home-desk="true"
+      data-tos-mc="v1"
+      data-tos-ref="mission-control-1to1"
+    >
+      <div className="tos-mc-grid" aria-label="Mission Control command center">
+        <div className="tos-mc-col tos-mc-col-left">
+          <PanelErrorBoundary title="Mission metrics">
+            <MissionMetricsStrip />
           </PanelErrorBoundary>
-          <PanelErrorBoundary title="Workflow">
-            <AutonomousWorkflowStrip />
+          <PanelErrorBoundary title="Market Overview">
+            <MissionMarketOverview />
+          </PanelErrorBoundary>
+          <ChartSurface />
+          <PanelErrorBoundary title="Liquidity">
+            <MissionLiquidityPanel />
           </PanelErrorBoundary>
         </div>
-      </section>
+
+        <div className="tos-mc-col tos-mc-col-mid">
+          <PanelErrorBoundary title="Trade Like Me">
+            <MissionTradeSuite />
+          </PanelErrorBoundary>
+          <div className="tos-mc-dual">
+            <PanelErrorBoundary title="AI Signals">
+              <MissionAiSignals />
+            </PanelErrorBoundary>
+            <PanelErrorBoundary title="Wallet Intelligence">
+              <div className="tos-mc-wallet" data-tos-mc-wallet="true">
+                <header className="tos-mc-panel-head">
+                  <span>Wallet Intelligence</span>
+                </header>
+                <WalletScoreScanCard />
+              </div>
+            </PanelErrorBoundary>
+          </div>
+          <PanelErrorBoundary title="Position Overview">
+            <div className="tos-mc-positions" data-tos-mc-positions="true">
+              <header className="tos-mc-panel-head">
+                <span>Position Overview</span>
+              </header>
+              <PositionsSnapshot />
+              <div className="tos-mc-positions-compact">
+                <PortfolioOverviewPanel compact />
+              </div>
+            </div>
+          </PanelErrorBoundary>
+        </div>
+
+        <div className="tos-mc-col tos-mc-col-right">
+          <PanelErrorBoundary title="AI Coaching">
+            <div className="tos-mc-coach" data-tos-mc-coach="true">
+              <header className="tos-mc-panel-head">
+                <span>AI Coaching</span>
+              </header>
+              <PersistentCoachRail />
+              <AiRecommendationCard />
+            </div>
+          </PanelErrorBoundary>
+          <PanelErrorBoundary title="Risk Heatmap">
+            <div className="tos-mc-heat" data-tos-mc-heat="true">
+              <header className="tos-mc-panel-head">
+                <span>Risk Heatmap</span>
+              </header>
+              <OnChainHeatmap />
+            </div>
+          </PanelErrorBoundary>
+          <PanelErrorBoundary title="Portfolio Allocation">
+            <MissionAllocationPanel />
+          </PanelErrorBoundary>
+          <PanelErrorBoundary title="News & Alerts">
+            <MissionNewsAlerts />
+          </PanelErrorBoundary>
+        </div>
+      </div>
+
+      <PanelErrorBoundary title="System status">
+        <MissionFooterStatus />
+      </PanelErrorBoundary>
     </div>
   )
 }

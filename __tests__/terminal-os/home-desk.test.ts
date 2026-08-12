@@ -1,5 +1,5 @@
 /**
- * Mockup home desk composition — Image-2 panels with kernel-backed empty states.
+ * Mission Control home desk composition — 1:1 reference panels, kernel-backed.
  * Run: node --import tsx --test __tests__/terminal-os/home-desk.test.ts
  */
 
@@ -23,15 +23,13 @@ describe('Terminal OS mockup home desk', () => {
     )
     assert.match(shell, /TerminalOsHomeDesk/)
     assert.match(desk, /tos-home-desk/)
-    assert.match(desk, /IntelligenceSwap/)
+    assert.match(desk, /tos-mc-grid/)
+    assert.match(desk, /MissionTradeSuite|QuickSwapCard/)
     assert.match(desk, /IntelligenceChart/)
-    assert.match(desk, /DecisionBrainSpokes/)
-    assert.match(desk, /SystemStatusGauges/)
-    assert.match(desk, /LiveExecutionFeed/)
+    assert.match(desk, /MissionMetricsStrip/)
     assert.match(desk, /OnChainHeatmap/)
-    assert.match(desk, /ScannerDiscoveryStrip/)
-    assert.match(desk, /AutonomousWorkflowStrip/)
     assert.match(desk, /PositionsSnapshot/)
+    assert.match(desk, /MissionFooterStatus/)
     assert.doesNotMatch(desk, /94%/)
     assert.doesNotMatch(desk, /37,?584/)
     assert.doesNotMatch(desk, /87% DNA/)
@@ -46,7 +44,7 @@ describe('Terminal OS mockup home desk', () => {
     assert.match(shell, /homeMode/)
   })
 
-  it('brain map uses orbital Decision factors not placeholder scores', () => {
+  it('brain map helpers remain Decision-factor based (no placeholder scores)', () => {
     const panels = readFileSync(
       join(root, 'features/terminal-os/shell/components/HomeDeskPanels.tsx'),
       'utf8',
@@ -61,22 +59,19 @@ describe('Terminal OS mockup home desk', () => {
       join(root, 'features/terminal-os/shell/components/HomeDeskPanels.tsx'),
       'utf8',
     )
-    assert.match(panels, /No activity yet/)
-    assert.match(panels, /No open positions/)
-    assert.match(panels, /Scanning — no ranked opportunities yet/)
-    assert.match(panels, /Training — not enough data yet|TRAINING — Not enough real trading history yet/)
-    assert.match(panels, /Not enough holdings to map yet/)
-    assert.match(panels, /No active missions/)
-    assert.match(panels, /BRAIN_SIGNAL_SLOTS|Market Sentiment/)
+    const mc = readFileSync(
+      join(root, 'features/terminal-os/shell/components/MissionControlPanels.tsx'),
+      'utf8',
+    )
+    assert.match(panels, /No activity yet|No open positions|Scanning — no ranked opportunities yet/)
     assert.match(panels, /executedFills/)
-    assert.match(panels, /KERNEL CONNECTION/)
-    assert.doesNotMatch(panels, /87%\s*DNA/)
-    // Executed must not alias buyCount
+    assert.match(mc, /Not enough data yet|Unavailable|Connect wallet/)
+    assert.match(mc, /KERNEL|summaryFromHoldings|selectHeroDecision/)
+    assert.doesNotMatch(mc, /87%\s*DNA/)
     assert.doesNotMatch(panels, /Executed <strong>\{meta\.buyCount\}/)
-    assert.match(panels, /real fills for this wallet/)
   })
 
-  it('shell wires reference nav destinations and recommendation card', () => {
+  it('shell wires reference nav destinations', () => {
     const shell = readFileSync(
       join(root, 'features/terminal-os/shell/components/TerminalOsShell.tsx'),
       'utf8',
@@ -85,13 +80,11 @@ describe('Terminal OS mockup home desk', () => {
       join(root, 'features/terminal-os/shell/components/LeftRail.tsx'),
       'utf8',
     )
-    assert.match(shell, /AiRecommendationCard/)
     assert.match(shell, /chart-intelligence/)
     assert.match(shell, /backtesting/)
-    assert.match(shell, /journal/)
-    assert.match(rail, /Backtesting Lab/)
-    assert.match(rail, /Directory & Journal/)
-    assert.match(rail, /Command & Decision/)
+    assert.match(rail, /Backtesting/)
+    assert.match(rail, /Mission Control/)
+    assert.match(rail, /Chart Analysis/)
   })
 
   it('topbar portfolio value reads holdings not mockup dollars', () => {
@@ -99,8 +92,9 @@ describe('Terminal OS mockup home desk', () => {
       join(root, 'features/terminal-os/shell/components/TopBar.tsx'),
       'utf8',
     )
-    assert.match(top, /AUTONOMOUS TRADING COMPANY/)
+    assert.match(top, /TERMINAL OS/)
     assert.match(top, /\/api\/portfolio\/holdings/)
+    assert.match(top, /TOTAL MKT CAP|useMarketOverview/)
     assert.doesNotMatch(top, /37584/)
   })
 
@@ -120,9 +114,6 @@ describe('Terminal OS mockup home desk', () => {
     assert.equal(segs.length, 3)
     assert.equal(segs[0]!.symbol, 'SOL')
     assert.ok(Math.abs(segs.reduce((s, x) => s + x.pct, 0) - 100) < 0.2)
-    assert.deepEqual(
-      allocationSegments([]),
-      [],
-    )
+    assert.deepEqual(allocationSegments([]), [])
   })
 })
