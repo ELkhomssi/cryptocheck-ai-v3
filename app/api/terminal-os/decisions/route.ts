@@ -62,12 +62,18 @@ export async function GET(req: NextRequest) {
     }
 
     let decisions = await listRecentDecisions(limit).catch(() => [])
-    if (!decisions.length) {
-      const tick = await runDecisionTick({ wallet, limit }).catch((err) => {
+    let tickError: string | null = null
+    if (!decisions.length || refresh) {
+      try {
+        const tick = await runDecisionTick({ wallet, limit })
+        if (tick.decisions.length) decisions = tick.decisions
+        if (!tick.decisions.length) {
+          tickError = `tick_empty scanned=${tick.computed}`
+        }
+      } catch (err) {
+        tickError = err instanceof Error ? err.message : 'tick_failed'
         console.error('[tos/decisions] list tick failed', err)
-        return null
-      })
-      decisions = tick?.decisions ?? []
+      }
     }
 
     const tickMeta = await getDecisionTickMeta().catch(() => emptyTickMeta())
@@ -77,6 +83,7 @@ export async function GET(req: NextRequest) {
         count: decisions.length,
         tickMeta,
         at: new Date().toISOString(),
+        ...(tickError ? { tickError } : {}),
       },
       { headers: { 'cache-control': 'no-store' } },
     )

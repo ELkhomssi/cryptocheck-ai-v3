@@ -19,6 +19,7 @@ import {
   engineChecklist,
   engineStatusMark,
   heroReason,
+  standbyHeroMetrics,
   type GatewayHistoryPoint,
 } from '@/features/ai-os/lib/gateway-round2'
 import type { DecisionTickMeta } from '@/features/ai-os/lib/gateway-phase'
@@ -40,9 +41,11 @@ function EngineChecklist({
           <span>
             {e.status === 'unavailable'
               ? 'unavailable'
-              : e.status === 'loading'
-                ? 'loading'
-                : 'ready'}
+              : e.status === 'standby'
+                ? 'standby'
+                : e.status === 'loading'
+                  ? 'loading'
+                  : 'ready'}
           </span>
           <span aria-label={e.status}>{engineStatusMark(e.status)}</span>
         </li>
@@ -154,7 +157,7 @@ export function GatewayHeroFlow({
         dnaSampleSize,
         tradingStyleSummary,
       })
-    : null
+    : standbyHeroMetrics()
 
   return (
     <div
@@ -188,7 +191,7 @@ export function GatewayHeroFlow({
 
       {decisionLoading && !decision ? (
         <p className="aios-gw-reasoning">Loading Decision…</p>
-      ) : decision && metrics ? (
+      ) : decision ? (
         <>
           <div className="aios-gw-badges" data-gw-badges="true">
             <span className="aios-gw-badge" data-kind="primary">
@@ -355,7 +358,21 @@ export function GatewayHeroFlow({
           </details>
         </>
       ) : (
-        <p className="aios-gw-reasoning">No Decision published yet.</p>
+        <div className="aios-gw-standby" data-gw-standby="true">
+          <div className="aios-gw-badges" data-gw-badges="true">
+            <span className="aios-gw-badge" data-kind="primary">
+              Awaiting Decision
+            </span>
+          </div>
+          <h3 className="aios-gw-action" data-dir="neutral" data-gw-hero-decision="true">
+            STANDBY
+          </h3>
+          <p className="aios-gw-reasoning" data-gw-hero-reason="true">
+            Metric mesh armed — values stay Unavailable until the Decision Engine publishes.
+          </p>
+          <MetricGrid cells={metrics.primary} data-gw-mission="true" />
+          <MetricGrid cells={metrics.secondary} compact data-gw-secondary="true" />
+        </div>
       )}
     </div>
   )

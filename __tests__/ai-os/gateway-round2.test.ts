@@ -66,7 +66,7 @@ describe('Gateway Round 2 helpers', () => {
       now: new Date('2026-08-03T20:00:00Z'),
     })
     assert.match(empty.lines[0]!, /Good evening —/)
-    assert.match(empty.lines.join(' '), /Still gathering data/)
+    assert.match(empty.lines.join(' '), /Command desk online|Decision Engine tick pending|standby/)
 
     const named = buildGatewayGreeting({
       displayName: 'Alex',
@@ -152,6 +152,8 @@ describe('Gateway Round 2 helpers', () => {
   it('engine checklist reflects degradedInputs honestly', () => {
     const loading = engineChecklist({ decisionLoading: true, decision: null })
     assert.ok(loading.every((e) => e.status === 'loading'))
+    const standby = engineChecklist({ decisionLoading: false, decision: null })
+    assert.ok(standby.every((e) => e.status === 'standby'))
     const d = sampleDecision({
       action: 'BUY',
       confidence: 70,

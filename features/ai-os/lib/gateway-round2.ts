@@ -77,7 +77,10 @@ export function buildGatewayGreeting(opts: {
 
   if (!meta || !(meta.scanned > 0)) {
     return {
-      lines: [head, 'Still gathering data for your first session.'],
+      lines: [
+        head,
+        'Command desk online — Decision Engine tick pending. Engine mesh stays on standby until a Decision publishes (real weights only — no mock scores).',
+      ],
       hasCycleData: false,
     }
   }
@@ -150,7 +153,7 @@ export function decisionFreshnessLabel(staleAfter: string, now = Date.now()): st
   return `Fresh ${min}m`
 }
 
-export type EngineCheckStatus = 'live' | 'unavailable' | 'loading'
+export type EngineCheckStatus = 'live' | 'unavailable' | 'loading' | 'standby'
 
 export type EngineCheckRow = {
   id: EngineId
@@ -171,6 +174,7 @@ const ENGINE_ROWS: { id: EngineId; label: string }[] = [
  * live = contributed (factor present) or completed without being marked degraded
  * unavailable = listed in degradedInputs
  * loading = Decision still fetching
+ * standby = no Decision yet — engines armed, not scored (honest empty, dense chrome)
  */
 export function engineChecklist(opts: {
   decisionLoading: boolean
@@ -181,7 +185,7 @@ export function engineChecklist(opts: {
   }
   const d = opts.decision
   if (!d) {
-    return ENGINE_ROWS.map((r) => ({ ...r, status: 'unavailable' as const }))
+    return ENGINE_ROWS.map((r) => ({ ...r, status: 'standby' as const }))
   }
   const degraded = new Set(d.degradedInputs ?? [])
   const contributed = new Set(
@@ -203,6 +207,7 @@ export function engineChecklist(opts: {
 export function engineStatusMark(status: EngineCheckStatus): string {
   if (status === 'live') return '✓'
   if (status === 'loading') return '…'
+  if (status === 'standby') return '○'
   return '—'
 }
 
@@ -238,6 +243,23 @@ export type HeroMetrics = {
 }
 
 export const UNAVAILABLE = 'Unavailable' as const
+
+/** Dense waiting metric chrome — labels only; every value Unavailable until Decision. */
+export function standbyHeroMetrics(): HeroMetrics {
+  return {
+    primary: [
+      { label: 'Confidence', value: UNAVAILABLE, available: false, hint: 'Awaiting Decision' },
+      { label: 'Expected ROI', value: UNAVAILABLE, available: false },
+      { label: 'Risk Level', value: UNAVAILABLE, available: false },
+      { label: 'Position Size', value: UNAVAILABLE, available: false },
+    ],
+    secondary: [
+      { label: 'Time Horizon', value: UNAVAILABLE, available: false },
+      { label: 'Strategy', value: UNAVAILABLE, available: false },
+      { label: 'Capital Allocation', value: UNAVAILABLE, available: false },
+    ],
+  }
+}
 
 /** Conviction badge gated on real Decision.confidence — never unconditional. */
 export function convictionBadgeLabel(confidence: number): string | null {

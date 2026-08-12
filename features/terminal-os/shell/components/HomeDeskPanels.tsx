@@ -157,6 +157,7 @@ export function DecisionBrainSpokes() {
   const cx = 140
   const cy = 140
   const orbitR = 92
+  const waiting = !d
 
   return (
     <div className="tos-desk-panel tos-brain" data-tos-brain="true">
@@ -166,83 +167,80 @@ export function DecisionBrainSpokes() {
           {d ? 'Bound to Decision' : 'Waiting'}
         </span>
       </header>
-      {!d ? (
-        <div className="tos-brain-orbit tos-brain-orbit--empty" aria-hidden>
-          <div className="tos-brain-core">
-            <span>WAITING</span>
-          </div>
-          <p className="tos-desk-empty">
-            Orbital intelligence layers appear when a Decision publishes contributing engines —
-            unavailable signals stay as —.
-          </p>
-        </div>
-      ) : (
-        <div
-          className="tos-brain-orbit tos-brain-orbit--holo"
-          role="img"
-          aria-label="Decision intelligence layers"
-          data-tos-brain-3d="true"
-        >
-          <div className="tos-brain-holo-glow" aria-hidden />
-          <svg viewBox="0 0 280 280" className="tos-brain-svg tos-brain-svg--3d">
-            <defs>
-              <radialGradient id="tosBrainCore" cx="50%" cy="35%" r="55%">
-                <stop offset="0%" stopColor="#7cffef" stopOpacity="0.95" />
-                <stop offset="35%" stopColor="#00e0ff" stopOpacity="0.65" />
-                <stop offset="70%" stopColor="#0a1628" stopOpacity="0.92" />
-                <stop offset="100%" stopColor="#05080f" stopOpacity="1" />
-              </radialGradient>
-              <filter id="tosBrainGlow" x="-40%" y="-40%" width="180%" height="180%">
-                <feGaussianBlur stdDeviation="2.2" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
-            <ellipse
-              cx={cx}
-              cy={cy + 8}
-              rx={orbitR + 8}
-              ry={orbitR * 0.42}
-              className="tos-brain-ellipse tos-brain-ellipse--outer"
-              fill="none"
-            />
-            <ellipse
-              cx={cx}
-              cy={cy + 4}
-              rx={orbitR * 0.78}
-              ry={orbitR * 0.32}
-              className="tos-brain-ellipse tos-brain-ellipse--mid"
-              fill="none"
-            />
-            <circle cx={cx} cy={cy} r={orbitR} className="tos-brain-ring" fill="none" />
-            <circle
-              cx={cx}
-              cy={cy}
-              r={orbitR * 0.62}
-              className="tos-brain-ring tos-brain-ring--inner"
-              fill="none"
-            />
-            <circle
-              cx={cx}
-              cy={cy}
-              r={42}
-              fill="url(#tosBrainCore)"
-              className="tos-brain-core-disk"
-              filter="url(#tosBrainGlow)"
-            />
-            <circle cx={cx} cy={cy} r={48} className="tos-brain-core-halo" fill="none" />
-            <text x={cx} y={cy - 4} textAnchor="middle" className="tos-brain-core-text">
-              {d.subject?.kind === 'token' ? d.subject.symbol : 'AI'}
-            </text>
-            <text x={cx} y={cy + 12} textAnchor="middle" className="tos-brain-core-sub">
-              {typeof d.confidence === 'number' && Number.isFinite(d.confidence)
+      <div
+        className={`tos-brain-orbit tos-brain-orbit--holo${waiting ? ' tos-brain-orbit--empty' : ''}`}
+        role="img"
+        aria-label="Decision intelligence layers"
+        data-tos-brain-3d="true"
+        data-waiting={waiting ? 'true' : 'false'}
+      >
+        <div className="tos-brain-holo-glow" aria-hidden />
+        <svg viewBox="0 0 280 280" className="tos-brain-svg tos-brain-svg--3d">
+          <defs>
+            <radialGradient id="tosBrainCore" cx="50%" cy="35%" r="55%">
+              <stop offset="0%" stopColor="#7cffef" stopOpacity="0.95" />
+              <stop offset="35%" stopColor="#00e0ff" stopOpacity="0.65" />
+              <stop offset="70%" stopColor="#0a1628" stopOpacity="0.92" />
+              <stop offset="100%" stopColor="#05080f" stopOpacity="1" />
+            </radialGradient>
+            <filter id="tosBrainGlow" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="2.2" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <ellipse
+            cx={cx}
+            cy={cy + 8}
+            rx={orbitR + 8}
+            ry={orbitR * 0.42}
+            className="tos-brain-ellipse tos-brain-ellipse--outer"
+            fill="none"
+          />
+          <ellipse
+            cx={cx}
+            cy={cy + 4}
+            rx={orbitR * 0.78}
+            ry={orbitR * 0.32}
+            className="tos-brain-ellipse tos-brain-ellipse--mid"
+            fill="none"
+          />
+          <circle cx={cx} cy={cy} r={orbitR} className="tos-brain-ring" fill="none" />
+          <circle
+            cx={cx}
+            cy={cy}
+            r={orbitR * 0.62}
+            className="tos-brain-ring tos-brain-ring--inner"
+            fill="none"
+          />
+          <circle
+            cx={cx}
+            cy={cy}
+            r={42}
+            fill="url(#tosBrainCore)"
+            className="tos-brain-core-disk"
+            filter="url(#tosBrainGlow)"
+          />
+          <circle cx={cx} cy={cy} r={48} className="tos-brain-core-halo" fill="none" />
+          <text x={cx} y={cy - 4} textAnchor="middle" className="tos-brain-core-text">
+            {waiting
+              ? 'AI'
+              : d.subject?.kind === 'token'
+                ? d.subject.symbol
+                : 'AI'}
+          </text>
+          <text x={cx} y={cy + 12} textAnchor="middle" className="tos-brain-core-sub">
+            {waiting
+              ? 'WAIT'
+              : typeof d.confidence === 'number' && Number.isFinite(d.confidence)
                 ? `${Math.round(d.confidence)}%`
                 : '—'}
-            </text>
-            {slots.map((s, i) => {
-              const angle = (i / slots.length) * Math.PI * 2 - Math.PI / 2
+          </text>
+          {(waiting ? BRAIN_SIGNAL_SLOTS.map((s) => ({ ...s, pct: null as number | null, summary: 'Awaiting Decision' })) : slots).map(
+            (s, i, arr) => {
+              const angle = (i / arr.length) * Math.PI * 2 - Math.PI / 2
               const depth = 0.55 + 0.45 * Math.sin(angle + Math.PI / 2)
               const px = cx + Math.cos(angle) * orbitR
               const py = cy + Math.sin(angle) * orbitR * (0.72 + 0.28 * depth)
@@ -272,23 +270,35 @@ export function DecisionBrainSpokes() {
                   </text>
                 </g>
               )
-            })}
-          </svg>
-          <ul className="tos-brain-legend">
-            {slots.map((s) => (
-              <li key={s.label} data-live={s.pct != null ? 'true' : 'false'}>
-                <strong>
-                  {s.label} · {s.pct != null ? `${s.pct}%` : '—'}
-                </strong>
-                <span>{s.summary}</span>
-              </li>
-            ))}
-          </ul>
-          {liveSlots.length === 0 ? (
-            <p className="tos-desk-empty">Decision published — no contributing factors yet.</p>
-          ) : null}
-        </div>
-      )}
+            },
+          )}
+        </svg>
+        <ul className="tos-brain-legend">
+          {(waiting
+            ? BRAIN_SIGNAL_SLOTS.map((s) => ({
+                ...s,
+                pct: null as number | null,
+                summary: 'Awaiting published Decision',
+              }))
+            : slots
+          ).map((s) => (
+            <li key={s.label} data-live={s.pct != null ? 'true' : 'false'}>
+              <strong>
+                {s.label} · {s.pct != null ? `${s.pct}%` : '—'}
+              </strong>
+              <span>{s.summary}</span>
+            </li>
+          ))}
+        </ul>
+        {waiting ? (
+          <p className="tos-desk-empty">
+            Hologram online — engine spokes light up when the Decision Engine publishes contributing
+            factors (real weights only).
+          </p>
+        ) : liveSlots.length === 0 ? (
+          <p className="tos-desk-empty">Decision published — no contributing factors yet.</p>
+        ) : null}
+      </div>
     </div>
   )
 }
@@ -327,7 +337,25 @@ export function CurrentMissionsPanel() {
         </span>
       </header>
       {decisions.length === 0 ? (
-        <p className="tos-desk-empty">No active missions</p>
+        <div className="tos-missions-standby" data-tos-missions-standby="true">
+          <ul className="tos-missions-list tos-missions-list--standby" aria-label="Mission slots">
+            {['MONITOR · slot A', 'MONITOR · slot B', 'MONITOR · slot C'].map((label) => (
+              <li key={label} data-standby="true">
+                <div className="tos-missions-row">
+                  <strong>{label}</strong>
+                  <span>—</span>
+                </div>
+                <div className="tos-missions-bar tos-missions-bar--standby" aria-hidden>
+                  <i style={{ width: '12%' }} />
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="tos-desk-empty">
+            No active missions — slots arm when the Decision Engine publishes BUY/SELL/EXIT or
+            MONITOR (WAIT) rows.
+          </p>
+        </div>
       ) : (
         <ul className="tos-missions-list">
           {decisions.map((d) => {
