@@ -59,7 +59,7 @@ export function LeftRail() {
         <div className="tos-nav-brand-mark">
           CRYPTOCHECK AI
           <br />
-          <span data-tos-label>TERMINAL</span> v6.0
+          <span data-tos-label>TERMINAL OS</span>
         </div>
         <span className="tos-nav-brand-live" aria-hidden>
           PRO

@@ -66,11 +66,11 @@
   gap: 0.65rem;
   padding: 1.15rem 1.15rem 1rem;
   border-radius: var(--tos-radius);
-  border: 1px solid color-mix(in srgb, var(--tos-accent-cyan) 35%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tos-accent-gold) 35%, transparent);
   background:
     radial-gradient(ellipse 80% 60% at 10% 0%, color-mix(in srgb, var(--tos-accent-gold) 12%, transparent), transparent),
     color-mix(in srgb, var(--tos-bg-panel-elevated) 90%, transparent);
-  box-shadow: 0 0 32px color-mix(in srgb, var(--tos-accent-cyan) 12%, transparent);
+  box-shadow: 0 0 32px color-mix(in srgb, var(--tos-accent-gold) 12%, transparent);
 }
 
 [data-tos] [data-aios-gateway] .aios-gw-thinking {
@@ -330,12 +330,12 @@
   font-variant-numeric: tabular-nums;
   padding: 0.45rem 0.5rem;
   border-radius: var(--tos-radius-sm);
-  border: 1px solid color-mix(in srgb, var(--tos-accent-cyan) 22%, transparent);
-  background: color-mix(in srgb, var(--tos-accent-cyan) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tos-accent-gold) 22%, transparent);
+  background: color-mix(in srgb, var(--tos-accent-gold) 7%, transparent);
 }
 
 [data-tos] [data-aios-gateway] .aios-gw-sources strong {
-  color: var(--tos-accent-cyan);
+  color: var(--tos-accent-gold);
   font-weight: var(--tos-fw-semibold);
   font-size: 0.62rem;
   letter-spacing: 0.08em;
@@ -354,7 +354,7 @@
 [data-tos] [data-aios-gateway] .aios-gw-sources li:has(span:first-of-type:is([aria-label='standby'])) ,
 [data-tos] [data-aios-gateway] .aios-gw-decision[data-phase='waiting'] .aios-gw-sources li {
   border-style: dashed;
-  background: color-mix(in srgb, var(--tos-accent-cyan) 4%, transparent);
+  background: color-mix(in srgb, var(--tos-accent-gold) 4%, transparent);
 }
 
 [data-tos] [data-aios-gateway] .aios-gw-standby {
@@ -378,7 +378,7 @@
 }
 
 [data-tos] [data-aios-gateway] .aios-swap-execute {
-  background: linear-gradient(135deg, #ffd45a 0%, #ffb800 45%, #ff8a00 100%);
+  background: linear-gradient(135deg, #f0c14b 0%, #d4af37 55%, #b8860b 100%);
   color: #120f08;
   font-weight: var(--tos-fw-extrabold);
   font-size: 0.95rem;
