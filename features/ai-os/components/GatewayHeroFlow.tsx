@@ -19,7 +19,6 @@ import {
   engineChecklist,
   engineStatusMark,
   heroReason,
-  standbyHeroMetrics,
   type GatewayHistoryPoint,
 } from '@/features/ai-os/lib/gateway-round2'
 import type { DecisionTickMeta } from '@/features/ai-os/lib/gateway-phase'
@@ -41,11 +40,9 @@ function EngineChecklist({
           <span>
             {e.status === 'unavailable'
               ? 'unavailable'
-              : e.status === 'standby'
-                ? 'standby'
-                : e.status === 'loading'
-                  ? 'loading'
-                  : 'ready'}
+              : e.status === 'loading'
+                ? 'loading'
+                : 'ready'}
           </span>
           <span aria-label={e.status}>{engineStatusMark(e.status)}</span>
         </li>
@@ -157,7 +154,7 @@ export function GatewayHeroFlow({
         dnaSampleSize,
         tradingStyleSummary,
       })
-    : standbyHeroMetrics()
+    : null
 
   return (
     <div
@@ -191,7 +188,7 @@ export function GatewayHeroFlow({
 
       {decisionLoading && !decision ? (
         <p className="aios-gw-reasoning">Loading Decision…</p>
-      ) : decision ? (
+      ) : decision && metrics ? (
         <>
           <div className="aios-gw-badges" data-gw-badges="true">
             <span className="aios-gw-badge" data-kind="primary">
@@ -295,11 +292,7 @@ export function GatewayHeroFlow({
             <summary>Evidence / Details</summary>
 
             <div className="aios-gw-confidence" data-gw-freshness="true">
-              <span className="aios-gw-confidence-value">
-                {typeof decision.confidence === 'number' && Number.isFinite(decision.confidence)
-                  ? `${Math.round(decision.confidence)}%`
-                  : '—'}
-              </span>
+              <span className="aios-gw-confidence-value">{Math.round(decision.confidence)}%</span>
               <span className="aios-gw-confidence-meta">
                 {decision.confidenceMode === 'personalized' ? 'Personalized' : 'Market'}
                 {' · '}
@@ -317,16 +310,11 @@ export function GatewayHeroFlow({
             </div>
 
             <p className="aios-gw-confidence-meta">
-              market{' '}
-              {typeof decision.marketConfidence === 'number' &&
-              Number.isFinite(decision.marketConfidence)
-                ? `${Math.round(decision.marketConfidence)}%`
-                : '—'}
-              {decision.personalizedConfidence != null &&
-              Number.isFinite(decision.personalizedConfidence)
+              market {Math.round(decision.marketConfidence)}%
+              {decision.personalizedConfidence != null
                 ? ` · DNA ${Math.round(decision.personalizedConfidence)}%`
                 : ''}
-              {decision.expectedDrawdown != null && Number.isFinite(decision.expectedDrawdown)
+              {decision.expectedDrawdown != null
                 ? ` · DD ${decision.expectedDrawdown.toFixed(1)}%`
                 : ''}
             </p>
@@ -337,17 +325,13 @@ export function GatewayHeroFlow({
               decisionLoading={decisionLoading}
             />
 
-            {decision.contributingFactors?.length ? (
+            {decision.contributingFactors.length > 0 ? (
               <ul className="aios-gw-sources" aria-label="AI sources">
                 {decision.contributingFactors.slice(0, 5).map((f, i) => (
                   <li key={`${f.engine}-${i}`}>
                     <strong>{String(f.engine)}</strong>
-                    <span>{f.summary ?? '—'}</span>
-                    <span>
-                      {typeof f.weight === 'number' && Number.isFinite(f.weight)
-                        ? `${Math.round(f.weight * 100)}%`
-                        : '—'}
-                    </span>
+                    <span>{f.summary}</span>
+                    <span>{Math.round(f.weight * 100)}%</span>
                   </li>
                 ))}
               </ul>
@@ -358,21 +342,7 @@ export function GatewayHeroFlow({
           </details>
         </>
       ) : (
-        <div className="aios-gw-standby" data-gw-standby="true">
-          <div className="aios-gw-badges" data-gw-badges="true">
-            <span className="aios-gw-badge" data-kind="primary">
-              Awaiting Decision
-            </span>
-          </div>
-          <h3 className="aios-gw-action" data-dir="neutral" data-gw-hero-decision="true">
-            STANDBY
-          </h3>
-          <p className="aios-gw-reasoning" data-gw-hero-reason="true">
-            Metric mesh armed — values stay Unavailable until the Decision Engine publishes.
-          </p>
-          <MetricGrid cells={metrics.primary} data-gw-mission="true" />
-          <MetricGrid cells={metrics.secondary} compact data-gw-secondary="true" />
-        </div>
+        <p className="aios-gw-reasoning">No Decision published yet.</p>
       )}
     </div>
   )

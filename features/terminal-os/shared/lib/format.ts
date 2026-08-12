@@ -3,26 +3,22 @@
  */
 
 export function formatUsd(n: number, compact = false): string {
-  const v = typeof n === 'number' && Number.isFinite(n) ? n : 0
-  if (compact) {
-    const abs = Math.abs(v)
-    const sign = v < 0 ? '-' : ''
-    if (abs >= 1_000_000_000_000) return `${sign}$${(abs / 1_000_000_000_000).toFixed(2)}T`
-    if (abs >= 1_000_000_000) return `${sign}$${(abs / 1_000_000_000).toFixed(2)}B`
-    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`
-    if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}K`
+  if (compact && Math.abs(n) >= 1_000_000) {
+    return `$${(n / 1_000_000).toFixed(1)}M`
+  }
+  if (compact && Math.abs(n) >= 1_000) {
+    return `$${(n / 1_000).toFixed(1)}K`
   }
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    maximumFractionDigits: Math.abs(v) < 1 ? 6 : 2,
-  }).format(v)
+    maximumFractionDigits: n < 1 ? 6 : 2,
+  }).format(n)
 }
 
 export function formatPct(n: number, digits = 2): string {
-  const v = typeof n === 'number' && Number.isFinite(n) ? n : 0
-  const sign = v > 0 ? '+' : ''
-  return `${sign}${v.toFixed(digits)}%`
+  const sign = n > 0 ? '+' : ''
+  return `${sign}${n.toFixed(digits)}%`
 }
 
 export function timeAgo(iso: string): string {

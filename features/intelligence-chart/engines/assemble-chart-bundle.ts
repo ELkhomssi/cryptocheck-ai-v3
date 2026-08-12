@@ -46,7 +46,6 @@ export async function assembleIntelligenceChart(input: {
 
   const tokensEnv = await resilientTokens(chain === 'all' ? 'all' : chain, 16)
   const needle = query.toLowerCase()
-  const SOL_MINT = 'So11111111111111111111111111111111111111112'
   let token: TokenRow | null =
     tokensEnv.data.find(
       (t) =>
@@ -55,20 +54,9 @@ export async function assembleIntelligenceChart(input: {
         (t.pairAddress && t.pairAddress.toLowerCase() === needle),
     ) ?? null
 
-  // Home desk defaults to SOL — never leave chart empty for the major
-  if (!token && (needle === 'sol' || needle === SOL_MINT.toLowerCase() || query === SOL_MINT)) {
-    token =
-      tokensEnv.data.find(
-        (t) => t.symbol.toUpperCase() === 'SOL' || t.id === SOL_MINT,
-      ) ?? null
-  }
-
   if (!token) {
     try {
-      token = await resolveTokenByQuery(
-        needle === 'sol' ? SOL_MINT : query,
-        chain === 'all' ? 'solana' : chain,
-      )
+      token = await resolveTokenByQuery(query, chain)
     } catch {
       token = null
     }

@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useEffect, useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { LeftRail } from '@/features/terminal-os/shell/components/LeftRail'
 import { TopBar } from '@/features/terminal-os/shell/components/TopBar'
 import { PanelErrorBoundary } from '@/features/terminal-os/shared/components/PanelErrorBoundary'
@@ -24,13 +24,11 @@ import {
   AiCoachWorkspace,
   MissionControlWorkspace,
 } from '@/features/terminal-os/shell/components/MissionAndCoachWorkspaces'
+import { PersistentCoachRail } from '@/features/terminal-os/shell/components/PersistentCoachRail'
 import { TerminalOsHomeDesk } from '@/features/terminal-os/shell/components/TerminalOsHomeDesk'
-import { SystemStatusGauges } from '@/features/terminal-os/shell/components/SystemStatusGauges'
-import { ChartIntelligenceWorkspace } from '@/features/terminal-os/chart-intelligence/components/ChartIntelligenceWorkspace'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
 import { EmptyState, PanelSkeleton } from '@/features/terminal-os/shared/components/PanelStates'
 import { useTerminalOsStore } from '@/stores/terminal-os'
-import { SOL_MINT } from '@/lib/portfolio-desk/constants'
 import type { TerminalNavId } from '@/features/terminal-os/shared/types'
 
 /** Code-split flagship widget — home JS shouldn't pay for TLM until visited */
@@ -56,8 +54,8 @@ function Bound({ title, children }: { title: string; children: ReactNode }) {
 function ChartSurface() {
   const focused = useTerminalOsStore((s) => s.focusedToken)
   const setFocused = useTerminalOsStore((s) => s.setFocusedToken)
-  const query = focused?.id || focused?.symbol || SOL_MINT
-  const chain = focused?.chain && focused.chain !== 'all' ? focused.chain : 'solana'
+  const query = focused?.id || focused?.symbol || 'SOL'
+  const chain = focused?.chain || 'solana'
   return (
     <Bound title="Intelligence Chart">
       <IntelligenceChart
@@ -183,39 +181,7 @@ function MainColumn() {
         <Bound title="Top Tokens">
           <TopTokensToday />
         </Bound>
-      </div>
-    )
-  }
-
-  if (nav === 'chart-intelligence') {
-    return (
-      <Bound title="Chart Intelligence">
-        <ChartIntelligenceWorkspace />
-      </Bound>
-    )
-  }
-
-  if (nav === 'backtesting') {
-    return (
-      <Panel title="Backtesting Lab">
-        <EmptyState message="Backtesting Lab awaits persisted strategy simulation runs. Paper/sim results will appear here when the execution audit log records them — no fabricated win rates." />
-      </Panel>
-    )
-  }
-
-  if (nav === 'journal') {
-    return <JournalWorkspace />
-  }
-
-  if (nav === 'settings') {
-    return (
-      <div className="tos-stack">
-        <Bound title="System Health">
-          <SystemStatusGauges />
-        </Bound>
-        <Panel title="System Health">
-          <EmptyState message="Gauges above read live /api/health and provider health. Engine counts never invent 12/12 — they show real check totals." />
-        </Panel>
+        <ChartSurface />
       </div>
     )
   }
@@ -228,78 +194,12 @@ function MainColumn() {
     )
   }
 
-  if (nav === 'watchlist' || nav === 'copy-trading') {
+  if (nav === 'settings' || nav === 'watchlist' || nav === 'copy-trading') {
     return <SecondaryNavStub nav={nav} />
   }
 
-  // Default / AI Gateway — full reference multi-panel desk
+  // Default / AI Gateway — full mockup multi-panel desk
   return <TerminalOsHomeDesk />
-}
-
-function JournalWorkspace() {
-  const wallet = useTerminalOsStore((s) => s.walletAddress)
-  const connected = useTerminalOsStore((s) => s.walletConnected)
-  return (
-    <Panel title="Directory & Journal" live>
-      {!connected || !wallet ? (
-        <EmptyState message="Connect a Solana wallet to load captured trades and activity." />
-      ) : (
-        <JournalFeed wallet={wallet} />
-      )}
-    </Panel>
-  )
-}
-
-function JournalFeed({ wallet }: { wallet: string }) {
-  const [rows, setRows] = useState<
-    Array<{ id: string; side: string; tokenSymbol: string; entryAt: string; sample?: boolean }>
-  >([])
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    let c = false
-    void fetch(`/api/terminal-os/captured-trades?wallet=${encodeURIComponent(wallet)}`, {
-      cache: 'no-store',
-    })
-      .then(async (res) => {
-        if (!res.ok) throw new Error('Journal unavailable')
-        const body = (await res.json()) as {
-          trades?: Array<{
-            id: string
-            side: string
-            tokenSymbol: string
-            entryAt: string
-            sample?: boolean
-          }>
-        }
-        if (!c) setRows((body.trades ?? []).filter((t) => !t.sample))
-      })
-      .catch((e: Error) => {
-        if (!c) setError(e.message)
-      })
-    return () => {
-      c = true
-    }
-  }, [wallet])
-
-  if (error) return <EmptyState message={error} />
-  if (!rows.length) {
-    return <EmptyState message="No captured activity yet — fills and rejected Decisions appear here." />
-  }
-  return (
-    <ul className="tos-stack-sm" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-      {rows.slice(0, 40).map((t) => (
-        <li key={t.id} style={{ fontSize: 'var(--tos-fs-sm)' }}>
-          <strong>
-            {t.side.toUpperCase()} ${t.tokenSymbol}
-          </strong>
-          <div className="tos-muted" style={{ fontSize: 'var(--tos-fs-xs)' }}>
-            {new Date(t.entryAt).toLocaleString()}
-          </div>
-        </li>
-      ))}
-    </ul>
-  )
 }
 
 function AiGatewayCenterpiece() {
@@ -326,10 +226,16 @@ function AiTradingWorkspace() {
 }
 
 function SecondaryNavStub({ nav }: { nav: TerminalNavId }) {
+  const labels: Partial<Record<TerminalNavId, string>> = {
+    settings: 'Settings',
+    alerts: 'Alerts',
+    watchlist: 'Watchlist',
+    'copy-trading': 'Copy Trading',
+  }
   if (nav === 'watchlist') {
     return (
-      <Panel title="API Access">
-        <EmptyState message="Partner / API keys surface via CCAI Connect and /api/b2b — no fabricated key inventory here. Watchlist persistence ships next." />
+      <Panel title="Watchlist">
+        <EmptyState message="Focus a token anywhere in Terminal OS — it drives Chart, Scanner, and Execution. Dedicated watchlist persistence ships next without changing this layout." />
       </Panel>
     )
   }
@@ -341,15 +247,16 @@ function SecondaryNavStub({ nav }: { nav: TerminalNavId }) {
     )
   }
   return (
-    <Panel title={nav}>
-      <EmptyState message="This surface uses the live wallet session and feature flags already in Terminal OS." />
+    <Panel title={labels[nav] ?? nav}>
+      <EmptyState message={`${labels[nav] ?? nav} uses the live wallet session and feature flags already in Terminal OS.`} />
     </Panel>
   )
 }
 
 function RightRail() {
   return (
-    <aside className="tos-right-rail" aria-label="Scan and execution" data-tos-right="classic">
+    <aside className="tos-right-rail" aria-label="AI Coach and tools" data-tos-right="coach">
+      <PersistentCoachRail />
       <Bound title="Token Score">
         <TokenScoreScanCard />
       </Bound>
@@ -364,21 +271,9 @@ function RightRail() {
 }
 
 export function TerminalOsShell() {
-  const activeNav = useTerminalOsStore((s) => s.activeNav)
-  const homeMode = activeNav === 'terminal'
-  const chartMode = activeNav === 'chart-intelligence'
-
   return (
-    <div
-      className="tos-shell"
-      data-tos-shell
-      data-tos-classic="v6"
-      data-tos-home={homeMode ? 'true' : undefined}
-      data-tos-chart={chartMode ? 'true' : undefined}
-    >
-      <Bound title="Top Bar">
-        <TopBar />
-      </Bound>
+    <div className="tos-shell" data-tos-shell>
+      <TopBar />
       <AlertEvaluateBridge />
       <AlertToastHost />
       <div className="tos-whale-slot">
@@ -387,13 +282,9 @@ export function TerminalOsShell() {
         </Bound>
       </div>
       <div className="tos-lifecycle-slot">
-        <Bound title="Money Lifecycle">
-          <MoneyLifecycleRibbon />
-        </Bound>
+        <MoneyLifecycleRibbon />
       </div>
-      <Bound title="Navigation">
-        <LeftRail />
-      </Bound>
+      <LeftRail />
       <main className="tos-main">
         <MainColumn />
       </main>

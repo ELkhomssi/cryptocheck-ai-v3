@@ -1,21 +1,16 @@
 'use client'
 
 import { useEffect, useState, startTransition } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { Bell, LayoutTemplate, Search, Star } from 'lucide-react'
 import { useTerminalOsStore } from '@/stores/terminal-os'
 import { useTickerQuotes } from '@/features/terminal-os/shared/hooks/useTerminalQueries'
 import { useTerminalMarketStream } from '@/features/terminal-os/shared/hooks/useTerminalMarketStream'
-import { useMarketOverview } from '@/features/terminal-os/shared/hooks/useTerminalQueries'
 import { formatPct, formatUsd } from '@/features/terminal-os/shared/lib/format'
 import { PanelSkeleton, StaleIndicator } from '@/features/terminal-os/shared/components/PanelStates'
 import { AnimatedNumber } from '@/features/terminal-os/shared/components/AnimatedNumber'
-import { Pct } from '@/features/terminal-os/shared/components/Pct'
 import { useTerminalWallet } from '@/features/terminal-os/wallet/useTerminalWallet'
 import { useRailBadges } from '@/features/terminal-os/shell/hooks/useRailBadges'
 import type { ChainId, TokenRow } from '@/features/terminal-os/shared/types'
-import type { HoldingsResponse } from '@/types/portfolio-desk'
-import { summaryFromHoldings } from '@/features/terminal-os/portfolio-os/lib/summary-from-holdings'
 
 function looksLikeMintOrAddress(q: string): boolean {
   const t = q.trim()
@@ -85,7 +80,7 @@ export function TopBar() {
   const setSearchQuery = useTerminalOsStore((s) => s.setSearchQuery)
   const setFocusedToken = useTerminalOsStore((s) => s.setFocusedToken)
   const setChartChainTab = useTerminalOsStore((s) => s.setChartChainTab)
-  const walletAddress = useTerminalOsStore((s) => s.walletAddress)
+  const walletBalances = useTerminalOsStore((s) => s.walletBalances)
   const walletChainFamily = useTerminalOsStore((s) => s.walletChainFamily)
   const [searchBusy, setSearchBusy] = useState(false)
 
@@ -102,7 +97,6 @@ export function TopBar() {
   const [menuOpen, setMenuOpen] = useState(false)
 
   const { data: quotes } = useTickerQuotes()
-  const { data: overview } = useMarketOverview()
   const stream = useTerminalMarketStream()
   const rail = useRailBadges()
   const [lkg, setLkg] = useState(quotes)
@@ -110,24 +104,6 @@ export function TopBar() {
     if (quotes?.length) setLkg(quotes)
   }, [quotes])
   const shown = quotes?.length ? quotes : lkg
-
-  const holdingsQ = useQuery({
-    queryKey: ['tos', 'topbar-holdings', walletAddress, walletChainFamily],
-    enabled: Boolean(walletConnected && walletAddress),
-    queryFn: async () => {
-      const qs = new URLSearchParams({ wallet: walletAddress! })
-      if (walletChainFamily === 'evm') qs.set('chain', 'ethereum')
-      const res = await fetch(`/api/portfolio/holdings?${qs}`, {
-        cache: 'no-store',
-      })
-      if (!res.ok) return null
-      return (await res.json()) as HoldingsResponse
-    },
-    staleTime: 20_000,
-    refetchInterval: 45_000,
-  })
-
-  const portfolioSummary = holdingsQ.data ? summaryFromHoldings(holdingsQ.data) : null
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -145,7 +121,7 @@ export function TopBar() {
     <header className="tos-topbar" data-tos-topbar="v3">
       <div className="tos-topbar-brand">
         <strong>CryptoCheck AI</strong>
-        <span>TERMINAL OS v6.0</span>
+        <span>TERMINAL OS v3.0</span>
       </div>
 
       <div
@@ -154,7 +130,7 @@ export function TopBar() {
         title={rail.health.label}
       >
         <span className="tos-topbar-sys-dot" aria-hidden />
-        <span className="tos-topbar-sys-text">{rail.health.label}</span>
+        <span>{rail.health.label}</span>
       </div>
 
       <div className="tos-search-wrap">
@@ -235,47 +211,19 @@ export function TopBar() {
         )}
       </div>
 
-      <div className="tos-topbar-mkt" aria-label="Global market stats">
-        <div>
-          <span>TOTAL MKT CAP</span>
-          <strong className="tos-num">
-            {overview ? formatUsd(overview.marketCapUsd, true) : '—'}
-          </strong>
-        </div>
-        <div>
-          <span>24H VOLUME</span>
-          <strong className="tos-num">
-            {overview ? formatUsd(overview.volume24hUsd, true) : '—'}
-          </strong>
-        </div>
-      </div>
-
       <div className="tos-topbar-actions" style={{ position: 'relative' }}>
-        <div className="tos-topbar-portfolio" data-loaded={portfolioSummary ? 'true' : 'false'}>
-          <span className="tos-topbar-portfolio-label">Portfolio value</span>
-          {walletConnected && walletChainFamily === 'evm' && !portfolioSummary ? (
-            <span className="tos-muted">{holdingsQ.isLoading ? 'Loading EVM…' : 'Not enough data yet'}</span>
-          ) : !walletConnected ? (
-            <span className="tos-muted">Connect wallet</span>
-          ) : portfolioSummary ? (
-            <>
-              <strong className="tos-num">
-                {formatUsd(portfolioSummary.totalAssetsUsd, true)}
-              </strong>
-              <span className="tos-topbar-portfolio-pnl">
-                <AnimatedNumber
-                  value={portfolioSummary.pnl24hUsd}
-                  format={(n) => formatUsd(n, true)}
-                />{' '}
-                <Pct value={portfolioSummary.pnl24hPct} />
-              </span>
-            </>
-          ) : holdingsQ.isLoading ? (
-            <span className="tos-muted">Loading…</span>
-          ) : (
-            <span className="tos-muted">Not enough data yet</span>
-          )}
-        </div>
+        {walletConnected && walletBalances ? (
+          <span className="tos-muted tos-num" style={{ fontSize: 'var(--tos-fs-xs)' }}>
+            {walletBalances.nativeAmount.toFixed(4)} {walletBalances.nativeSymbol}
+            {walletBalances.totalValueUsd != null
+              ? ` · $${walletBalances.totalValueUsd.toFixed(0)}`
+              : ''}
+            {walletBalances.tokens.length
+              ? ` · ${walletBalances.tokens.length} tokens`
+              : ''}
+            {walletChainFamily ? ` · ${walletChainFamily}` : ''}
+          </span>
+        ) : null}
         <button
           type="button"
           className="tos-btn tos-btn-ghost tos-icon-btn"
