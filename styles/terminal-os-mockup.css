@@ -1,0 +1,215 @@
+/**
+ * CryptoCheck AI TerminalOS — mockup design tokens
+ * Source of truth: docs/terminal_os_mockup.html (:root + .glass/.pill/.label/.dot)
+ * Hex values live ONLY here for the mockup surface. Components reference these vars.
+ */
+
+[data-tos][data-tos-mockup='v1'] {
+  /* Exact extraction from terminal_os_mockup.html */
+  --bg-void: #05070d;
+  --bg-panel: rgba(10, 16, 28, 0.72);
+  --bg-panel-solid: #0a101c;
+  --border-teal: rgba(45, 212, 191, 0.22);
+  --border-teal-strong: rgba(45, 212, 191, 0.45);
+  --glow-teal: rgba(45, 212, 191, 0.35);
+  --glow-amber: rgba(251, 191, 36, 0.45);
+  --text-primary: #e6edf5;
+  --text-secondary: #8a94a6;
+  --text-muted: #4c5568;
+  --teal: #2dd4bf;
+  --amber: #fbbf24;
+  --emerald: #34d399;
+  --rose: #fb7185;
+
+  /* Map onto existing TOS chrome so panels pick up mockup identity without local hex */
+  --tos-bg-app: var(--bg-void);
+  --tos-bg-panel: var(--bg-panel-solid);
+  --tos-bg-panel-elevated: var(--bg-panel-solid);
+  --tos-border-subtle: color-mix(in srgb, var(--teal) 18%, #121820);
+  --tos-text-primary: var(--text-primary);
+  --tos-text-secondary: var(--text-secondary);
+  --tos-text-muted: var(--text-muted);
+  --tos-accent-cyan: var(--teal);
+  --tos-accent-mint: var(--emerald);
+  --tos-accent-gold: var(--amber);
+  --tos-accent-gold-bright: #f59e0b;
+  --tos-accent-gold-dim: color-mix(in srgb, var(--amber) 18%, transparent);
+  --tos-positive: var(--emerald);
+  --tos-negative: var(--rose);
+  --tos-warning: var(--amber);
+  --tos-glass: var(--bg-panel);
+  --tos-glass-border: var(--border-teal);
+  --tos-shadow-glow: 0 0 60px -20px var(--glow-teal);
+  --tos-radius: 1rem;
+  --tos-radius-sm: 0.625rem;
+
+  --tos-desk-cyan: var(--teal);
+  --tos-desk-mint: var(--emerald);
+  --tos-desk-gold: var(--amber);
+  --tos-desk-navy: var(--bg-panel-solid);
+
+  background:
+    radial-gradient(ellipse 1200px 600px at 20% -10%, rgba(45, 212, 191, 0.08), transparent),
+    radial-gradient(ellipse 1000px 500px at 90% 10%, rgba(251, 191, 36, 0.05), transparent),
+    var(--bg-void);
+  color: var(--text-primary);
+}
+
+/* Reusable mockup class patterns — exact recipes from HTML */
+[data-tos][data-tos-mockup='v1'] .mu-glass,
+[data-tos][data-tos-mockup='v1'] .tos-desk-panel,
+[data-tos][data-tos-mockup='v1'] .tos-panel,
+[data-tos][data-tos-mockup='v1'] .tos-left-rail,
+[data-tos][data-tos-mockup='v1'] .tos-right-rail,
+[data-tos][data-tos-mockup='v1'] .tos-topbar,
+[data-tos][data-tos-mockup='v1'] .tos-whale-slot {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-teal);
+  border-radius: 16px;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow:
+    0 0 60px -20px var(--glow-teal),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.03);
+}
+
+[data-tos][data-tos-mockup='v1'] .mu-label,
+[data-tos][data-tos-mockup='v1'] .tos-desk-panel-head,
+[data-tos][data-tos-mockup='v1'] .tos-panel-title {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--teal);
+}
+
+[data-tos][data-tos-mockup='v1'] .mu-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+[data-tos][data-tos-mockup='v1'] .mu-dot-live {
+  background: var(--emerald);
+  box-shadow: 0 0 8px 2px rgba(52, 211, 153, 0.7);
+}
+[data-tos][data-tos-mockup='v1'] .mu-dot-amber {
+  background: var(--amber);
+  box-shadow: 0 0 8px 2px rgba(251, 191, 36, 0.7);
+}
+[data-tos][data-tos-mockup='v1'] .mu-dot-waiting {
+  background: var(--text-muted);
+}
+
+[data-tos][data-tos-mockup='v1'] .mu-pill {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid;
+}
+[data-tos][data-tos-mockup='v1'] .mu-pill-amber {
+  color: var(--amber);
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.08);
+  box-shadow: 0 0 20px -6px var(--glow-amber);
+}
+[data-tos][data-tos-mockup='v1'] .mu-pill-teal {
+  color: var(--teal);
+  border-color: rgba(45, 212, 191, 0.35);
+  background: rgba(45, 212, 191, 0.08);
+}
+[data-tos][data-tos-mockup='v1'] .mu-pill-green {
+  color: var(--emerald);
+  border-color: rgba(52, 211, 153, 0.35);
+  background: rgba(52, 211, 153, 0.08);
+}
+
+[data-tos][data-tos-mockup='v1'] .tos-nav-item[data-active='true'] {
+  background: rgba(45, 212, 191, 0.1);
+  color: var(--teal);
+  box-shadow: inset 0 0 20px -12px var(--glow-teal);
+  border-right: 2px solid var(--teal);
+}
+
+[data-tos][data-tos-mockup='v1'] .tos-btn-gold,
+[data-tos][data-tos-mockup='v1'] .aios-swap-execute,
+[data-tos][data-tos-mockup='v1'] .aios-gw-cta-primary {
+  background: linear-gradient(135deg, var(--amber), #f59e0b) !important;
+  color: #1a1200 !important;
+  box-shadow: 0 0 40px -8px var(--glow-amber) !important;
+  border: none !important;
+}
+
+/* Mockup home composition */
+[data-tos][data-tos-mockup='v1'] .tos-mockup-desk {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+[data-tos][data-tos-mockup='v1'] .tos-mockup-center {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+[data-tos][data-tos-mockup='v1'] .tos-mockup-right {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+[data-tos][data-tos-mockup='v1'] .tos-shell[data-tos-home='true'] {
+  --tos-lifecycle-bar: 0;
+}
+[data-tos][data-tos-mockup='v1'] .tos-shell[data-tos-home='true'] .tos-lifecycle-slot {
+  display: none;
+}
+[data-tos][data-tos-mockup='v1'] .tos-desk-chart {
+  min-height: 260px;
+}
+[data-tos][data-tos-mockup='v1'] .tos-desk-chart .ic-shell,
+[data-tos][data-tos-mockup='v1'] .tos-desk-chart [data-ic] {
+  min-height: 220px;
+}
+
+[data-tos][data-tos-mockup='v1'] .tos-rail-system-status {
+  padding: 14px 16px;
+  margin: 8px;
+}
+[data-tos][data-tos-mockup='v1'] .tos-rail-system-status .mu-status-pct {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--emerald);
+}
+[data-tos][data-tos-mockup='v1'] .tos-rail-system-status .mu-status-meta {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+[data-tos][data-tos-mockup='v1'] .tos-rail-system-status[data-status='degraded'] .mu-status-pct,
+[data-tos][data-tos-mockup='v1'] .tos-rail-system-status[data-status='unknown'] .mu-status-pct {
+  color: var(--amber);
+}
+
+[data-tos][data-tos-mockup='v1'] .tos-mockup-portfolio-total {
+  font-size: 22px;
+  font-weight: 800;
+  margin-top: 12px;
+  color: var(--text-primary);
+}
+[data-tos][data-tos-mockup='v1'] .tos-mockup-portfolio-chg {
+  font-size: 11px;
+  margin-top: 4px;
+  color: var(--emerald);
+}
+[data-tos][data-tos-mockup='v1'] .tos-mockup-portfolio-chg[data-dir='down'] {
+  color: var(--rose);
+}
+[data-tos][data-tos-mockup='v1'] .tos-desk-empty {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-top: 8px;
+}
