@@ -11,7 +11,7 @@ import { join } from 'node:path'
 const root = process.cwd()
 
 describe('Mission Control workspace (not default home)', () => {
-  it('shell keeps Mission Control workspace route; home is classic PRO desk', () => {
+  it('shell keeps Mission Control workspace route; home is mockup-wired desk', () => {
     const shell = readFileSync(
       join(root, 'features/terminal-os/shell/components/TerminalOsShell.tsx'),
       'utf8',
@@ -26,7 +26,7 @@ describe('Mission Control workspace (not default home)', () => {
     )
     assert.match(shell, /MissionControlWorkspace/)
     assert.match(rail, /Mission Control/)
-    assert.match(desk, /tos-classic-desk|data-tos-classic/)
+    assert.match(desk, /tos-mockup-desk|data-tos-mockup/)
     assert.doesNotMatch(desk, /tos-mc-grid/)
   })
 
@@ -53,13 +53,13 @@ describe('Mission Control workspace (not default home)', () => {
     assert.match(css, /--tos-accent-gold:\s*#ffb800/)
   })
 
-  it('left rail includes Mission Control in classic hierarchy', () => {
+  it('left rail includes Mission Control in mockup hierarchy', () => {
     const rail = readFileSync(
       join(root, 'features/terminal-os/shell/components/LeftRail.tsx'),
       'utf8',
     )
     assert.match(rail, /Mission Control/)
     assert.match(rail, /Trade Like Me|AiTradeLikeMeCard/)
-    assert.match(rail, /TERMINAL/)
+    assert.match(rail, /MISSION CONTROL/)
   })
 })

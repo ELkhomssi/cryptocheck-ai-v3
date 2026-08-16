@@ -13,8 +13,7 @@ import type { Decision } from '@cryptocheck/decision-contracts'
 import type { CoachInsight } from '@/features/terminal-os/shared/types'
 import { selectHeroDecision } from '@/features/ai-os/lib/gateway-round2'
 
-const INSUFFICIENT =
-  'Not enough data yet — connect and make a few trades so Trader DNA can learn from real fills.'
+const INSUFFICIENT = 'Not enough activity yet to advise on'
 
 export function AiCoachingCard() {
   const setNav = useTerminalOsStore((s) => s.setActiveNav)

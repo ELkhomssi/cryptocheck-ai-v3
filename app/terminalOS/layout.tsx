@@ -3,6 +3,7 @@ import { GeistMono } from 'geist/font/mono'
 import { TerminalOsProviders } from '@/features/terminal-os/shell/Providers'
 import '@/styles/tokens.css'
 import '@/styles/terminal-os.css'
+import '@/styles/terminal-os-mockup.css'
 import '@/lib/portfolio-desk/theme.css'
 import '@/features/intelligence-chart/styles.css'
 import '@/features/execution-desk/styles.css'
@@ -17,6 +18,7 @@ export default function TerminalOsLayout({ children }: { children: React.ReactNo
   return (
     <div
       data-tos
+      data-tos-mockup="v1"
       className={`${GeistSans.variable} ${GeistMono.variable}`}
       style={{
         minHeight: '100vh',

@@ -24,7 +24,7 @@ import {
   AiCoachWorkspace,
   MissionControlWorkspace,
 } from '@/features/terminal-os/shell/components/MissionAndCoachWorkspaces'
-import { TerminalOsHomeDesk } from '@/features/terminal-os/shell/components/TerminalOsHomeDesk'
+import { TerminalOsHomeDesk, MockupIntelligenceRail } from '@/features/terminal-os/shell/components/TerminalOsHomeDesk'
 import { SystemStatusGauges } from '@/features/terminal-os/shell/components/SystemStatusGauges'
 import { ChartIntelligenceWorkspace } from '@/features/terminal-os/chart-intelligence/components/ChartIntelligenceWorkspace'
 import { Panel } from '@/features/terminal-os/shared/components/Panel'
@@ -347,7 +347,10 @@ function SecondaryNavStub({ nav }: { nav: TerminalNavId }) {
   )
 }
 
-function RightRail() {
+function RightRail({ homeMode }: { homeMode: boolean }) {
+  if (homeMode) {
+    return <MockupIntelligenceRail />
+  }
   return (
     <aside className="tos-right-rail" aria-label="Scan and execution" data-tos-right="classic">
       <Bound title="Token Score">
@@ -373,6 +376,7 @@ export function TerminalOsShell() {
       className="tos-shell"
       data-tos-shell
       data-tos-classic="v6"
+      data-tos-mockup="v1"
       data-tos-home={homeMode ? 'true' : undefined}
       data-tos-chart={chartMode ? 'true' : undefined}
     >
@@ -397,7 +401,7 @@ export function TerminalOsShell() {
       <main className="tos-main">
         <MainColumn />
       </main>
-      <RightRail />
+      <RightRail homeMode={homeMode} />
     </div>
   )
 }
