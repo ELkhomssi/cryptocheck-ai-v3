@@ -1,5 +1,5 @@
 /**
- * Live density — waiting chrome stays professional; Decision tick resilient.
+ * Live density — waiting chrome stays honest; Decision tick resilient.
  * Run: node --import tsx --test __tests__/terminal-os/live-density.test.ts
  */
 
@@ -7,20 +7,19 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import {
-  engineChecklist,
-  standbyHeroMetrics,
-  UNAVAILABLE,
-} from '@/features/ai-os/lib/gateway-round2'
+import { engineChecklist } from '@/features/ai-os/lib/gateway-round2'
 
 const root = process.cwd()
 
 describe('Terminal OS live density', () => {
-  it('Gateway standby metrics are Unavailable only (no fabricated scores)', () => {
-    const m = standbyHeroMetrics()
-    assert.ok(m.primary.every((c) => c.value === UNAVAILABLE && c.available === false))
-    assert.ok(m.secondary.every((c) => c.value === UNAVAILABLE && c.available === false))
-    assert.ok(engineChecklist({ decisionLoading: false, decision: null }).every((r) => r.status === 'standby'))
+  it('Gateway empty state has no STANDBY chrome or fabricated scores', () => {
+    const hero = readFileSync(join(root, 'features/ai-os/components/GatewayHeroFlow.tsx'), 'utf8')
+    assert.doesNotMatch(hero, /\bSTANDBY\b/)
+    assert.doesNotMatch(hero, /data-gw-standby|aios-gw-standby|standbyHeroMetrics/)
+    assert.match(hero, /No Decision published yet/)
+    assert.ok(
+      engineChecklist({ decisionLoading: false, decision: null }).every((r) => r.status === 'standby'),
+    )
   })
 
   it('decisions route surfaces tickError when tick publishes nothing', () => {
@@ -37,7 +36,7 @@ describe('Terminal OS live density', () => {
     assert.match(tick, /token failed/)
   })
 
-  it('missions + gateway + alerts keep dense standby chrome (no Solana-only EVM lie)', () => {
+  it('missions + gateway + alerts keep honest waiting chrome (no Solana-only EVM lie)', () => {
     const panels = readFileSync(
       join(root, 'features/terminal-os/shell/components/HomeDeskPanels.tsx'),
       'utf8',
@@ -49,7 +48,7 @@ describe('Terminal OS live density', () => {
     )
     assert.match(panels, /tos-missions-list--standby/)
     assert.match(panels, /No active missions/)
-    assert.match(hero, /standbyHeroMetrics|data-gw-standby/)
+    assert.match(hero, /data-gw-empty|No Decision published yet/)
     assert.doesNotMatch(alerts, /Solana holdings only/)
     assert.match(alerts, /EVM holdings · quiet|Connect a Solana or EVM wallet/)
   })
