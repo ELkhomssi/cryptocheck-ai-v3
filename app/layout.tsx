@@ -3,6 +3,7 @@ import { IBM_Plex_Mono, IBM_Plex_Sans, JetBrains_Mono } from 'next/font/google'
 import { SolanaProvider } from '@/components/SolanaProvider'
 import { DisclaimerModal } from '@/components/legal/DisclaimerModal'
 import { Analytics } from '@vercel/analytics/react'
+import { AppProviders } from '@/app/providers'
 import { buildRootMetadata } from '@/lib/seo/metadata'
 import '@/styles/tokens.css'
 import './globals.css'
@@ -48,10 +49,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⬡</text></svg>" />
       </head>
       <body className="font-mono antialiased" style={{ backgroundColor: "#050510", minHeight: "100vh" }}>
-        <SolanaProvider>
-          {children}
-          <DisclaimerModal />
-        </SolanaProvider>
+        <AppProviders>
+          <SolanaProvider>
+            {children}
+            <DisclaimerModal />
+          </SolanaProvider>
+        </AppProviders>
         <Analytics />
       </body>
     </html>
